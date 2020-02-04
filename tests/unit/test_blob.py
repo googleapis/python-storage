@@ -391,8 +391,6 @@ class Test_Blob(unittest.TestCase):
         credentials=None,
         expiration=None,
         encryption_key=None,
-        access_token=None,
-        service_account_email=None,
     ):
         from six.moves.urllib import parse
         from google.cloud._helpers import UTC
@@ -434,8 +432,6 @@ class Test_Blob(unittest.TestCase):
                 headers=headers,
                 query_parameters=query_parameters,
                 version=version,
-                access_token=access_token,
-                service_account_email=service_account_email,
             )
 
         self.assertEqual(signed_uri, signer.return_value)
@@ -468,8 +464,6 @@ class Test_Blob(unittest.TestCase):
             "generation": generation,
             "headers": expected_headers,
             "query_parameters": query_parameters,
-            "access_token": access_token,
-            "service_account_email": service_account_email,
         }
         signer.assert_called_once_with(expected_creds, **expected_kwargs)
 
@@ -1014,7 +1008,7 @@ class Test_Blob(unittest.TestCase):
 
     def _download_to_filename_helper(self, updated, raw_download):
         import os
-        import time
+        from google.cloud.storage._helpers import _convert_to_timestamp
         from google.cloud._testing import _NamedTemporaryFile
 
         blob_name = "blob-name"
@@ -1034,7 +1028,10 @@ class Test_Blob(unittest.TestCase):
                 self.assertIsNone(blob.updated)
             else:
                 mtime = os.path.getmtime(temp.name)
-                updated_time = time.mktime(blob.updated.timetuple())
+                if six.PY2:
+                    updated_time = _convert_to_timestamp(blob.updated)
+                else:
+                    updated_time = blob.updated.timestamp()
                 self.assertEqual(mtime, updated_time)
 
         headers = {"accept-encoding": "gzip"}

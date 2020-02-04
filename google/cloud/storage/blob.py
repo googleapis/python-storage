@@ -31,8 +31,8 @@ import hashlib
 from io import BytesIO
 import mimetypes
 import os
-import time
 import warnings
+import six
 
 from six.moves.urllib.parse import parse_qsl
 from six.moves.urllib.parse import quote
@@ -57,6 +57,7 @@ from google.cloud.exceptions import NotFound
 from google.cloud.storage._helpers import _get_storage_host
 from google.cloud.storage._helpers import _PropertyMixin
 from google.cloud.storage._helpers import _scalar_property
+from google.cloud.storage._helpers import _convert_to_timestamp
 from google.cloud.storage._signing import generate_signed_url_v2
 from google.cloud.storage._signing import generate_signed_url_v4
 from google.cloud.storage.acl import ACL
@@ -358,8 +359,6 @@ class Blob(_PropertyMixin):
         client=None,
         credentials=None,
         version=None,
-        service_account_email=None,
-        access_token=None,
     ):
         """Generates a signed URL for this blob.
 
@@ -447,12 +446,6 @@ class Blob(_PropertyMixin):
         :param version: (Optional) The version of signed credential to create.
                         Must be one of 'v2' | 'v4'.
 
-        :type service_account_email: str
-        :param service_account_email: (Optional) E-mail address of the service account.
-
-        :type access_token: str
-        :param access_token: (Optional) Access token for a service account.
-
         :raises: :exc:`ValueError` when version is invalid.
         :raises: :exc:`TypeError` when expiration is not a valid type.
         :raises: :exc:`AttributeError` if credentials is not an instance
@@ -505,8 +498,6 @@ class Blob(_PropertyMixin):
             generation=generation,
             headers=headers,
             query_parameters=query_parameters,
-            service_account_email=service_account_email,
-            access_token=access_token,
         )
 
     def exists(self, client=None):
@@ -773,7 +764,10 @@ class Blob(_PropertyMixin):
 
         updated = self.updated
         if updated is not None:
-            mtime = time.mktime(updated.timetuple())
+            if six.PY2:
+                mtime = _convert_to_timestamp(updated)
+            else:
+                mtime = updated.timestamp()
             os.utime(file_obj.name, (mtime, mtime))
 
     def download_as_string(self, client=None, start=None, end=None, raw_download=False):
