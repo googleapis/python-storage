@@ -977,8 +977,8 @@ class TestStorageSignURLs(unittest.TestCase):
             method=method,
             client=Config.CLIENT,
             version=version,
-            service_account_email=None,
-            access_token=None,
+            service_account_email=service_account_email,
+            access_token=access_token,
         )
 
         headers = {}
@@ -1055,8 +1055,9 @@ class TestStorageSignURLs(unittest.TestCase):
         client = iam_credentials_v1.IAMCredentialsClient()
         service_account_email = Config.CLIENT._credentials.service_account_email
         name = client.service_account_path("-", service_account_email)
-        scope = ["https://www.googleapis.com/auth/devstorage.read_write"]
+        scope = ["https://www.googleapis.com/auth/cloud-platform"]
         response = client.generate_access_token(name, scope)
+        print(response.access_token)
         self._create_signed_read_url_helper(
             service_account_email=service_account_email,
             access_token=response.access_token,
@@ -1066,7 +1067,7 @@ class TestStorageSignURLs(unittest.TestCase):
         client = iam_credentials_v1.IAMCredentialsClient()
         service_account_email = Config.CLIENT._credentials.service_account_email
         name = client.service_account_path("-", service_account_email)
-        scope = ["https://www.googleapis.com/auth/devstorage.read_write"]
+        scope = ["https://www.googleapis.com/auth/cloud-platform"]
         response = client.generate_access_token(name, scope)
         self._create_signed_read_url_helper(
             version="v4",
