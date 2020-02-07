@@ -510,7 +510,7 @@ def generate_signed_url_v4(
 
     :type query_parameters: dict
     :param query_parameters:
-        (Optional) Additional query paramtersto be included as part of the
+        (Optional) Additional query parameters to be included as part of the
         signed URLs.  See:
         https://cloud.google.com/storage/docs/xml-api/reference-headers#query
 
@@ -586,8 +586,7 @@ def generate_signed_url_v4(
     if generation is not None:
         query_parameters["generation"] = generation
 
-    ordered_query_parameters = sorted(query_parameters.items())
-    canonical_query_string = six.moves.urllib.parse.urlencode(ordered_query_parameters)
+    canonical_query_string = _url_encode(query_parameters)
 
     canonical_elements = [
         method,
@@ -666,3 +665,35 @@ def _sign_message(message, access_token, service_account_email):
 
     data = json.loads(response.data.decode("utf-8"))
     return data["signature"]
+
+
+def _url_encode(query_params):
+    """Encode query params into URL.
+
+    :type query_params: dict
+    :param query_params: Query params to be encoded.
+
+    :rtype: str
+    :returns: URL encoded query params.
+    """
+    query_params = sorted(query_params.items())
+
+    params = []
+    for name, value in query_params:
+        params.append(_quote_param(name) + "=" + _quote_param(value))
+
+    return "&".join(params)
+
+
+def _quote_param(param):
+    """Quote query param.
+
+    :type param: dict
+    :param param: Query param to be encoded.
+
+    :rtype: str
+    :returns: URL encoded query param.
+    """
+    if not isinstance(param, bytes):
+        param = str(param)
+    return six.moves.urllib.parse.quote(param, safe="~")
