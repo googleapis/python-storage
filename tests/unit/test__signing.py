@@ -702,6 +702,19 @@ class Test_sign_message(unittest.TestCase):
                 )
 
 
+class TestCustomURLEncoding(unittest.TestCase):
+    def test_url_encode(self):
+        from google.cloud.storage._signing import _url_encode
+
+        # param1 includes safe symbol ~
+        # param# includes symbols, which must be encoded
+        query_params = {"param1": "value~1-2", "param#": "*value+value/"}
+
+        self.assertEqual(
+            _url_encode(query_params), "param%23=%2Avalue%2Bvalue%2F&param1=value~1-2"
+        )
+
+
 _DUMMY_SERVICE_ACCOUNT = None
 
 
