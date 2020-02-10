@@ -1784,6 +1784,21 @@ class Test_Bucket(unittest.TestCase):
             stacklevel=1,
         )
 
+    def test_create_w_user_project(self):
+        from google.cloud.storage.client import Client
+
+        PROJECT = "PROJECT"
+        BUCKET_NAME = "bucket-name"
+        DATA = {"name": BUCKET_NAME}
+        connection = _make_connection(DATA)
+        client = Client(project=PROJECT)
+        client._base_connection = connection
+
+        bucket = self._make_one(client=client, name=BUCKET_NAME)
+        bucket._user_project = "USER_PROJECT"
+        with self.assertRaises(ValueError):
+            bucket.create()
+
     def test_versioning_enabled_setter(self):
         NAME = "name"
         bucket = self._make_one(name=NAME)
