@@ -18,7 +18,6 @@ import binascii
 import collections
 import datetime
 import hashlib
-import re
 import json
 
 import six
@@ -31,8 +30,6 @@ from google.cloud import _helpers
 
 
 NOW = datetime.datetime.utcnow  # To be replaced by tests.
-MULTIPLE_SPACES_RE = r"\s+"
-MULTIPLE_SPACES = re.compile(MULTIPLE_SPACES_RE)
 
 SERVICE_ACCOUNT_URL = (
     "https://googleapis.dev/python/google-api-core/latest/"
@@ -192,7 +189,7 @@ def get_canonical_headers(headers):
     normalized = collections.defaultdict(list)
     for key, val in headers:
         key = key.lower().strip()
-        val = MULTIPLE_SPACES.sub(" ", val.strip())
+        val = " ".join(val.split())
         normalized[key].append(val)
 
     ordered_headers = sorted((key, ",".join(val)) for key, val in normalized.items())
