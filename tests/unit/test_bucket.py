@@ -1816,6 +1816,7 @@ class Test_Bucket(unittest.TestCase):
             query_params={"project": PROJECT},
             data=DATA,
             _target_object=bucket,
+            timeout=self._get_default_timeout(),
         )
 
         mock_warn.assert_called_with(

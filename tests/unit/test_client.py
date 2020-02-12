@@ -726,6 +726,7 @@ class TestClient(unittest.TestCase):
             query_params={"project": OTHER_PROJECT},
             data=DATA,
             _target_object=bucket,
+            timeout=self._get_default_timeout(),
         )
 
     def test_create_w_extra_properties(self):
@@ -776,6 +777,7 @@ class TestClient(unittest.TestCase):
             query_params={"project": PROJECT},
             data=DATA,
             _target_object=bucket,
+            timeout=self._get_default_timeout(),
         )
 
     def test_create_hit(self):
@@ -796,6 +798,7 @@ class TestClient(unittest.TestCase):
             query_params={"project": PROJECT},
             data=DATA,
             _target_object=bucket,
+            timeout=self._get_default_timeout(),
         )
 
     def test_create_bucket_w_string_success(self):
