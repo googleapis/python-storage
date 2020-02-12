@@ -741,6 +741,7 @@ def _run_conformance_test(resource, test_data):
         method=test_data["method"],
         _request_timestamp=test_data["timestamp"],
         headers=test_data.get("headers"),
+        query_parameters=test_data.get("queryParameters"),
     )
 
     assert url == test_data["expectedUrl"]
