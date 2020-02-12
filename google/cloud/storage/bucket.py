@@ -1888,7 +1888,7 @@ class Bucket(_PropertyMixin):
     def requester_pays(self, value):
         """Update whether requester pays for API requests for this bucket.
 
-        See  https://cloud.google.com/storage/docs/<DOCS-MISSING> for
+        See https://cloud.google.com/storage/docs/using-requester-pays for
         details.
 
         :type value: convertible to boolean

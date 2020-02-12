@@ -373,8 +373,9 @@ class Client(ClientWithProject):
             ]):
                 The bucket resource to pass or name to create.
             requester_pays (bool):
-                DEPRECATED. Optional. Whether requester pays for API
-                requests for this bucket and its blobs.
+                DEPRECATED. Use Bucket().requester_pays instead.
+                Optional. Whether requester pays for API requests for
+                this bucket and its blobs.
             project (str):
                 Optional. The project under which the bucket is to be created.
                 If not passed, uses the project set on the client.
@@ -436,7 +437,7 @@ class Client(ClientWithProject):
 
         if requester_pays is not None:
             warnings.warn(
-                "requester_pays arg is deprecated.",
+                "requester_pays arg is deprecated. Use Bucket().requester_pays instead.",
                 PendingDeprecationWarning,
                 stacklevel=1,
             )
