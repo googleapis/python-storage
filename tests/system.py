@@ -309,15 +309,6 @@ class TestStorageBuckets(unittest.TestCase):
         self.assertEqual(returned_policy.version, 3)
         self.assertEqual(returned_policy.bindings, policy.bindings)
 
-        with pytest.raises(
-            BadRequest, match="cannot be less than the existing policy version"
-        ):
-            bucket.get_iam_policy()
-        with pytest.raises(
-            BadRequest, match="cannot be less than the existing policy version"
-        ):
-            bucket.get_iam_policy(requested_policy_version=2)
-
         fetched_policy = bucket.get_iam_policy(requested_policy_version=3)
         self.assertEqual(fetched_policy.bindings, returned_policy.bindings)
 
@@ -977,8 +968,8 @@ class TestStorageSignURLs(unittest.TestCase):
             method=method,
             client=Config.CLIENT,
             version=version,
-            service_account_email=None,
-            access_token=None,
+            service_account_email=service_account_email,
+            access_token=access_token,
         )
 
         headers = {}
@@ -1055,7 +1046,10 @@ class TestStorageSignURLs(unittest.TestCase):
         client = iam_credentials_v1.IAMCredentialsClient()
         service_account_email = Config.CLIENT._credentials.service_account_email
         name = client.service_account_path("-", service_account_email)
-        scope = ["https://www.googleapis.com/auth/devstorage.read_write"]
+        scope = [
+            "https://www.googleapis.com/auth/devstorage.read_write",
+            "https://www.googleapis.com/auth/iam",
+        ]
         response = client.generate_access_token(name, scope)
         self._create_signed_read_url_helper(
             service_account_email=service_account_email,
@@ -1066,7 +1060,10 @@ class TestStorageSignURLs(unittest.TestCase):
         client = iam_credentials_v1.IAMCredentialsClient()
         service_account_email = Config.CLIENT._credentials.service_account_email
         name = client.service_account_path("-", service_account_email)
-        scope = ["https://www.googleapis.com/auth/devstorage.read_write"]
+        scope = [
+            "https://www.googleapis.com/auth/devstorage.read_write",
+            "https://www.googleapis.com/auth/iam",
+        ]
         response = client.generate_access_token(name, scope)
         self._create_signed_read_url_helper(
             version="v4",
