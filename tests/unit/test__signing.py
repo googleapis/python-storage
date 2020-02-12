@@ -544,9 +544,9 @@ class Test_generate_signed_url_v4(unittest.TestCase):
         generation=None,
         headers=None,
         query_parameters=None,
+        resource="/name/path",
     ):
         now = datetime.datetime(2019, 2, 26, 19, 53, 27)
-        resource = "/name/path"
         signer_email = "service@example.com"
         credentials = _make_credentials(signer_email=signer_email)
         credentials.sign_bytes.return_value = b"DEADBEEF"
@@ -577,7 +577,7 @@ class Test_generate_signed_url_v4(unittest.TestCase):
         )
         self.assertEqual(scheme, expected_scheme)
         self.assertEqual(netloc, expected_netloc)
-        self.assertEqual(path, resource)
+        self.assertEqual(path, six.moves.urllib.parse.quote(resource))
         self.assertEqual(frag, "")
 
         # Check the URL parameters.
@@ -655,6 +655,9 @@ class Test_generate_signed_url_v4(unittest.TestCase):
 
     def test_w_custom_query_parameters_w_none_value(self):
         self._generate_helper(query_parameters={"qux": None})
+
+    def test_w_non_ascii_resource(self):
+        self._generate_helper(resource="/name/p\xe5th")
 
     def test_with_access_token(self):
         resource = "/name/path"

@@ -586,9 +586,11 @@ def generate_signed_url_v4(
     ordered_query_parameters = sorted(query_parameters.items())
     canonical_query_string = six.moves.urllib.parse.urlencode(ordered_query_parameters)
 
+    quoted_resource = six.moves.urllib.parse.quote(resource)
+
     canonical_elements = [
         method,
-        resource,
+        quoted_resource,
         canonical_query_string,
         canonical_header_string,
         signed_headers,
@@ -617,7 +619,7 @@ def generate_signed_url_v4(
         signature = binascii.hexlify(signature_bytes).decode("ascii")
 
     return "{}{}?{}&X-Goog-Signature={}".format(
-        api_access_endpoint, resource, canonical_query_string, signature
+        api_access_endpoint, quoted_resource, canonical_query_string, signature
     )
 
 
