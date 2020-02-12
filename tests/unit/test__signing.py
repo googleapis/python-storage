@@ -653,9 +653,6 @@ class Test_generate_signed_url_v4(unittest.TestCase):
     def test_w_custom_payload_hash_goog(self):
         self._generate_helper(headers={"x-goog-content-sha256": "DEADBEEF"})
 
-    def test_w_custom_payload_hash_amz(self):
-        self._generate_helper(headers={"x-amz-content-sha256": "DEADBEEF"})
-
     def test_w_custom_query_parameters_w_string_value(self):
         self._generate_helper(query_parameters={"bar": "/"})
 

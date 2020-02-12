@@ -592,8 +592,6 @@ def generate_signed_url_v4(
 
     if "x-goog-content-sha256" in lowercased_headers:
         payload = lowercased_headers["x-goog-content-sha256"]
-    elif "x-amz-content-sha256" in lowercased_headers:
-        payload = lowercased_headers["x-amz-content-sha256"]
     else:
         payload = "UNSIGNED-PAYLOAD"
 
