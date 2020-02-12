@@ -588,13 +588,22 @@ def generate_signed_url_v4(
 
     quoted_resource = six.moves.urllib.parse.quote(resource)
 
+    lowercased_headers = dict(ordered_headers)
+
+    if "x-goog-content-sha256" in lowercased_headers:
+        payload = lowercased_headers["x-goog-content-sha256"]
+    elif "x-amz-content-sha256" in lowercased_headers:
+        payload = lowercased_headers["x-amz-content-sha256"]
+    else:
+        payload = "UNSIGNED-PAYLOAD"
+
     canonical_elements = [
         method,
         quoted_resource,
         canonical_query_string,
         canonical_header_string,
         signed_headers,
-        "UNSIGNED-PAYLOAD",
+        payload,
     ]
     canonical_request = "\n".join(canonical_elements)
 
