@@ -206,8 +206,8 @@ _Canonical = collections.namedtuple(
 )
 
 
-def canonicalize(method, resource, query_parameters, headers):
-    """Canonicalize method, resource
+def canonicalize_v2(method, resource, query_parameters, headers):
+    """Canonicalize method, resource per the V2 spec.
 
     :type method: str
     :param method: The HTTP verb that will be used when requesting the URL.
@@ -368,7 +368,7 @@ def generate_signed_url_v2(
     """
     expiration_stamp = get_expiration_seconds_v2(expiration)
 
-    canonical = canonicalize(method, resource, query_parameters, headers)
+    canonical = canonicalize_v2(method, resource, query_parameters, headers)
 
     # Generate the string to sign.
     elements_to_sign = [
