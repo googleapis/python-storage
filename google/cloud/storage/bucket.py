@@ -742,7 +742,7 @@ class Bucket(_PropertyMixin):
             "Use Client.create_bucket() instead.",
             PendingDeprecationWarning,
             stacklevel=1,
-        )https://github.com/googleapis/python-storage/blob/master/google/cloud/storage/bucket.py
+        )
         if self.user_project is not None:
             raise ValueError("Cannot create bucket with 'user_project' set.")
 
@@ -753,6 +753,7 @@ class Bucket(_PropertyMixin):
             location=location,
             predefined_acl=predefined_acl,
             predefined_default_object_acl=predefined_default_object_acl,
+            timeout=timeout,
         )
 
     def patch(self, client=None, timeout=_DEFAULT_TIMEOUT):

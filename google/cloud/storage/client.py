@@ -15,7 +15,7 @@
 """Client for interacting with the Google Cloud Storage API."""
 
 import warnings
-
+import functools
 import google.api_core.client_options
 
 from google.auth.credentials import AnonymousCredentials
