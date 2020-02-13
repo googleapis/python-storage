@@ -361,7 +361,7 @@ class Blob(_PropertyMixin):
         version=None,
         service_account_email=None,
         access_token=None,
-        use_virtual_hostname=False,
+        virtual_host_style=False,
     ):
         """Generates a signed URL for this blob.
 
@@ -455,8 +455,8 @@ class Blob(_PropertyMixin):
         :type access_token: str
         :param access_token: (Optional) Access token for a service account.
 
-        :type use_virtual_hostname: bool
-        :param use_virtual_hostname:
+        :type virtual_host_style: bool
+        :param virtual_host_style:
             (Optional) If true, then construct the URL relative the bucket's
             virtual hostname, e.g., '<bucket-name>.storage.googleapis.com'.
 
@@ -476,7 +476,7 @@ class Blob(_PropertyMixin):
 
         quoted_name = _quote(self.name, safe=b"/~")
 
-        if use_virtual_hostname:
+        if virtual_host_style:
             api_access_endpoint = "https://{bucket_name}.storage.googleapis.com".format(
                 bucket_name=self.bucket.name
             )
