@@ -718,6 +718,41 @@ class TestCustomURLEncoding(unittest.TestCase):
         )
 
 
+class TestQuoteParam(unittest.TestCase):
+    def test_ascii_symbols(self):
+        from google.cloud.storage._signing import _quote_param
+
+        encoded_param = _quote_param("param")
+        self.assertIsInstance(encoded_param, str)
+        self.assertEqual(encoded_param, "param")
+
+    def test_quoted_symbols(self):
+        from google.cloud.storage._signing import _quote_param
+
+        encoded_param = _quote_param("!#$%&'()*+,/:;=?@[]")
+        self.assertIsInstance(encoded_param, str)
+        self.assertEqual(
+            encoded_param, "%21%23%24%25%26%27%28%29%2A%2B%2C%2F%3A%3B%3D%3F%40%5B%5D"
+        )
+
+    def test_unquoted_symbols(self):
+        from google.cloud.storage._signing import _quote_param
+        import string
+
+        UNQUOTED = string.ascii_letters + string.digits + ".~_-"
+
+        encoded_param = _quote_param(UNQUOTED)
+        self.assertIsInstance(encoded_param, str)
+        self.assertEqual(encoded_param, UNQUOTED)
+
+    def test_unicode_symbols(self):
+        from google.cloud.storage._signing import _quote_param
+
+        encoded_param = _quote_param("ЁЙЦЯЩЯЩ")
+        self.assertIsInstance(encoded_param, str)
+        self.assertEqual(encoded_param, "%D0%81%D0%99%D0%A6%D0%AF%D0%A9%D0%AF%D0%A9")
+
+
 _DUMMY_SERVICE_ACCOUNT = None
 
 

@@ -682,9 +682,10 @@ def _url_encode(query_params):
     :rtype: str
     :returns: URL encoded query params.
     """
-    params = []
-    for name, value in query_params.items():
-        params.append(_quote_param(name) + "=" + _quote_param(value))
+    params = [
+        "{}={}".format(_quote_param(name), _quote_param(value))
+        for name, value in query_params.items()
+    ]
 
     return "&".join(sorted(params))
 
