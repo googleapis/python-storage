@@ -2739,6 +2739,7 @@ class Test_Bucket(unittest.TestCase):
         query_parameters=None,
         credentials=None,
         expiration=None,
+        use_virtual_hostname=False,
     ):
         from six.moves.urllib import parse
         from google.cloud._helpers import UTC
@@ -2773,6 +2774,7 @@ class Test_Bucket(unittest.TestCase):
                 headers=headers,
                 query_parameters=query_parameters,
                 version=version,
+                use_virtual_hostname=use_virtual_hostname,
             )
 
         self.assertEqual(signed_uri, signer.return_value)
@@ -2782,12 +2784,19 @@ class Test_Bucket(unittest.TestCase):
         else:
             expected_creds = credentials
 
-        encoded_name = bucket_name.encode("utf-8")
-        expected_resource = "/{}".format(parse.quote(encoded_name))
+        if use_virtual_hostname:
+            expected_api_access_endpoint = "https://{}.storage.googleapis.com".format(
+                bucket_name
+            )
+            expected_resource = "/"
+        else:
+            expected_api_access_endpoint = api_access_endpoint
+            expected_resource = "/{}".format(parse.quote(bucket_name))
+
         expected_kwargs = {
             "resource": expected_resource,
             "expiration": expiration,
-            "api_access_endpoint": api_access_endpoint,
+            "api_access_endpoint": expected_api_access_endpoint,
             "method": method.upper(),
             "headers": headers,
             "query_parameters": query_parameters,
@@ -2915,6 +2924,9 @@ class Test_Bucket(unittest.TestCase):
     def test_generate_signed_url_v4_w_credentials(self):
         credentials = object()
         self._generate_signed_url_v4_helper(credentials=credentials)
+
+    def test_generate_signed_url_v4_w_virtual_hostname(self):
+        self._generate_signed_url_v4_helper(use_virtual_hostname=True)
 
 
 class _Connection(object):
