@@ -34,11 +34,9 @@ class StorageBenchWrapperServicer(storage_pb2_grpc.StorageBenchWrapperServicer):
         return storage_pb2.EmptyResponse()
 
     def Read(self, request, context):
-        print("Request:", request.bucketName, request.objectName)
         bucket = client.bucket(request.bucketName)
         blob = storage.Blob(request.objectName, bucket)
-        obj = blob.download_as_string()
-        print("Object Length:", len(obj))
+        blob.download_as_string()
         return storage_pb2.EmptyResponse()
 
 
