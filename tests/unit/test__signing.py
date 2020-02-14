@@ -754,6 +754,13 @@ class TestQuoteParam(unittest.TestCase):
         self.assertIsInstance(encoded_param, str)
         self.assertEqual(encoded_param, "%D0%81%D0%99%D0%A6%D0%AF%D0%A9%D0%AF%D0%A9")
 
+    def test_bytes(self):
+        from google.cloud.storage._signing import _quote_param
+
+        encoded_param = _quote_param(b"bytes")
+        self.assertIsInstance(encoded_param, str)
+        self.assertEqual(encoded_param, "bytes")
+
 
 _DUMMY_SERVICE_ACCOUNT = None
 
