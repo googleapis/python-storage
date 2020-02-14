@@ -24,12 +24,6 @@ args = parser.parse_args()
 if args.port is None:
     sys.exit("Usage: python3 main.py --port 8081")
 
-import os
-print("files at tmpfs")
-files = [f for f in os.listdir('/tmpfs/src/gfile/') if os.path.isfile(f)]
-for f in files:
-    print(f)
-
 #client = storage.Client.create_anonymous_client()
 client = storage.Client()
 
@@ -39,9 +33,11 @@ class StorageBenchWrapperServicer(storage_pb2_grpc.StorageBenchWrapperServicer):
         return storage_pb2.EmptyResponse()
 
     def Read(self, request, context):
+        print("Request:", request.bucketName, request.objectName)
         bucket = client.bucket(request.bucketName)
         blob = storage.Blob(request.objectName, bucket)
-        blob.download_as_string()
+        obj = blob.download_as_string()
+        print("Object Length:", len(obj))
         return storage_pb2.EmptyResponse()
 
 
