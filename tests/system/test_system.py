@@ -40,6 +40,8 @@ from test_utils.vpcsc_config import vpcsc_config
 
 
 USER_PROJECT = os.environ.get("GOOGLE_CLOUD_TESTS_USER_PROJECT")
+DIRNAME = os.path.realpath(os.path.dirname(__file__))
+DATA_DIRNAME = os.path.abspath(os.path.join(DIRNAME, "..", "data"))
 
 
 def _bad_copy(bad_request):
@@ -309,15 +311,6 @@ class TestStorageBuckets(unittest.TestCase):
         self.assertEqual(returned_policy.version, 3)
         self.assertEqual(returned_policy.bindings, policy.bindings)
 
-        with pytest.raises(
-            BadRequest, match="cannot be less than the existing policy version"
-        ):
-            bucket.get_iam_policy()
-        with pytest.raises(
-            BadRequest, match="cannot be less than the existing policy version"
-        ):
-            bucket.get_iam_policy(requested_policy_version=2)
-
         fetched_policy = bucket.get_iam_policy(requested_policy_version=3)
         self.assertEqual(fetched_policy.bindings, returned_policy.bindings)
 
@@ -460,11 +453,10 @@ class TestStorageBuckets(unittest.TestCase):
 
 class TestStorageFiles(unittest.TestCase):
 
-    DIRNAME = os.path.realpath(os.path.dirname(__file__))
     FILES = {
-        "logo": {"path": DIRNAME + "/data/CloudPlatform_128px_Retina.png"},
-        "big": {"path": DIRNAME + "/data/five-point-one-mb-file.zip"},
-        "simple": {"path": DIRNAME + "/data/simple.txt"},
+        "logo": {"path": DATA_DIRNAME + "/CloudPlatform_128px_Retina.png"},
+        "big": {"path": DATA_DIRNAME + "/five-point-one-mb-file.zip"},
+        "simple": {"path": DATA_DIRNAME + "/simple.txt"},
     }
 
     @classmethod
@@ -977,8 +969,8 @@ class TestStorageSignURLs(unittest.TestCase):
             method=method,
             client=Config.CLIENT,
             version=version,
-            service_account_email=None,
-            access_token=None,
+            service_account_email=service_account_email,
+            access_token=access_token,
         )
 
         headers = {}
@@ -1055,7 +1047,10 @@ class TestStorageSignURLs(unittest.TestCase):
         client = iam_credentials_v1.IAMCredentialsClient()
         service_account_email = Config.CLIENT._credentials.service_account_email
         name = client.service_account_path("-", service_account_email)
-        scope = ["https://www.googleapis.com/auth/devstorage.read_write"]
+        scope = [
+            "https://www.googleapis.com/auth/devstorage.read_write",
+            "https://www.googleapis.com/auth/iam",
+        ]
         response = client.generate_access_token(name, scope)
         self._create_signed_read_url_helper(
             service_account_email=service_account_email,
@@ -1066,7 +1061,10 @@ class TestStorageSignURLs(unittest.TestCase):
         client = iam_credentials_v1.IAMCredentialsClient()
         service_account_email = Config.CLIENT._credentials.service_account_email
         name = client.service_account_path("-", service_account_email)
-        scope = ["https://www.googleapis.com/auth/devstorage.read_write"]
+        scope = [
+            "https://www.googleapis.com/auth/devstorage.read_write",
+            "https://www.googleapis.com/auth/iam",
+        ]
         response = client.generate_access_token(name, scope)
         self._create_signed_read_url_helper(
             version="v4",
