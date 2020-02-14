@@ -693,7 +693,7 @@ def _url_encode(query_params):
 def _quote_param(param):
     """Quote query param.
 
-    :type param: dict
+    :type param: Union[str, bytes]
     :param param: Query param to be encoded.
 
     :rtype: str
