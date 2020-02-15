@@ -43,6 +43,12 @@ class Test_Blob(unittest.TestCase):
         blob._properties.update(properties)
         return blob
 
+    @staticmethod
+    def _get_default_timeout():
+        from google.cloud.storage.constants import _DEFAULT_TIMEOUT
+
+        return _DEFAULT_TIMEOUT
+
     def test_ctor_wo_encryption_key(self):
         BLOB_NAME = "blob-name"
         bucket = _Bucket()
@@ -393,6 +399,7 @@ class Test_Blob(unittest.TestCase):
         encryption_key=None,
         access_token=None,
         service_account_email=None,
+        virtual_hosted_style=False,
     ):
         from six.moves.urllib import parse
         from google.cloud._helpers import UTC
@@ -436,6 +443,7 @@ class Test_Blob(unittest.TestCase):
                 version=version,
                 access_token=access_token,
                 service_account_email=service_account_email,
+                virtual_hosted_style=virtual_hosted_style,
             )
 
         self.assertEqual(signed_uri, signer.return_value)
@@ -446,7 +454,17 @@ class Test_Blob(unittest.TestCase):
             expected_creds = credentials
 
         encoded_name = blob_name.encode("utf-8")
-        expected_resource = "/name/{}".format(parse.quote(encoded_name, safe=b"/~"))
+        quoted_name = parse.quote(encoded_name, safe=b"/~")
+
+        if virtual_hosted_style:
+            expected_api_access_endpoint = "https://{}.storage.googleapis.com".format(
+                bucket.name
+            )
+            expected_resource = "/{}".format(quoted_name)
+        else:
+            expected_api_access_endpoint = api_access_endpoint
+            expected_resource = "/{}/{}".format(bucket.name, quoted_name)
+
         if encryption_key is not None:
             expected_headers = headers or {}
             if effective_version == "v2":
@@ -459,7 +477,7 @@ class Test_Blob(unittest.TestCase):
         expected_kwargs = {
             "resource": expected_resource,
             "expiration": expiration,
-            "api_access_endpoint": api_access_endpoint,
+            "api_access_endpoint": expected_api_access_endpoint,
             "method": method.upper(),
             "content_md5": content_md5,
             "content_type": content_type,
@@ -598,6 +616,9 @@ class Test_Blob(unittest.TestCase):
             encryption_key=os.urandom(32), headers={"x-goog-foo": "bar"}
         )
 
+    def test_generate_signed_url_v4_w_virtual_hostname(self):
+        self._generate_signed_url_v4_helper(virtual_hosted_style=True)
+
     def test_generate_signed_url_v4_w_credentials(self):
         credentials = object()
         self._generate_signed_url_v4_helper(credentials=credentials)
@@ -609,7 +630,7 @@ class Test_Blob(unittest.TestCase):
         client = _Client(connection)
         bucket = _Bucket(client)
         blob = self._make_one(NONESUCH, bucket=bucket)
-        self.assertFalse(blob.exists())
+        self.assertFalse(blob.exists(timeout=42))
         self.assertEqual(len(connection._requested), 1)
         self.assertEqual(
             connection._requested[0],
@@ -618,6 +639,7 @@ class Test_Blob(unittest.TestCase):
                 "path": "/b/name/o/{}".format(NONESUCH),
                 "query_params": {"fields": "name"},
                 "_target_object": None,
+                "timeout": 42,
             },
         )
 
@@ -639,6 +661,7 @@ class Test_Blob(unittest.TestCase):
                 "path": "/b/name/o/{}".format(BLOB_NAME),
                 "query_params": {"fields": "name", "userProject": USER_PROJECT},
                 "_target_object": None,
+                "timeout": self._get_default_timeout(),
             },
         )
 
@@ -660,6 +683,7 @@ class Test_Blob(unittest.TestCase):
                 "path": "/b/name/o/{}".format(BLOB_NAME),
                 "query_params": {"fields": "name", "generation": GENERATION},
                 "_target_object": None,
+                "timeout": self._get_default_timeout(),
             },
         )
 
@@ -673,7 +697,9 @@ class Test_Blob(unittest.TestCase):
         bucket._blobs[BLOB_NAME] = 1
         blob.delete()
         self.assertFalse(blob.exists())
-        self.assertEqual(bucket._deleted, [(BLOB_NAME, None, None)])
+        self.assertEqual(
+            bucket._deleted, [(BLOB_NAME, None, None, self._get_default_timeout())]
+        )
 
     def test_delete_w_generation(self):
         BLOB_NAME = "blob-name"
@@ -684,9 +710,9 @@ class Test_Blob(unittest.TestCase):
         bucket = _Bucket(client)
         blob = self._make_one(BLOB_NAME, bucket=bucket, generation=GENERATION)
         bucket._blobs[BLOB_NAME] = 1
-        blob.delete()
+        blob.delete(timeout=42)
         self.assertFalse(blob.exists())
-        self.assertEqual(bucket._deleted, [(BLOB_NAME, None, GENERATION)])
+        self.assertEqual(bucket._deleted, [(BLOB_NAME, None, GENERATION, 42)])
 
     def test__get_transport(self):
         client = mock.Mock(spec=[u"_credentials", "_http"])
@@ -1203,6 +1229,16 @@ class Test_Blob(unittest.TestCase):
         object_metadata = blob._get_writable_metadata()
         expected = {"name": name}
         self.assertEqual(object_metadata, expected)
+
+    def test__set_metadata_to_none(self):
+        name = u"blob-name"
+        blob = self._make_one(name, bucket=None)
+        blob.storage_class = "NEARLINE"
+        blob.cache_control = "max-age=3600"
+
+        with mock.patch("google.cloud.storage.blob.Blob._patch_property") as patch_prop:
+            blob.metadata = None
+            patch_prop.assert_called_once_with("metadata", None)
 
     def test__get_upload_arguments(self):
         name = u"blob-name"
@@ -1960,7 +1996,7 @@ class Test_Blob(unittest.TestCase):
         bucket = _Bucket(client=client)
         blob = self._make_one(BLOB_NAME, bucket=bucket)
 
-        policy = blob.get_iam_policy()
+        policy = blob.get_iam_policy(timeout=42)
 
         self.assertIsInstance(policy, Policy)
         self.assertEqual(policy.etag, RETURNED["etag"])
@@ -1976,6 +2012,7 @@ class Test_Blob(unittest.TestCase):
                 "path": "%s/iam" % (PATH,),
                 "query_params": {},
                 "_target_object": None,
+                "timeout": 42,
             },
         )
 
@@ -2011,6 +2048,7 @@ class Test_Blob(unittest.TestCase):
                 "path": "%s/iam" % (PATH,),
                 "query_params": {"optionsRequestedPolicyVersion": 3},
                 "_target_object": None,
+                "timeout": self._get_default_timeout(),
             },
         )
 
@@ -2051,6 +2089,7 @@ class Test_Blob(unittest.TestCase):
                 "path": "%s/iam" % (PATH,),
                 "query_params": {"userProject": USER_PROJECT},
                 "_target_object": None,
+                "timeout": self._get_default_timeout(),
             },
         )
 
@@ -2087,7 +2126,7 @@ class Test_Blob(unittest.TestCase):
         bucket = _Bucket(client=client)
         blob = self._make_one(BLOB_NAME, bucket=bucket)
 
-        returned = blob.set_iam_policy(policy)
+        returned = blob.set_iam_policy(policy, timeout=42)
 
         self.assertEqual(returned.etag, ETAG)
         self.assertEqual(returned.version, VERSION)
@@ -2098,6 +2137,7 @@ class Test_Blob(unittest.TestCase):
         self.assertEqual(kw[0]["method"], "PUT")
         self.assertEqual(kw[0]["path"], "%s/iam" % (PATH,))
         self.assertEqual(kw[0]["query_params"], {})
+        self.assertEqual(kw[0]["timeout"], 42)
         sent = kw[0]["data"]
         self.assertEqual(sent["resourceId"], PATH)
         self.assertEqual(len(sent["bindings"]), len(BINDINGS))
@@ -2159,7 +2199,7 @@ class Test_Blob(unittest.TestCase):
         bucket = _Bucket(client=client)
         blob = self._make_one(BLOB_NAME, bucket=bucket)
 
-        allowed = blob.test_iam_permissions(PERMISSIONS)
+        allowed = blob.test_iam_permissions(PERMISSIONS, timeout=42)
 
         self.assertEqual(allowed, ALLOWED)
 
@@ -2168,6 +2208,7 @@ class Test_Blob(unittest.TestCase):
         self.assertEqual(kw[0]["method"], "GET")
         self.assertEqual(kw[0]["path"], "%s/iam/testPermissions" % (PATH,))
         self.assertEqual(kw[0]["query_params"], {"permissions": PERMISSIONS})
+        self.assertEqual(kw[0]["timeout"], 42)
 
     def test_test_iam_permissions_w_user_project(self):
         from google.cloud.storage.iam import STORAGE_OBJECTS_LIST
@@ -2202,6 +2243,7 @@ class Test_Blob(unittest.TestCase):
             kw[0]["query_params"],
             {"permissions": PERMISSIONS, "userProject": USER_PROJECT},
         )
+        self.assertEqual(kw[0]["timeout"], self._get_default_timeout())
 
     def test_make_public(self):
         from google.cloud.storage.acl import _ACLEntity
@@ -2272,6 +2314,7 @@ class Test_Blob(unittest.TestCase):
                     "destination": {},
                 },
                 "_target_object": destination,
+                "timeout": self._get_default_timeout(),
             },
         )
 
@@ -2290,7 +2333,7 @@ class Test_Blob(unittest.TestCase):
         destination = self._make_one(DESTINATION, bucket=bucket)
         destination.content_type = "text/plain"
 
-        destination.compose(sources=[source_1, source_2])
+        destination.compose(sources=[source_1, source_2], timeout=42)
 
         self.assertEqual(destination.etag, "DEADBEEF")
 
@@ -2307,6 +2350,7 @@ class Test_Blob(unittest.TestCase):
                     "destination": {"contentType": "text/plain"},
                 },
                 "_target_object": destination,
+                "timeout": 42,
             },
         )
 
@@ -2347,6 +2391,7 @@ class Test_Blob(unittest.TestCase):
                     },
                 },
                 "_target_object": destination,
+                "timeout": self._get_default_timeout(),
             },
         )
 
@@ -2400,13 +2445,13 @@ class Test_Blob(unittest.TestCase):
             DEST_BLOB, bucket=dest_bucket, generation=DEST_GENERATION
         )
 
-        token, rewritten, size = dest_blob.rewrite(source_blob)
+        token, rewritten, size = dest_blob.rewrite(source_blob, timeout=42)
 
         self.assertEqual(token, TOKEN)
         self.assertEqual(rewritten, 33)
         self.assertEqual(size, 42)
 
-        kw, = connection._requested
+        (kw,) = connection._requested
         self.assertEqual(kw["method"], "POST")
         self.assertEqual(
             kw["path"],
@@ -2416,6 +2461,7 @@ class Test_Blob(unittest.TestCase):
             ),
         )
         self.assertEqual(kw["query_params"], {"sourceGeneration": SOURCE_GENERATION})
+        self.assertEqual(kw["timeout"], 42)
 
     def test_rewrite_other_bucket_other_name_no_encryption_partial(self):
         SOURCE_BLOB = "source"
@@ -2455,6 +2501,7 @@ class Test_Blob(unittest.TestCase):
         self.assertEqual(kw[0]["query_params"], {})
         SENT = {}
         self.assertEqual(kw[0]["data"], SENT)
+        self.assertEqual(kw[0]["timeout"], self._get_default_timeout())
 
         headers = {key.title(): str(value) for key, value in kw[0]["headers"].items()}
         self.assertNotIn("X-Goog-Copy-Source-Encryption-Algorithm", headers)
@@ -2498,6 +2545,7 @@ class Test_Blob(unittest.TestCase):
         self.assertEqual(kw[0]["query_params"], {"userProject": USER_PROJECT})
         SENT = {}
         self.assertEqual(kw[0]["data"], SENT)
+        self.assertEqual(kw[0]["timeout"], self._get_default_timeout())
 
         headers = {key.title(): str(value) for key, value in kw[0]["headers"].items()}
         self.assertNotIn("X-Goog-Copy-Source-Encryption-Algorithm", headers)
@@ -2545,6 +2593,7 @@ class Test_Blob(unittest.TestCase):
         self.assertEqual(kw[0]["query_params"], {"rewriteToken": TOKEN})
         SENT = {}
         self.assertEqual(kw[0]["data"], SENT)
+        self.assertEqual(kw[0]["timeout"], self._get_default_timeout())
 
         headers = {key.title(): str(value) for key, value in kw[0]["headers"].items()}
         self.assertEqual(headers["X-Goog-Copy-Source-Encryption-Algorithm"], "AES256")
@@ -2595,6 +2644,7 @@ class Test_Blob(unittest.TestCase):
         self.assertEqual(
             kw[0]["query_params"], {"destinationKmsKeyName": DEST_KMS_RESOURCE}
         )
+        self.assertEqual(kw[0]["timeout"], self._get_default_timeout())
         SENT = {"kmsKeyName": DEST_KMS_RESOURCE}
         self.assertEqual(kw[0]["data"], SENT)
 
@@ -3345,9 +3395,9 @@ class _Bucket(object):
         self.path = "/b/" + name
         self.user_project = user_project
 
-    def delete_blob(self, blob_name, client=None, generation=None):
+    def delete_blob(self, blob_name, client=None, generation=None, timeout=None):
         del self._blobs[blob_name]
-        self._deleted.append((blob_name, client, generation))
+        self._deleted.append((blob_name, client, generation, timeout))
 
 
 class _Client(object):
