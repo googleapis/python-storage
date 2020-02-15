@@ -2,7 +2,6 @@ import argparse
 import sys
 import time
 import grpc
-import os
 from concurrent import futures
 import storage_pb2_grpc
 import storage_pb2
