@@ -3224,6 +3224,28 @@ class Test_Blob(unittest.TestCase):
         self.assertEqual(blob.name, "b")
         self.assertEqual(blob.bucket.name, "buckets.example.com")
 
+    def test__lt__(self):
+        BUCKET = object()
+        blob_first = self._make_one("A", bucket=BUCKET)
+        blob_second = self._make_one("a", bucket=BUCKET)
+        blob_third = self._make_one("b", bucket=BUCKET)
+
+        self.assertLess(blob_first, blob_second)
+        self.assertLess(blob_second, blob_third)
+
+        self.assertEqual([blob_first, blob_second, blob_third], sorted([blob_third, blob_second, blob_first]))
+
+    def test__lt__w_other_instance(self):
+        with self.assertRaises(TypeError):
+            self._make_one("A", bucket=object()) < None
+
+    def test__lt__w_mismatched_buckets(self):
+        blob_first = self._make_one("A", bucket=object())
+        blob_second = self._make_one("a", bucket=object())
+
+        with self.assertRaises(TypeError):
+            blob_first < blob_second
+
 
 class Test__quote(unittest.TestCase):
     @staticmethod

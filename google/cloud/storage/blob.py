@@ -190,6 +190,14 @@ class Blob(_PropertyMixin):
         if generation is not None:
             self._properties["generation"] = generation
 
+    def __lt__(self, other):
+        if not isinstance(other, Blob):
+            return super(Blob, self).__lt__(other)
+
+        if self.bucket != other.bucket:
+            raise TypeError("'<' not supported between blobs from different buckets")
+        return self.name < other.name
+
     @property
     def bucket(self):
         """Bucket which contains the object.
