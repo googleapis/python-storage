@@ -2740,6 +2740,7 @@ class Test_Bucket(unittest.TestCase):
         credentials=None,
         expiration=None,
         virtual_hosted_style=False,
+        use_cname=None,
     ):
         from six.moves.urllib import parse
         from google.cloud._helpers import UTC
@@ -2775,6 +2776,7 @@ class Test_Bucket(unittest.TestCase):
                 query_parameters=query_parameters,
                 version=version,
                 virtual_hosted_style=virtual_hosted_style,
+                use_cname=use_cname,
             )
 
         self.assertEqual(signed_uri, signer.return_value)
@@ -2792,6 +2794,9 @@ class Test_Bucket(unittest.TestCase):
         else:
             expected_api_access_endpoint = api_access_endpoint
             expected_resource = "/{}".format(parse.quote(bucket_name))
+
+        if use_cname:
+            expected_resource = "/"
 
         expected_kwargs = {
             "resource": expected_resource,
@@ -2927,6 +2932,11 @@ class Test_Bucket(unittest.TestCase):
 
     def test_generate_signed_url_v4_w_virtual_hostname(self):
         self._generate_signed_url_v4_helper(virtual_hosted_style=True)
+
+    def test_generate_signed_url_v4_w_bucket_bound_hostname(self):
+        self._generate_signed_url_v4_helper(
+            api_access_endpoint="https://cdn.example.com", use_cname=True
+        )
 
 
 class _Connection(object):

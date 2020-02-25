@@ -400,6 +400,7 @@ class Test_Blob(unittest.TestCase):
         access_token=None,
         service_account_email=None,
         virtual_hosted_style=False,
+        use_cname=None,
     ):
         from six.moves.urllib import parse
         from google.cloud._helpers import UTC
@@ -444,6 +445,7 @@ class Test_Blob(unittest.TestCase):
                 access_token=access_token,
                 service_account_email=service_account_email,
                 virtual_hosted_style=virtual_hosted_style,
+                use_cname=use_cname,
             )
 
         self.assertEqual(signed_uri, signer.return_value)
@@ -464,6 +466,9 @@ class Test_Blob(unittest.TestCase):
         else:
             expected_api_access_endpoint = api_access_endpoint
             expected_resource = "/{}/{}".format(bucket.name, quoted_name)
+
+        if use_cname:
+            expected_resource = "/{}".format(quoted_name)
 
         if encryption_key is not None:
             expected_headers = headers or {}
@@ -618,6 +623,11 @@ class Test_Blob(unittest.TestCase):
 
     def test_generate_signed_url_v4_w_virtual_hostname(self):
         self._generate_signed_url_v4_helper(virtual_hosted_style=True)
+
+    def test_generate_signed_url_v4_w_bucket_bound_hostname(self):
+        self._generate_signed_url_v4_helper(
+            api_access_endpoint="https://cdn.example.com", use_cname=True
+        )
 
     def test_generate_signed_url_v4_w_credentials(self):
         credentials = object()

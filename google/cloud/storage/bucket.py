@@ -2355,6 +2355,7 @@ class Bucket(_PropertyMixin):
         credentials=None,
         version=None,
         virtual_hosted_style=False,
+        use_cname=None,
     ):
         """Generates a signed URL for this bucket.
 
@@ -2372,6 +2373,8 @@ class Bucket(_PropertyMixin):
         If you have a bucket that you want to allow access to for a set
         amount of time, you can use this method to generate a URL that
         is only valid within a certain time period.
+
+        If ``cname`` is set as an argument of :attr:`api_access_endpoint`, ``https`` works only if using a ``CDN``.
 
         This is particularly useful if you don't want publicly
         accessible buckets, but don't want to require users to explicitly
@@ -2422,6 +2425,13 @@ class Bucket(_PropertyMixin):
             (Optional) If true, then construct the URL relative the bucket's
             virtual hostname, e.g., '<bucket-name>.storage.googleapis.com'.
 
+        :type use_cname: bool
+        :param use_cname:
+            (Optional) If true, then construct the URL relative the bucket-bound hostname ,
+            pass ``bucket-bound hostname`` value as argument of ``api_access_endpoint``,
+            e.g., 'api_access_endpoint = <bucket-bound hostname>'. See:
+            https://cloud.google.com/storage/docs/request-endpoints#cname
+
         :raises: :exc:`ValueError` when version is invalid.
         :raises: :exc:`TypeError` when expiration is not a valid type.
         :raises: :exc:`AttributeError` if credentials is not an instance
@@ -2443,6 +2453,9 @@ class Bucket(_PropertyMixin):
             resource = "/"
         else:
             resource = "/{bucket_name}".format(bucket_name=self.name)
+
+        if use_cname:
+            resource = "/"
 
         if credentials is None:
             client = self._require_client(client)
