@@ -415,6 +415,27 @@ class Test_Bucket(unittest.TestCase):
         self.assertEqual(list(bucket._label_removals), [])
         self.assertEqual(bucket.user_project, USER_PROJECT)
 
+    def test_from_string_w_invalid_uri(self):
+        from google.cloud.storage.bucket import Bucket
+
+        connection = _Connection()
+        client = _Client(connection)
+
+        with pytest.raises(ValueError, match="URI scheme must be gs"):
+            Bucket.from_string("http://bucket_name", client)
+
+    def test_from_string_w_domain_name_bucket(self):
+        from google.cloud.storage.bucket import Bucket
+
+        connection = _Connection()
+        client = _Client(connection)
+        BUCKET_NAME = "buckets.example.com"
+        uri = "gs://" + BUCKET_NAME
+        bucket = Bucket.from_string(uri, client)
+        self.assertIsInstance(bucket, Bucket)
+        self.assertIs(bucket.client, client)
+        self.assertEqual(bucket.name, BUCKET_NAME)
+
     def test_blob_wo_keys(self):
         from google.cloud.storage.blob import Blob
 
@@ -2809,27 +2830,6 @@ class Test_Bucket(unittest.TestCase):
         connection = _Connection()
         client = _Client(connection)
         BUCKET_NAME = "BUCKET_NAME"
-        uri = "gs://" + BUCKET_NAME
-        bucket = Bucket.from_string(uri, client)
-        self.assertIsInstance(bucket, Bucket)
-        self.assertIs(bucket.client, client)
-        self.assertEqual(bucket.name, BUCKET_NAME)
-
-    def test_get_bucket_from_string_w_invalid_uri(self):
-        from google.cloud.storage.bucket import Bucket
-
-        connection = _Connection()
-        client = _Client(connection)
-
-        with pytest.raises(ValueError, match="URI scheme must be gs"):
-            Bucket.from_string("http://bucket_name", client)
-
-    def test_get_bucket_from_string_w_domain_name_bucket(self):
-        from google.cloud.storage.bucket import Bucket
-
-        connection = _Connection()
-        client = _Client(connection)
-        BUCKET_NAME = "buckets.example.com"
         uri = "gs://" + BUCKET_NAME
         bucket = Bucket.from_string(uri, client)
         self.assertIsInstance(bucket, Bucket)

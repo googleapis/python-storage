@@ -513,33 +513,6 @@ class Bucket(_PropertyMixin):
         self._label_removals = set()
         self._user_project = user_project
 
-    def __repr__(self):
-        return "<Bucket: %s>" % (self.name,)
-
-    @property
-    def client(self):
-        """The client bound to this bucket."""
-        return self._client
-
-    def _set_properties(self, value):
-        """Set the properties for the current object.
-
-        :type value: dict or :class:`google.cloud.storage.batch._FutureDict`
-        :param value: The properties to be set.
-        """
-        self._label_removals.clear()
-        return super(Bucket, self)._set_properties(value)
-
-    @property
-    def user_project(self):
-        """Project ID to be billed for API requests made via this bucket.
-
-        If unset, API requests are billed to the bucket owner.
-
-        :rtype: str
-        """
-        return self._user_project
-
     @classmethod
     def from_string(cls, uri, client=None):
         """Get a constructor for bucket object by URI.
@@ -568,6 +541,33 @@ class Bucket(_PropertyMixin):
             raise ValueError("URI scheme must be gs")
 
         return cls(client, name=netloc)
+
+    def __repr__(self):
+        return "<Bucket: %s>" % (self.name,)
+
+    @property
+    def client(self):
+        """The client bound to this bucket."""
+        return self._client
+
+    def _set_properties(self, value):
+        """Set the properties for the current object.
+
+        :type value: dict or :class:`google.cloud.storage.batch._FutureDict`
+        :param value: The properties to be set.
+        """
+        self._label_removals.clear()
+        return super(Bucket, self)._set_properties(value)
+
+    @property
+    def user_project(self):
+        """Project ID to be billed for API requests made via this bucket.
+
+        If unset, API requests are billed to the bucket owner.
+
+        :rtype: str
+        """
+        return self._user_project
 
     def blob(
         self,
