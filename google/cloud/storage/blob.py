@@ -1881,6 +1881,22 @@ class Blob(_PropertyMixin):
     :rtype: str or ``NoneType``
 
     .. _RFC 4960: https://tools.ietf.org/html/rfc4960#appendix-B
+
+    Example:
+            Retrieve the crc32c hash of blob.
+
+            >>> from google.cloud import storage
+            >>> client = storage.Client()
+            >>> bucket = client.get_bucket("my-bucket-name")
+            >>> blob = bucket.blob('my-blob')
+
+            >>> blob.crc32c  #return None
+            >>> blob.reload()
+            >>> blob.crc32c  # return crc32c hash
+
+            >>> # Another approach
+            >>> blob = bucket.get_blob('my-blob')
+            >>> blob.crc32c  # return crc32c hash
     """
 
     @property
@@ -1961,6 +1977,22 @@ class Blob(_PropertyMixin):
     :rtype: str or ``NoneType``
 
     .. _RFC 1321: https://tools.ietf.org/html/rfc1321
+
+    Example:
+            Retrieve the md5 hash of blob.
+
+            >>> from google.cloud import storage
+            >>> client = storage.Client()
+            >>> bucket = client.get_bucket("my-bucket-name")
+            >>> blob = bucket.blob('my-blob')
+
+            >>> blob.md5_hash  #return None
+            >>> blob.reload()
+            >>> blob.md5_hash  # return md5 hash
+
+            >>> # Another approach
+            >>> blob = bucket.get_blob('my-blob')
+            >>> blob.md5_hash  # return md5 hash
     """
 
     @property
