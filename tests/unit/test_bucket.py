@@ -2790,12 +2790,11 @@ class Test_Bucket(unittest.TestCase):
             expected_api_access_endpoint = "https://{}.storage.googleapis.com".format(
                 bucket_name
             )
-            expected_resource = "/"
         else:
             expected_api_access_endpoint = api_access_endpoint
             expected_resource = "/{}".format(parse.quote(bucket_name))
 
-        if use_cname:
+        if virtual_hosted_style or use_cname:
             expected_resource = "/"
 
         expected_kwargs = {

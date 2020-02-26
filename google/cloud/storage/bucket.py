@@ -2450,11 +2450,11 @@ class Bucket(_PropertyMixin):
             api_access_endpoint = "https://{bucket_name}.storage.googleapis.com".format(
                 bucket_name=self.name
             )
-            resource = "/"
+
         else:
             resource = "/{bucket_name}".format(bucket_name=self.name)
 
-        if use_cname:
+        if virtual_hosted_style or use_cname:
             resource = "/"
 
         if credentials is None:

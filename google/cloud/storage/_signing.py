@@ -553,8 +553,7 @@ def generate_signed_url_v4(
 
     header_names = [key.lower() for key in headers]
     if "host" not in header_names:
-        host_name = six.moves.urllib.parse.urlparse(api_access_endpoint)
-        headers["Host"] = host_name.netloc
+        headers["Host"] = six.moves.urllib.parse.urlparse(api_access_endpoint).netloc
 
     if method.upper() == "RESUMABLE":
         method = "POST"

@@ -462,12 +462,11 @@ class Test_Blob(unittest.TestCase):
             expected_api_access_endpoint = "https://{}.storage.googleapis.com".format(
                 bucket.name
             )
-            expected_resource = "/{}".format(quoted_name)
         else:
             expected_api_access_endpoint = api_access_endpoint
             expected_resource = "/{}/{}".format(bucket.name, quoted_name)
 
-        if use_cname:
+        if virtual_hosted_style or use_cname:
             expected_resource = "/{}".format(quoted_name)
 
         if encryption_key is not None:

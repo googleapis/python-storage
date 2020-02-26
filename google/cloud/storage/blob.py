@@ -465,7 +465,7 @@ class Blob(_PropertyMixin):
 
         :type use_cname: bool
         :param use_cname:
-            (Optional) If true, then construct the URL relative the bucket-bound hostname ,
+            (Optional) If true, then construct the URL relative the bucket-bound hostname,
             pass ``bucket-bound hostname`` value as argument of ``api_access_endpoint``,
             e.g., 'api_access_endpoint = <bucket-bound hostname>'. See:
             https://cloud.google.com/storage/docs/request-endpoints#cname
@@ -490,13 +490,12 @@ class Blob(_PropertyMixin):
             api_access_endpoint = "https://{bucket_name}.storage.googleapis.com".format(
                 bucket_name=self.bucket.name
             )
-            resource = "/{quoted_name}".format(quoted_name=quoted_name)
         else:
             resource = "/{bucket_name}/{quoted_name}".format(
                 bucket_name=self.bucket.name, quoted_name=quoted_name
             )
 
-        if use_cname:
+        if virtual_hosted_style or use_cname:
             resource = "/{quoted_name}".format(quoted_name=quoted_name)
 
         if credentials is None:
