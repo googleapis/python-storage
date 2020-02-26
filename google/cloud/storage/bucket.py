@@ -2355,6 +2355,8 @@ class Bucket(_PropertyMixin):
         credentials=None,
         version=None,
         virtual_hosted_style=False,
+        use_cname=None,
+        cname_scheme="http",
     ):
         """Generates a signed URL for this bucket.
 
@@ -2422,6 +2424,17 @@ class Bucket(_PropertyMixin):
             (Optional) If true, then construct the URL relative the bucket's
             virtual hostname, e.g., '<bucket-name>.storage.googleapis.com'.
 
+        :type use_cname: str
+        :param use_cname:
+            (Optional) If passed, then construct the URL relative to the value
+            as a CNAME.  Value can be a bare hostname, e.g. "foo.bar.tld",
+            or a URL w/ scheme, e.g., "https://foo.bar.tld".
+
+        :type cname_scheme: str
+        :param cname_scheme:
+            (Optional) If ``use_cname`` is passed as a bare hostname, use
+            this value as the scheme.  Defaults to ``"http"``.
+
         :raises: :exc:`ValueError` when version is invalid.
         :raises: :exc:`TypeError` when expiration is not a valid type.
         :raises: :exc:`AttributeError` if credentials is not an instance
@@ -2440,6 +2453,12 @@ class Bucket(_PropertyMixin):
             api_access_endpoint = "https://{bucket_name}.storage.googleapis.com".format(
                 bucket_name=self.name
             )
+            resource = "/"
+        elif use_cname is not None:
+            if ":" in use_cname:
+                api_access_endpoint = use_cname
+            else:
+                api_access_endpoint = "{}://{}".format(cname_scheme, use_cname)
             resource = "/"
         else:
             resource = "/{bucket_name}".format(bucket_name=self.name)
