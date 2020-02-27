@@ -2355,7 +2355,8 @@ class Bucket(_PropertyMixin):
         credentials=None,
         version=None,
         virtual_hosted_style=False,
-        use_cname=None,
+        bucket_bound_host_name=None,
+        host_name_scheme="http",
     ):
         """Generates a signed URL for this bucket.
 
@@ -2425,12 +2426,17 @@ class Bucket(_PropertyMixin):
             (Optional) If true, then construct the URL relative the bucket's
             virtual hostname, e.g., '<bucket-name>.storage.googleapis.com'.
 
-        :type use_cname: bool
-        :param use_cname:
-            (Optional) If true, then construct the URL relative the bucket-bound hostname ,
-            pass ``bucket-bound hostname`` value as argument of ``api_access_endpoint``,
-            e.g., 'api_access_endpoint = <bucket-bound hostname>'. See:
-            https://cloud.google.com/storage/docs/request-endpoints#cname
+        :type bucket_bound_host_name: str
+        :param bucket_bound_host_name:
+            (Optional) If pass, then construct the URL relative to the bucket-bound hostname
+            as a CNAME. Value cane be a bare or with scheme, e.g., 'example.com ' or http://example.com.
+            See: https://cloud.google.com/storage/docs/request-endpoints#cname
+
+        type host_name_scheme: str
+        :param host_name_scheme:
+            (Optional) If ``bucket_bound_host_name`` is passed as a bare hostname, use
+            this value as the scheme.  ``https`` will work only when using a CDN.
+            Defaults to ``"http"``.
 
         :raises: :exc:`ValueError` when version is invalid.
         :raises: :exc:`TypeError` when expiration is not a valid type.
@@ -2450,11 +2456,17 @@ class Bucket(_PropertyMixin):
             api_access_endpoint = "https://{bucket_name}.storage.googleapis.com".format(
                 bucket_name=self.name
             )
-
+        elif bucket_bound_host_name:
+            if ":" in bucket_bound_host_name:
+                api_access_endpoint = bucket_bound_host_name
+            else:
+                api_access_endpoint = "{scheme}://{cname}".format(
+                    scheme=host_name_scheme, cname=bucket_bound_host_name
+                )
         else:
             resource = "/{bucket_name}".format(bucket_name=self.name)
 
-        if virtual_hosted_style or use_cname:
+        if virtual_hosted_style or bucket_bound_host_name:
             resource = "/"
 
         if credentials is None:

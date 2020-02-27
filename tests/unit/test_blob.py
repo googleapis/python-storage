@@ -400,7 +400,8 @@ class Test_Blob(unittest.TestCase):
         access_token=None,
         service_account_email=None,
         virtual_hosted_style=False,
-        use_cname=None,
+        bucket_bound_host_name=None,
+        host_name_scheme="http",
     ):
         from six.moves.urllib import parse
         from google.cloud._helpers import UTC
@@ -445,7 +446,7 @@ class Test_Blob(unittest.TestCase):
                 access_token=access_token,
                 service_account_email=service_account_email,
                 virtual_hosted_style=virtual_hosted_style,
-                use_cname=use_cname,
+                bucket_bound_host_name=bucket_bound_host_name,
             )
 
         self.assertEqual(signed_uri, signer.return_value)
@@ -462,11 +463,18 @@ class Test_Blob(unittest.TestCase):
             expected_api_access_endpoint = "https://{}.storage.googleapis.com".format(
                 bucket.name
             )
+        elif bucket_bound_host_name:
+            if ":" in bucket_bound_host_name:
+                expected_api_access_endpoint = bucket_bound_host_name
+            else:
+                expected_api_access_endpoint = "{scheme}://{cname}".format(
+                    scheme=host_name_scheme, cname=bucket_bound_host_name
+                )
         else:
             expected_api_access_endpoint = api_access_endpoint
             expected_resource = "/{}/{}".format(bucket.name, quoted_name)
 
-        if virtual_hosted_style or use_cname:
+        if virtual_hosted_style or bucket_bound_host_name:
             expected_resource = "/{}".format(quoted_name)
 
         if encryption_key is not None:
@@ -623,10 +631,13 @@ class Test_Blob(unittest.TestCase):
     def test_generate_signed_url_v4_w_virtual_hostname(self):
         self._generate_signed_url_v4_helper(virtual_hosted_style=True)
 
-    def test_generate_signed_url_v4_w_bucket_bound_hostname(self):
+    def test_generate_signed_url_v4_w_bucket_bound_hostname_w_scheme(self):
         self._generate_signed_url_v4_helper(
-            api_access_endpoint="https://cdn.example.com", use_cname=True
+            bucket_bound_host_name="http://cdn.example.com"
         )
+
+    def test_generate_signed_url_v4_w_bucket_bound_hostname_w_bare_hostname(self):
+        self._generate_signed_url_v4_helper(bucket_bound_host_name="cdn.example.com")
 
     def test_generate_signed_url_v4_w_credentials(self):
         credentials = object()
