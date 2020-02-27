@@ -2432,7 +2432,7 @@ class Bucket(_PropertyMixin):
             as a CNAME. Value cane be a bare or with scheme, e.g., 'example.com ' or http://example.com.
             See: https://cloud.google.com/storage/docs/request-endpoints#cname
 
-        type host_name_scheme: str
+        :type host_name_scheme: str
         :param host_name_scheme:
             (Optional) If ``bucket_bound_host_name`` is passed as a bare hostname, use
             this value as the scheme.  ``https`` will work only when using a CDN.
