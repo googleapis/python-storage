@@ -1047,6 +1047,16 @@ class Bucket(_PropertyMixin):
 
         :rtype: :class:`.BucketNotification`
         :returns: notification instance.
+
+        Example:
+            Get notification using notification id.
+
+            >>> from google.cloud import storage
+            >>> client = storage.Client()
+
+            >>> bucket = client.get_bucket('my-bucket-name')  # API request.
+            >>> notification = bucket.get_notification(notification_id='id')  # API request.
+
         """
         notification = self.notification(notification_id=notification_id)
         notification.reload(client=client, timeout=timeout)

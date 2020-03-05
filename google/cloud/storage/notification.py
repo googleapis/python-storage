@@ -64,7 +64,7 @@ class BucketNotification(object):
 
     :type event_types: list(str)
     :param event_types:
-        (Optional) event types for which notificatin events are published.
+        (Optional) event types for which notification events are published.
 
     :type blob_name_prefix: str
     :param blob_name_prefix:
