@@ -1024,7 +1024,7 @@ class Bucket(_PropertyMixin):
         return iterator
 
     def get_notification(self, notification_id, client=None, timeout=_DEFAULT_TIMEOUT):
-        """get Pub / Sub notification for this bucket.
+        """Get Pub / Sub notification for this bucket.
 
         See:
         https://cloud.google.com/storage/docs/json_api/v1/notifications/get
@@ -1036,7 +1036,7 @@ class Bucket(_PropertyMixin):
 
         :type client: :class:`~google.cloud.storage.client.Client` or
                       ``NoneType``
-        :param client: Optional. The client to use.  If not passed, falls back
+        :param client: (optional) The client to use.  If not passed, falls back
                        to the ``client`` stored on the current bucket.
         :type timeout: float or tuple
         :param timeout: (optional) The amount of time, in seconds, to wait
@@ -1046,7 +1046,7 @@ class Bucket(_PropertyMixin):
             See :meth:`requests.Session.request` documentation for details.
 
         :rtype: :class:`.BucketNotification`
-        :returns: notification instances.
+        :returns: notification instance.
         """
         notification = self.notification(notification_id=notification_id)
         notification.reload(client=client, timeout=timeout)
