@@ -1053,7 +1053,6 @@ class Bucket(_PropertyMixin):
 
             >>> from google.cloud import storage
             >>> client = storage.Client()
-
             >>> bucket = client.get_bucket('my-bucket-name')  # API request.
             >>> notification = bucket.get_notification(notification_id='id')  # API request.
 
