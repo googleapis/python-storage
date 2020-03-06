@@ -50,7 +50,8 @@ class BucketNotification(object):
     :param bucket: Bucket to which the notification is bound.
 
     :type topic_name: str
-    :param topic_name: Topic name to which notifications are published.
+    :param topic_name:
+        (Optional) Topic name to which notifications are published.
 
     :type topic_project: str
     :param topic_project:
@@ -73,17 +74,22 @@ class BucketNotification(object):
     :type payload_format: str
     :param payload_format:
         (Optional) Format of payload for notification events.
+
+    :type notification_id: str
+    :param notification_id:
+        (Optional) The ID of the notification.
     """
 
     def __init__(
         self,
         bucket,
-        topic_name,
+        topic_name=None,
         topic_project=None,
         custom_attributes=None,
         event_types=None,
         blob_name_prefix=None,
         payload_format=NONE_PAYLOAD_FORMAT,
+        notification_id=None,
     ):
         self._bucket = bucket
         self._topic_name = topic_name
@@ -106,6 +112,9 @@ class BucketNotification(object):
 
         if blob_name_prefix is not None:
             self._properties["object_name_prefix"] = blob_name_prefix
+
+        if notification_id is not None:
+            self._properties["id"] = notification_id
 
         self._properties["payload_format"] = payload_format
 
@@ -326,8 +335,6 @@ class BucketNotification(object):
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
 
-        :rtype: bool
-        :returns: True, if the notification exists, else False.
         :raises ValueError: if the notification has no ID.
         """
         if self.notification_id is None:
