@@ -362,8 +362,8 @@ class Blob(_PropertyMixin):
         service_account_email=None,
         access_token=None,
         virtual_hosted_style=False,
-        bucket_bound_host_name=None,
-        host_name_scheme="http",
+        bucket_bound_hostname=None,
+        scheme="http",
     ):
         """Generates a signed URL for this blob.
 
@@ -381,6 +381,21 @@ class Blob(_PropertyMixin):
         If you have a blob that you want to allow access to for a set
         amount of time, you can use this method to generate a URL that
         is only valid within a certain time period.
+
+        If ``bucket_bound_hostname`` is set as an argument of :attr:`api_access_endpoint`,
+        ``https`` works only if using a ``CDN``.
+
+        Example:
+            Generates a signed URL for this blob using bucket_bound_hostname and scheme.
+
+            >>> from google.cloud import storage
+            >>> client = storage.Client()
+            >>> bucket = client.get_bucket('my-bucket-name')
+            >>> blob = client.get_blob('my-blob-name')
+            >>> url = blob.generate_signed_url(expiration='url-expiration-time', bucket_bound_hostname='mydomain.tld',
+            >>>                                  version='v4')
+            >>> url = blob.generate_signed_url(expiration='url-expiration-time', bucket_bound_hostname='mydomain.tld',
+            >>>                                  version='v4',scheme='https')  # If using ``CDN``
 
         This is particularly useful if you don't want publicly
         accessible blobs, but don't want to require users to explicitly
@@ -462,15 +477,15 @@ class Blob(_PropertyMixin):
             (Optional) If true, then construct the URL relative the bucket's
             virtual hostname, e.g., '<bucket-name>.storage.googleapis.com'.
 
-        :type bucket_bound_host_name: str
-        :param bucket_bound_host_name:
-            (Optional) If pass, then construct the URL relative to the bucket-bound hostname
-            as a CNAME. Value cane be a bare or with scheme, e.g., 'example.com ' or http://example.com.
+        :type bucket_bound_hostname: str
+        :param bucket_bound_hostname:
+            (Optional) If pass, then construct the URL relative to the bucket-bound hostname.
+            Value cane be a bare or with scheme, e.g., 'example.com' or 'http://example.com'.
             See: https://cloud.google.com/storage/docs/request-endpoints#cname
 
-        :type host_name_scheme: str
-        :param host_name_scheme:
-            (Optional) If ``bucket_bound_host_name`` is passed as a bare hostname, use
+        :type scheme: str
+        :param scheme:
+            (Optional) If ``bucket_bound_hostname`` is passed as a bare hostname, use
             this value as the scheme.  ``https`` will work only when using a CDN.
             Defaults to ``"http"``.
 
@@ -494,19 +509,19 @@ class Blob(_PropertyMixin):
             api_access_endpoint = "https://{bucket_name}.storage.googleapis.com".format(
                 bucket_name=self.bucket.name
             )
-        elif bucket_bound_host_name:
-            if ":" in bucket_bound_host_name:
-                api_access_endpoint = bucket_bound_host_name
+        elif bucket_bound_hostname:
+            if ":" in bucket_bound_hostname:
+                api_access_endpoint = bucket_bound_hostname
             else:
-                api_access_endpoint = "{scheme}://{cname}".format(
-                    scheme=host_name_scheme, cname=bucket_bound_host_name
+                api_access_endpoint = "{scheme}://{bucket_bound_hostname}".format(
+                    scheme=scheme, bucket_bound_hostname=bucket_bound_hostname
                 )
         else:
             resource = "/{bucket_name}/{quoted_name}".format(
                 bucket_name=self.bucket.name, quoted_name=quoted_name
             )
 
-        if virtual_hosted_style or bucket_bound_host_name:
+        if virtual_hosted_style or bucket_bound_hostname:
             resource = "/{quoted_name}".format(quoted_name=quoted_name)
 
         if credentials is None:
