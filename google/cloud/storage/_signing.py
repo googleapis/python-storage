@@ -531,9 +531,7 @@ def generate_signed_url_v4(
     expiration_seconds = get_expiration_seconds_v4(expiration)
 
     if _request_timestamp is None:
-        now = NOW()
-        request_timestamp = now.strftime("%Y%m%dT%H%M%SZ")
-        datestamp = now.date().strftime("%Y%m%d")
+        request_timestamp, datestamp = get_v4_stamps()
     else:
         request_timestamp = _request_timestamp
         datestamp = _request_timestamp[:8]
@@ -627,6 +625,13 @@ def generate_signed_url_v4(
     return "{}{}?{}&X-Goog-Signature={}".format(
         api_access_endpoint, resource, canonical_query_string, signature
     )
+
+
+def get_v4_stamps():
+    now = NOW()
+    request_timestamp = now.strftime("%Y%m%dT%H%M%SZ")
+    datestamp = now.date().strftime("%Y%m%d")
+    return request_timestamp, datestamp
 
 
 def _sign_message(message, access_token, service_account_email):

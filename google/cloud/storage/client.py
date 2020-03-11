@@ -14,8 +14,12 @@
 
 """Client for interacting with the Google Cloud Storage API."""
 
-import warnings
+import base64
+import binascii
+import datetime
 import functools
+import json
+import warnings
 import google.api_core.client_options
 
 from google.auth.credentials import AnonymousCredentials
@@ -26,6 +30,7 @@ from google.cloud.client import ClientWithProject
 from google.cloud.exceptions import NotFound
 from google.cloud.storage._helpers import _get_storage_host
 from google.cloud.storage._http import Connection
+from google.cloud.storage._signing import get_v4_stamps
 from google.cloud.storage.batch import Batch
 from google.cloud.storage.bucket import Bucket
 from google.cloud.storage.blob import Blob
@@ -835,6 +840,41 @@ class Client(ClientWithProject):
         metadata = HMACKeyMetadata(self, access_id, project_id, user_project)
         metadata.reload(timeout=timeout)  # raises NotFound for missing key
         return metadata
+
+    # TODO: Character Escaping: https://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-HTTPPOSTConstructPolicy.html
+    # TODO: bucket bound hostname and virtual hosted style support?
+    def generate_signed_post_policy(
+        self, bucket_name, blob_name, conditions, expiration, additional_fields=None
+    ):
+        policy = json.dumps(
+            {"conditions": conditions, "expiration": expiration.isoformat()}
+        )
+        string_to_sign = base64.b64encode(policy.encode("utf-8"))
+
+        signature_bytes = self._credentials.sign_bytes(string_to_sign.encode("ascii"))
+        signature = binascii.hexlify(signature_bytes).decode("ascii")
+
+        request_timestamp, datestamp = get_v4_stamps()
+        credential_scope = "{}/auto/service/goog4_request".format(datestamp)
+
+        fields = {
+            "key": blob_name,
+            "x-goog-algorithm": "GOOG4-HMAC-SHA256",
+            "x-goog-credential": "{email}/{scope}".format(
+                email=self._credentials.signer_email, scope=credential_scope
+            ),
+            "x-goog-date": request_timestamp,
+            "x-goog-signature": signature,
+            "policy": string_to_sign,
+        }
+        if additional_fields:
+            fields.update(additional_fields)
+
+        signed_policy = {
+            "url": "https://storage.googleapis.com/{}".format(bucket_name),
+            "fields": fields,
+        }
+        return signed_policy
 
 
 def _item_to_bucket(iterator, item):
