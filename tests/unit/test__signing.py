@@ -814,11 +814,12 @@ def test_conformance_bucket(test_data):
                 scheme=test_data["scheme"],
                 bucket_bound_hostname=test_data["bucketBoundHostname"],
             )
-        elif test_data["urlStyle"] == "VIRTUAL_HOSTED_STYLE":
+
+        # For the VIRTUAL_HOSTED_STYLE
+        else:
             _API_ACCESS_ENDPOINT = "{scheme}://{bucket_name}.storage.googleapis.com".format(
                 scheme=test_data["scheme"], bucket_name=test_data["bucket"]
             )
-
         resource = "/"
         _run_conformance_test(resource, test_data, _API_ACCESS_ENDPOINT)
     else:
@@ -835,14 +836,15 @@ def test_conformance_blob(test_data):
                 scheme=test_data["scheme"],
                 bucket_bound_hostname=test_data["bucketBoundHostname"],
             )
-        elif test_data["urlStyle"] == "VIRTUAL_HOSTED_STYLE":
+
+        # For the VIRTUAL_HOSTED_STYLE
+        else:
             _API_ACCESS_ENDPOINT = "{scheme}://{bucket_name}.storage.googleapis.com".format(
                 scheme=test_data["scheme"], bucket_name=test_data["bucket"]
             )
         resource = "/{}".format(test_data["object"])
         _run_conformance_test(resource, test_data, _API_ACCESS_ENDPOINT)
     else:
-
         resource = "/{}/{}".format(test_data["bucket"], test_data["object"])
         _run_conformance_test(resource, test_data)
 
