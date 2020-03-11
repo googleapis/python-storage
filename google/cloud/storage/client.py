@@ -842,7 +842,6 @@ class Client(ClientWithProject):
         return metadata
 
     # TODO: Character Escaping: https://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-HTTPPOSTConstructPolicy.html
-    # TODO: bucket bound hostname support?
     def generate_signed_post_policy(
         self,
         bucket_name,
@@ -851,6 +850,8 @@ class Client(ClientWithProject):
         expiration,
         additional_fields=None,
         virtual_hosted_style=False,
+        bucket_bound_hostname=None,
+        scheme=None,
     ):
         """Generate a V4 signed policy object.
 
@@ -876,6 +877,18 @@ class Client(ClientWithProject):
         :type virtual_hosted_style: bool
         :param virtual_hosted_style: (Optional) If true, then construct the URL relative the bucket's
                                      virtual hostname, e.g., '<bucket-name>.storage.googleapis.com'.
+
+        :type bucket_bound_hostname: str
+        :param bucket_bound_hostname:
+            (Optional) If pass, then construct the URL relative to the bucket-bound hostname.
+            Value cane be a bare or with scheme, e.g., 'example.com' or 'http://example.com'.
+            See: https://cloud.google.com/storage/docs/request-endpoints#cname
+
+        :type scheme: str
+        :param scheme:
+            (Optional) If ``bucket_bound_hostname`` is passed as a bare hostname, use
+            this value as the scheme.  ``https`` will work only when using a CDN.
+            Defaults to ``"http"``.
 
         :rtype: dict
         :returns: Signed POST policy object.
@@ -914,6 +927,17 @@ class Client(ClientWithProject):
 
         if virtual_hosted_style:
             url = "https://{}.storage.googleapis.com"
+
+        elif bucket_bound_hostname:
+            if ":" in bucket_bound_hostname:
+                url = bucket_bound_hostname + "/{}"
+            else:
+                url = (
+                    "{scheme}://{host}".format(
+                        scheme=scheme, host=bucket_bound_hostname
+                    )
+                    + "/{}"
+                )
         else:
             url = "https://storage.googleapis.com/{}"
 
