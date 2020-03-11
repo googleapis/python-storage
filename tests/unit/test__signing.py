@@ -804,10 +804,10 @@ def test_conformance_client(test_data):
 
 @pytest.mark.parametrize("test_data", _BUCKET_TESTS)
 def test_conformance_bucket(test_data):
-    if "urlStyle" in test_data and test_data["urlStyle"] == "BUCKET_BOUND_DOMAIN":
+    if "urlStyle" in test_data and test_data["urlStyle"] == "BUCKET_BOUND_HOSTNAME":
         api_access_endpoint = "{scheme}://{bucket_bound_hostname}".format(
             scheme=test_data["scheme"],
-            bucket_bound_hostname=test_data["bucketBoundDomain"],
+            bucket_bound_hostname=test_data["bucketBoundHostname"],
         )
         resource = "/"
         _run_conformance_test(resource, test_data, api_access_endpoint)
@@ -818,10 +818,10 @@ def test_conformance_bucket(test_data):
 
 @pytest.mark.parametrize("test_data", _BLOB_TESTS)
 def test_conformance_blob(test_data):
-    if "urlStyle" in test_data and test_data["urlStyle"] == "BUCKET_BOUND_DOMAIN":
+    if "urlStyle" in test_data and test_data["urlStyle"] == "BUCKET_BOUND_HOSTNAME":
         api_access_endpoint = "{scheme}://{bucket_bound_hostname}".format(
             scheme=test_data["scheme"],
-            bucket_bound_hostname=test_data["bucketBoundDomain"],
+            bucket_bound_hostname=test_data["bucketBoundHostname"],
         )
         resource = "/{}".format(test_data["object"])
         _run_conformance_test(resource, test_data, api_access_endpoint)
