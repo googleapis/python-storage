@@ -846,6 +846,31 @@ class Client(ClientWithProject):
     def generate_signed_post_policy(
         self, bucket_name, blob_name, conditions, expiration, additional_fields=None
     ):
+        """Generate a V4 signed policy object.
+
+        Generated policy object allows user to upload data
+        with a POST request.
+
+        Args:
+            bucket_name (str): Bucket name.
+            blob_name (str): Object name.
+            conditions (list):
+                List of POST policy conditions, which are used to
+                restrict what is allowed in the request.
+            expiration (datetime.datetime): Policy expiration time.
+            additional_fields (dict): Additional elements to include into request.
+
+        Returns:
+            dict: Signed POST policy object.
+
+        Raises:
+            ValueError:
+                If required field is not mentioned in `conditions` arg.
+        """
+        for field in ("x-goog-algorithm", "x-goog-credential", "x-goog-date"):
+            if field not in conditions:
+                raise ValueError("Missing required element: {}.".format(field))
+
         policy = json.dumps(
             {"conditions": conditions, "expiration": expiration.isoformat()}
         )
@@ -868,7 +893,9 @@ class Client(ClientWithProject):
             "policy": string_to_sign,
         }
         if additional_fields:
-            fields.update(additional_fields)
+            for key, value in additional_fields.items():
+                if not key.startswith("x-ignore-"):
+                    fields[key] = value
 
         signed_policy = {
             "url": "https://storage.googleapis.com/{}".format(bucket_name),
