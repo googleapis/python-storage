@@ -842,30 +842,45 @@ class Client(ClientWithProject):
         return metadata
 
     # TODO: Character Escaping: https://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-HTTPPOSTConstructPolicy.html
-    # TODO: bucket bound hostname and virtual hosted style support?
+    # TODO: bucket bound hostname support?
     def generate_signed_post_policy(
-        self, bucket_name, blob_name, conditions, expiration, additional_fields=None
+        self,
+        bucket_name,
+        blob_name,
+        conditions,
+        expiration,
+        additional_fields=None,
+        virtual_hosted_style=False,
     ):
         """Generate a V4 signed policy object.
 
         Generated policy object allows user to upload data
         with a POST request.
 
-        Args:
-            bucket_name (str): Bucket name.
-            blob_name (str): Object name.
-            conditions (list):
-                List of POST policy conditions, which are used to
-                restrict what is allowed in the request.
-            expiration (datetime.datetime): Policy expiration time.
-            additional_fields (dict): Additional elements to include into request.
+        :type bucket_name: str
+        :param bucket_name: Bucket name.
 
-        Returns:
-            dict: Signed POST policy object.
+        :type blob_name: str
+        :param blob_name: Object name.
 
-        Raises:
-            ValueError:
-                If required field is not mentioned in `conditions` arg.
+        :type conditions: list
+        :param conditions: List of POST policy conditions, which are used to
+                           restrict what is allowed in the request.
+
+        :type expiration: datetime.datetime
+        :param expiration: Policy expiration time.
+
+        :type additional_fields: dict
+        :param additional_fields: (Optional) Additional elements to include into request.
+
+        :type virtual_hosted_style: bool
+        :param virtual_hosted_style: (Optional) If true, then construct the URL relative the bucket's
+                                     virtual hostname, e.g., '<bucket-name>.storage.googleapis.com'.
+
+        :rtype: dict
+        :returns: Signed POST policy object.
+
+        :raises: :exc:`ValueError` when required field is not mentioned in `conditions` arg.
         """
         for field in ("x-goog-algorithm", "x-goog-credential", "x-goog-date"):
             if field not in conditions:
@@ -897,10 +912,12 @@ class Client(ClientWithProject):
                 if not key.startswith("x-ignore-"):
                     fields[key] = value
 
-        signed_policy = {
-            "url": "https://storage.googleapis.com/{}".format(bucket_name),
-            "fields": fields,
-        }
+        if virtual_hosted_style:
+            url = "https://{}.storage.googleapis.com"
+        else:
+            url = "https://storage.googleapis.com/{}"
+
+        signed_policy = {"url": url.format(bucket_name), "fields": fields}
         return signed_policy
 
 

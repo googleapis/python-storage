@@ -630,8 +630,8 @@ def generate_signed_url_v4(
 def get_v4_stamps():
     """Get request timestamp and datestamp in V4 valid format.
 
-    Returns:
-        str, str: Request timestamp, datestamp.
+    :rtype: str, str
+    :returns: Request timestamp, datestamp.
     """
     now = NOW()
     request_timestamp = now.strftime("%Y%m%dT%H%M%SZ")
