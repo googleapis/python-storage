@@ -28,6 +28,19 @@ def _make_credentials():
     return mock.Mock(spec=google.auth.credentials.Credentials)
 
 
+def _create_signing_credentials():
+    import google.auth.credentials
+
+    class _SigningCredentials(
+        google.auth.credentials.Credentials, google.auth.credentials.Signing
+    ):
+        pass
+
+    credentials = mock.Mock(spec=_SigningCredentials)
+
+    return credentials
+
+
 def _make_connection(*responses):
     import google.cloud.storage._http
     from google.cloud.exceptions import NotFound
@@ -1479,7 +1492,7 @@ class TestClient(unittest.TestCase):
         BLOB_NAME = "object-name"
         TIMESTAMP = "20200312T114716Z"
 
-        credentials = _make_credentials()
+        credentials = _create_signing_credentials()
         credentials.sign_bytes = mock.Mock(return_value=b"Signature_bytes")
         credentials.signer_email = "test@mail.com"
 
@@ -1523,7 +1536,7 @@ class TestClient(unittest.TestCase):
         TIMESTAMP = "20200312T114716Z"
         FIELD1_VALUE = "Value1"
 
-        credentials = _make_credentials()
+        credentials = _create_signing_credentials()
         credentials.sign_bytes = mock.Mock(return_value=b"Signature_bytes")
         credentials.signer_email = "test@mail.com"
 
@@ -1569,7 +1582,7 @@ class TestClient(unittest.TestCase):
         BLOB_NAME = "object-name"
         TIMESTAMP = "20200312T114716Z"
 
-        credentials = _make_credentials()
+        credentials = _create_signing_credentials()
         credentials.sign_bytes = mock.Mock(return_value=b"Signature_bytes")
         credentials.signer_email = "test@mail.com"
 
@@ -1597,7 +1610,7 @@ class TestClient(unittest.TestCase):
         BLOB_NAME = "object-name"
         TIMESTAMP = "20200312T114716Z"
 
-        credentials = _make_credentials()
+        credentials = _create_signing_credentials()
         credentials.sign_bytes = mock.Mock(return_value=b"Signature_bytes")
         credentials.signer_email = "test@mail.com"
 
@@ -1625,7 +1638,7 @@ class TestClient(unittest.TestCase):
         BLOB_NAME = "object-name"
         TIMESTAMP = "20200312T114716Z"
 
-        credentials = _make_credentials()
+        credentials = _create_signing_credentials()
         credentials.sign_bytes = mock.Mock(return_value=b"Signature_bytes")
         credentials.signer_email = "test@mail.com"
 
@@ -1646,3 +1659,36 @@ class TestClient(unittest.TestCase):
         self.assertEqual(
             policy["url"], "http://bucket.bound_hostname/{}".format(BUCKET_NAME)
         )
+
+    def test_generate_signed_post_policy_no_expiration(self):
+        import datetime
+
+        BUCKET_NAME = "bucket-name"
+        BLOB_NAME = "object-name"
+        TIMESTAMP = "20200312T114716Z"
+
+        credentials = _create_signing_credentials()
+        credentials.sign_bytes = mock.Mock(return_value=b"Signature_bytes")
+        credentials.signer_email = "test@mail.com"
+
+        client = self._make_one(project="PROJECT", credentials=credentials)
+
+        with mock.patch(
+            "google.cloud.storage.client._NOW",
+            return_value=datetime.datetime(2020, 3, 12),
+        ) as now_mock:
+            with mock.patch(
+                "google.cloud.storage.client.get_v4_dtstamps",
+                return_value=(TIMESTAMP, "20200312"),
+            ):
+                policy = client.generate_signed_post_policy(
+                    BUCKET_NAME, BLOB_NAME, conditions=[], expiration=None
+                )
+                now_mock.assert_called_once()
+
+        self.assertEqual(policy["url"], "https://storage.googleapis.com/" + BUCKET_NAME)
+        self.assertEqual(
+            policy["fields"]["policy"],
+            b"eyJjb25kaXRpb25zIjogW10sICJleHBpcmF0aW9uIjogIjIwMjAtMDMtMTJUMDE6MDA6MDAifQ==",
+        )
+

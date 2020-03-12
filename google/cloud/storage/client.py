@@ -25,12 +25,12 @@ import google.api_core.client_options
 from google.auth.credentials import AnonymousCredentials
 
 from google.api_core import page_iterator
-from google.cloud._helpers import _LocalStack
+from google.cloud._helpers import _LocalStack, _NOW
 from google.cloud.client import ClientWithProject
 from google.cloud.exceptions import NotFound
 from google.cloud.storage._helpers import _get_storage_host
 from google.cloud.storage._http import Connection
-from google.cloud.storage._signing import get_v4_dtstamps
+from google.cloud.storage._signing import get_v4_dtstamps, ensure_signed_credentials
 from google.cloud.storage.batch import Batch
 from google.cloud.storage.bucket import Bucket
 from google.cloud.storage.blob import Blob
@@ -893,6 +893,11 @@ class Client(ClientWithProject):
         :rtype: dict
         :returns: Signed POST policy object.
         """
+        ensure_signed_credentials(self._credentials)
+
+        if expiration is None:
+            expiration = _NOW() + datetime.timedelta(hours=1)
+
         policy = json.dumps(
             {"conditions": conditions, "expiration": expiration.isoformat()}
         )
