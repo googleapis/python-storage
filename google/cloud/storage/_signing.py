@@ -531,7 +531,7 @@ def generate_signed_url_v4(
     expiration_seconds = get_expiration_seconds_v4(expiration)
 
     if _request_timestamp is None:
-        request_timestamp, datestamp = get_v4_stamps()
+        request_timestamp, datestamp = get_v4_dtstamps()
     else:
         request_timestamp = _request_timestamp
         datestamp = _request_timestamp[:8]
@@ -627,16 +627,16 @@ def generate_signed_url_v4(
     )
 
 
-def get_v4_stamps():
-    """Get request timestamp and datestamp in V4 valid format.
+def get_v4_dtstamps():
+    """Get current timestamp and datestamp in V4 valid format.
 
     :rtype: str, str
-    :returns: Request timestamp, datestamp.
+    :returns: Current timestamp, datestamp.
     """
     now = NOW()
-    request_timestamp = now.strftime("%Y%m%dT%H%M%SZ")
+    timestamp = now.strftime("%Y%m%dT%H%M%SZ")
     datestamp = now.date().strftime("%Y%m%d")
-    return request_timestamp, datestamp
+    return timestamp, datestamp
 
 
 def _sign_message(message, access_token, service_account_email):

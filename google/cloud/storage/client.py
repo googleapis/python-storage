@@ -30,7 +30,7 @@ from google.cloud.client import ClientWithProject
 from google.cloud.exceptions import NotFound
 from google.cloud.storage._helpers import _get_storage_host
 from google.cloud.storage._http import Connection
-from google.cloud.storage._signing import get_v4_stamps
+from google.cloud.storage._signing import get_v4_dtstamps
 from google.cloud.storage.batch import Batch
 from google.cloud.storage.bucket import Bucket
 from google.cloud.storage.blob import Blob
@@ -848,15 +848,15 @@ class Client(ClientWithProject):
         blob_name,
         conditions,
         expiration,
-        additional_fields=None,
+        fields=None,
         virtual_hosted_style=False,
         bucket_bound_hostname=None,
         scheme=None,
     ):
         """Generate a V4 signed policy object.
 
-        Generated policy object allows user to upload data
-        with a POST request.
+        Generated policy object allows user to upload
+        objects with a POST request.
 
         :type bucket_name: str
         :param bucket_name: Bucket name.
@@ -865,65 +865,59 @@ class Client(ClientWithProject):
         :param blob_name: Object name.
 
         :type conditions: list
-        :param conditions: List of POST policy conditions, which are used to
-                           restrict what is allowed in the request.
+        :param conditions: List of POST policy conditions, which are used
+                           to restrict what is allowed in the request.
 
         :type expiration: datetime.datetime
         :param expiration: Policy expiration time.
 
-        :type additional_fields: dict
-        :param additional_fields: (Optional) Additional elements to include into request.
+        :type fields: dict
+        :param fields: (Optional) Additional elements to include into request.
 
         :type virtual_hosted_style: bool
-        :param virtual_hosted_style: (Optional) If true, then construct the URL relative the bucket's
+        :param virtual_hosted_style: (Optional) If True, construct the URL relative to the bucket
                                      virtual hostname, e.g., '<bucket-name>.storage.googleapis.com'.
 
         :type bucket_bound_hostname: str
         :param bucket_bound_hostname:
-            (Optional) If pass, then construct the URL relative to the bucket-bound hostname.
-            Value cane be a bare or with scheme, e.g., 'example.com' or 'http://example.com'.
+            (Optional) If passed, construct the URL relative to the bucket-bound hostname.
+            Value can be bare or with a scheme, e.g., 'example.com' or 'http://example.com'.
             See: https://cloud.google.com/storage/docs/request-endpoints#cname
 
         :type scheme: str
         :param scheme:
             (Optional) If ``bucket_bound_hostname`` is passed as a bare hostname, use
-            this value as the scheme.  ``https`` will work only when using a CDN.
+            this value as a scheme. ``https`` will work only when using a CDN.
             Defaults to ``"http"``.
 
         :rtype: dict
         :returns: Signed POST policy object.
-
-        :raises: :exc:`ValueError` when required field is not mentioned in `conditions` arg.
         """
-        for field in ("x-goog-algorithm", "x-goog-credential", "x-goog-date"):
-            if field not in conditions:
-                raise ValueError("Missing required element: {}.".format(field))
-
         policy = json.dumps(
             {"conditions": conditions, "expiration": expiration.isoformat()}
         )
-        string_to_sign = base64.b64encode(policy.encode("utf-8"))
+        str_to_sign = base64.b64encode(policy.encode("utf-8"))
 
-        signature_bytes = self._credentials.sign_bytes(string_to_sign.encode("ascii"))
+        signature_bytes = self._credentials.sign_bytes(str_to_sign.encode("ascii"))
         signature = binascii.hexlify(signature_bytes).decode("ascii")
 
-        request_timestamp, datestamp = get_v4_stamps()
+        timestamp, datestamp = get_v4_dtstamps()
         credential_scope = "{}/auto/service/goog4_request".format(datestamp)
 
-        fields = {
+        policy_fields = {
             "key": blob_name,
             "x-goog-algorithm": "GOOG4-HMAC-SHA256",
             "x-goog-credential": "{email}/{scope}".format(
                 email=self._credentials.signer_email, scope=credential_scope
             ),
-            "x-goog-date": request_timestamp,
+            "x-goog-date": timestamp,
             "x-goog-signature": signature,
-            "policy": string_to_sign,
+            "policy": str_to_sign,
         }
-        if additional_fields:
-            for key, value in additional_fields.items():
+        if fields:
+            for key, value in fields.items():
                 if not key.startswith("x-ignore-"):
-                    fields[key] = value
+                    policy_fields[key] = value
 
         if virtual_hosted_style:
             url = "https://{}.storage.googleapis.com"
@@ -941,8 +935,7 @@ class Client(ClientWithProject):
         else:
             url = "https://storage.googleapis.com/{}"
 
-        signed_policy = {"url": url.format(bucket_name), "fields": fields}
-        return signed_policy
+        return {"url": url.format(bucket_name), "fields": policy_fields}
 
 
 def _item_to_bucket(iterator, item):
