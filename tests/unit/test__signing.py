@@ -762,6 +762,22 @@ class TestQuoteParam(unittest.TestCase):
         self.assertEqual(encoded_param, "bytes")
 
 
+class TestV4Stamps(unittest.TestCase):
+    def test_get_v4_dtstamps(self):
+        import datetime
+        from google.cloud.storage._signing import get_v4_dtstamps
+
+        with mock.patch(
+            "google.cloud.storage._signing.NOW",
+            return_value=datetime.datetime(2020, 3, 12, 13, 14, 15),
+        ) as now_mock:
+            timestamp, datestamp = get_v4_dtstamps()
+            now_mock.assert_called_once()
+
+        self.assertEqual(timestamp, "20200312T131415Z")
+        self.assertEqual(datestamp, "20200312")
+
+
 _DUMMY_SERVICE_ACCOUNT = None
 
 

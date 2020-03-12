@@ -1471,3 +1471,178 @@ class TestClient(unittest.TestCase):
             headers=mock.ANY,
             timeout=self._get_default_timeout(),
         )
+
+    def test_generate_signed_post_policy(self):
+        import datetime
+
+        BUCKET_NAME = "bucket-name"
+        BLOB_NAME = "object-name"
+        TIMESTAMP = "20200312T114716Z"
+
+        credentials = _make_credentials()
+        credentials.sign_bytes = mock.Mock(return_value=b"Signature_bytes")
+        credentials.signer_email = "test@mail.com"
+
+        client = self._make_one(project="PROJECT", credentials=credentials)
+
+        with mock.patch(
+            "google.cloud.storage.client.get_v4_dtstamps",
+            return_value=(TIMESTAMP, "20200312"),
+        ):
+            policy = client.generate_signed_post_policy(
+                BUCKET_NAME,
+                BLOB_NAME,
+                conditions=[
+                    {"bucket": BUCKET_NAME},
+                    {"acl": "private"},
+                    ["starts-with", "$Content-Type", "text/plain"],
+                ],
+                expiration=datetime.datetime(2020, 3, 12),
+            )
+        self.assertEqual(policy["url"], "https://storage.googleapis.com/" + BUCKET_NAME)
+        self.assertEqual(policy["fields"]["key"], BLOB_NAME)
+        self.assertEqual(policy["fields"]["x-goog-algorithm"], "GOOG4-HMAC-SHA256")
+        self.assertEqual(policy["fields"]["x-goog-date"], TIMESTAMP)
+        self.assertEqual(
+            policy["fields"]["x-goog-credential"],
+            "test@mail.com/20200312/auto/service/goog4_request",
+        )
+        self.assertEqual(
+            policy["fields"]["x-goog-signature"], "5369676e61747572655f6279746573"
+        )
+        self.assertEqual(
+            policy["fields"]["policy"],
+            b"eyJjb25kaXRpb25zIjogW3siYnVja2V0IjogImJ1Y2tldC1uYW1lIn0sIHsiYWNsIjogInByaXZhdGUifSwgWyJzdGFydHMtd2l0aCIsICIkQ29udGVudC1UeXBlIiwgInRleHQvcGxhaW4iXV0sICJleHBpcmF0aW9uIjogIjIwMjAtMDMtMTJUMDA6MDA6MDAifQ==",
+        )
+
+    def test_generate_signed_post_policy_with_fields(self):
+        import datetime
+
+        BUCKET_NAME = "bucket-name"
+        BLOB_NAME = "object-name"
+        TIMESTAMP = "20200312T114716Z"
+        FIELD1_VALUE = "Value1"
+
+        credentials = _make_credentials()
+        credentials.sign_bytes = mock.Mock(return_value=b"Signature_bytes")
+        credentials.signer_email = "test@mail.com"
+
+        client = self._make_one(project="PROJECT", credentials=credentials)
+
+        with mock.patch(
+            "google.cloud.storage.client.get_v4_dtstamps",
+            return_value=(TIMESTAMP, "20200312"),
+        ):
+            policy = client.generate_signed_post_policy(
+                BUCKET_NAME,
+                BLOB_NAME,
+                conditions=[
+                    {"bucket": BUCKET_NAME},
+                    {"acl": "private"},
+                    ["starts-with", "$Content-Type", "text/plain"],
+                ],
+                expiration=datetime.datetime(2020, 3, 12),
+                fields={"field1": FIELD1_VALUE, "x-ignore-field": "Ignored_value"},
+            )
+        self.assertEqual(policy["url"], "https://storage.googleapis.com/" + BUCKET_NAME)
+        self.assertEqual(policy["fields"]["key"], BLOB_NAME)
+        self.assertEqual(policy["fields"]["x-goog-algorithm"], "GOOG4-HMAC-SHA256")
+        self.assertEqual(policy["fields"]["x-goog-date"], TIMESTAMP)
+        self.assertEqual(policy["fields"]["field1"], FIELD1_VALUE)
+        self.assertNotIn("x-ignore-field", policy["fields"].keys())
+        self.assertEqual(
+            policy["fields"]["x-goog-credential"],
+            "test@mail.com/20200312/auto/service/goog4_request",
+        )
+        self.assertEqual(
+            policy["fields"]["x-goog-signature"], "5369676e61747572655f6279746573"
+        )
+        self.assertEqual(
+            policy["fields"]["policy"],
+            b"eyJjb25kaXRpb25zIjogW3siYnVja2V0IjogImJ1Y2tldC1uYW1lIn0sIHsiYWNsIjogInByaXZhdGUifSwgWyJzdGFydHMtd2l0aCIsICIkQ29udGVudC1UeXBlIiwgInRleHQvcGxhaW4iXV0sICJleHBpcmF0aW9uIjogIjIwMjAtMDMtMTJUMDA6MDA6MDAifQ==",
+        )
+
+    def test_generate_signed_post_policy_virtual_hosted_style(self):
+        import datetime
+
+        BUCKET_NAME = "bucket-name"
+        BLOB_NAME = "object-name"
+        TIMESTAMP = "20200312T114716Z"
+
+        credentials = _make_credentials()
+        credentials.sign_bytes = mock.Mock(return_value=b"Signature_bytes")
+        credentials.signer_email = "test@mail.com"
+
+        client = self._make_one(project="PROJECT", credentials=credentials)
+
+        with mock.patch(
+            "google.cloud.storage.client.get_v4_dtstamps",
+            return_value=(TIMESTAMP, "20200312"),
+        ):
+            policy = client.generate_signed_post_policy(
+                BUCKET_NAME,
+                BLOB_NAME,
+                conditions=[],
+                expiration=datetime.datetime(2020, 3, 12),
+                virtual_hosted_style=True,
+            )
+        self.assertEqual(
+            policy["url"], "https://{}.storage.googleapis.com".format(BUCKET_NAME)
+        )
+
+    def test_generate_signed_post_policy_bucket_bound_hostname(self):
+        import datetime
+
+        BUCKET_NAME = "bucket-name"
+        BLOB_NAME = "object-name"
+        TIMESTAMP = "20200312T114716Z"
+
+        credentials = _make_credentials()
+        credentials.sign_bytes = mock.Mock(return_value=b"Signature_bytes")
+        credentials.signer_email = "test@mail.com"
+
+        client = self._make_one(project="PROJECT", credentials=credentials)
+
+        with mock.patch(
+            "google.cloud.storage.client.get_v4_dtstamps",
+            return_value=(TIMESTAMP, "20200312"),
+        ):
+            policy = client.generate_signed_post_policy(
+                BUCKET_NAME,
+                BLOB_NAME,
+                conditions=[],
+                expiration=datetime.datetime(2020, 3, 12),
+                bucket_bound_hostname="https://bucket.bound_hostname",
+            )
+        self.assertEqual(
+            policy["url"], "https://bucket.bound_hostname/{}".format(BUCKET_NAME)
+        )
+
+    def test_generate_signed_post_policy_bucket_bound_hostname_with_scheme(self):
+        import datetime
+
+        BUCKET_NAME = "bucket-name"
+        BLOB_NAME = "object-name"
+        TIMESTAMP = "20200312T114716Z"
+
+        credentials = _make_credentials()
+        credentials.sign_bytes = mock.Mock(return_value=b"Signature_bytes")
+        credentials.signer_email = "test@mail.com"
+
+        client = self._make_one(project="PROJECT", credentials=credentials)
+
+        with mock.patch(
+            "google.cloud.storage.client.get_v4_dtstamps",
+            return_value=(TIMESTAMP, "20200312"),
+        ):
+            policy = client.generate_signed_post_policy(
+                BUCKET_NAME,
+                BLOB_NAME,
+                conditions=[],
+                expiration=datetime.datetime(2020, 3, 12),
+                bucket_bound_hostname="bucket.bound_hostname",
+                scheme="http",
+            )
+        self.assertEqual(
+            policy["url"], "http://bucket.bound_hostname/{}".format(BUCKET_NAME)
+        )

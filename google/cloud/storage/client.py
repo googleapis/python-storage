@@ -898,7 +898,7 @@ class Client(ClientWithProject):
         )
         str_to_sign = base64.b64encode(policy.encode("utf-8"))
 
-        signature_bytes = self._credentials.sign_bytes(str_to_sign.encode("ascii"))
+        signature_bytes = self._credentials.sign_bytes(str_to_sign)
         signature = binascii.hexlify(signature_bytes).decode("ascii")
 
         timestamp, datestamp = get_v4_dtstamps()
