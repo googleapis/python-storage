@@ -182,19 +182,5 @@
       "urlStyle": "VIRTUAL_HOSTED_STYLE",
       "expectedCanonicalRequest": "GET\n/test-object\nX-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=test-iam-credentials%40dummy-project-id.iam.gserviceaccount.com%2F20190201%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20190201T090000Z&X-Goog-Expires=10&X-Goog-SignedHeaders=host\nhost:test-bucket.storage.googleapis.com\n\nhost\nUNSIGNED-PAYLOAD",
       "expectedStringToSign": "GOOG4-RSA-SHA256\n20190201T090000Z\n20190201/auto/storage/goog4_request\n89eeae48258eccdcb1f592fb908008e3f5d36a949c002c1e614c94356dc18fc6"
-    },
-
-    {
-      "description": "Virtual Hosted Style",
-      "bucket": "test-bucket",
-      "object": "",
-      "method": "GET",
-      "expiration": 10,
-      "timestamp": "20190201T090000Z",
-      "expectedUrl": "https://test-bucket.storage.googleapis.com/?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=test-iam-credentials%40dummy-project-id.iam.gserviceaccount.com%2F20190201%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20190201T090000Z&X-Goog-Expires=10&X-Goog-SignedHeaders=host&X-Goog-Signature=79b49f12d21293882daaef1d7b0cf81529f302dc29e37d42e15ac1d55b6fe793efc4f53e29a7fe47ca71119fb82768cb34111410029fd5d1a542b8be7e38b54a4164f2fb2a330aa57d0c5762de7f31614c4dda3f1e29ff735a9886464e04e36445a043e5f2e9bac64a588cb339fa75d69dce97ca1322dd4bfe0e7a8fe33cf309f30b35f79e7d4cf78b1a9ed4eb2ce7ba91e662ade58b6e0d516c13d7bdc18244c191cf0bdd55e04bbaca01afb89df02123d0855ecec960d8c52bc792f8e5b36e0e3cd697bf7c9e390bd165b7767d94ba2d5938dc555e3918ac05a9d5c66293b204a104776c03a43d59764cce4a28e85f1e54b36b315367ed8f37ac691ef6a11b",
-      "scheme": "https",
-      "urlStyle": "VIRTUAL_HOSTED_STYLE",
-      "expectedCanonicalRequest": "GET\nX-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=test-iam-credentials%40dummy-project-id.iam.gserviceaccount.com%2F20190201%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20190201T090000Z&X-Goog-Expires=10&X-Goog-SignedHeaders=host\nhost:test-bucket.storage.googleapis.com\n\nhost\nUNSIGNED-PAYLOAD",
-      "expectedStringToSign": "GOOG4-RSA-SHA256\n20190201T090000Z\n20190201/auto/storage/goog4_request\n4a3352bc39ec2a3eec47d568fb05688e66b0d0f88bbe9890fa83f53bf756483e"
     }
 ]

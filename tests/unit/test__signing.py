@@ -808,18 +808,11 @@ def test_conformance_client(test_data):
 @pytest.mark.parametrize("test_data", _BUCKET_TESTS)
 def test_conformance_bucket(test_data):
     global _API_ACCESS_ENDPOINT
-    if "urlStyle" in test_data:
-        if test_data["urlStyle"] == "BUCKET_BOUND_HOSTNAME":
-            _API_ACCESS_ENDPOINT = "{scheme}://{bucket_bound_hostname}".format(
-                scheme=test_data["scheme"],
-                bucket_bound_hostname=test_data["bucketBoundHostname"],
-            )
-
-        # For the VIRTUAL_HOSTED_STYLE
-        else:
-            _API_ACCESS_ENDPOINT = "{scheme}://{bucket_name}.storage.googleapis.com".format(
-                scheme=test_data["scheme"], bucket_name=test_data["bucket"]
-            )
+    if "urlStyle" in test_data and test_data["urlStyle"] == "BUCKET_BOUND_HOSTNAME":
+        _API_ACCESS_ENDPOINT = "{scheme}://{bucket_bound_hostname}".format(
+            scheme=test_data["scheme"],
+            bucket_bound_hostname=test_data["bucketBoundHostname"],
+        )
         resource = "/"
         _run_conformance_test(resource, test_data, _API_ACCESS_ENDPOINT)
     else:
