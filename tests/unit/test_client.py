@@ -1691,4 +1691,3 @@ class TestClient(unittest.TestCase):
             policy["fields"]["policy"],
             b"eyJjb25kaXRpb25zIjogW10sICJleHBpcmF0aW9uIjogIjIwMjAtMDMtMTJUMDE6MDA6MDAifQ==",
         )
-

@@ -1955,3 +1955,56 @@ class TestIAMConfiguration(unittest.TestCase):
 
         self.assertEqual(bucket_acl_before, bucket_acl_after)
         self.assertEqual(blob_acl_before, blob_acl_after)
+
+    def test_generate_signed_post_policy(self):
+        bucket_name = "post_policy" + unique_resource_id("-")
+        self.assertRaises(exceptions.NotFound, Config.CLIENT.get_bucket, bucket_name)
+        retry_429_503(Config.CLIENT.create_bucket)(bucket_name)
+        self.case_buckets_to_delete.append(bucket_name)
+
+        blob_name = "post_policy_obj.txt"
+        with open(blob_name, "wb") as f:
+            f.write(b"DEADBEEF")
+
+        policy = Config.CLIENT.generate_signed_post_policy(
+            bucket_name,
+            blob_name,
+            conditions=[
+                ["starts-with", "$Content-Type", "text/plain"],
+                {"bucket": bucket_name},
+            ],
+            expiration=datetime.datetime.now() + datetime.timedelta(hours=1),
+        )
+        with open(blob_name, "rb") as f:
+            files = {"file": (blob_name, f)}
+            response = requests.post(policy["url"], data=policy["fields"], files=files)
+
+        os.remove(blob_name)
+        self.assertEqual(response.status_code, 200)
+
+    def test_generate_signed_post_policy_invalid_field(self):
+        bucket_name = "post_policy" + unique_resource_id("-")
+        self.assertRaises(exceptions.NotFound, Config.CLIENT.get_bucket, bucket_name)
+        retry_429_503(Config.CLIENT.create_bucket)(bucket_name)
+        self.case_buckets_to_delete.append(bucket_name)
+
+        blob_name = "post_policy_obj.txt"
+        with open(blob_name, "wb") as f:
+            f.write(b"DEADBEEF")
+
+        policy = Config.CLIENT.generate_signed_post_policy(
+            bucket_name,
+            blob_name,
+            conditions=[
+                ["starts-with", "$Content-Type", "text/plain"],
+                {"bucket": bucket_name},
+            ],
+            expiration=datetime.datetime.now() + datetime.timedelta(hours=1),
+            fields={"x-goog-random": "invalid_field"},
+        )
+        with open(blob_name, "rb") as f:
+            files = {"file": (blob_name, f)}
+            response = requests.post(policy["url"], data=policy["fields"], files=files)
+
+        os.remove(blob_name)
+        self.assertEqual(response.status_code, 400)
