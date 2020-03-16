@@ -1956,6 +1956,16 @@ class TestIAMConfiguration(unittest.TestCase):
         self.assertEqual(bucket_acl_before, bucket_acl_after)
         self.assertEqual(blob_acl_before, blob_acl_after)
 
+
+class TestV4POSTPolicies(unittest.TestCase):
+    def setUp(self):
+        self.case_buckets_to_delete = []
+
+    def tearDown(self):
+        for bucket_name in self.case_buckets_to_delete:
+            bucket = Config.CLIENT.bucket(bucket_name)
+            retry_429_harder(bucket.delete)(force=True)
+
     def test_generate_signed_post_policy(self):
         bucket_name = "post_policy" + unique_resource_id("-")
         self.assertRaises(exceptions.NotFound, Config.CLIENT.get_bucket, bucket_name)
