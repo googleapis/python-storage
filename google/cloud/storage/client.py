@@ -841,7 +841,6 @@ class Client(ClientWithProject):
         metadata.reload(timeout=timeout)  # raises NotFound for missing key
         return metadata
 
-    # TODO: Character Escaping: https://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-HTTPPOSTConstructPolicy.html
     def generate_signed_post_policy(
         self,
         bucket_name,
@@ -907,7 +906,7 @@ class Client(ClientWithProject):
         signature = binascii.hexlify(signature_bytes).decode("ascii")
 
         timestamp, datestamp = get_v4_dtstamps()
-        credential_scope = "{}/auto/service/goog4_request".format(datestamp)
+        credential_scope = "{}/auto/storage/goog4_request".format(datestamp)
 
         policy_fields = {
             "key": blob_name,
