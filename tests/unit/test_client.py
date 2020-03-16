@@ -1518,7 +1518,7 @@ class TestClient(unittest.TestCase):
         self.assertEqual(policy["fields"]["x-goog-date"], TIMESTAMP)
         self.assertEqual(
             policy["fields"]["x-goog-credential"],
-            "test@mail.com/20200312/auto/service/goog4_request",
+            "test@mail.com/20200312/auto/storage/goog4_request",
         )
         self.assertEqual(
             policy["fields"]["x-goog-signature"], "5369676e61747572655f6279746573"
@@ -1565,7 +1565,7 @@ class TestClient(unittest.TestCase):
         self.assertNotIn("x-ignore-field", policy["fields"].keys())
         self.assertEqual(
             policy["fields"]["x-goog-credential"],
-            "test@mail.com/20200312/auto/service/goog4_request",
+            "test@mail.com/20200312/auto/storage/goog4_request",
         )
         self.assertEqual(
             policy["fields"]["x-goog-signature"], "5369676e61747572655f6279746573"
