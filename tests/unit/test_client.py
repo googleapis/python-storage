@@ -1514,7 +1514,7 @@ class TestClient(unittest.TestCase):
             )
         self.assertEqual(policy["url"], "https://storage.googleapis.com/" + BUCKET_NAME)
         self.assertEqual(policy["fields"]["key"], BLOB_NAME)
-        self.assertEqual(policy["fields"]["x-goog-algorithm"], "GOOG4-HMAC-SHA256")
+        self.assertEqual(policy["fields"]["x-goog-algorithm"], "GOOG4-RSA-SHA256")
         self.assertEqual(policy["fields"]["x-goog-date"], TIMESTAMP)
         self.assertEqual(
             policy["fields"]["x-goog-credential"],
@@ -1559,7 +1559,7 @@ class TestClient(unittest.TestCase):
             )
         self.assertEqual(policy["url"], "https://storage.googleapis.com/" + BUCKET_NAME)
         self.assertEqual(policy["fields"]["key"], BLOB_NAME)
-        self.assertEqual(policy["fields"]["x-goog-algorithm"], "GOOG4-HMAC-SHA256")
+        self.assertEqual(policy["fields"]["x-goog-algorithm"], "GOOG4-RSA-SHA256")
         self.assertEqual(policy["fields"]["x-goog-date"], TIMESTAMP)
         self.assertEqual(policy["fields"]["field1"], FIELD1_VALUE)
         self.assertNotIn("x-ignore-field", policy["fields"].keys())

@@ -910,7 +910,7 @@ class Client(ClientWithProject):
 
         policy_fields = {
             "key": blob_name,
-            "x-goog-algorithm": "GOOG4-HMAC-SHA256",
+            "x-goog-algorithm": "GOOG4-RSA-SHA256",
             "x-goog-credential": "{email}/{scope}".format(
                 email=self._credentials.signer_email, scope=credential_scope
             ),
