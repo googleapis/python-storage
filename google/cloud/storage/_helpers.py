@@ -18,7 +18,6 @@ These are *not* part of the API.
 """
 
 import base64
-import crc32c
 from hashlib import md5
 import os
 
@@ -342,6 +341,6 @@ def _get_crc32c_module():
 
             hash_obj = crcmod.predefined.Crc('crc-32c')
         except:
-            raise Exception("Missing a crc package. Install google-crc32c or crcmod")
+            raise ImportError("Failed to import either `google-crc32c` or `crcmod`)
 
     return hash_obj
