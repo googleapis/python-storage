@@ -331,7 +331,7 @@ def _get_crc32c_object():
         import crc32c
 
         crc_obj = crc32c.Checksum()
-    except:
+    except ImportError:
         try:
             import crcmod
 
@@ -344,7 +344,7 @@ def _get_crc32c_object():
                 warnings.warn(_SLOW_CRC32C_WARNING, RuntimeWarning, stacklevel=2)
 
             crc_obj = crcmod.predefined.Crc("crc-32c")
-        except:
+        except ImportError:
             raise ImportError("Failed to import either `google-crc32c` or `crcmod`")
 
     return crc_obj
