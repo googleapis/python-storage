@@ -18,6 +18,7 @@ These are *not* part of the API.
 """
 
 import base64
+import crc32c
 from hashlib import md5
 import os
 
@@ -297,3 +298,50 @@ def _base64_md5hash(buffer_object):
     _write_buffer_to_hash(buffer_object, hash_obj)
     digest_bytes = hash_obj.digest()
     return base64.b64encode(digest_bytes)
+
+
+def _base64_crc32chash(buffer_object):
+    """Get crc32c hash of bytes (as base64).
+
+    :type buffer_object: bytes buffer
+    :param buffer_object: Buffer containing bytes used to compute an MD5
+                          hash (as base64).
+
+    :rtype: str
+    :returns: A base64 encoded digest of the MD5 hash.
+    """\
+
+    hash_obj = _get_crc32c_module()
+    _write_buffer_to_hash(buffer_object, hash_obj)
+    digest_bytes = hash_obj.digest()
+    return base64.b64encode(digest_bytes)
+
+def _get_crc32c_module():
+    """ Get crc32c object
+    Attempt to use the Google-CRC32c package. If it isn't available, try
+    to use CRCMod. CRCMod might be using a 'slow' varietal. If so, warn...
+    """
+    try:
+        import crc32c
+        hash_obj = crc32c.Checksum()
+    except:
+        try:
+            import crcmod
+
+            # Determine if this is using the slow form of crcmod.
+            nested_crcmod = __import__(
+                'crcmod.crcmod',
+                globals(),
+                locals(),
+                ['_usingExtension'],
+                0,
+            )
+            fast_crc = getattr(nested_crcmod, '_usingExtension', False)
+            if not fast_crc:
+                print("SLOW VERSION!!!!")
+
+            hash_obj = crcmod.predefined.Crc('crc-32c')
+        except:
+            raise Exception("Missing a crc package. Install google-crc32c or crcmod")
+
+    return hash_obj

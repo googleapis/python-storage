@@ -343,6 +343,55 @@ class Test__base64_md5hash(unittest.TestCase):
         self.assertEqual(MD5.hash_obj._blocks, [BYTES_TO_SIGN])
 
 
+class Test__base64_crc32chash(unittest.TestCase):
+    def _call_fut(self, bytes_to_sign):
+        from google.cloud.storage._helpers import _base64_crc32chash
+
+        return _base64_crc32chash(bytes_to_sign)
+
+    def test_it(self):
+        from io import BytesIO
+
+        BYTES_TO_SIGN = b"FOO"
+        BUFFER = BytesIO()
+        BUFFER.write(BYTES_TO_SIGN)
+        BUFFER.seek(0)
+
+        SIGNED_CONTENT = self._call_fut(BUFFER)
+        self.assertEqual(SIGNED_CONTENT, b"cbY41Q==")
+
+    def test_it_with_stubs(self):
+        import mock
+
+        class _Buffer(object):
+            def __init__(self, return_vals):
+                self.return_vals = return_vals
+                self._block_sizes = []
+
+            def read(self, block_size):
+                self._block_sizes.append(block_size)
+                return self.return_vals.pop()
+
+        BASE64 = _Base64()
+        DIGEST_VAL = object()
+        BYTES_TO_SIGN = b"BYTES_TO_SIGN"
+        BUFFER = _Buffer([b"", BYTES_TO_SIGN])
+        CRC32C = _CRC32C(DIGEST_VAL)
+
+        patch = mock.patch.multiple(
+            "google.cloud.storage._helpers", base64=BASE64, _get_crc32c_module=CRC32C
+        )
+        with patch:
+            SIGNED_CONTENT = self._call_fut(BUFFER)
+
+        self.assertEqual(BUFFER._block_sizes, [8192, 8192])
+        self.assertIs(SIGNED_CONTENT, DIGEST_VAL)
+        self.assertEqual(BASE64._called_b64encode, [DIGEST_VAL])
+        self.assertEqual(CRC32C._called, [None])
+        self.assertEqual(CRC32C.hash_obj.num_digest_calls, 1)
+        self.assertEqual(CRC32C.hash_obj._blocks, [BYTES_TO_SIGN])
+
+
 class _Connection(object):
     def __init__(self, *responses):
         self._responses = responses
@@ -354,7 +403,7 @@ class _Connection(object):
         return response
 
 
-class _MD5Hash(object):
+class _Hash(object):
     def __init__(self, digest_val):
         self.digest_val = digest_val
         self.num_digest_calls = 0
@@ -370,13 +419,21 @@ class _MD5Hash(object):
 
 class _MD5(object):
     def __init__(self, digest_val):
-        self.hash_obj = _MD5Hash(digest_val)
+        self.hash_obj = _Hash(digest_val)
         self._called = []
 
     def __call__(self, data=None):
         self._called.append(data)
         return self.hash_obj
 
+class _CRC32C(object):
+    def __init__(self, digest_val):
+        self.hash_obj = _Hash(digest_val)
+        self._called = []
+
+    def __call__(self, data=None):
+        self._called.append(data)
+        return self.hash_obj
 
 class _Base64(object):
     def __init__(self):
