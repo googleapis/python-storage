@@ -137,7 +137,7 @@ class _PropertyMixin(object):
         :param client: the client to use.  If not passed, falls back to the
                        ``client`` stored on the current object.
         :type timeout: float or tuple
-        :param timeout: (optional) The amount of time, in seconds, to wait
+        :param timeout: (Optional) The amount of time, in seconds, to wait
             for the server response.
 
             Can also be passed as a tuple (connect_timeout, read_timeout).
@@ -198,7 +198,7 @@ class _PropertyMixin(object):
         :param client: the client to use.  If not passed, falls back to the
                        ``client`` stored on the current object.
         :type timeout: float or tuple
-        :param timeout: (optional) The amount of time, in seconds, to wait
+        :param timeout: (Optional) The amount of time, in seconds, to wait
             for the server response.
 
             Can also be passed as a tuple (connect_timeout, read_timeout).
@@ -234,7 +234,7 @@ class _PropertyMixin(object):
         :param client: the client to use.  If not passed, falls back to the
                        ``client`` stored on the current object.
         :type timeout: float or tuple
-        :param timeout: (optional) The amount of time, in seconds, to wait
+        :param timeout: (Optional) The amount of time, in seconds, to wait
             for the server response.
 
             Can also be passed as a tuple (connect_timeout, read_timeout).
