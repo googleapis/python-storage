@@ -379,7 +379,7 @@ class Test__base64_crc32chash(unittest.TestCase):
         CRC32C = _CRC32C(DIGEST_VAL)
 
         patch = mock.patch.multiple(
-            "google.cloud.storage._helpers", base64=BASE64, _get_crc32c_module=CRC32C
+            "google.cloud.storage._helpers", base64=BASE64, _get_crc32c_object=CRC32C
         )
         with patch:
             SIGNED_CONTENT = self._call_fut(BUFFER)
@@ -426,6 +426,7 @@ class _MD5(object):
         self._called.append(data)
         return self.hash_obj
 
+
 class _CRC32C(object):
     def __init__(self, digest_val):
         self.hash_obj = _Hash(digest_val)
@@ -434,6 +435,7 @@ class _CRC32C(object):
     def __call__(self, data=None):
         self._called.append(data)
         return self.hash_obj
+
 
 class _Base64(object):
     def __init__(self):

@@ -20,6 +20,7 @@ These are *not* part of the API.
 import base64
 from hashlib import md5
 import os
+import warnings
 
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 
@@ -28,6 +29,12 @@ STORAGE_EMULATOR_ENV_VAR = "STORAGE_EMULATOR_HOST"
 """Environment variable defining host for Storage emulator."""
 
 _DEFAULT_STORAGE_HOST = u"https://storage.googleapis.com"
+
+_SLOW_CRC32C_WARNING = (
+    "Currently using crcmod in pure python form. This is a slow "
+    "implementation. You may consider installing `google-crc32c` for a "
+    "precompiled wheel with fast crc32c support."
+)
 
 
 def _get_storage_host():
@@ -308,39 +315,36 @@ def _base64_crc32chash(buffer_object):
 
     :rtype: str
     :returns: A base64 encoded digest of the MD5 hash.
-    """\
-
-    hash_obj = _get_crc32c_module()
+    """
+    hash_obj = _get_crc32c_object()
     _write_buffer_to_hash(buffer_object, hash_obj)
     digest_bytes = hash_obj.digest()
     return base64.b64encode(digest_bytes)
 
-def _get_crc32c_module():
+
+def _get_crc32c_object():
     """ Get crc32c object
     Attempt to use the Google-CRC32c package. If it isn't available, try
     to use CRCMod. CRCMod might be using a 'slow' varietal. If so, warn...
     """
     try:
         import crc32c
-        hash_obj = crc32c.Checksum()
+
+        crc_obj = crc32c.Checksum()
     except:
         try:
             import crcmod
 
             # Determine if this is using the slow form of crcmod.
             nested_crcmod = __import__(
-                'crcmod.crcmod',
-                globals(),
-                locals(),
-                ['_usingExtension'],
-                0,
+                "crcmod.crcmod", globals(), locals(), ["_usingExtension"], 0,
             )
-            fast_crc = getattr(nested_crcmod, '_usingExtension', False)
+            fast_crc = getattr(nested_crcmod, "_usingExtension", False)
             if not fast_crc:
-                print("SLOW VERSION!!!!")
+                warnings.warn(_SLOW_CRC32C_WARNING, RuntimeWarning, stacklevel=2)
 
-            hash_obj = crcmod.predefined.Crc('crc-32c')
+            crc_obj = crcmod.predefined.Crc("crc-32c")
         except:
-            raise ImportError("Failed to import either `google-crc32c` or `crcmod`)
+            raise ImportError("Failed to import either `google-crc32c` or `crcmod`")
 
-    return hash_obj
+    return crc_obj

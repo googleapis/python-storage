@@ -32,7 +32,7 @@ dependencies = [
     "google-auth >= 1.11.0, < 2.0dev",
     "google-cloud-core >= 1.2.0, < 2.0dev",
     "google-resumable-media >= 0.5.0, < 0.6dev",
-    "crcmod"
+    "crcmod",
 ]
 extras = {"crc32c": "google-crc32c"}
 
