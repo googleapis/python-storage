@@ -1966,7 +1966,7 @@ class TestV4POSTPolicies(unittest.TestCase):
             bucket = Config.CLIENT.bucket(bucket_name)
             retry_429_harder(bucket.delete)(force=True)
 
-    def test_generate_signed_post_policy(self):
+    def test_get_signed_policy_v4(self):
         bucket_name = "post_policy" + unique_resource_id("-")
         self.assertRaises(exceptions.NotFound, Config.CLIENT.get_bucket, bucket_name)
         retry_429_503(Config.CLIENT.create_bucket)(bucket_name)
@@ -1976,7 +1976,7 @@ class TestV4POSTPolicies(unittest.TestCase):
         with open(blob_name, "wb") as f:
             f.write(b"DEADBEEF")
 
-        policy = Config.CLIENT.generate_signed_post_policy(
+        policy = Config.CLIENT.get_signed_policy_v4(
             bucket_name,
             blob_name,
             conditions=[
@@ -1992,7 +1992,7 @@ class TestV4POSTPolicies(unittest.TestCase):
         os.remove(blob_name)
         self.assertEqual(response.status_code, 200)
 
-    def test_generate_signed_post_policy_invalid_field(self):
+    def test_get_signed_policy_v4_invalid_field(self):
         bucket_name = "post_policy" + unique_resource_id("-")
         self.assertRaises(exceptions.NotFound, Config.CLIENT.get_bucket, bucket_name)
         retry_429_503(Config.CLIENT.create_bucket)(bucket_name)
@@ -2002,7 +2002,7 @@ class TestV4POSTPolicies(unittest.TestCase):
         with open(blob_name, "wb") as f:
             f.write(b"DEADBEEF")
 
-        policy = Config.CLIENT.generate_signed_post_policy(
+        policy = Config.CLIENT.get_signed_policy_v4(
             bucket_name,
             blob_name,
             conditions=[

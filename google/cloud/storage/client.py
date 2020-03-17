@@ -841,7 +841,7 @@ class Client(ClientWithProject):
         metadata.reload(timeout=timeout)  # raises NotFound for missing key
         return metadata
 
-    def generate_signed_post_policy(
+    def get_signed_policy_v4(
         self,
         bucket_name,
         blob_name,
@@ -891,6 +891,26 @@ class Client(ClientWithProject):
 
         :rtype: dict
         :returns: Signed POST policy object.
+
+        Example:
+            Generate signed POST policy and upload a file.
+
+            >>> from google.cloud import storage
+            >>> client = storage.Client()
+            >>> client.get_signed_policy_v4(
+                "bucket-name",
+                "blob-name",
+                conditions=[
+                    ['content-length-range', 0, 255]
+                ],
+                fields=[
+                    'x-goog-meta-hello' => 'world'
+                ],
+                expiration=datetime.datetime(2020, 3, 17),
+            )
+            >>> with open("bucket-name", "rb") as f:
+                files = {"file": ("bucket-name", f)}
+                requests.post(policy["url"], data=policy["fields"], files=files)
         """
         ensure_signed_credentials(self._credentials)
 

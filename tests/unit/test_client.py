@@ -1485,7 +1485,7 @@ class TestClient(unittest.TestCase):
             timeout=self._get_default_timeout(),
         )
 
-    def test_generate_signed_post_policy(self):
+    def test_get_signed_policy_v4(self):
         import datetime
 
         BUCKET_NAME = "bucket-name"
@@ -1502,7 +1502,7 @@ class TestClient(unittest.TestCase):
             "google.cloud.storage.client.get_v4_dtstamps",
             return_value=(TIMESTAMP, "20200312"),
         ):
-            policy = client.generate_signed_post_policy(
+            policy = client.get_signed_policy_v4(
                 BUCKET_NAME,
                 BLOB_NAME,
                 conditions=[
@@ -1528,7 +1528,7 @@ class TestClient(unittest.TestCase):
             b"eyJjb25kaXRpb25zIjogW3siYnVja2V0IjogImJ1Y2tldC1uYW1lIn0sIHsiYWNsIjogInByaXZhdGUifSwgWyJzdGFydHMtd2l0aCIsICIkQ29udGVudC1UeXBlIiwgInRleHQvcGxhaW4iXV0sICJleHBpcmF0aW9uIjogIjIwMjAtMDMtMTJUMDA6MDA6MDAifQ==",
         )
 
-    def test_generate_signed_post_policy_with_fields(self):
+    def test_get_signed_policy_v4_with_fields(self):
         import datetime
 
         BUCKET_NAME = "bucket-name"
@@ -1546,7 +1546,7 @@ class TestClient(unittest.TestCase):
             "google.cloud.storage.client.get_v4_dtstamps",
             return_value=(TIMESTAMP, "20200312"),
         ):
-            policy = client.generate_signed_post_policy(
+            policy = client.get_signed_policy_v4(
                 BUCKET_NAME,
                 BLOB_NAME,
                 conditions=[
@@ -1575,7 +1575,7 @@ class TestClient(unittest.TestCase):
             b"eyJjb25kaXRpb25zIjogW3siYnVja2V0IjogImJ1Y2tldC1uYW1lIn0sIHsiYWNsIjogInByaXZhdGUifSwgWyJzdGFydHMtd2l0aCIsICIkQ29udGVudC1UeXBlIiwgInRleHQvcGxhaW4iXV0sICJleHBpcmF0aW9uIjogIjIwMjAtMDMtMTJUMDA6MDA6MDAifQ==",
         )
 
-    def test_generate_signed_post_policy_virtual_hosted_style(self):
+    def test_get_signed_policy_v4_virtual_hosted_style(self):
         import datetime
 
         BUCKET_NAME = "bucket-name"
@@ -1592,7 +1592,7 @@ class TestClient(unittest.TestCase):
             "google.cloud.storage.client.get_v4_dtstamps",
             return_value=(TIMESTAMP, "20200312"),
         ):
-            policy = client.generate_signed_post_policy(
+            policy = client.get_signed_policy_v4(
                 BUCKET_NAME,
                 BLOB_NAME,
                 conditions=[],
@@ -1603,7 +1603,7 @@ class TestClient(unittest.TestCase):
             policy["url"], "https://{}.storage.googleapis.com".format(BUCKET_NAME)
         )
 
-    def test_generate_signed_post_policy_bucket_bound_hostname(self):
+    def test_get_signed_policy_v4_bucket_bound_hostname(self):
         import datetime
 
         BUCKET_NAME = "bucket-name"
@@ -1620,7 +1620,7 @@ class TestClient(unittest.TestCase):
             "google.cloud.storage.client.get_v4_dtstamps",
             return_value=(TIMESTAMP, "20200312"),
         ):
-            policy = client.generate_signed_post_policy(
+            policy = client.get_signed_policy_v4(
                 BUCKET_NAME,
                 BLOB_NAME,
                 conditions=[],
@@ -1631,7 +1631,7 @@ class TestClient(unittest.TestCase):
             policy["url"], "https://bucket.bound_hostname/{}".format(BUCKET_NAME)
         )
 
-    def test_generate_signed_post_policy_bucket_bound_hostname_with_scheme(self):
+    def test_get_signed_policy_v4_bucket_bound_hostname_with_scheme(self):
         import datetime
 
         BUCKET_NAME = "bucket-name"
@@ -1648,7 +1648,7 @@ class TestClient(unittest.TestCase):
             "google.cloud.storage.client.get_v4_dtstamps",
             return_value=(TIMESTAMP, "20200312"),
         ):
-            policy = client.generate_signed_post_policy(
+            policy = client.get_signed_policy_v4(
                 BUCKET_NAME,
                 BLOB_NAME,
                 conditions=[],
@@ -1660,7 +1660,7 @@ class TestClient(unittest.TestCase):
             policy["url"], "http://bucket.bound_hostname/{}".format(BUCKET_NAME)
         )
 
-    def test_generate_signed_post_policy_no_expiration(self):
+    def test_get_signed_policy_v4_no_expiration(self):
         import datetime
 
         BUCKET_NAME = "bucket-name"
@@ -1681,7 +1681,7 @@ class TestClient(unittest.TestCase):
                 "google.cloud.storage.client.get_v4_dtstamps",
                 return_value=(TIMESTAMP, "20200312"),
             ):
-                policy = client.generate_signed_post_policy(
+                policy = client.get_signed_policy_v4(
                     BUCKET_NAME, BLOB_NAME, conditions=[], expiration=None
                 )
                 now_mock.assert_called_once()
