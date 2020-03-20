@@ -763,15 +763,15 @@ class TestQuoteParam(unittest.TestCase):
 
 
 class TestV4Stamps(unittest.TestCase):
-    def test_get_v4_dtstamps(self):
+    def test_get_v4_now_dtstamps(self):
         import datetime
-        from google.cloud.storage._signing import get_v4_dtstamps
+        from google.cloud.storage._signing import get_v4_now_dtstamps
 
         with mock.patch(
             "google.cloud.storage._signing.NOW",
             return_value=datetime.datetime(2020, 3, 12, 13, 14, 15),
         ) as now_mock:
-            timestamp, datestamp = get_v4_dtstamps()
+            timestamp, datestamp = get_v4_now_dtstamps()
             now_mock.assert_called_once()
 
         self.assertEqual(timestamp, "20200312T131415Z")

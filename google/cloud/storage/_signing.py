@@ -531,7 +531,7 @@ def generate_signed_url_v4(
     expiration_seconds = get_expiration_seconds_v4(expiration)
 
     if _request_timestamp is None:
-        request_timestamp, datestamp = get_v4_dtstamps()
+        request_timestamp, datestamp = get_v4_now_dtstamps()
     else:
         request_timestamp = _request_timestamp
         datestamp = _request_timestamp[:8]
@@ -627,7 +627,7 @@ def generate_signed_url_v4(
     )
 
 
-def get_v4_dtstamps():
+def get_v4_now_dtstamps():
     """Get current timestamp and datestamp in V4 valid format.
 
     :rtype: str, str

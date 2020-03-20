@@ -30,7 +30,11 @@ from google.cloud.client import ClientWithProject
 from google.cloud.exceptions import NotFound
 from google.cloud.storage._helpers import _get_storage_host
 from google.cloud.storage._http import Connection
-from google.cloud.storage._signing import get_v4_dtstamps, ensure_signed_credentials
+from google.cloud.storage._signing import (
+    get_v4_now_dtstamps,
+    ensure_signed_credentials,
+    _sign_message,
+)
 from google.cloud.storage.batch import Batch
 from google.cloud.storage.bucket import Bucket
 from google.cloud.storage.blob import Blob
@@ -851,6 +855,8 @@ class Client(ClientWithProject):
         virtual_hosted_style=False,
         bucket_bound_hostname=None,
         scheme=None,
+        service_account_email=None,
+        access_token=None,
     ):
         """Generate a V4 signed policy object.
 
@@ -889,6 +895,12 @@ class Client(ClientWithProject):
             this value as a scheme. ``https`` will work only when using a CDN.
             Defaults to ``"http"``.
 
+        :type service_account_email: str
+        :param service_account_email: (Optional) E-mail address of the service account.
+
+        :type access_token: str
+        :param access_token: (Optional) Access token for a service account.
+
         :rtype: dict
         :returns: Signed POST policy object.
 
@@ -922,10 +934,15 @@ class Client(ClientWithProject):
         )
         str_to_sign = base64.b64encode(policy.encode("utf-8"))
 
-        signature_bytes = self._credentials.sign_bytes(str_to_sign)
+        if access_token and service_account_email:
+            signature = _sign_message(str_to_sign, access_token, service_account_email)
+            signature_bytes = base64.b64decode(signature)
+        else:
+            signature_bytes = self._credentials.sign_bytes(str_to_sign)
+
         signature = binascii.hexlify(signature_bytes).decode("ascii")
 
-        timestamp, datestamp = get_v4_dtstamps()
+        timestamp, datestamp = get_v4_now_dtstamps()
         credential_scope = "{}/auto/storage/goog4_request".format(datestamp)
 
         policy_fields = {
