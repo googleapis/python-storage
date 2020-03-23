@@ -33,7 +33,7 @@ dependencies = [
     "google-cloud-core >= 1.2.0, < 2.0dev",
     "google-resumable-media >= 0.5.0, < 0.6dev",
     "python-crc32c >= 0.1.0; python_version>'3.5'",
-    "crcmod >= 1.7 ; python_version='2.7'",
+    "crcmod >= 1.7; python_version=='2.7'",
 ]
 
 extras = {}
