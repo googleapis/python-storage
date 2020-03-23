@@ -1496,13 +1496,14 @@ class TestClient(unittest.TestCase):
         credentials.sign_bytes = mock.Mock(return_value=b"Signature_bytes")
         credentials.signer_email = "test@mail.com"
 
-        client = self._make_one(project="PROJECT", credentials=credentials)
+        client = self._make_one(project="PROJECT")
 
         with mock.patch(
             "google.cloud.storage.client.get_v4_now_dtstamps",
             return_value=(TIMESTAMP, "20200312"),
         ):
             policy = client.get_signed_policy_v4(
+                credentials,
                 BUCKET_NAME,
                 BLOB_NAME,
                 conditions=[
@@ -1540,13 +1541,14 @@ class TestClient(unittest.TestCase):
         credentials.sign_bytes = mock.Mock(return_value=b"Signature_bytes")
         credentials.signer_email = "test@mail.com"
 
-        client = self._make_one(project="PROJECT", credentials=credentials)
+        client = self._make_one(project="PROJECT")
 
         with mock.patch(
             "google.cloud.storage.client.get_v4_now_dtstamps",
             return_value=(TIMESTAMP, "20200312"),
         ):
             policy = client.get_signed_policy_v4(
+                credentials,
                 BUCKET_NAME,
                 BLOB_NAME,
                 conditions=[
@@ -1586,13 +1588,14 @@ class TestClient(unittest.TestCase):
         credentials.sign_bytes = mock.Mock(return_value=b"Signature_bytes")
         credentials.signer_email = "test@mail.com"
 
-        client = self._make_one(project="PROJECT", credentials=credentials)
+        client = self._make_one(project="PROJECT")
 
         with mock.patch(
             "google.cloud.storage.client.get_v4_now_dtstamps",
             return_value=(TIMESTAMP, "20200312"),
         ):
             policy = client.get_signed_policy_v4(
+                credentials,
                 BUCKET_NAME,
                 BLOB_NAME,
                 conditions=[],
@@ -1614,13 +1617,14 @@ class TestClient(unittest.TestCase):
         credentials.sign_bytes = mock.Mock(return_value=b"Signature_bytes")
         credentials.signer_email = "test@mail.com"
 
-        client = self._make_one(project="PROJECT", credentials=credentials)
+        client = self._make_one(project="PROJECT")
 
         with mock.patch(
             "google.cloud.storage.client.get_v4_now_dtstamps",
             return_value=(TIMESTAMP, "20200312"),
         ):
             policy = client.get_signed_policy_v4(
+                credentials,
                 BUCKET_NAME,
                 BLOB_NAME,
                 conditions=[],
@@ -1642,13 +1646,14 @@ class TestClient(unittest.TestCase):
         credentials.sign_bytes = mock.Mock(return_value=b"Signature_bytes")
         credentials.signer_email = "test@mail.com"
 
-        client = self._make_one(project="PROJECT", credentials=credentials)
+        client = self._make_one(project="PROJECT")
 
         with mock.patch(
             "google.cloud.storage.client.get_v4_now_dtstamps",
             return_value=(TIMESTAMP, "20200312"),
         ):
             policy = client.get_signed_policy_v4(
+                credentials,
                 BUCKET_NAME,
                 BLOB_NAME,
                 conditions=[],
@@ -1671,7 +1676,7 @@ class TestClient(unittest.TestCase):
         credentials.sign_bytes = mock.Mock(return_value=b"Signature_bytes")
         credentials.signer_email = "test@mail.com"
 
-        client = self._make_one(project="PROJECT", credentials=credentials)
+        client = self._make_one(project="PROJECT")
 
         with mock.patch(
             "google.cloud.storage.client._NOW",
@@ -1682,7 +1687,7 @@ class TestClient(unittest.TestCase):
                 return_value=(TIMESTAMP, "20200312"),
             ):
                 policy = client.get_signed_policy_v4(
-                    BUCKET_NAME, BLOB_NAME, conditions=[], expiration=None
+                    credentials, BUCKET_NAME, BLOB_NAME, conditions=[], expiration=None
                 )
                 now_mock.assert_called_once()
 
@@ -1699,9 +1704,10 @@ class TestClient(unittest.TestCase):
         BLOB_NAME = "object-name"
         TIMESTAMP = "20200312T114716Z"
 
+        client = self._make_one(project="PROJECT")
+
         credentials = _create_signing_credentials()
         credentials.signer_email = "test@mail.com"
-        client = self._make_one(project="PROJECT", credentials=credentials)
 
         with mock.patch(
             "google.cloud.storage.client.get_v4_now_dtstamps",
@@ -1711,6 +1717,7 @@ class TestClient(unittest.TestCase):
                 "google.cloud.storage.client._sign_message", return_value=b"DEADBEEF"
             ):
                 policy = client.get_signed_policy_v4(
+                    credentials,
                     BUCKET_NAME,
                     BLOB_NAME,
                     conditions=[

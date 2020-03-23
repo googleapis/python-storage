@@ -847,6 +847,7 @@ class Client(ClientWithProject):
 
     def get_signed_policy_v4(
         self,
+        credentials,
         bucket_name,
         blob_name,
         conditions,
@@ -860,8 +861,19 @@ class Client(ClientWithProject):
     ):
         """Generate a V4 signed policy object.
 
+        .. note::
+
+            Assumes ``credentials`` implements the
+            :class:`google.auth.credentials.Signing` interface. Also assumes
+            ``credentials`` has a ``service_account_email`` property which
+            identifies the credentials.
+
         Generated policy object allows user to upload
         objects with a POST request.
+
+        :type credentials: :class:`google.auth.credentials.Signing`
+        :param credentials: Credentials object with an associated private key to
+                            sign text.
 
         :type bucket_name: str
         :param bucket_name: Bucket name.
@@ -924,7 +936,7 @@ class Client(ClientWithProject):
                 files = {"file": ("bucket-name", f)}
                 requests.post(policy["url"], data=policy["fields"], files=files)
         """
-        ensure_signed_credentials(self._credentials)
+        ensure_signed_credentials(credentials)
 
         if expiration is None:
             expiration = _NOW() + datetime.timedelta(hours=1)
@@ -938,7 +950,7 @@ class Client(ClientWithProject):
             signature = _sign_message(str_to_sign, access_token, service_account_email)
             signature_bytes = base64.b64decode(signature)
         else:
-            signature_bytes = self._credentials.sign_bytes(str_to_sign)
+            signature_bytes = credentials.sign_bytes(str_to_sign)
 
         signature = binascii.hexlify(signature_bytes).decode("ascii")
 
@@ -949,7 +961,7 @@ class Client(ClientWithProject):
             "key": blob_name,
             "x-goog-algorithm": "GOOG4-RSA-SHA256",
             "x-goog-credential": "{email}/{scope}".format(
-                email=self._credentials.signer_email, scope=credential_scope
+                email=credentials.signer_email, scope=credential_scope
             ),
             "x-goog-date": timestamp,
             "x-goog-signature": signature,
