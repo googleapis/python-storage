@@ -335,16 +335,21 @@ def _get_crc32c_object():
         try:
             import crcmod
 
-            # Determine if this is using the slow form of crcmod.
-            nested_crcmod = __import__(
-                "crcmod.crcmod", globals(), locals(), ["_usingExtension"], 0,
-            )
-            fast_crc = getattr(nested_crcmod, "_usingExtension", False)
-            if not fast_crc:
-                warnings.warn(_SLOW_CRC32C_WARNING, RuntimeWarning, stacklevel=2)
-
             crc_obj = crcmod.predefined.Crc("crc-32c")
+            _is_fast_crcmod()
+
         except ImportError:
             raise ImportError("Failed to import either `google-crc32c` or `crcmod`")
 
     return crc_obj
+
+
+def _is_fast_crcmod():
+    # Determine if this is using the slow form of crcmod.
+    nested_crcmod = __import__(
+        "crcmod.crcmod", globals(), locals(), ["_usingExtension"], 0,
+    )
+    fast_crc = getattr(nested_crcmod, "_usingExtension", False)
+    if not fast_crc:
+        warnings.warn(_SLOW_CRC32C_WARNING, RuntimeWarning, stacklevel=2)
+    return fast_crc

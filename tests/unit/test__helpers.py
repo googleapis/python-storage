@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 import unittest
 
 import mock
@@ -390,6 +391,53 @@ class Test__base64_crc32chash(unittest.TestCase):
         self.assertEqual(CRC32C._called, [None])
         self.assertEqual(CRC32C.hash_obj.num_digest_calls, 1)
         self.assertEqual(CRC32C.hash_obj._blocks, [BYTES_TO_SIGN])
+
+    def test_crc32c_throws_import_error(self):
+        import mock
+        from google.cloud.storage._helpers import _get_crc32c_object
+
+        try:
+            import builtins
+        except ImportError:
+            import __builtin__ as builtins
+        orig_import = builtins.__import__
+
+        # Raises ImportError for name == "crc32c" or name == "crcmod"
+        def mock_import(name, globals, locals, fromlist, level=None):
+            raise ImportError
+
+        builtins.__import__ = mock_import
+
+        try:
+            with self.assertRaises(ImportError):
+                _get_crc32c_object()
+        finally:
+            builtins.__import__ = orig_import
+
+
+    def test_crc32c_warning_on_slow_crcmod(self):
+        import mock
+        from google.cloud.storage._helpers import _is_fast_crcmod
+
+        try:
+            import builtins
+        except ImportError:
+            import __builtin__ as builtins
+
+        orig_import = builtins.__import__
+
+        # crcmod.crcmod is the only import.
+        def mock_import(name, globals, locals, fromlist, level):
+            crcmod = mock.MagicMock()
+            crcmod._usingExtension = False
+            return crcmod
+
+        builtins.__import__ = mock_import
+
+        try:
+            self.assertFalse(_is_fast_crcmod())
+        finally:
+            builtins.__import__ = orig_import
 
 
 class _Connection(object):
