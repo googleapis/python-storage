@@ -1502,7 +1502,7 @@ class TestClient(unittest.TestCase):
             "google.cloud.storage.client.get_v4_now_dtstamps",
             return_value=(TIMESTAMP, "20200312"),
         ):
-            policy = client.get_signed_policy_v4(
+            policy = client.generate_signed_post_policy_v4(
                 credentials,
                 BUCKET_NAME,
                 BLOB_NAME,
@@ -1547,7 +1547,7 @@ class TestClient(unittest.TestCase):
             "google.cloud.storage.client.get_v4_now_dtstamps",
             return_value=(TIMESTAMP, "20200312"),
         ):
-            policy = client.get_signed_policy_v4(
+            policy = client.generate_signed_post_policy_v4(
                 credentials,
                 BUCKET_NAME,
                 BLOB_NAME,
@@ -1594,7 +1594,7 @@ class TestClient(unittest.TestCase):
             "google.cloud.storage.client.get_v4_now_dtstamps",
             return_value=(TIMESTAMP, "20200312"),
         ):
-            policy = client.get_signed_policy_v4(
+            policy = client.generate_signed_post_policy_v4(
                 credentials,
                 BUCKET_NAME,
                 BLOB_NAME,
@@ -1623,7 +1623,7 @@ class TestClient(unittest.TestCase):
             "google.cloud.storage.client.get_v4_now_dtstamps",
             return_value=(TIMESTAMP, "20200312"),
         ):
-            policy = client.get_signed_policy_v4(
+            policy = client.generate_signed_post_policy_v4(
                 credentials,
                 BUCKET_NAME,
                 BLOB_NAME,
@@ -1652,7 +1652,7 @@ class TestClient(unittest.TestCase):
             "google.cloud.storage.client.get_v4_now_dtstamps",
             return_value=(TIMESTAMP, "20200312"),
         ):
-            policy = client.get_signed_policy_v4(
+            policy = client.generate_signed_post_policy_v4(
                 credentials,
                 BUCKET_NAME,
                 BLOB_NAME,
@@ -1686,7 +1686,7 @@ class TestClient(unittest.TestCase):
                 "google.cloud.storage.client.get_v4_now_dtstamps",
                 return_value=(TIMESTAMP, "20200312"),
             ):
-                policy = client.get_signed_policy_v4(
+                policy = client.generate_signed_post_policy_v4(
                     credentials, BUCKET_NAME, BLOB_NAME, conditions=[], expiration=None
                 )
                 now_mock.assert_called_once()
@@ -1716,7 +1716,7 @@ class TestClient(unittest.TestCase):
             with mock.patch(
                 "google.cloud.storage.client._sign_message", return_value=b"DEADBEEF"
             ):
-                policy = client.get_signed_policy_v4(
+                policy = client.generate_signed_post_policy_v4(
                     credentials,
                     BUCKET_NAME,
                     BLOB_NAME,

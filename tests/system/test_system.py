@@ -1976,7 +1976,7 @@ class TestV4POSTPolicies(unittest.TestCase):
         with open(blob_name, "wb") as f:
             f.write(b"DEADBEEF")
 
-        policy = Config.CLIENT.get_signed_policy_v4(
+        policy = Config.CLIENT.generate_signed_post_policy_v4(
             bucket_name,
             blob_name,
             conditions=[
@@ -2002,7 +2002,7 @@ class TestV4POSTPolicies(unittest.TestCase):
         with open(blob_name, "wb") as f:
             f.write(b"DEADBEEF")
 
-        policy = Config.CLIENT.get_signed_policy_v4(
+        policy = Config.CLIENT.generate_signed_post_policy_v4(
             bucket_name,
             blob_name,
             conditions=[

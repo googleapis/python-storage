@@ -845,7 +845,7 @@ class Client(ClientWithProject):
         metadata.reload(timeout=timeout)  # raises NotFound for missing key
         return metadata
 
-    def get_signed_policy_v4(
+    def generate_signed_post_policy_v4(
         self,
         credentials,
         bucket_name,
@@ -921,7 +921,7 @@ class Client(ClientWithProject):
 
             >>> from google.cloud import storage
             >>> client = storage.Client()
-            >>> client.get_signed_policy_v4(
+            >>> client.generate_signed_post_policy_v4(
                 "bucket-name",
                 "blob-name",
                 conditions=[
