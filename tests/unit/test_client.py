@@ -14,12 +14,19 @@
 
 import io
 import json
-import unittest
-
 import mock
 import pytest
 import requests
+import unittest
 from six.moves import http_client
+
+from google.oauth2.service_account import Credentials
+from . import _read_local_json
+
+_SERVICE_ACCOUNT_JSON = _read_local_json("url_signer_v4_test_account.json")
+_CONFORMANCE_TESTS = _read_local_json("url_signer_v4_test_data.json")
+_POST_POLICY_TESTS = [test for test in _CONFORMANCE_TESTS if "bucket_name" in test]
+_DUMMY_CREDENTIALS = Credentials.from_service_account_info(_SERVICE_ACCOUNT_JSON)
 
 
 def _make_credentials():
@@ -1742,3 +1749,35 @@ class TestClient(unittest.TestCase):
             policy["fields"]["policy"],
             b"eyJjb25kaXRpb25zIjogW3siYnVja2V0IjogImJ1Y2tldC1uYW1lIn0sIHsiYWNsIjogInByaXZhdGUifSwgWyJzdGFydHMtd2l0aCIsICIkQ29udGVudC1UeXBlIiwgInRleHQvcGxhaW4iXV0sICJleHBpcmF0aW9uIjogIjIwMjAtMDMtMTJUMDA6MDA6MDAifQ==",
         )
+
+
+@pytest.mark.parametrize("test_data", _POST_POLICY_TESTS)
+def test_conformance_post_policy(test_data):
+    import datetime
+    from google.cloud.storage.client import Client
+
+    client = Client(credentials=_DUMMY_CREDENTIALS)
+
+    bucket_bound_hostname = None
+    if test_data.get("urlStyle") == "BUCKET_BOUND_HOSTNAME":
+        bucket_bound_hostname = test_data.get("bucketBoundHostname")
+
+    policy = client.generate_signed_post_policy_v4(
+        credentials=_DUMMY_CREDENTIALS,
+        bucket_name=test_data["bucket_name"],
+        blob_name=test_data["object_name"],
+        conditions=test_data["conditions"],
+        fields=test_data.get("fields"),
+        expiration=datetime.datetime(2020, 3, 25),
+        virtual_hosted_style=test_data.get("urlStyle") == "VIRTUAL_HOSTED_STYLE",
+        bucket_bound_hostname=bucket_bound_hostname,
+        scheme=test_data.get("scheme"),
+    )
+
+    assert (
+        policy["fields"]["x-goog-credential"]
+        == "test-iam-credentials@dummy-project-id.iam.gserviceaccount.com/20200325/auto/storage/goog4_request"
+    )
+    assert policy["url"] == test_data["expectedUrl"]
+    assert policy["fields"]["policy"].decode() == test_data["expectedPolicy"]
+    assert policy["fields"]["x-goog-signature"] == test_data["expectedSignature"]

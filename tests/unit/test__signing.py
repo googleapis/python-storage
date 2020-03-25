@@ -18,9 +18,7 @@ import base64
 import binascii
 import calendar
 import datetime
-import io
 import json
-import os
 import time
 import unittest
 
@@ -29,12 +27,7 @@ import pytest
 import six
 from six.moves import urllib_parse
 
-
-def _read_local_json(json_file):
-    here = os.path.dirname(__file__)
-    json_path = os.path.abspath(os.path.join(here, json_file))
-    with io.open(json_path, "r", encoding="utf-8-sig") as fileobj:
-        return json.load(fileobj)
+from . import _read_local_json
 
 
 _SERVICE_ACCOUNT_JSON = _read_local_json("url_signer_v4_test_account.json")
