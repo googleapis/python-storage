@@ -25,7 +25,7 @@ from . import _read_local_json
 
 _SERVICE_ACCOUNT_JSON = _read_local_json("url_signer_v4_test_account.json")
 _CONFORMANCE_TESTS = _read_local_json("url_signer_v4_test_data.json")
-_POST_POLICY_TESTS = [test for test in _CONFORMANCE_TESTS if "bucket_name" in test]
+_POST_POLICY_TESTS = [test for test in _CONFORMANCE_TESTS if "policyInput" in test]
 _DUMMY_CREDENTIALS = Credentials.from_service_account_info(_SERVICE_ACCOUNT_JSON)
 
 
@@ -1762,22 +1762,29 @@ def test_conformance_post_policy(test_data):
     if test_data.get("urlStyle") == "BUCKET_BOUND_HOSTNAME":
         bucket_bound_hostname = test_data.get("bucketBoundHostname")
 
-    policy = client.generate_signed_post_policy_v4(
-        credentials=_DUMMY_CREDENTIALS,
-        bucket_name=test_data["bucket_name"],
-        blob_name=test_data["object_name"],
-        conditions=test_data["conditions"],
-        fields=test_data.get("fields"),
-        expiration=datetime.datetime(2020, 3, 25),
-        virtual_hosted_style=test_data.get("urlStyle") == "VIRTUAL_HOSTED_STYLE",
-        bucket_bound_hostname=bucket_bound_hostname,
-        scheme=test_data.get("scheme"),
-    )
+    in_data = test_data["policyInput"]
+    out_data = test_data["policyOutput"]
+    out_fields = test_data["policyOutput"]["fields"]
 
-    assert (
-        policy["fields"]["x-goog-credential"]
-        == "test-iam-credentials@dummy-project-id.iam.gserviceaccount.com/20200325/auto/storage/goog4_request"
-    )
-    assert policy["url"] == test_data["expectedUrl"]
-    assert policy["fields"]["policy"].decode() == test_data["expectedPolicy"]
-    assert policy["fields"]["x-goog-signature"] == test_data["expectedSignature"]
+    timestamp = datetime.datetime.strptime(in_data["timestamp"], "%Y-%m-%dT%H:%M:%SZ")
+
+    with mock.patch("google.cloud.storage._signing.NOW", return_value=timestamp):
+        policy = client.generate_signed_post_policy_v4(
+            credentials=_DUMMY_CREDENTIALS,
+            bucket_name=in_data["bucket"],
+            blob_name=in_data["object"],
+            conditions=in_data.get("conditions"),
+            fields=in_data.get("fields"),
+            expiration=in_data["expiration"],
+            virtual_hosted_style=in_data.get("urlStyle") == "VIRTUAL_HOSTED_STYLE",
+            bucket_bound_hostname=bucket_bound_hostname,
+            scheme=in_data.get("scheme"),
+        )
+    fields = policy["fields"]
+
+    assert policy["url"] == out_data["url"]
+    assert fields["x-goog-algorithm"] == out_fields["x-goog-algorithm"]
+    assert fields["x-goog-credential"] == out_fields["x-goog-credential"]
+    assert fields["x-goog-date"] == out_fields["x-goog-date"]
+    assert fields["x-goog-signature"] == out_fields["x-goog-signature"]
+    assert fields["policy"] == out_fields["policy"]
