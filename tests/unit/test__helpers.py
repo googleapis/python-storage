@@ -393,7 +393,6 @@ class Test__base64_crc32chash(unittest.TestCase):
         self.assertEqual(CRC32C.hash_obj._blocks, [BYTES_TO_SIGN])
 
     def test_crc32c_throws_import_error(self):
-        import mock
         from google.cloud.storage._helpers import _get_crc32c_object
 
         try:
