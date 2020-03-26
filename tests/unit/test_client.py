@@ -1805,13 +1805,13 @@ def test_conformance_post_policy(test_data):
 
     client = Client(credentials=_DUMMY_CREDENTIALS)
 
-    bucket_bound_hostname = None
-    if test_data.get("urlStyle") == "BUCKET_BOUND_HOSTNAME":
-        bucket_bound_hostname = test_data.get("bucketBoundHostname")
-
     in_data = test_data["policyInput"]
     out_data = test_data["policyOutput"]
     out_fields = test_data["policyOutput"]["fields"]
+
+    bucket_bound_hostname = None
+    if in_data.get("urlStyle") == "BUCKET_BOUND_HOSTNAME":
+        bucket_bound_hostname = in_data["bucketBoundHostname"]
 
     timestamp = datetime.datetime.strptime(in_data["timestamp"], "%Y-%m-%dT%H:%M:%SZ")
 
