@@ -414,7 +414,6 @@ class Test__base64_crc32chash(unittest.TestCase):
         finally:
             builtins.__import__ = orig_import
 
-
     def test_crc32c_warning_on_slow_crcmod(self):
         import mock
         from google.cloud.storage._helpers import _is_fast_crcmod
