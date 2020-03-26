@@ -1634,7 +1634,7 @@ class TestClient(unittest.TestCase):
                 virtual_hosted_style=True,
             )
         self.assertEqual(
-            policy["url"], "https://{}.storage.googleapis.com".format(BUCKET_NAME)
+            policy["url"], "https://{}.storage.googleapis.com/".format(BUCKET_NAME)
         )
 
     def test_get_signed_policy_v4_bucket_bound_hostname(self):
@@ -1662,9 +1662,7 @@ class TestClient(unittest.TestCase):
                 expiration=datetime.datetime(2020, 3, 12),
                 bucket_bound_hostname="https://bucket.bound_hostname",
             )
-        self.assertEqual(
-            policy["url"], "https://bucket.bound_hostname/{}".format(BUCKET_NAME)
-        )
+        self.assertEqual(policy["url"], "https://bucket.bound_hostname")
 
     def test_get_signed_policy_v4_bucket_bound_hostname_with_scheme(self):
         import datetime
@@ -1692,9 +1690,7 @@ class TestClient(unittest.TestCase):
                 bucket_bound_hostname="bucket.bound_hostname",
                 scheme="http",
             )
-        self.assertEqual(
-            policy["url"], "http://bucket.bound_hostname/{}/".format(BUCKET_NAME)
-        )
+        self.assertEqual(policy["url"], "http://bucket.bound_hostname/")
 
     def test_get_signed_policy_v4_no_expiration(self):
         import datetime

@@ -991,22 +991,19 @@ class Client(ClientWithProject):
                     policy_fields[key] = value
 
         if virtual_hosted_style:
-            url = "https://{}.storage.googleapis.com"
+            url = "https://{}.storage.googleapis.com/".format(bucket_name)
 
         elif bucket_bound_hostname:
             if ":" in bucket_bound_hostname:
-                url = bucket_bound_hostname + "/{}"
+                url = bucket_bound_hostname
             else:
-                url = (
-                    "{scheme}://{host}".format(
-                        scheme=scheme, host=bucket_bound_hostname
-                    )
-                    + "/{}/"
+                url = "{scheme}://{host}/".format(
+                    scheme=scheme, host=bucket_bound_hostname
                 )
         else:
-            url = "https://storage.googleapis.com/{}/"
+            url = "https://storage.googleapis.com/{}/".format(bucket_name)
 
-        return {"url": url.format(bucket_name), "fields": policy_fields}
+        return {"url": url, "fields": policy_fields}
 
 
 def _item_to_bucket(iterator, item):
