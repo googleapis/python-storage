@@ -31,6 +31,7 @@ from google.cloud.exceptions import NotFound
 from google.cloud.storage._helpers import _get_storage_host
 from google.cloud.storage._http import Connection
 from google.cloud.storage._signing import (
+    get_expiration_seconds_v4,
     get_v4_now_dtstamps,
     ensure_signed_credentials,
     _sign_message,
@@ -885,7 +886,7 @@ class Client(ClientWithProject):
         :param conditions: List of POST policy conditions, which are used
                            to restrict what is allowed in the request.
 
-        :type expiration: datetime.datetime
+        :type expiration: Union[Integer, datetime.datetime, datetime.timedelta]
         :param expiration: Policy expiration time.
 
         :type fields: dict
@@ -941,8 +942,10 @@ class Client(ClientWithProject):
         if expiration is None:
             expiration = _NOW() + datetime.timedelta(hours=1)
 
+        expiration_seconds = get_expiration_seconds_v4(expiration)
+        policy_expires = _NOW() + datetime.timedelta(seconds=expiration_seconds)
         policy = json.dumps(
-            {"conditions": conditions, "expiration": expiration.isoformat()}
+            {"conditions": conditions, "expiration": policy_expires.isoformat()}
         )
         str_to_sign = base64.b64encode(policy.encode("utf-8"))
 
@@ -983,10 +986,10 @@ class Client(ClientWithProject):
                     "{scheme}://{host}".format(
                         scheme=scheme, host=bucket_bound_hostname
                     )
-                    + "/{}"
+                    + "/{}/"
                 )
         else:
-            url = "https://storage.googleapis.com/{}"
+            url = "https://storage.googleapis.com/{}/"
 
         return {"url": url.format(bucket_name), "fields": policy_fields}
 
