@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import base64
 import io
 import json
 import mock
@@ -1815,17 +1816,23 @@ def test_conformance_post_policy(test_data):
     timestamp = datetime.datetime.strptime(in_data["timestamp"], "%Y-%m-%dT%H:%M:%SZ")
 
     with mock.patch("google.cloud.storage._signing.NOW", return_value=timestamp):
-        policy = client.generate_signed_post_policy_v4(
-            credentials=_DUMMY_CREDENTIALS,
-            bucket_name=in_data["bucket"],
-            blob_name=in_data["object"],
-            conditions=in_data.get("conditions"),
-            fields=in_data.get("fields"),
-            expiration=in_data["expiration"],
-            virtual_hosted_style=in_data.get("urlStyle") == "VIRTUAL_HOSTED_STYLE",
-            bucket_bound_hostname=bucket_bound_hostname,
-            scheme=in_data.get("scheme"),
-        )
+        with mock.patch(
+            "google.cloud.storage.client.get_expiration_seconds_v4",
+            return_value=in_data["expiration"],
+        ):
+            with mock.patch("google.cloud.storage.client._NOW", return_value=timestamp):
+                policy = client.generate_signed_post_policy_v4(
+                    credentials=_DUMMY_CREDENTIALS,
+                    bucket_name=in_data["bucket"],
+                    blob_name=in_data["object"],
+                    conditions=in_data.get("conditions"),
+                    fields=in_data.get("fields"),
+                    expiration=in_data["expiration"],
+                    virtual_hosted_style=in_data.get("urlStyle")
+                    == "VIRTUAL_HOSTED_STYLE",
+                    bucket_bound_hostname=bucket_bound_hostname,
+                    scheme=in_data.get("scheme"),
+                )
     fields = policy["fields"]
 
     assert policy["url"] == out_data["url"]
@@ -1833,4 +1840,6 @@ def test_conformance_post_policy(test_data):
     assert fields["x-goog-credential"] == out_fields["x-goog-credential"]
     assert fields["x-goog-date"] == out_fields["x-goog-date"]
     assert fields["x-goog-signature"] == out_fields["x-goog-signature"]
-    assert fields["policy"] == out_fields["policy"]
+
+    decoded_policy = base64.b64decode(fields["policy"]).decode()
+    assert decoded_policy == out_data["expectedDecodedPolicy"]
