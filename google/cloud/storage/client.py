@@ -939,13 +939,31 @@ class Client(ClientWithProject):
         """
         ensure_signed_credentials(credentials)
 
+        now = _NOW()
         if expiration is None:
-            expiration = _NOW() + datetime.timedelta(hours=1)
+            expiration = now + datetime.timedelta(hours=1)
 
         expiration_seconds = get_expiration_seconds_v4(expiration)
-        policy_expires = _NOW() + datetime.timedelta(seconds=expiration_seconds)
+        policy_expires = now + datetime.timedelta(seconds=expiration_seconds)
+
+        timestamp, datestamp = get_v4_now_dtstamps()
+        credential_scope = "{}/auto/storage/goog4_request".format(datestamp)
+
+        required_conditions = [
+            {"key": blob_name},
+            {"x-goog-date": timestamp},
+            {
+                "x-goog-credential": "{email}/{scope}".format(
+                    email=credentials.signer_email, scope=credential_scope
+                )
+            },
+            {"x-goog-algorithm": "GOOG4-RSA-SHA256"},
+        ]
+        conditions = (conditions or []) + required_conditions
+
         policy = json.dumps(
-            {"conditions": conditions, "expiration": policy_expires.isoformat()}
+            {"conditions": conditions, "expiration": policy_expires.isoformat() + "Z"},
+            separators=(",", ":"),
         )
         str_to_sign = base64.b64encode(policy.encode("utf-8"))
 
@@ -956,9 +974,6 @@ class Client(ClientWithProject):
             signature_bytes = credentials.sign_bytes(str_to_sign)
 
         signature = binascii.hexlify(signature_bytes).decode("ascii")
-
-        timestamp, datestamp = get_v4_now_dtstamps()
-        credential_scope = "{}/auto/storage/goog4_request".format(datestamp)
 
         policy_fields = {
             "key": blob_name,
