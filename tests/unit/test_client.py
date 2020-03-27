@@ -1848,7 +1848,8 @@ def test_conformance_post_policy(test_data):
     assert fields["x-goog-algorithm"] == out_fields["x-goog-algorithm"]
     assert fields["x-goog-credential"] == out_fields["x-goog-credential"]
     assert fields["x-goog-date"] == out_fields["x-goog-date"]
-    assert fields["x-goog-signature"] == out_fields["x-goog-signature"]
 
-    decoded_policy = base64.b64decode(fields["policy"]).decode()
+    decoded_policy = base64.b64decode(fields["policy"]).decode("utf-8")
     assert decoded_policy == out_data["expectedDecodedPolicy"]
+
+    assert fields["x-goog-signature"] == out_fields["x-goog-signature"]
