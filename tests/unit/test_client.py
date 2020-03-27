@@ -1797,6 +1797,7 @@ class TestClient(unittest.TestCase):
 @pytest.mark.parametrize("test_data", _POST_POLICY_TESTS)
 def test_conformance_post_policy(test_data):
     import datetime
+    import re
     from google.cloud.storage.client import Client
 
     client = Client(credentials=_DUMMY_CREDENTIALS)
@@ -1805,11 +1806,23 @@ def test_conformance_post_policy(test_data):
     out_data = test_data["policyOutput"]
     out_fields = test_data["policyOutput"]["fields"]
 
-    bucket_bound_hostname = None
     if in_data.get("urlStyle") == "BUCKET_BOUND_HOSTNAME":
         bucket_bound_hostname = in_data["bucketBoundHostname"]
+    else:
+        bucket_bound_hostname = None
 
     timestamp = datetime.datetime.strptime(in_data["timestamp"], "%Y-%m-%dT%H:%M:%SZ")
+
+    if "conditions" in in_data:
+        conditions = []
+        for key, value in in_data["conditions"].items():
+            field = re.sub(r"(?<!^)(?=[A-Z])", "-", key).lower()
+            if isinstance(value, list):
+                conditions.append([field] + value)
+            else:
+                conditions.append({field: value})
+    else:
+        conditions = None
 
     with mock.patch("google.cloud.storage._signing.NOW", return_value=timestamp):
         with mock.patch(
@@ -1821,7 +1834,7 @@ def test_conformance_post_policy(test_data):
                     credentials=_DUMMY_CREDENTIALS,
                     bucket_name=in_data["bucket"],
                     blob_name=in_data["object"],
-                    conditions=in_data.get("conditions"),
+                    conditions=conditions,
                     fields=in_data.get("fields"),
                     expiration=in_data["expiration"],
                     virtual_hosted_style=in_data.get("urlStyle")
