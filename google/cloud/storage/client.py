@@ -959,11 +959,24 @@ class Client(ClientWithProject):
             },
             {"x-goog-algorithm": "GOOG4-RSA-SHA256"},
         ]
-        conditions = (conditions or []) + required_conditions
+
+        conditions = conditions or []
+        policy_fields = {}
+        if fields:
+            for key, value in fields.items():
+                if not key.startswith("x-ignore-"):
+                    policy_fields[key] = value
+                    if isinstance(value, list):
+                        conditions.append([key] + value)
+                    else:
+                        conditions.append({key: value})
+
+        conditions += required_conditions
 
         policy = json.dumps(
             {"conditions": conditions, "expiration": policy_expires.isoformat() + "Z"},
             separators=(",", ":"),
+            ensure_ascii=False,
         )
         str_to_sign = base64.b64encode(policy.encode("utf-8"))
 
@@ -973,23 +986,20 @@ class Client(ClientWithProject):
         else:
             signature_bytes = credentials.sign_bytes(str_to_sign)
 
-        signature = binascii.hexlify(signature_bytes).decode("ascii")
+        signature = binascii.hexlify(signature_bytes).decode("utf-8")
 
-        policy_fields = {
-            "key": blob_name,
-            "x-goog-algorithm": "GOOG4-RSA-SHA256",
-            "x-goog-credential": "{email}/{scope}".format(
-                email=credentials.signer_email, scope=credential_scope
-            ),
-            "x-goog-date": timestamp,
-            "x-goog-signature": signature,
-            "policy": str_to_sign,
-        }
-        if fields:
-            for key, value in fields.items():
-                if not key.startswith("x-ignore-"):
-                    policy_fields[key] = value
-
+        policy_fields.update(
+            {
+                "key": blob_name,
+                "x-goog-algorithm": "GOOG4-RSA-SHA256",
+                "x-goog-credential": "{email}/{scope}".format(
+                    email=credentials.signer_email, scope=credential_scope
+                ),
+                "x-goog-date": timestamp,
+                "x-goog-signature": signature,
+                "policy": str_to_sign,
+            }
+        )
         if virtual_hosted_style:
             url = "https://{}.storage.googleapis.com/".format(bucket_name)
 
