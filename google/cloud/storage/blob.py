@@ -180,6 +180,7 @@ class Blob(_PropertyMixin):
         self.chunk_size = chunk_size  # Check that setter accepts value.
         self._bucket = bucket
         self._acl = ObjectACL(self)
+        self._name = name
         if encryption_key is not None and kms_key_name is not None:
             raise ValueError(
                 "Pass at most one of 'encryption_key' " "and 'kms_key_name'"
@@ -192,6 +193,24 @@ class Blob(_PropertyMixin):
 
         if generation is not None:
             self._properties["generation"] = generation
+
+    @property
+    def name(self):
+        """ Get the blob's name.
+
+        :rtype: str
+        :returns: The name for the blob object.
+        """
+        return self._name
+
+    @name.setter
+    def name(self, value):
+        """Set the blob's name.
+
+        :type value: str
+        :param value: The blob name to set.
+        """
+        self._name = value
 
     @property
     def bucket(self):

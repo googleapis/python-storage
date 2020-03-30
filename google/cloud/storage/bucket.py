@@ -512,9 +512,28 @@ class Bucket(_PropertyMixin):
         self._default_object_acl = DefaultObjectACL(self)
         self._label_removals = set()
         self._user_project = user_project
+        self._name = name
 
     def __repr__(self):
         return "<Bucket: %s>" % (self.name,)
+
+    @property
+    def name(self):
+        """ Get the bucket's name.
+
+        :rtype: str
+        :returns: The name for the bucket object.
+        """
+        return self._name
+
+    @name.setter
+    def name(self, value):
+        """Set the bucket's name.
+
+        :type value: str
+        :param value: The bucket name to set.
+        """
+        self._name = value
 
     @property
     def client(self):
