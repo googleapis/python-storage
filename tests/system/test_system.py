@@ -29,7 +29,7 @@ import six
 from google.cloud import exceptions
 from google.cloud import iam_credentials_v1
 from google.cloud import storage
-from google.cloud.storage._helpers import _base64_md5hash
+from google.cloud.storage._helpers import _base64_md5hash, _base64_crc32chash
 from google.cloud.storage.bucket import LifecycleRuleDelete
 from google.cloud.storage.bucket import LifecycleRuleSetStorageClass
 from google.cloud import kms
@@ -465,6 +465,8 @@ class TestStorageFiles(unittest.TestCase):
         for file_data in cls.FILES.values():
             with open(file_data["path"], "rb") as file_obj:
                 file_data["hash"] = _base64_md5hash(file_obj)
+                file_obj.seek(0)
+                file_data["crc32c_hash"] = _base64_crc32chash(file_obj)
         cls.bucket = Config.TEST_BUCKET
 
     def setUp(self):
@@ -493,6 +495,11 @@ class TestStorageWriteFiles(TestStorageFiles):
             md5_hash = md5_hash.encode("utf-8")
         self.assertEqual(md5_hash, file_data["hash"])
 
+        crc32c = blob.crc32c
+        if not isinstance(crc32c, six.binary_type):
+            crc32c = crc32c.encode("utf-8")
+        self.assertEqual(crc32c, file_data["crc32c_hash"])  
+
     def test_large_encrypted_file_write_from_stream(self):
         blob = self.bucket.blob("LargeFile", encryption_key=self.ENCRYPTION_KEY)
 
@@ -506,6 +513,11 @@ class TestStorageWriteFiles(TestStorageFiles):
             md5_hash = md5_hash.encode("utf-8")
         self.assertEqual(md5_hash, file_data["hash"])
 
+        crc32c = blob.crc32c
+        if not isinstance(crc32c, six.binary_type):
+            crc32c = crc32c.encode("utf-8")
+        self.assertEqual(crc32c, file_data["crc32c_hash"])  
+
         temp_filename = tempfile.mktemp()
         with open(temp_filename, "wb") as file_obj:
             blob.download_to_file(file_obj)
@@ -514,6 +526,11 @@ class TestStorageWriteFiles(TestStorageFiles):
             md5_temp_hash = _base64_md5hash(file_obj)
 
         self.assertEqual(md5_temp_hash, file_data["hash"])
+
+        with open(temp_filename, "rb") as file_obj:
+            crc32c_hash = _base64_crc32chash(file_obj)
+
+        self.assertEqual(crc32c_hash, file_data["crc32c_hash"])
 
     def test_small_file_write_from_filename(self):
         blob = self.bucket.blob("SmallFile")
@@ -526,6 +543,11 @@ class TestStorageWriteFiles(TestStorageFiles):
         if not isinstance(md5_hash, six.binary_type):
             md5_hash = md5_hash.encode("utf-8")
         self.assertEqual(md5_hash, file_data["hash"])
+        
+        crc32c = blob.crc32c
+        if not isinstance(crc32c, six.binary_type):
+            crc32c = crc32c.encode("utf-8")
+        self.assertEqual(crc32c, file_data["crc32c_hash"])        
 
     @unittest.skipUnless(USER_PROJECT, "USER_PROJECT not set in environment.")
     def test_crud_blob_w_user_project(self):
