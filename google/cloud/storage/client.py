@@ -848,12 +848,12 @@ class Client(ClientWithProject):
 
     def generate_signed_post_policy_v4(
         self,
-        credentials,
         bucket_name,
         blob_name,
         conditions,
         expiration,
         fields=None,
+        credentials=None,
         virtual_hosted_style=False,
         bucket_bound_hostname=None,
         scheme=None,
@@ -869,12 +869,7 @@ class Client(ClientWithProject):
             ``credentials`` has a ``service_account_email`` property which
             identifies the credentials.
 
-        Generated policy object allows user to upload
-        objects with a POST request.
-
-        :type credentials: :class:`google.auth.credentials.Signing`
-        :param credentials: Credentials object with an associated private key to
-                            sign text.
+        Generated policy object allows user to upload objects with a POST request.
 
         :type bucket_name: str
         :param bucket_name: Bucket name.
@@ -891,6 +886,10 @@ class Client(ClientWithProject):
 
         :type fields: dict
         :param fields: (Optional) Additional elements to include into request.
+
+        :type credentials: :class:`google.auth.credentials.Signing`
+        :param credentials: (Optional) Credentials object with an associated private
+                            key to sign text.
 
         :type virtual_hosted_style: bool
         :param virtual_hosted_style: (Optional) If True, construct the URL relative to the bucket
@@ -915,7 +914,7 @@ class Client(ClientWithProject):
         :param access_token: (Optional) Access token for a service account.
 
         :rtype: dict
-        :returns: Signed POST policy object.
+        :returns: Signed POST policy.
 
         Example:
             Generate signed POST policy and upload a file.
@@ -937,26 +936,18 @@ class Client(ClientWithProject):
                 files = {"file": ("bucket-name", f)}
                 requests.post(policy["url"], data=policy["fields"], files=files)
         """
+        credentials = self._credentials if credentials is None else credentials
         ensure_signed_credentials(credentials)
 
-        now = _NOW()
-        if expiration is None:
-            expiration = now + datetime.timedelta(hours=1)
-
-        expiration_seconds = get_expiration_seconds_v4(expiration)
-        policy_expires = now + datetime.timedelta(seconds=expiration_seconds)
-
         timestamp, datestamp = get_v4_now_dtstamps()
-        credential_scope = "{}/auto/storage/goog4_request".format(datestamp)
 
+        x_goog_credential = "{email}/{datestamp}/auto/storage/goog4_request".format(
+            email=credentials.signer_email, datestamp=datestamp
+        )
         required_conditions = [
             {"key": blob_name},
             {"x-goog-date": timestamp},
-            {
-                "x-goog-credential": "{email}/{scope}".format(
-                    email=credentials.signer_email, scope=credential_scope
-                )
-            },
+            {"x-goog-credential": x_goog_credential},
             {"x-goog-algorithm": "GOOG4-RSA-SHA256"},
         ]
 
@@ -966,17 +957,20 @@ class Client(ClientWithProject):
             for key, value in fields.items():
                 if not key.startswith("x-ignore-"):
                     policy_fields[key] = value
-                    if isinstance(value, list):
-                        conditions.append([key] + value)
-                    else:
-                        conditions.append({key: value})
+                    conditions.append({key: value})
 
         conditions += required_conditions
 
+        now = _NOW()
+        if expiration is None:
+            expiration = now + datetime.timedelta(hours=1)
+
+        policy_expires = now + datetime.timedelta(
+            seconds=get_expiration_seconds_v4(expiration)
+        )
         policy = json.dumps(
             {"conditions": conditions, "expiration": policy_expires.isoformat() + "Z"},
             separators=(",", ":"),
-            ensure_ascii=False,
         )
         str_to_sign = base64.b64encode(policy.encode("utf-8"))
 
@@ -992,14 +986,13 @@ class Client(ClientWithProject):
             {
                 "key": blob_name,
                 "x-goog-algorithm": "GOOG4-RSA-SHA256",
-                "x-goog-credential": "{email}/{scope}".format(
-                    email=credentials.signer_email, scope=credential_scope
-                ),
+                "x-goog-credential": x_goog_credential,
                 "x-goog-date": timestamp,
                 "x-goog-signature": signature,
                 "policy": str_to_sign,
             }
         )
+
         if virtual_hosted_style:
             url = "https://{}.storage.googleapis.com/".format(bucket_name)
 
