@@ -17,6 +17,7 @@ import io
 import json
 import mock
 import pytest
+import re
 import requests
 import unittest
 from six.moves import http_client
@@ -1797,59 +1798,71 @@ class TestClient(unittest.TestCase):
 @pytest.mark.parametrize("test_data", _POST_POLICY_TESTS)
 def test_conformance_post_policy(test_data):
     import datetime
-    import re
     from google.cloud.storage.client import Client
+
+    in_data = test_data["policyInput"]
+    timestamp = datetime.datetime.strptime(in_data["timestamp"], "%Y-%m-%dT%H:%M:%SZ")
 
     client = Client(credentials=_DUMMY_CREDENTIALS)
 
-    in_data = test_data["policyInput"]
-    out_data = test_data["policyOutput"]
-    out_fields = test_data["policyOutput"]["fields"]
-
-    if in_data.get("urlStyle") == "BUCKET_BOUND_HOSTNAME":
-        bucket_bound_hostname = in_data["bucketBoundHostname"]
-    else:
-        bucket_bound_hostname = None
-
-    timestamp = datetime.datetime.strptime(in_data["timestamp"], "%Y-%m-%dT%H:%M:%SZ")
-
-    if "conditions" in in_data:
-        conditions = []
-        for key, value in in_data["conditions"].items():
-            field = re.sub(r"(?<!^)(?=[A-Z])", "-", key).lower()
-            if isinstance(value, list):
-                conditions.append([field] + value)
-            else:
-                conditions.append({field: value})
-    else:
-        conditions = None
-
+    # mocking time functions
     with mock.patch("google.cloud.storage._signing.NOW", return_value=timestamp):
         with mock.patch(
             "google.cloud.storage.client.get_expiration_seconds_v4",
             return_value=in_data["expiration"],
         ):
             with mock.patch("google.cloud.storage.client._NOW", return_value=timestamp):
+
                 policy = client.generate_signed_post_policy_v4(
-                    credentials=_DUMMY_CREDENTIALS,
                     bucket_name=in_data["bucket"],
                     blob_name=in_data["object"],
-                    conditions=conditions,
+                    conditions=_prepare_conditions(in_data),
                     fields=in_data.get("fields"),
+                    credentials=_DUMMY_CREDENTIALS,
                     expiration=in_data["expiration"],
                     virtual_hosted_style=in_data.get("urlStyle")
                     == "VIRTUAL_HOSTED_STYLE",
-                    bucket_bound_hostname=bucket_bound_hostname,
+                    bucket_bound_hostname=in_data.get("bucketBoundHostname"),
                     scheme=in_data.get("scheme"),
                 )
     fields = policy["fields"]
 
-    assert policy["url"] == out_data["url"]
-    assert fields["x-goog-algorithm"] == out_fields["x-goog-algorithm"]
-    assert fields["x-goog-credential"] == out_fields["x-goog-credential"]
-    assert fields["x-goog-date"] == out_fields["x-goog-date"]
+    for field in (
+        "x-goog-algorithm",
+        "x-goog-credential",
+        "x-goog-date",
+        "x-goog-signature",
+    ):
+        assert fields[field] == test_data["policyOutput"]["fields"][field]
 
-    decoded_policy = base64.b64decode(fields["policy"]).decode("utf-8")
+    out_data = test_data["policyOutput"]
+    decoded_policy = base64.b64decode(fields["policy"]).decode("unicode_escape")
     assert decoded_policy == out_data["expectedDecodedPolicy"]
+    assert policy["url"] == out_data["url"]
+
+
+def _prepare_conditions(in_data):
+    """Helper for V4 POST policy generation conformance tests.
+
+    Сonvert conformance test data conditions dict into list.
+
+    Args:
+        in_data (dict): conditions arg from conformance test data.
+
+    Returns:
+        list: conditions arg to pass into generate_signed_post_policy_v4().
+    """
+    if "conditions" in in_data:
+        conditions = []
+        for key, value in in_data["conditions"].items():
+            # camel case to snake case with "-" separator
+            field = re.sub(r"(?<!^)(?=[A-Z])", "-", key).lower()
+
+            if isinstance(value, list):
+                conditions.append([field] + value)
+            else:
+                conditions.append({field: value})
+
+        return conditions
 
     assert fields["x-goog-signature"] == out_fields["x-goog-signature"]
