@@ -921,16 +921,16 @@ class Client(ClientWithProject):
 
             >>> from google.cloud import storage
             >>> client = storage.Client()
-            >>> client.generate_signed_post_policy_v4(
+            >>> policy = client.generate_signed_post_policy_v4(
                 "bucket-name",
                 "blob-name",
                 conditions=[
-                    ['content-length-range', 0, 255]
-                ],
-                fields=[
-                    'x-goog-meta-hello' => 'world'
+                    ["content-length-range", 0, 255]
                 ],
                 expiration=datetime.datetime(2020, 3, 17),
+                fields=[
+                    "x-goog-meta-hello" => "world"
+                ],
             )
             >>> with open("bucket-name", "rb") as f:
                 files = {"file": ("bucket-name", f)}
@@ -939,6 +939,7 @@ class Client(ClientWithProject):
         credentials = self._credentials if credentials is None else credentials
         ensure_signed_credentials(credentials)
 
+        # prepare policy conditions and fields
         timestamp, datestamp = get_v4_now_dtstamps()
 
         x_goog_credential = "{email}/{datestamp}/auto/storage/goog4_request".format(
@@ -961,6 +962,7 @@ class Client(ClientWithProject):
 
         conditions += required_conditions
 
+        # calculate policy expiration time
         now = _NOW()
         if expiration is None:
             expiration = now + datetime.timedelta(hours=1)
@@ -968,18 +970,22 @@ class Client(ClientWithProject):
         policy_expires = now + datetime.timedelta(
             seconds=get_expiration_seconds_v4(expiration)
         )
+
+        # encode policy for signing
         policy = json.dumps(
             {"conditions": conditions, "expiration": policy_expires.isoformat() + "Z"},
             separators=(",", ":"),
         )
         str_to_sign = base64.b64encode(policy.encode("utf-8"))
 
+        # sign the policy and get its cryptographic signature
         if access_token and service_account_email:
             signature = _sign_message(str_to_sign, access_token, service_account_email)
             signature_bytes = base64.b64decode(signature)
         else:
             signature_bytes = credentials.sign_bytes(str_to_sign)
 
+        # get hexadecimal representation of the signature
         signature = binascii.hexlify(signature_bytes).decode("utf-8")
 
         policy_fields.update(
@@ -992,14 +998,15 @@ class Client(ClientWithProject):
                 "policy": str_to_sign,
             }
         )
-
+        # designate URL
         if virtual_hosted_style:
             url = "https://{}.storage.googleapis.com/".format(bucket_name)
 
         elif bucket_bound_hostname:
-            if ":" in bucket_bound_hostname:
+            if ":" in bucket_bound_hostname:  # URL includes scheme
                 url = bucket_bound_hostname
-            else:
+
+            else:  # scheme is given separately
                 url = "{scheme}://{host}/".format(
                     scheme=scheme, host=bucket_bound_hostname
                 )

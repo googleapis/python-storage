@@ -1500,6 +1500,8 @@ class TestClient(unittest.TestCase):
 
         BUCKET_NAME = "bucket-name"
         BLOB_NAME = "object-name"
+        EXPECTED_SIGN = "5369676e61747572655f6279746573"
+        EXPECTED_POLICY = b"eyJjb25kaXRpb25zIjpbeyJidWNrZXQiOiJidWNrZXQtbmFtZSJ9LHsiYWNsIjoicHJpdmF0ZSJ9LFsic3RhcnRzLXdpdGgiLCIkQ29udGVudC1UeXBlIiwidGV4dC9wbGFpbiJdLHsia2V5Ijoib2JqZWN0LW5hbWUifSx7IngtZ29vZy1kYXRlIjoiMjAyMDAzMTJUMTE0NzE2WiJ9LHsieC1nb29nLWNyZWRlbnRpYWwiOiJ0ZXN0QG1haWwuY29tLzIwMjAwMzEyL2F1dG8vc3RvcmFnZS9nb29nNF9yZXF1ZXN0In0seyJ4LWdvb2ctYWxnb3JpdGhtIjoiR09PRzQtUlNBLVNIQTI1NiJ9XSwiZXhwaXJhdGlvbiI6IjIwMjAtMDMtMjZUMDA6MDA6MTBaIn0="
 
         client = self._make_one(project="PROJECT")
 
@@ -1528,17 +1530,16 @@ class TestClient(unittest.TestCase):
             fields["x-goog-credential"],
             "test@mail.com/20200312/auto/storage/goog4_request",
         )
-        self.assertEqual(fields["x-goog-signature"], "5369676e61747572655f6279746573")
-        self.assertEqual(
-            fields["policy"],
-            b"eyJjb25kaXRpb25zIjpbeyJidWNrZXQiOiJidWNrZXQtbmFtZSJ9LHsiYWNsIjoicHJpdmF0ZSJ9LFsic3RhcnRzLXdpdGgiLCIkQ29udGVudC1UeXBlIiwidGV4dC9wbGFpbiJdLHsia2V5Ijoib2JqZWN0LW5hbWUifSx7IngtZ29vZy1kYXRlIjoiMjAyMDAzMTJUMTE0NzE2WiJ9LHsieC1nb29nLWNyZWRlbnRpYWwiOiJ0ZXN0QG1haWwuY29tLzIwMjAwMzEyL2F1dG8vc3RvcmFnZS9nb29nNF9yZXF1ZXN0In0seyJ4LWdvb2ctYWxnb3JpdGhtIjoiR09PRzQtUlNBLVNIQTI1NiJ9XSwiZXhwaXJhdGlvbiI6IjIwMjAtMDMtMjZUMDA6MDA6MTBaIn0=",
-        )
+        self.assertEqual(fields["x-goog-signature"], EXPECTED_SIGN)
+        self.assertEqual(fields["policy"], EXPECTED_POLICY)
 
     def test_get_signed_policy_v4_without_credentials(self):
         import datetime
 
         BUCKET_NAME = "bucket-name"
         BLOB_NAME = "object-name"
+        EXPECTED_SIGN = "5369676e61747572655f6279746573"
+        EXPECTED_POLICY = b"eyJjb25kaXRpb25zIjpbeyJidWNrZXQiOiJidWNrZXQtbmFtZSJ9LHsiYWNsIjoicHJpdmF0ZSJ9LFsic3RhcnRzLXdpdGgiLCIkQ29udGVudC1UeXBlIiwidGV4dC9wbGFpbiJdLHsia2V5Ijoib2JqZWN0LW5hbWUifSx7IngtZ29vZy1kYXRlIjoiMjAyMDAzMTJUMTE0NzE2WiJ9LHsieC1nb29nLWNyZWRlbnRpYWwiOiJ0ZXN0QG1haWwuY29tLzIwMjAwMzEyL2F1dG8vc3RvcmFnZS9nb29nNF9yZXF1ZXN0In0seyJ4LWdvb2ctYWxnb3JpdGhtIjoiR09PRzQtUlNBLVNIQTI1NiJ9XSwiZXhwaXJhdGlvbiI6IjIwMjAtMDMtMjZUMDA6MDA6MTBaIn0="
 
         client = self._make_one(
             project="PROJECT", credentials=_create_signing_credentials()
@@ -1568,11 +1569,8 @@ class TestClient(unittest.TestCase):
             fields["x-goog-credential"],
             "test@mail.com/20200312/auto/storage/goog4_request",
         )
-        self.assertEqual(fields["x-goog-signature"], "5369676e61747572655f6279746573")
-        self.assertEqual(
-            fields["policy"],
-            b"eyJjb25kaXRpb25zIjpbeyJidWNrZXQiOiJidWNrZXQtbmFtZSJ9LHsiYWNsIjoicHJpdmF0ZSJ9LFsic3RhcnRzLXdpdGgiLCIkQ29udGVudC1UeXBlIiwidGV4dC9wbGFpbiJdLHsia2V5Ijoib2JqZWN0LW5hbWUifSx7IngtZ29vZy1kYXRlIjoiMjAyMDAzMTJUMTE0NzE2WiJ9LHsieC1nb29nLWNyZWRlbnRpYWwiOiJ0ZXN0QG1haWwuY29tLzIwMjAwMzEyL2F1dG8vc3RvcmFnZS9nb29nNF9yZXF1ZXN0In0seyJ4LWdvb2ctYWxnb3JpdGhtIjoiR09PRzQtUlNBLVNIQTI1NiJ9XSwiZXhwaXJhdGlvbiI6IjIwMjAtMDMtMjZUMDA6MDA6MTBaIn0=",
-        )
+        self.assertEqual(fields["x-goog-signature"], EXPECTED_SIGN)
+        self.assertEqual(fields["policy"], EXPECTED_POLICY)
 
     def test_get_signed_policy_v4_with_fields(self):
         import datetime
@@ -1580,6 +1578,8 @@ class TestClient(unittest.TestCase):
         BUCKET_NAME = "bucket-name"
         BLOB_NAME = "object-name"
         FIELD1_VALUE = "Value1"
+        EXPECTED_SIGN = "5369676e61747572655f6279746573"
+        EXPECTED_POLICY = b"eyJjb25kaXRpb25zIjpbeyJidWNrZXQiOiJidWNrZXQtbmFtZSJ9LHsiYWNsIjoicHJpdmF0ZSJ9LFsic3RhcnRzLXdpdGgiLCIkQ29udGVudC1UeXBlIiwidGV4dC9wbGFpbiJdLHsiZmllbGQxIjoiVmFsdWUxIn0seyJrZXkiOiJvYmplY3QtbmFtZSJ9LHsieC1nb29nLWRhdGUiOiIyMDIwMDMxMlQxMTQ3MTZaIn0seyJ4LWdvb2ctY3JlZGVudGlhbCI6InRlc3RAbWFpbC5jb20vMjAyMDAzMTIvYXV0by9zdG9yYWdlL2dvb2c0X3JlcXVlc3QifSx7IngtZ29vZy1hbGdvcml0aG0iOiJHT09HNC1SU0EtU0hBMjU2In1dLCJleHBpcmF0aW9uIjoiMjAyMC0wMy0yNlQwMDowMDoxMFoifQ=="
 
         client = self._make_one(project="PROJECT")
 
@@ -1611,11 +1611,8 @@ class TestClient(unittest.TestCase):
             fields["x-goog-credential"],
             "test@mail.com/20200312/auto/storage/goog4_request",
         )
-        self.assertEqual(fields["x-goog-signature"], "5369676e61747572655f6279746573")
-        self.assertEqual(
-            fields["policy"],
-            b"eyJjb25kaXRpb25zIjpbeyJidWNrZXQiOiJidWNrZXQtbmFtZSJ9LHsiYWNsIjoicHJpdmF0ZSJ9LFsic3RhcnRzLXdpdGgiLCIkQ29udGVudC1UeXBlIiwidGV4dC9wbGFpbiJdLHsiZmllbGQxIjoiVmFsdWUxIn0seyJrZXkiOiJvYmplY3QtbmFtZSJ9LHsieC1nb29nLWRhdGUiOiIyMDIwMDMxMlQxMTQ3MTZaIn0seyJ4LWdvb2ctY3JlZGVudGlhbCI6InRlc3RAbWFpbC5jb20vMjAyMDAzMTIvYXV0by9zdG9yYWdlL2dvb2c0X3JlcXVlc3QifSx7IngtZ29vZy1hbGdvcml0aG0iOiJHT09HNC1SU0EtU0hBMjU2In1dLCJleHBpcmF0aW9uIjoiMjAyMC0wMy0yNlQwMDowMDoxMFoifQ==",
-        )
+        self.assertEqual(fields["x-goog-signature"], EXPECTED_SIGN)
+        self.assertEqual(fields["policy"], EXPECTED_POLICY)
 
     def test_get_signed_policy_v4_virtual_hosted_style(self):
         import datetime
@@ -1675,6 +1672,7 @@ class TestClient(unittest.TestCase):
 
     def test_get_signed_policy_v4_no_expiration(self):
         BUCKET_NAME = "bucket-name"
+        EXPECTED_POLICY = b"eyJjb25kaXRpb25zIjpbeyJrZXkiOiJvYmplY3QtbmFtZSJ9LHsieC1nb29nLWRhdGUiOiIyMDIwMDMxMlQxMTQ3MTZaIn0seyJ4LWdvb2ctY3JlZGVudGlhbCI6InRlc3RAbWFpbC5jb20vMjAyMDAzMTIvYXV0by9zdG9yYWdlL2dvb2c0X3JlcXVlc3QifSx7IngtZ29vZy1hbGdvcml0aG0iOiJHT09HNC1SU0EtU0hBMjU2In1dLCJleHBpcmF0aW9uIjoiMjAyMC0wMy0yNlQwMDowMDoxMFoifQ=="
 
         client = self._make_one(project="PROJECT")
 
@@ -1691,16 +1689,15 @@ class TestClient(unittest.TestCase):
         self.assertEqual(
             policy["url"], "https://storage.googleapis.com/" + BUCKET_NAME + "/"
         )
-        self.assertEqual(
-            policy["fields"]["policy"],
-            b"eyJjb25kaXRpb25zIjpbeyJrZXkiOiJvYmplY3QtbmFtZSJ9LHsieC1nb29nLWRhdGUiOiIyMDIwMDMxMlQxMTQ3MTZaIn0seyJ4LWdvb2ctY3JlZGVudGlhbCI6InRlc3RAbWFpbC5jb20vMjAyMDAzMTIvYXV0by9zdG9yYWdlL2dvb2c0X3JlcXVlc3QifSx7IngtZ29vZy1hbGdvcml0aG0iOiJHT09HNC1SU0EtU0hBMjU2In1dLCJleHBpcmF0aW9uIjoiMjAyMC0wMy0yNlQwMDowMDoxMFoifQ==",
-        )
+        self.assertEqual(policy["fields"]["policy"], EXPECTED_POLICY)
 
     def test_get_signed_policy_v4_with_access_token(self):
         import datetime
 
         BUCKET_NAME = "bucket-name"
         BLOB_NAME = "object-name"
+        EXPECTED_SIGN = "0c4003044105"
+        EXPECTED_POLICY = b"eyJjb25kaXRpb25zIjpbeyJidWNrZXQiOiJidWNrZXQtbmFtZSJ9LHsiYWNsIjoicHJpdmF0ZSJ9LFsic3RhcnRzLXdpdGgiLCIkQ29udGVudC1UeXBlIiwidGV4dC9wbGFpbiJdLHsia2V5Ijoib2JqZWN0LW5hbWUifSx7IngtZ29vZy1kYXRlIjoiMjAyMDAzMTJUMTE0NzE2WiJ9LHsieC1nb29nLWNyZWRlbnRpYWwiOiJ0ZXN0QG1haWwuY29tLzIwMjAwMzEyL2F1dG8vc3RvcmFnZS9nb29nNF9yZXF1ZXN0In0seyJ4LWdvb2ctYWxnb3JpdGhtIjoiR09PRzQtUlNBLVNIQTI1NiJ9XSwiZXhwaXJhdGlvbiI6IjIwMjAtMDMtMjZUMDA6MDA6MTBaIn0="
 
         client = self._make_one(project="PROJECT")
 
@@ -1734,11 +1731,8 @@ class TestClient(unittest.TestCase):
             fields["x-goog-credential"],
             "test@mail.com/20200312/auto/storage/goog4_request",
         )
-        self.assertEqual(fields["x-goog-signature"], "0c4003044105")
-        self.assertEqual(
-            fields["policy"],
-            b"eyJjb25kaXRpb25zIjpbeyJidWNrZXQiOiJidWNrZXQtbmFtZSJ9LHsiYWNsIjoicHJpdmF0ZSJ9LFsic3RhcnRzLXdpdGgiLCIkQ29udGVudC1UeXBlIiwidGV4dC9wbGFpbiJdLHsia2V5Ijoib2JqZWN0LW5hbWUifSx7IngtZ29vZy1kYXRlIjoiMjAyMDAzMTJUMTE0NzE2WiJ9LHsieC1nb29nLWNyZWRlbnRpYWwiOiJ0ZXN0QG1haWwuY29tLzIwMjAwMzEyL2F1dG8vc3RvcmFnZS9nb29nNF9yZXF1ZXN0In0seyJ4LWdvb2ctYWxnb3JpdGhtIjoiR09PRzQtUlNBLVNIQTI1NiJ9XSwiZXhwaXJhdGlvbiI6IjIwMjAtMDMtMjZUMDA6MDA6MTBaIn0=",
-        )
+        self.assertEqual(fields["x-goog-signature"], EXPECTED_SIGN)
+        self.assertEqual(fields["policy"], EXPECTED_POLICY)
 
 
 @pytest.mark.parametrize("test_data", _POST_POLICY_TESTS)
@@ -1803,11 +1797,7 @@ def _prepare_conditions(in_data):
         for key, value in in_data["conditions"].items():
             # camel case to snake case with "-" separator
             field = re.sub(r"(?<!^)(?=[A-Z])", "-", key).lower()
-
-            if isinstance(value, list):
-                conditions.append([field] + value)
-            else:
-                conditions.append({field: value})
+            conditions.append([field] + value)
 
         return conditions
 
