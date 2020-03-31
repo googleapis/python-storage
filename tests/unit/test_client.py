@@ -1627,7 +1627,6 @@ class TestClient(unittest.TestCase):
                 BUCKET_NAME,
                 "object-name",
                 expiration=datetime.datetime(2020, 3, 12),
-                conditions=[],
                 virtual_hosted_style=True,
                 credentials=_create_signing_credentials(),
             )
@@ -1646,7 +1645,6 @@ class TestClient(unittest.TestCase):
                 "bucket-name",
                 "object-name",
                 expiration=datetime.datetime(2020, 3, 12),
-                conditions=[],
                 bucket_bound_hostname="https://bucket.bound_hostname",
                 credentials=_create_signing_credentials(),
             )
@@ -1663,7 +1661,6 @@ class TestClient(unittest.TestCase):
                 "bucket-name",
                 "object-name",
                 expiration=datetime.datetime(2020, 3, 12),
-                conditions=[],
                 bucket_bound_hostname="bucket.bound_hostname",
                 scheme="http",
                 credentials=_create_signing_credentials(),
@@ -1682,7 +1679,6 @@ class TestClient(unittest.TestCase):
                 BUCKET_NAME,
                 "object-name",
                 expiration=None,
-                conditions=[],
                 credentials=_create_signing_credentials(),
             )
 
