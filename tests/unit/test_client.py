@@ -1784,7 +1784,7 @@ def test_conformance_post_policy(test_data):
 def _prepare_conditions(in_data):
     """Helper for V4 POST policy generation conformance tests.
 
-    Сonvert conformance test data conditions dict into list.
+    Convert conformance test data conditions dict into list.
 
     Args:
         in_data (dict): conditions arg from conformance test data.
