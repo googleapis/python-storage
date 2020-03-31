@@ -1510,12 +1510,12 @@ class TestClient(unittest.TestCase):
             policy = client.generate_signed_post_policy_v4(
                 BUCKET_NAME,
                 BLOB_NAME,
+                expiration=datetime.datetime(2020, 3, 12),
                 conditions=[
                     {"bucket": BUCKET_NAME},
                     {"acl": "private"},
                     ["starts-with", "$Content-Type", "text/plain"],
                 ],
-                expiration=datetime.datetime(2020, 3, 12),
                 credentials=_create_signing_credentials(),
             )
         self.assertEqual(
@@ -1550,12 +1550,12 @@ class TestClient(unittest.TestCase):
             policy = client.generate_signed_post_policy_v4(
                 BUCKET_NAME,
                 BLOB_NAME,
+                expiration=datetime.datetime(2020, 3, 12),
                 conditions=[
                     {"bucket": BUCKET_NAME},
                     {"acl": "private"},
                     ["starts-with", "$Content-Type", "text/plain"],
                 ],
-                expiration=datetime.datetime(2020, 3, 12),
             )
         self.assertEqual(
             policy["url"], "https://storage.googleapis.com/" + BUCKET_NAME + "/"
@@ -1588,12 +1588,12 @@ class TestClient(unittest.TestCase):
             policy = client.generate_signed_post_policy_v4(
                 BUCKET_NAME,
                 BLOB_NAME,
+                expiration=datetime.datetime(2020, 3, 12),
                 conditions=[
                     {"bucket": BUCKET_NAME},
                     {"acl": "private"},
                     ["starts-with", "$Content-Type", "text/plain"],
                 ],
-                expiration=datetime.datetime(2020, 3, 12),
                 fields={"field1": FIELD1_VALUE, "x-ignore-field": "Ignored_value"},
                 credentials=_create_signing_credentials(),
             )
@@ -1626,8 +1626,8 @@ class TestClient(unittest.TestCase):
             policy = client.generate_signed_post_policy_v4(
                 BUCKET_NAME,
                 "object-name",
-                conditions=[],
                 expiration=datetime.datetime(2020, 3, 12),
+                conditions=[],
                 virtual_hosted_style=True,
                 credentials=_create_signing_credentials(),
             )
@@ -1645,8 +1645,8 @@ class TestClient(unittest.TestCase):
             policy = client.generate_signed_post_policy_v4(
                 "bucket-name",
                 "object-name",
-                conditions=[],
                 expiration=datetime.datetime(2020, 3, 12),
+                conditions=[],
                 bucket_bound_hostname="https://bucket.bound_hostname",
                 credentials=_create_signing_credentials(),
             )
@@ -1662,8 +1662,8 @@ class TestClient(unittest.TestCase):
             policy = client.generate_signed_post_policy_v4(
                 "bucket-name",
                 "object-name",
-                conditions=[],
                 expiration=datetime.datetime(2020, 3, 12),
+                conditions=[],
                 bucket_bound_hostname="bucket.bound_hostname",
                 scheme="http",
                 credentials=_create_signing_credentials(),
@@ -1681,8 +1681,8 @@ class TestClient(unittest.TestCase):
             policy = client.generate_signed_post_policy_v4(
                 BUCKET_NAME,
                 "object-name",
-                conditions=[],
                 expiration=None,
+                conditions=[],
                 credentials=_create_signing_credentials(),
             )
 
@@ -1709,12 +1709,12 @@ class TestClient(unittest.TestCase):
                 policy = client.generate_signed_post_policy_v4(
                     BUCKET_NAME,
                     BLOB_NAME,
+                    expiration=datetime.datetime(2020, 3, 12),
                     conditions=[
                         {"bucket": BUCKET_NAME},
                         {"acl": "private"},
                         ["starts-with", "$Content-Type", "text/plain"],
                     ],
-                    expiration=datetime.datetime(2020, 3, 12),
                     credentials=_create_signing_credentials(),
                     service_account_email="test@mail.com",
                     access_token="token",

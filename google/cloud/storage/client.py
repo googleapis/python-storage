@@ -850,8 +850,8 @@ class Client(ClientWithProject):
         self,
         bucket_name,
         blob_name,
-        conditions,
         expiration,
+        conditions=None,
         fields=None,
         credentials=None,
         virtual_hosted_style=False,
@@ -877,12 +877,12 @@ class Client(ClientWithProject):
         :type blob_name: str
         :param blob_name: Object name.
 
-        :type conditions: list
-        :param conditions: List of POST policy conditions, which are used
-                           to restrict what is allowed in the request.
-
         :type expiration: Union[Integer, datetime.datetime, datetime.timedelta]
         :param expiration: Policy expiration time.
+
+        :type conditions: list
+        :param conditions: (Optional) List of POST policy conditions, which are
+                           used to restrict what is allowed in the request.
 
         :type fields: dict
         :param fields: (Optional) Additional elements to include into request.
@@ -924,10 +924,10 @@ class Client(ClientWithProject):
             >>> policy = client.generate_signed_post_policy_v4(
                 "bucket-name",
                 "blob-name",
+                expiration=datetime.datetime(2020, 3, 17),
                 conditions=[
                     ["content-length-range", 0, 255]
                 ],
-                expiration=datetime.datetime(2020, 3, 17),
                 fields=[
                     "x-goog-meta-hello" => "world"
                 ],
