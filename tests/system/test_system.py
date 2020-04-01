@@ -1973,24 +1973,25 @@ class TestV4POSTPolicies(unittest.TestCase):
         self.case_buckets_to_delete.append(bucket_name)
 
         blob_name = "post_policy_obj.txt"
-        with open(blob_name, "wb") as f:
-            f.write(b"DEADBEEF")
+        with open(blob_name, "w") as f:
+            f.write("DEADBEEF")
 
         policy = Config.CLIENT.generate_signed_post_policy_v4(
             bucket_name,
             blob_name,
             conditions=[
-                ["starts-with", "$Content-Type", "text/plain"],
                 {"bucket": bucket_name},
+                ["starts-with", "$Content-Type", "text/pla"],
             ],
             expiration=datetime.datetime.now() + datetime.timedelta(hours=1),
+            fields={"content-type": "text/plain"},
         )
-        with open(blob_name, "rb") as f:
+        with open(blob_name, "r") as f:
             files = {"file": (blob_name, f)}
             response = requests.post(policy["url"], data=policy["fields"], files=files)
 
         os.remove(blob_name)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 204)
 
     def test_get_signed_policy_v4_invalid_field(self):
         bucket_name = "post_policy" + unique_resource_id("-")
@@ -1999,20 +2000,20 @@ class TestV4POSTPolicies(unittest.TestCase):
         self.case_buckets_to_delete.append(bucket_name)
 
         blob_name = "post_policy_obj.txt"
-        with open(blob_name, "wb") as f:
-            f.write(b"DEADBEEF")
+        with open(blob_name, "w") as f:
+            f.write("DEADBEEF")
 
         policy = Config.CLIENT.generate_signed_post_policy_v4(
             bucket_name,
             blob_name,
             conditions=[
-                ["starts-with", "$Content-Type", "text/plain"],
                 {"bucket": bucket_name},
+                ["starts-with", "$Content-Type", "text/pla"],
             ],
             expiration=datetime.datetime.now() + datetime.timedelta(hours=1),
-            fields={"x-goog-random": "invalid_field"},
+            fields={"x-goog-random": "invalid_field", "content-type": "text/plain"},
         )
-        with open(blob_name, "rb") as f:
+        with open(blob_name, "r") as f:
             files = {"file": (blob_name, f)}
             response = requests.post(policy["url"], data=policy["fields"], files=files)
 
