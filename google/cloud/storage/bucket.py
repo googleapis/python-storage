@@ -505,6 +505,10 @@ class Bucket(_PropertyMixin):
     """Allowed values for :attr:`location_type`."""
 
     def __init__(self, client, name=None, user_project=None):
+        """
+        property :attr:`name`
+            Get the bucket's name.
+        """
         name = _validate_name(name)
         super(Bucket, self).__init__(name=name)
         self._client = client
@@ -516,24 +520,6 @@ class Bucket(_PropertyMixin):
 
     def __repr__(self):
         return "<Bucket: %s>" % (self.name,)
-
-    @property
-    def name(self):
-        """ Get the bucket's name.
-
-        :rtype: str
-        :returns: The name for the bucket object.
-        """
-        return self._name
-
-    @name.setter
-    def name(self, value):
-        """Set the bucket's name.
-
-        :type value: str
-        :param value: The bucket name to set.
-        """
-        self._name = value
 
     @property
     def client(self):

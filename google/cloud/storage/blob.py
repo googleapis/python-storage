@@ -174,6 +174,10 @@ class Blob(_PropertyMixin):
         kms_key_name=None,
         generation=None,
     ):
+        """
+        property :attr:`name`
+            Get the blob's name.
+        """
         name = _bytes_to_unicode(name)
         super(Blob, self).__init__(name=name)
 
@@ -193,24 +197,6 @@ class Blob(_PropertyMixin):
 
         if generation is not None:
             self._properties["generation"] = generation
-
-    @property
-    def name(self):
-        """ Get the blob's name.
-
-        :rtype: str
-        :returns: The name for the blob object.
-        """
-        return self._name
-
-    @name.setter
-    def name(self, value):
-        """Set the blob's name.
-
-        :type value: str
-        :param value: The blob name to set.
-        """
-        self._name = value
 
     @property
     def bucket(self):
