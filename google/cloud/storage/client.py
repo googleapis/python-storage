@@ -954,7 +954,7 @@ class Client(ClientWithProject):
 
         conditions = conditions or []
         policy_fields = {}
-        for key, value in (fields or {}).items():
+        for key, value in sorted((fields or {}).items()):
             if not key.startswith("x-ignore-"):
                 policy_fields[key] = value
                 conditions.append({key: value})
