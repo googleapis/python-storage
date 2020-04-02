@@ -184,7 +184,6 @@ class Blob(_PropertyMixin):
         self.chunk_size = chunk_size  # Check that setter accepts value.
         self._bucket = bucket
         self._acl = ObjectACL(self)
-        self._name = name
         if encryption_key is not None and kms_key_name is not None:
             raise ValueError(
                 "Pass at most one of 'encryption_key' " "and 'kms_key_name'"
