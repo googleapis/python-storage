@@ -1702,6 +1702,7 @@ class TestKMSIntegration(TestStorageFiles):
 class TestRetentionPolicy(unittest.TestCase):
     def setUp(self):
         self.case_buckets_to_delete = []
+        self.case_blobs_to_delete = []
 
     def tearDown(self):
         # discard test blobs retention policy settings
