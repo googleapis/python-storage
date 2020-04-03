@@ -1327,10 +1327,10 @@ class Test_Blob(unittest.TestCase):
             size,
             num_retries,
             predefined_acl,
-            None,
-            None,
-            None,
-            None,
+            generation_match,
+            generation_not_match,
+            metageneration_match,
+            metageneration_not_match,
         )
 
         # Check the mocks and the returned value.
