@@ -1244,7 +1244,7 @@ class Bucket(_PropertyMixin):
         destination_bucket,
         new_name=None,
         client=None,
-        preserve_acl=True,
+        preserve_acl=None,
         source_generation=None,
         timeout=_DEFAULT_TIMEOUT,
     ):
@@ -1268,8 +1268,8 @@ class Bucket(_PropertyMixin):
                        to the ``client`` stored on the current bucket.
 
         :type preserve_acl: bool
-        :param preserve_acl: (Optional) Copies ACL from old blob to new blob.
-                             Default: True.
+        :param preserve_acl: DEPRECATED. (Optional) Copies ACL from old blob to
+                             new blob. Default: True.
 
         :type source_generation: long
         :param source_generation: (Optional) The generation of the blob to be
@@ -1307,8 +1307,13 @@ class Bucket(_PropertyMixin):
             timeout=timeout,
         )
 
-        if not preserve_acl:
-            new_blob.acl.save(acl={}, client=client, timeout=timeout)
+        if preserve_acl is not None:
+            warnings.warn(
+                "preserve_acl arg is deprecated and will be removed in future."
+                "Do a subsequent ACL update instead.",
+                PendingDeprecationWarning,
+                stacklevel=1,
+            )
 
         new_blob._set_properties(copy_result)
         return new_blob
