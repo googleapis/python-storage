@@ -137,8 +137,6 @@ class TestClient(unittest.TestCase):
         )
 
     def test_ctor_w_client_options_dict(self):
-        from google.cloud.storage import blob
-
         PROJECT = "PROJECT"
         credentials = _make_credentials()
         api_endpoint = "https://www.foo-googleapis.com"
@@ -149,16 +147,6 @@ class TestClient(unittest.TestCase):
         )
 
         self.assertEqual(client._connection.API_BASE_URL, api_endpoint)
-
-        self.assertEqual(blob._API_ACCESS_ENDPOINT, api_endpoint)
-        self.assertEqual(
-            blob._DOWNLOAD_URL_TEMPLATE,
-            api_endpoint + u"/download/storage/v1{path}?alt=media",
-        )
-        self.assertEqual(
-            blob._BASE_UPLOAD_TEMPLATE,
-            api_endpoint + u"/upload/storage/v1{bucket_path}/o?uploadType=",
-        )
 
     def test_ctor_w_client_options_object(self):
         from google.api_core.client_options import ClientOptions

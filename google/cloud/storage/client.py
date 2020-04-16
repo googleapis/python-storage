@@ -40,8 +40,6 @@ from google.cloud.storage._signing import (
 from google.cloud.storage.batch import Batch
 from google.cloud.storage.bucket import Bucket
 from google.cloud.storage.blob import Blob
-from google.cloud.storage import blob
-from google.cloud.storage import bucket
 from google.cloud.storage.hmac_key import HMACKeyMetadata
 from google.cloud.storage.acl import BucketACL
 from google.cloud.storage.acl import DefaultObjectACL
@@ -124,7 +122,6 @@ class Client(ClientWithProject):
             if client_options.api_endpoint:
                 api_endpoint = client_options.api_endpoint
                 kw_args["api_endpoint"] = api_endpoint
-                _override_private_url_variables(api_endpoint)
 
         if no_project:
             self.project = None
@@ -1059,14 +1056,3 @@ def _item_to_hmac_key_metadata(iterator, item):
     metadata = HMACKeyMetadata(iterator.client)
     metadata._properties = item
     return metadata
-
-
-def _override_private_url_variables(api_endpoint):
-    blob._DOWNLOAD_URL_TEMPLATE = api_endpoint + u"/download/storage/v1{path}?alt=media"
-    blob._BASE_UPLOAD_TEMPLATE = (
-        api_endpoint + u"/upload/storage/v1{bucket_path}/o?uploadType="
-    )
-    blob._MULTIPART_URL_TEMPLATE = blob._BASE_UPLOAD_TEMPLATE + u"multipart"
-    blob._RESUMABLE_URL_TEMPLATE = blob._BASE_UPLOAD_TEMPLATE + u"resumable"
-    blob._API_ACCESS_ENDPOINT = api_endpoint
-    bucket._API_ACCESS_ENDPOINT = api_endpoint

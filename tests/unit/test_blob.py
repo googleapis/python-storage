@@ -751,7 +751,9 @@ class Test_Blob(unittest.TestCase):
         # Set the media link on the blob
         blob._properties["mediaLink"] = media_link
 
-        download_url = blob._get_download_url()
+        client = mock.Mock(_connection=_Connection)
+        client._connection.API_BASE_URL = "https://storage.googleapis.com"
+        download_url = blob._get_download_url(client)
         self.assertEqual(download_url, media_link)
 
     def test__get_download_url_with_media_link_w_user_project(self):
@@ -762,8 +764,9 @@ class Test_Blob(unittest.TestCase):
         media_link = "http://test.invalid"
         # Set the media link on the blob
         blob._properties["mediaLink"] = media_link
-
-        download_url = blob._get_download_url()
+        client = mock.Mock(_connection=_Connection)
+        client._connection.API_BASE_URL = "https://storage.googleapis.com"
+        download_url = blob._get_download_url(client)
         self.assertEqual(
             download_url, "{}?userProject={}".format(media_link, user_project)
         )
@@ -774,7 +777,9 @@ class Test_Blob(unittest.TestCase):
         blob = self._make_one(blob_name, bucket=bucket)
 
         self.assertIsNone(blob.media_link)
-        download_url = blob._get_download_url()
+        client = mock.Mock(_connection=_Connection)
+        client._connection.API_BASE_URL = "https://storage.googleapis.com"
+        download_url = blob._get_download_url(client)
         expected_url = (
             "https://storage.googleapis.com/download/storage/v1/b/"
             "buhkit/o/bzzz-fly.txt?alt=media"
@@ -790,7 +795,9 @@ class Test_Blob(unittest.TestCase):
         blob._properties["generation"] = str(generation)
 
         self.assertIsNone(blob.media_link)
-        download_url = blob._get_download_url()
+        client = mock.Mock(_connection=_Connection)
+        client._connection.API_BASE_URL = "https://storage.googleapis.com"
+        download_url = blob._get_download_url(client)
         expected_url = (
             "https://storage.googleapis.com/download/storage/v1/b/"
             "fictional/o/pretend.txt?alt=media&generation=1493058489532987"
@@ -804,7 +811,9 @@ class Test_Blob(unittest.TestCase):
         blob = self._make_one(blob_name, bucket=bucket)
 
         self.assertIsNone(blob.media_link)
-        download_url = blob._get_download_url()
+        client = mock.Mock(_connection=_Connection)
+        client._connection.API_BASE_URL = "https://storage.googleapis.com"
+        download_url = blob._get_download_url(client)
         expected_url = (
             "https://storage.googleapis.com/download/storage/v1/b/"
             "fictional/o/pretend.txt?alt=media&userProject={}".format(user_project)
@@ -823,7 +832,9 @@ class Test_Blob(unittest.TestCase):
         blob = self._make_one(blob_name, bucket=bucket, kms_key_name=kms_resource)
 
         self.assertIsNone(blob.media_link)
-        download_url = blob._get_download_url()
+        client = mock.Mock(_connection=_Connection)
+        client._connection.API_BASE_URL = "https://storage.googleapis.com"
+        download_url = blob._get_download_url(client)
         expected_url = (
             "https://storage.googleapis.com/download/storage/v1/b/"
             "buhkit/o/bzzz-fly.txt?alt=media"
@@ -1003,7 +1014,8 @@ class Test_Blob(unittest.TestCase):
 
     def test_download_to_file_wo_media_link(self):
         blob_name = "blob-name"
-        client = mock.Mock(spec=[u"_http"])
+        client = mock.Mock(_connection=_Connection, spec=[u"_http"])
+        client._connection.API_BASE_URL = "https://storage.googleapis.com"
         bucket = _Bucket(client)
         blob = self._make_one(blob_name, bucket=bucket)
         blob._do_download = mock.Mock()
@@ -1312,7 +1324,8 @@ class Test_Blob(unittest.TestCase):
         transport = self._mock_transport(http_client.OK, {})
 
         # Create some mock arguments.
-        client = mock.Mock(_http=transport, spec=["_http"])
+        client = mock.Mock(_http=transport, _connection=_Connection, spec=["_http"])
+        client._connection.API_BASE_URL = "https://storage.googleapis.com"
         data = b"data here hear hier"
         stream = io.BytesIO(data)
         content_type = u"application/xml"
@@ -1439,7 +1452,8 @@ class Test_Blob(unittest.TestCase):
         transport = self._mock_transport(http_client.OK, response_headers)
 
         # Create some mock arguments and call the method under test.
-        client = mock.Mock(_http=transport, spec=[u"_http"])
+        client = mock.Mock(_http=transport, _connection=_Connection, spec=[u"_http"])
+        client._connection.API_BASE_URL = "https://storage.googleapis.com"
         data = b"hello hallo halo hi-low"
         stream = io.BytesIO(data)
         content_type = u"text/plain"
@@ -1666,7 +1680,8 @@ class Test_Blob(unittest.TestCase):
         )
 
         # Create some mock arguments and call the method under test.
-        client = mock.Mock(_http=transport, spec=["_http"])
+        client = mock.Mock(_http=transport, _connection=_Connection, spec=["_http"])
+        client._connection.API_BASE_URL = "https://storage.googleapis.com"
         stream = io.BytesIO(data)
         content_type = u"text/html"
         response = blob._do_resumable_upload(
@@ -1932,7 +1947,8 @@ class Test_Blob(unittest.TestCase):
         # Create some mock arguments and call the method under test.
         content_type = u"text/plain"
         size = 10000
-        client = mock.Mock(_http=transport, spec=[u"_http"])
+        client = mock.Mock(_http=transport, _connection=_Connection, spec=[u"_http"])
+        client._connection.API_BASE_URL = "https://storage.googleapis.com"
         new_url = blob.create_resumable_upload_session(
             content_type=content_type, size=size, origin=origin, client=client
         )
