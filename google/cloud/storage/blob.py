@@ -648,15 +648,12 @@ class Blob(_PropertyMixin):
         client = self._require_client(client)
         return client._http
 
-    def _get_download_url(self, client):
+    def _get_download_url(self):
         """Get the download URL for the current blob.
 
         If the ``media_link`` has been loaded, it will be used, otherwise
         the URL will be constructed from the current blob's path (and possibly
         generation) to avoid a round trip.
-
-        :type client: :class:`~google.cloud.storage.client.Client`
-        :param client: The client to use.
 
         :rtype: str
         :returns: The download URL for the current blob.
@@ -664,7 +661,7 @@ class Blob(_PropertyMixin):
         name_value_pairs = []
         if self.media_link is None:
             base_url = _DOWNLOAD_URL_TEMPLATE.format(
-                hostname=client._connection.API_BASE_URL, path=self.path
+                hostname=self.client._connection.API_BASE_URL, path=self.path
             )
             if self.generation is not None:
                 name_value_pairs.append(("generation", "{:d}".format(self.generation)))
@@ -793,8 +790,7 @@ class Blob(_PropertyMixin):
 
         :raises: :class:`google.cloud.exceptions.NotFound`
         """
-        client = self._require_client(client)
-        download_url = self._get_download_url(client)
+        download_url = self._get_download_url()
         headers = _get_encryption_headers(self._encryption_key)
         headers["accept-encoding"] = "gzip"
 
@@ -1024,9 +1020,9 @@ class Blob(_PropertyMixin):
         transport = self._get_transport(client)
         info = self._get_upload_arguments(content_type)
         headers, object_metadata, content_type = info
-        client = self._require_client(client)
+
         base_url = _MULTIPART_URL_TEMPLATE.format(
-            hostname=client._connection.API_BASE_URL, bucket_path=self.bucket.path
+            hostname=self.client._connection.API_BASE_URL, bucket_path=self.bucket.path
         )
         name_value_pairs = []
 
@@ -1123,9 +1119,8 @@ class Blob(_PropertyMixin):
         if extra_headers is not None:
             headers.update(extra_headers)
 
-        client = self._require_client(client)
         base_url = _RESUMABLE_URL_TEMPLATE.format(
-            hostname=client._connection.API_BASE_URL, bucket_path=self.bucket.path
+            hostname=self.client._connection.API_BASE_URL, bucket_path=self.bucket.path
         )
         name_value_pairs = []
 
