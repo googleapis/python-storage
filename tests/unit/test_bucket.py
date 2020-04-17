@@ -1144,31 +1144,29 @@ class Test_Bucket(unittest.TestCase):
         dest = self._make_one(client=client, name=DEST)
         blob = self._make_blob(SOURCE, BLOB_NAME)
 
-        with mock.patch("warnings.warn") as warn:
-            new_blob = source.copy_blob(
-                blob, dest, NEW_NAME, client=client, preserve_acl=False
-            )
-            warn.assert_called_once_with(
-                "preserve_acl arg is deprecated and will be removed in future."
-                "Do a subsequent ACL update instead.",
-                PendingDeprecationWarning,
-                stacklevel=1,
-            )
+        new_blob = source.copy_blob(
+            blob, dest, NEW_NAME, client=client, preserve_acl=False
+        )
 
         self.assertIs(new_blob.bucket, dest)
         self.assertEqual(new_blob.name, NEW_NAME)
         self.assertIsInstance(new_blob.acl, ObjectACL)
 
+        kw1, kw2 = connection._requested
         COPY_PATH = "/b/{}/o/{}/copyTo/b/{}/o/{}".format(
             SOURCE, BLOB_NAME, DEST, NEW_NAME
         )
+        NEW_BLOB_PATH = "/b/{}/o/{}".format(DEST, NEW_NAME)
 
-        self.assertEqual(connection._requested[0]["method"], "POST")
-        self.assertEqual(connection._requested[0]["path"], COPY_PATH)
-        self.assertEqual(connection._requested[0]["query_params"], {})
-        self.assertEqual(
-            connection._requested[0]["timeout"], self._get_default_timeout()
-        )
+        self.assertEqual(kw1["method"], "POST")
+        self.assertEqual(kw1["path"], COPY_PATH)
+        self.assertEqual(kw1["query_params"], {})
+        self.assertEqual(kw1["timeout"], self._get_default_timeout())
+
+        self.assertEqual(kw2["method"], "PATCH")
+        self.assertEqual(kw2["path"], NEW_BLOB_PATH)
+        self.assertEqual(kw2["query_params"], {"projection": "full"})
+        self.assertEqual(kw2["timeout"], self._get_default_timeout())
 
     def test_copy_blobs_w_name_and_user_project(self):
         SOURCE = "source"
