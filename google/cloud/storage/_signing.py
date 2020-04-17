@@ -82,7 +82,7 @@ def get_signed_query_params_v2(credentials, expiration, string_to_sign):
     service_account_name = credentials.signer_email
     return {
         "GoogleAccessId": service_account_name,
-        "Expires": str(expiration),
+        "Expires": expiration,
         "Signature": signature,
     }
 
@@ -304,7 +304,7 @@ def generate_signed_url_v2(
     :param expiration: Point in time when the signed URL should expire.
 
     :type api_access_endpoint: str
-    :param api_access_endpoint: Optional URI base. Defaults to empty string.
+    :param api_access_endpoint: (Optional) URI base. Defaults to empty string.
 
     :type method: str
     :param method: The HTTP verb that will be used when requesting the URL.
@@ -384,7 +384,7 @@ def generate_signed_url_v2(
         signature = _sign_message(string_to_sign, access_token, service_account_email)
         signed_query_params = {
             "GoogleAccessId": service_account_email,
-            "Expires": str(expiration),
+            "Expires": expiration_stamp,
             "Signature": signature,
         }
     else:
@@ -466,7 +466,7 @@ def generate_signed_url_v4(
     :param expiration: Point in time when the signed URL should expire.
 
     :type api_access_endpoint: str
-    :param api_access_endpoint: Optional URI base. Defaults to
+    :param api_access_endpoint: (Optional) URI base. Defaults to
                                 "https://storage.googleapis.com/"
 
     :type method: str
@@ -531,9 +531,7 @@ def generate_signed_url_v4(
     expiration_seconds = get_expiration_seconds_v4(expiration)
 
     if _request_timestamp is None:
-        now = NOW()
-        request_timestamp = now.strftime("%Y%m%dT%H%M%SZ")
-        datestamp = now.date().strftime("%Y%m%d")
+        request_timestamp, datestamp = get_v4_now_dtstamps()
     else:
         request_timestamp = _request_timestamp
         datestamp = _request_timestamp[:8]
@@ -627,6 +625,18 @@ def generate_signed_url_v4(
     return "{}{}?{}&X-Goog-Signature={}".format(
         api_access_endpoint, resource, canonical_query_string, signature
     )
+
+
+def get_v4_now_dtstamps():
+    """Get current timestamp and datestamp in V4 valid format.
+
+    :rtype: str, str
+    :returns: Current timestamp, datestamp.
+    """
+    now = NOW()
+    timestamp = now.strftime("%Y%m%dT%H%M%SZ")
+    datestamp = now.date().strftime("%Y%m%d")
+    return timestamp, datestamp
 
 
 def _sign_message(message, access_token, service_account_email):
