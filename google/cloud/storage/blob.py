@@ -791,11 +791,11 @@ class Blob(_PropertyMixin):
 
         :raises: :class:`google.cloud.exceptions.NotFound`
         """
-        download_url = self._get_download_url()
         headers = _get_encryption_headers(self._encryption_key)
         headers["accept-encoding"] = "gzip"
 
         transport = self._get_transport(client)
+        download_url = self._get_download_url()
         try:
             self._do_download(
                 transport, file_obj, download_url, headers, start, end, raw_download
