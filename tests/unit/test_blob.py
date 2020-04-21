@@ -1601,6 +1601,16 @@ class Test_Blob(unittest.TestCase):
     def test__initiate_resumable_upload_with_retry(self):
         self._initiate_resumable_helper(num_retries=11)
 
+    def test__initiate_resumable_upload_with_generation_match(self):
+        self._initiate_resumable_helper(
+            if_generation_match=4, if_metageneration_match=4
+        )
+
+    def test__initiate_resumable_upload_with_generation_not_match(self):
+        self._initiate_resumable_helper(
+            if_generation_not_match=4, if_metageneration_not_match=4
+        )
+
     def test__initiate_resumable_upload_with_predefined_acl(self):
         self._initiate_resumable_helper(predefined_acl="private")
 
