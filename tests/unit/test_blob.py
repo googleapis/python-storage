@@ -1362,6 +1362,18 @@ class Test_Blob(unittest.TestCase):
         if kms_key_name is not None:
             qs_params.append(("kmsKeyName", kms_key_name))
 
+        if if_generation_match is not None:
+            qs_params.append(("ifGenerationMatch", if_generation_match))
+
+        if if_generation_not_match is not None:
+            qs_params.append(("ifGenerationNotMatch", if_generation_not_match))
+
+        if if_metageneration_match is not None:
+            qs_params.append(("ifMetagenerationMatch", if_metageneration_match))
+
+        if if_metageneration_not_match is not None:
+            qs_params.append(("ifMetaGenerationNotMatch", if_metageneration_not_match))
+
         upload_url += "?" + urlencode(qs_params)
 
         payload = (
@@ -1404,6 +1416,18 @@ class Test_Blob(unittest.TestCase):
     @mock.patch(u"google.resumable_media._upload.get_boundary", return_value=b"==0==")
     def test__do_multipart_upload_with_retry(self, mock_get_boundary):
         self._do_multipart_success(mock_get_boundary, num_retries=8)
+
+    @mock.patch(u"google.resumable_media._upload.get_boundary", return_value=b"==0==")
+    def test__do_multipart_upload_with_generation_match(self, mock_get_boundary):
+        self._do_multipart_success(
+            mock_get_boundary, if_generation_match=4, if_metageneration_match=4
+        )
+
+    @mock.patch(u"google.resumable_media._upload.get_boundary", return_value=b"==0==")
+    def test__do_multipart_upload_with_generation_not_match(self, mock_get_boundary):
+        self._do_multipart_success(
+            mock_get_boundary, if_generation_not_match=4, if_metageneration_not_match=4
+        )
 
     def test__do_multipart_upload_bad_size(self):
         blob = self._make_one(u"blob-name", bucket=None)
