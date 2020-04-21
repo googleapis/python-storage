@@ -1303,10 +1303,10 @@ class Test_Blob(unittest.TestCase):
         num_retries=None,
         user_project=None,
         predefined_acl=None,
-        generation_match=None,
-        generation_not_match=None,
-        metageneration_match=None,
-        metageneration_not_match=None,
+        if_generation_match=None,
+        if_generation_not_match=None,
+        if_metageneration_match=None,
+        if_metageneration_not_match=None,
         kms_key_name=None,
     ):
         from six.moves.urllib.parse import urlencode
@@ -1330,10 +1330,10 @@ class Test_Blob(unittest.TestCase):
             size,
             num_retries,
             predefined_acl,
-            generation_match,
-            generation_not_match,
-            metageneration_match,
-            metageneration_not_match,
+            if_generation_match,
+            if_generation_not_match,
+            if_metageneration_match,
+            if_metageneration_not_match,
         )
 
         # Check the mocks and the returned value.
@@ -1430,10 +1430,10 @@ class Test_Blob(unittest.TestCase):
         num_retries=None,
         user_project=None,
         predefined_acl=None,
-        generation_match=None,
-        generation_not_match=None,
-        metageneration_match=None,
-        metageneration_not_match=None,
+        if_generation_match=None,
+        if_generation_not_match=None,
+        if_metageneration_match=None,
+        if_metageneration_not_match=None,
         blob_chunk_size=786432,
         kms_key_name=None,
     ):
@@ -1604,10 +1604,10 @@ class Test_Blob(unittest.TestCase):
         content_type,
         size=None,
         predefined_acl=None,
-        generation_match=None,
-        generation_not_match=None,
-        metageneration_match=None,
-        metageneration_not_match=None,
+        if_generation_match=None,
+        if_generation_not_match=None,
+        if_metageneration_match=None,
+        if_metageneration_not_match=None,
     ):
         # First mock transport.request() does initiates upload.
         upload_url = (
@@ -1636,10 +1636,10 @@ class Test_Blob(unittest.TestCase):
         resumable_url,
         size=None,
         predefined_acl=None,
-        generation_match=None,
-        generation_not_match=None,
-        metageneration_match=None,
-        metageneration_not_match=None,
+        if_generation_match=None,
+        if_generation_not_match=None,
+        if_metageneration_match=None,
+        if_metageneration_not_match=None,
     ):
         # Second mock transport.request() does sends first chunk.
         if size is None:
@@ -1668,10 +1668,10 @@ class Test_Blob(unittest.TestCase):
         resumable_url,
         total_bytes,
         predefined_acl=None,
-        generation_match=None,
-        generation_not_match=None,
-        metageneration_match=None,
-        metageneration_not_match=None,
+        if_generation_match=None,
+        if_generation_not_match=None,
+        if_metageneration_match=None,
+        if_metageneration_not_match=None,
     ):
         # Third mock transport.request() does sends last chunk.
         content_range = "bytes {:d}-{:d}/{:d}".format(
@@ -1695,10 +1695,10 @@ class Test_Blob(unittest.TestCase):
         use_size=False,
         num_retries=None,
         predefined_acl=None,
-        generation_match=None,
-        generation_not_match=None,
-        metageneration_match=None,
-        metageneration_not_match=None,
+        if_generation_match=None,
+        if_generation_not_match=None,
+        if_metageneration_match=None,
+        if_metageneration_not_match=None,
     ):
         bucket = _Bucket(name="yesterday")
         blob = self._make_one(u"blob-name", bucket=bucket)
@@ -1732,10 +1732,10 @@ class Test_Blob(unittest.TestCase):
             size,
             num_retries,
             predefined_acl,
-            generation_match,
-            generation_not_match,
-            metageneration_match,
-            metageneration_not_match,
+            if_generation_match,
+            if_generation_not_match,
+            if_metageneration_match,
+            if_metageneration_not_match,
         )
 
         # Check the returned values.
@@ -1748,10 +1748,10 @@ class Test_Blob(unittest.TestCase):
             content_type,
             size=size,
             predefined_acl=predefined_acl,
-            generation_match=generation_match,
-            generation_not_match=generation_not_match,
-            metageneration_match=metageneration_match,
-            metageneration_not_match=metageneration_not_match,
+            if_generation_match=if_generation_match,
+            if_generation_not_match=if_generation_not_match,
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
         )
         call1 = self._do_resumable_upload_call1(
             blob,
@@ -1760,10 +1760,10 @@ class Test_Blob(unittest.TestCase):
             resumable_url,
             size=size,
             predefined_acl=predefined_acl,
-            generation_match=generation_match,
-            generation_not_match=generation_not_match,
-            metageneration_match=metageneration_match,
-            metageneration_not_match=metageneration_not_match,
+            if_generation_match=if_generation_match,
+            if_generation_not_match=if_generation_not_match,
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
         )
         call2 = self._do_resumable_upload_call2(
             blob,
@@ -1772,10 +1772,10 @@ class Test_Blob(unittest.TestCase):
             resumable_url,
             total_bytes,
             predefined_acl=predefined_acl,
-            generation_match=generation_match,
-            generation_not_match=generation_not_match,
-            metageneration_match=metageneration_match,
-            metageneration_not_match=metageneration_not_match,
+            if_generation_match=if_generation_match,
+            if_generation_not_match=if_generation_not_match,
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
         )
         self.assertEqual(transport.request.mock_calls, [call0, call1, call2])
 
@@ -1796,10 +1796,10 @@ class Test_Blob(unittest.TestCase):
         chunk_size=None,
         num_retries=None,
         predefined_acl=None,
-        generation_match=None,
-        generation_not_match=None,
-        metageneration_match=None,
-        metageneration_not_match=None,
+        if_generation_match=None,
+        if_generation_not_match=None,
+        if_metageneration_match=None,
+        if_metageneration_not_match=None,
         size=None,
     ):
         from google.cloud.storage.blob import _MAX_MULTIPART_SIZE
@@ -1832,10 +1832,10 @@ class Test_Blob(unittest.TestCase):
             size,
             num_retries,
             predefined_acl,
-            generation_match,
-            generation_not_match,
-            metageneration_match,
-            metageneration_not_match,
+            if_generation_match,
+            if_generation_not_match,
+            if_metageneration_match,
+            if_metageneration_not_match,
         )
         self.assertIs(created_json, mock.sentinel.json)
         response.json.assert_called_once_with()
@@ -1847,10 +1847,10 @@ class Test_Blob(unittest.TestCase):
                 size,
                 num_retries,
                 predefined_acl,
-                generation_match,
-                generation_not_match,
-                metageneration_match,
-                metageneration_not_match,
+                if_generation_match,
+                if_generation_not_match,
+                if_metageneration_match,
+                if_metageneration_not_match,
             )
             blob._do_resumable_upload.assert_not_called()
         else:
@@ -1862,10 +1862,10 @@ class Test_Blob(unittest.TestCase):
                 size,
                 num_retries,
                 predefined_acl,
-                generation_match,
-                generation_not_match,
-                metageneration_match,
-                metageneration_not_match,
+                if_generation_match,
+                if_generation_not_match,
+                if_metageneration_match,
+                if_metageneration_not_match,
             )
 
     def test__do_upload_uses_multipart(self):
@@ -1900,10 +1900,10 @@ class Test_Blob(unittest.TestCase):
         content_type = u"font/woff"
         client = mock.sentinel.client
         predefined_acl = kwargs.get("predefined_acl", None)
-        generation_match = kwargs.get("generation_match", None)
-        generation_not_match = kwargs.get("generation_not_match", None)
-        metageneration_match = kwargs.get("metageneration_match", None)
-        metageneration_not_match = kwargs.get("metageneration_not_match", None)
+        if_generation_match = kwargs.get("if_generation_match", None)
+        if_generation_not_match = kwargs.get("if_generation_not_match", None)
+        if_metageneration_match = kwargs.get("if_metageneration_match", None)
+        if_metageneration_not_match = kwargs.get("if_metageneration_not_match", None)
         ret_val = blob.upload_from_file(
             stream, size=len(data), content_type=content_type, client=client, **kwargs
         )
@@ -1922,10 +1922,10 @@ class Test_Blob(unittest.TestCase):
             len(data),
             num_retries,
             predefined_acl,
-            generation_match,
-            generation_not_match,
-            metageneration_match,
-            metageneration_not_match,
+            if_generation_match,
+            if_generation_not_match,
+            if_metageneration_match,
+            if_metageneration_not_match,
         )
         return stream
 
@@ -1975,10 +1975,10 @@ class Test_Blob(unittest.TestCase):
         self.assertEqual(pos_args[3], size)
         self.assertIsNone(pos_args[4])  # num_retries
         self.assertIsNone(pos_args[5])  # predefined_acl
-        self.assertIsNone(pos_args[6])  # generation_match
-        self.assertIsNone(pos_args[7])  # generation_not_match
-        self.assertIsNone(pos_args[8])  # metageneration_match
-        self.assertIsNone(pos_args[9])  # metageneration_not_match
+        self.assertIsNone(pos_args[6])  # if_generation_match
+        self.assertIsNone(pos_args[7])  # if_generation_not_match
+        self.assertIsNone(pos_args[8])  # if_metageneration_match
+        self.assertIsNone(pos_args[9])  # if_metageneration_not_match
         self.assertEqual(kwargs, {})
 
         return pos_args[1]
