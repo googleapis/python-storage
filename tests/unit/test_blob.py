@@ -1498,6 +1498,10 @@ class Test_Blob(unittest.TestCase):
             extra_headers=extra_headers,
             chunk_size=chunk_size,
             predefined_acl=predefined_acl,
+            if_generation_match=if_generation_match,
+            if_generation_not_match=if_generation_not_match,
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
         )
 
         # Check the returned values.
@@ -1516,6 +1520,18 @@ class Test_Blob(unittest.TestCase):
 
         if kms_key_name is not None:
             qs_params.append(("kmsKeyName", kms_key_name))
+
+        if if_generation_match is not None:
+            qs_params.append(("ifGenerationMatch", if_generation_match))
+
+        if if_generation_not_match is not None:
+            qs_params.append(("ifGenerationNotMatch", if_generation_not_match))
+
+        if if_metageneration_match is not None:
+            qs_params.append(("ifMetagenerationMatch", if_metageneration_match))
+
+        if if_metageneration_not_match is not None:
+            qs_params.append(("ifMetaGenerationNotMatch", if_metageneration_not_match))
 
         upload_url += "?" + urlencode(qs_params)
 
