@@ -33,6 +33,7 @@ from google.cloud.storage._helpers import _base64_md5hash
 from google.cloud.storage.bucket import LifecycleRuleDelete
 from google.cloud.storage.bucket import LifecycleRuleSetStorageClass
 from google.cloud import kms
+import google.api_core
 import google.oauth2
 from test_utils.retry import RetryErrors
 from test_utils.system import unique_resource_id
@@ -709,6 +710,32 @@ class TestStorageWriteFiles(TestStorageFiles):
 
         raw = blob.download_as_string(raw_download=True)
         self.assertEqual(raw, zipped)
+
+    def test_resumable_upload_with_generation_match(self):
+        blob = self.bucket.blob("LargeFile")
+
+        # uploading the file
+        file_data = self.FILES["big"]
+        with open(file_data["path"], "rb") as file_obj:
+            blob.upload_from_file(file_obj)
+            self.case_blobs_to_delete.append(blob)
+
+        # reuploading with correct generations numbers
+        with open(file_data["path"], "rb") as file_obj:
+            blob.upload_from_file(
+                file_obj,
+                if_generation_match=blob.generation,
+                if_metageneration_match=blob.metageneration,
+            )
+
+        # reuploading with generations numbers that doesn't match original
+        with self.assertRaises(google.api_core.exceptions.PreconditionFailed):
+            with open(file_data["path"], "rb") as file_obj:
+                blob.upload_from_file(file_obj, if_generation_match=3)
+
+        with self.assertRaises(google.api_core.exceptions.PreconditionFailed):
+            with open(file_data["path"], "rb") as file_obj:
+                blob.upload_from_file(file_obj, if_metageneration_match=3)
 
 
 class TestUnicode(unittest.TestCase):
@@ -1702,11 +1729,18 @@ class TestKMSIntegration(TestStorageFiles):
 class TestRetentionPolicy(unittest.TestCase):
     def setUp(self):
         self.case_buckets_to_delete = []
+        self.case_blobs_to_delete = []
 
     def tearDown(self):
+        # discard test blobs retention policy settings
+        for blob in self.case_blobs_to_delete:
+            blob.event_based_hold = False
+            blob.temporary_hold = False
+            blob.patch()
+
         for bucket_name in self.case_buckets_to_delete:
             bucket = Config.CLIENT.bucket(bucket_name)
-            retry_429_harder(bucket.delete)()
+            retry_429_harder(bucket.delete)(force=True)
 
     def test_bucket_w_retention_period(self):
         import datetime
@@ -1732,6 +1766,8 @@ class TestRetentionPolicy(unittest.TestCase):
         blob = bucket.blob(blob_name)
         blob.upload_from_string(payload)
 
+        self.case_blobs_to_delete.append(blob)
+
         other = bucket.get_blob(blob_name)
 
         self.assertFalse(other.event_based_hold)
@@ -1756,6 +1792,7 @@ class TestRetentionPolicy(unittest.TestCase):
         self.assertIsNone(other.retention_expiration_time)
 
         other.delete()
+        self.case_blobs_to_delete.pop()
 
     def test_bucket_w_default_event_based_hold(self):
         from google.api_core import exceptions
@@ -1780,6 +1817,8 @@ class TestRetentionPolicy(unittest.TestCase):
         blob = bucket.blob(blob_name)
         blob.upload_from_string(payload)
 
+        self.case_blobs_to_delete.append(blob)
+
         other = bucket.get_blob(blob_name)
 
         self.assertTrue(other.event_based_hold)
@@ -1791,7 +1830,6 @@ class TestRetentionPolicy(unittest.TestCase):
 
         other.event_based_hold = False
         other.patch()
-
         other.delete()
 
         bucket.default_event_based_hold = False
@@ -1803,11 +1841,12 @@ class TestRetentionPolicy(unittest.TestCase):
         self.assertFalse(bucket.retention_policy_locked)
 
         blob.upload_from_string(payload)
-        self.assertFalse(other.event_based_hold)
-        self.assertFalse(other.temporary_hold)
-        self.assertIsNone(other.retention_expiration_time)
+        self.assertFalse(blob.event_based_hold)
+        self.assertFalse(blob.temporary_hold)
+        self.assertIsNone(blob.retention_expiration_time)
 
         blob.delete()
+        self.case_blobs_to_delete.pop()
 
     def test_blob_w_temporary_hold(self):
         from google.api_core import exceptions
@@ -1824,6 +1863,8 @@ class TestRetentionPolicy(unittest.TestCase):
         blob = bucket.blob(blob_name)
         blob.upload_from_string(payload)
 
+        self.case_blobs_to_delete.append(blob)
+
         other = bucket.get_blob(blob_name)
         other.temporary_hold = True
         other.patch()
@@ -1839,6 +1880,7 @@ class TestRetentionPolicy(unittest.TestCase):
         other.patch()
 
         other.delete()
+        self.case_blobs_to_delete.pop()
 
     def test_bucket_lock_retention_policy(self):
         import datetime
@@ -1955,3 +1997,67 @@ class TestIAMConfiguration(unittest.TestCase):
 
         self.assertEqual(bucket_acl_before, bucket_acl_after)
         self.assertEqual(blob_acl_before, blob_acl_after)
+
+
+class TestV4POSTPolicies(unittest.TestCase):
+    def setUp(self):
+        self.case_buckets_to_delete = []
+
+    def tearDown(self):
+        for bucket_name in self.case_buckets_to_delete:
+            bucket = Config.CLIENT.bucket(bucket_name)
+            retry_429_harder(bucket.delete)(force=True)
+
+    def test_get_signed_policy_v4(self):
+        bucket_name = "post_policy" + unique_resource_id("-")
+        self.assertRaises(exceptions.NotFound, Config.CLIENT.get_bucket, bucket_name)
+        retry_429_503(Config.CLIENT.create_bucket)(bucket_name)
+        self.case_buckets_to_delete.append(bucket_name)
+
+        blob_name = "post_policy_obj.txt"
+        with open(blob_name, "w") as f:
+            f.write("DEADBEEF")
+
+        policy = Config.CLIENT.generate_signed_post_policy_v4(
+            bucket_name,
+            blob_name,
+            conditions=[
+                {"bucket": bucket_name},
+                ["starts-with", "$Content-Type", "text/pla"],
+            ],
+            expiration=datetime.datetime.now() + datetime.timedelta(hours=1),
+            fields={"content-type": "text/plain"},
+        )
+        with open(blob_name, "r") as f:
+            files = {"file": (blob_name, f)}
+            response = requests.post(policy["url"], data=policy["fields"], files=files)
+
+        os.remove(blob_name)
+        self.assertEqual(response.status_code, 204)
+
+    def test_get_signed_policy_v4_invalid_field(self):
+        bucket_name = "post_policy" + unique_resource_id("-")
+        self.assertRaises(exceptions.NotFound, Config.CLIENT.get_bucket, bucket_name)
+        retry_429_503(Config.CLIENT.create_bucket)(bucket_name)
+        self.case_buckets_to_delete.append(bucket_name)
+
+        blob_name = "post_policy_obj.txt"
+        with open(blob_name, "w") as f:
+            f.write("DEADBEEF")
+
+        policy = Config.CLIENT.generate_signed_post_policy_v4(
+            bucket_name,
+            blob_name,
+            conditions=[
+                {"bucket": bucket_name},
+                ["starts-with", "$Content-Type", "text/pla"],
+            ],
+            expiration=datetime.datetime.now() + datetime.timedelta(hours=1),
+            fields={"x-goog-random": "invalid_field", "content-type": "text/plain"},
+        )
+        with open(blob_name, "r") as f:
+            files = {"file": (blob_name, f)}
+            response = requests.post(policy["url"], data=policy["fields"], files=files)
+
+        os.remove(blob_name)
+        self.assertEqual(response.status_code, 400)
