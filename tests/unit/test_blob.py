@@ -1304,6 +1304,10 @@ class Test_Blob(unittest.TestCase):
         num_retries=None,
         user_project=None,
         predefined_acl=None,
+        if_generation_match=None,
+        if_generation_not_match=None,
+        if_metageneration_match=None,
+        if_metageneration_not_match=None,
         kms_key_name=None,
     ):
         from six.moves.urllib.parse import urlencode
@@ -1322,7 +1326,16 @@ class Test_Blob(unittest.TestCase):
         stream = io.BytesIO(data)
         content_type = u"application/xml"
         response = blob._do_multipart_upload(
-            client, stream, content_type, size, num_retries, predefined_acl
+            client,
+            stream,
+            content_type,
+            size,
+            num_retries,
+            predefined_acl,
+            if_generation_match,
+            if_generation_not_match,
+            if_metageneration_match,
+            if_metageneration_not_match,
         )
 
         # Check the mocks and the returned value.
@@ -1350,6 +1363,18 @@ class Test_Blob(unittest.TestCase):
 
         if kms_key_name is not None:
             qs_params.append(("kmsKeyName", kms_key_name))
+
+        if if_generation_match is not None:
+            qs_params.append(("ifGenerationMatch", if_generation_match))
+
+        if if_generation_not_match is not None:
+            qs_params.append(("ifGenerationNotMatch", if_generation_not_match))
+
+        if if_metageneration_match is not None:
+            qs_params.append(("ifMetagenerationMatch", if_metageneration_match))
+
+        if if_metageneration_not_match is not None:
+            qs_params.append(("ifMetaGenerationNotMatch", if_metageneration_not_match))
 
         upload_url += "?" + urlencode(qs_params)
 
@@ -1394,6 +1419,18 @@ class Test_Blob(unittest.TestCase):
     def test__do_multipart_upload_with_retry(self, mock_get_boundary):
         self._do_multipart_success(mock_get_boundary, num_retries=8)
 
+    @mock.patch(u"google.resumable_media._upload.get_boundary", return_value=b"==0==")
+    def test__do_multipart_upload_with_generation_match(self, mock_get_boundary):
+        self._do_multipart_success(
+            mock_get_boundary, if_generation_match=4, if_metageneration_match=4
+        )
+
+    @mock.patch(u"google.resumable_media._upload.get_boundary", return_value=b"==0==")
+    def test__do_multipart_upload_with_generation_not_match(self, mock_get_boundary):
+        self._do_multipart_success(
+            mock_get_boundary, if_generation_not_match=4, if_metageneration_not_match=4
+        )
+
     def test__do_multipart_upload_bad_size(self):
         blob = self._make_one(u"blob-name", bucket=None)
 
@@ -1403,7 +1440,9 @@ class Test_Blob(unittest.TestCase):
         self.assertGreater(size, len(data))
 
         with self.assertRaises(ValueError) as exc_info:
-            blob._do_multipart_upload(None, stream, None, size, None, None)
+            blob._do_multipart_upload(
+                None, stream, None, size, None, None, None, None, None, None
+            )
 
         exc_contents = str(exc_info.exception)
         self.assertIn("was specified but the file-like object only had", exc_contents)
@@ -1417,6 +1456,10 @@ class Test_Blob(unittest.TestCase):
         num_retries=None,
         user_project=None,
         predefined_acl=None,
+        if_generation_match=None,
+        if_generation_not_match=None,
+        if_metageneration_match=None,
+        if_metageneration_not_match=None,
         blob_chunk_size=786432,
         kms_key_name=None,
     ):
@@ -1458,6 +1501,10 @@ class Test_Blob(unittest.TestCase):
             extra_headers=extra_headers,
             chunk_size=chunk_size,
             predefined_acl=predefined_acl,
+            if_generation_match=if_generation_match,
+            if_generation_not_match=if_generation_not_match,
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
         )
 
         # Check the returned values.
@@ -1476,6 +1523,18 @@ class Test_Blob(unittest.TestCase):
 
         if kms_key_name is not None:
             qs_params.append(("kmsKeyName", kms_key_name))
+
+        if if_generation_match is not None:
+            qs_params.append(("ifGenerationMatch", if_generation_match))
+
+        if if_generation_not_match is not None:
+            qs_params.append(("ifGenerationNotMatch", if_generation_not_match))
+
+        if if_metageneration_match is not None:
+            qs_params.append(("ifMetagenerationMatch", if_metageneration_match))
+
+        if if_metageneration_not_match is not None:
+            qs_params.append(("ifMetaGenerationNotMatch", if_metageneration_not_match))
 
         upload_url += "?" + urlencode(qs_params)
 
@@ -1561,6 +1620,16 @@ class Test_Blob(unittest.TestCase):
     def test__initiate_resumable_upload_with_retry(self):
         self._initiate_resumable_helper(num_retries=11)
 
+    def test__initiate_resumable_upload_with_generation_match(self):
+        self._initiate_resumable_helper(
+            if_generation_match=4, if_metageneration_match=4
+        )
+
+    def test__initiate_resumable_upload_with_generation_not_match(self):
+        self._initiate_resumable_helper(
+            if_generation_not_match=4, if_metageneration_not_match=4
+        )
+
     def test__initiate_resumable_upload_with_predefined_acl(self):
         self._initiate_resumable_helper(predefined_acl="private")
 
@@ -1583,7 +1652,16 @@ class Test_Blob(unittest.TestCase):
         return fake_transport, responses
 
     @staticmethod
-    def _do_resumable_upload_call0(blob, content_type, size=None, predefined_acl=None):
+    def _do_resumable_upload_call0(
+        blob,
+        content_type,
+        size=None,
+        predefined_acl=None,
+        if_generation_match=None,
+        if_generation_not_match=None,
+        if_metageneration_match=None,
+        if_metageneration_not_match=None,
+    ):
         # First mock transport.request() does initiates upload.
         upload_url = (
             "https://storage.googleapis.com/upload/storage/v1"
@@ -1605,7 +1683,16 @@ class Test_Blob(unittest.TestCase):
 
     @staticmethod
     def _do_resumable_upload_call1(
-        blob, content_type, data, resumable_url, size=None, predefined_acl=None
+        blob,
+        content_type,
+        data,
+        resumable_url,
+        size=None,
+        predefined_acl=None,
+        if_generation_match=None,
+        if_generation_not_match=None,
+        if_metageneration_match=None,
+        if_metageneration_not_match=None,
     ):
         # Second mock transport.request() does sends first chunk.
         if size is None:
@@ -1628,7 +1715,16 @@ class Test_Blob(unittest.TestCase):
 
     @staticmethod
     def _do_resumable_upload_call2(
-        blob, content_type, data, resumable_url, total_bytes, predefined_acl=None
+        blob,
+        content_type,
+        data,
+        resumable_url,
+        total_bytes,
+        predefined_acl=None,
+        if_generation_match=None,
+        if_generation_not_match=None,
+        if_metageneration_match=None,
+        if_metageneration_not_match=None,
     ):
         # Third mock transport.request() does sends last chunk.
         content_range = "bytes {:d}-{:d}/{:d}".format(
@@ -1648,7 +1744,14 @@ class Test_Blob(unittest.TestCase):
         )
 
     def _do_resumable_helper(
-        self, use_size=False, num_retries=None, predefined_acl=None
+        self,
+        use_size=False,
+        num_retries=None,
+        predefined_acl=None,
+        if_generation_match=None,
+        if_generation_not_match=None,
+        if_metageneration_match=None,
+        if_metageneration_not_match=None,
     ):
         bucket = _Bucket(name="yesterday")
         blob = self._make_one(u"blob-name", bucket=bucket)
@@ -1677,7 +1780,16 @@ class Test_Blob(unittest.TestCase):
         stream = io.BytesIO(data)
         content_type = u"text/html"
         response = blob._do_resumable_upload(
-            client, stream, content_type, size, num_retries, predefined_acl
+            client,
+            stream,
+            content_type,
+            size,
+            num_retries,
+            predefined_acl,
+            if_generation_match,
+            if_generation_not_match,
+            if_metageneration_match,
+            if_metageneration_not_match,
         )
 
         # Check the returned values.
@@ -1686,7 +1798,14 @@ class Test_Blob(unittest.TestCase):
 
         # Check the mocks.
         call0 = self._do_resumable_upload_call0(
-            blob, content_type, size=size, predefined_acl=predefined_acl
+            blob,
+            content_type,
+            size=size,
+            predefined_acl=predefined_acl,
+            if_generation_match=if_generation_match,
+            if_generation_not_match=if_generation_not_match,
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
         )
         call1 = self._do_resumable_upload_call1(
             blob,
@@ -1695,6 +1814,10 @@ class Test_Blob(unittest.TestCase):
             resumable_url,
             size=size,
             predefined_acl=predefined_acl,
+            if_generation_match=if_generation_match,
+            if_generation_not_match=if_generation_not_match,
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
         )
         call2 = self._do_resumable_upload_call2(
             blob,
@@ -1703,6 +1826,10 @@ class Test_Blob(unittest.TestCase):
             resumable_url,
             total_bytes,
             predefined_acl=predefined_acl,
+            if_generation_match=if_generation_match,
+            if_generation_not_match=if_generation_not_match,
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
         )
         self.assertEqual(transport.request.mock_calls, [call0, call1, call2])
 
@@ -1719,7 +1846,15 @@ class Test_Blob(unittest.TestCase):
         self._do_resumable_helper(predefined_acl="private")
 
     def _do_upload_helper(
-        self, chunk_size=None, num_retries=None, predefined_acl=None, size=None
+        self,
+        chunk_size=None,
+        num_retries=None,
+        predefined_acl=None,
+        if_generation_match=None,
+        if_generation_not_match=None,
+        if_metageneration_match=None,
+        if_metageneration_not_match=None,
+        size=None,
     ):
         from google.cloud.storage.blob import _MAX_MULTIPART_SIZE
 
@@ -1745,19 +1880,46 @@ class Test_Blob(unittest.TestCase):
             size = 12345654321
         # Make the request and check the mocks.
         created_json = blob._do_upload(
-            client, stream, content_type, size, num_retries, predefined_acl
+            client,
+            stream,
+            content_type,
+            size,
+            num_retries,
+            predefined_acl,
+            if_generation_match,
+            if_generation_not_match,
+            if_metageneration_match,
+            if_metageneration_not_match,
         )
         self.assertIs(created_json, mock.sentinel.json)
         response.json.assert_called_once_with()
         if size is not None and size <= _MAX_MULTIPART_SIZE:
             blob._do_multipart_upload.assert_called_once_with(
-                client, stream, content_type, size, num_retries, predefined_acl
+                client,
+                stream,
+                content_type,
+                size,
+                num_retries,
+                predefined_acl,
+                if_generation_match,
+                if_generation_not_match,
+                if_metageneration_match,
+                if_metageneration_not_match,
             )
             blob._do_resumable_upload.assert_not_called()
         else:
             blob._do_multipart_upload.assert_not_called()
             blob._do_resumable_upload.assert_called_once_with(
-                client, stream, content_type, size, num_retries, predefined_acl
+                client,
+                stream,
+                content_type,
+                size,
+                num_retries,
+                predefined_acl,
+                if_generation_match,
+                if_generation_not_match,
+                if_metageneration_match,
+                if_metageneration_not_match,
             )
 
     def test__do_upload_uses_multipart(self):
@@ -1792,6 +1954,10 @@ class Test_Blob(unittest.TestCase):
         content_type = u"font/woff"
         client = mock.sentinel.client
         predefined_acl = kwargs.get("predefined_acl", None)
+        if_generation_match = kwargs.get("if_generation_match", None)
+        if_generation_not_match = kwargs.get("if_generation_not_match", None)
+        if_metageneration_match = kwargs.get("if_metageneration_match", None)
+        if_metageneration_not_match = kwargs.get("if_metageneration_not_match", None)
         ret_val = blob.upload_from_file(
             stream, size=len(data), content_type=content_type, client=client, **kwargs
         )
@@ -1804,7 +1970,16 @@ class Test_Blob(unittest.TestCase):
         # Check the mock.
         num_retries = kwargs.get("num_retries")
         blob._do_upload.assert_called_once_with(
-            client, stream, content_type, len(data), num_retries, predefined_acl
+            client,
+            stream,
+            content_type,
+            len(data),
+            num_retries,
+            predefined_acl,
+            if_generation_match,
+            if_generation_not_match,
+            if_metageneration_match,
+            if_metageneration_not_match,
         )
         return stream
 
@@ -1848,12 +2023,16 @@ class Test_Blob(unittest.TestCase):
         mock_call = blob._do_upload.mock_calls[0]
         call_name, pos_args, kwargs = mock_call
         self.assertEqual(call_name, "")
-        self.assertEqual(len(pos_args), 6)
+        self.assertEqual(len(pos_args), 10)
         self.assertEqual(pos_args[0], client)
         self.assertEqual(pos_args[2], content_type)
         self.assertEqual(pos_args[3], size)
         self.assertIsNone(pos_args[4])  # num_retries
         self.assertIsNone(pos_args[5])  # predefined_acl
+        self.assertIsNone(pos_args[6])  # if_generation_match
+        self.assertIsNone(pos_args[7])  # if_generation_not_match
+        self.assertIsNone(pos_args[8])  # if_metageneration_match
+        self.assertIsNone(pos_args[9])  # if_metageneration_not_match
         self.assertEqual(kwargs, {})
 
         return pos_args[1]
