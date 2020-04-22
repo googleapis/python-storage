@@ -1017,16 +1017,25 @@ class Blob(_PropertyMixin):
         :param predefined_acl: (Optional) Predefined access control list
 
         :type if_generation_match: long
-        :param if_generation_match: (Optional) Precondition control if generation match
+        :param if_generation_match: (Optional) Make the operation conditional on whether
+                                    the blob's current generation matches the given value.
+                                    Setting to 0 makes the operation succeed only if there
+                                    are no live versions of the blob.
 
         :type if_generation_not_match: long
-        :param if_generation_not_match: (Optional) Precondition control if generation not match
+        :param if_generation_not_match: (Optional) Make the operation conditional on whether
+                                        the blob's current generation does not match the given
+                                        value. If no live blob exists, the precondition fails.
+                                        Setting to 0 makes the operation succeed only if there
+                                        is a live version of the blob.
 
         :type if_metageneration_match: long
-        :param if_metageneration_match: (Optional) Precondition control if metageneration match
+        :param if_metageneration_match: (Optional) Make the operation conditional on whether the
+                                        blob's current metageneration matches the given value.
 
         :type if_metageneration_not_match: long
-        :param if_metageneration_not_match: (Optional) Precondition control if metageneration not match
+        :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
+                                            blob's current metageneration does not match the given value.
 
         :rtype: :class:`~requests.Response`
         :returns: The "200 OK" response object returned after the multipart
@@ -1142,16 +1151,25 @@ class Blob(_PropertyMixin):
             current blob.
 
         :type if_generation_match: long
-        :param if_generation_match: (Optional) Precondition control if generation match
+        :param if_generation_match: (Optional) Make the operation conditional on whether
+                                    the blob's current generation matches the given value.
+                                    Setting to 0 makes the operation succeed only if there
+                                    are no live versions of the blob.
 
         :type if_generation_not_match: long
-        :param if_generation_not_match: (Optional) Precondition control if generation not match
+        :param if_generation_not_match: (Optional) Make the operation conditional on whether
+                                        the blob's current generation does not match the given
+                                        value. If no live blob exists, the precondition fails.
+                                        Setting to 0 makes the operation succeed only if there
+                                        is a live version of the blob.
 
         :type if_metageneration_match: long
-        :param if_metageneration_match: (Optional) Precondition control if metageneration match
+        :param if_metageneration_match: (Optional) Make the operation conditional on whether the
+                                        blob's current metageneration matches the given value.
 
         :type if_metageneration_not_match: long
-        :param if_metageneration_not_match: (Optional) Precondition control if metageneration not match
+        :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
+                                            blob's current metageneration does not match the given value.
 
         :rtype: tuple
         :returns:
@@ -1264,16 +1282,25 @@ class Blob(_PropertyMixin):
         :param predefined_acl: (Optional) Predefined access control list
 
         :type if_generation_match: long
-        :param if_generation_match: (Optional) Precondition control if generation match
+        :param if_generation_match: (Optional) Make the operation conditional on whether
+                                    the blob's current generation matches the given value.
+                                    Setting to 0 makes the operation succeed only if there
+                                    are no live versions of the blob.
 
         :type if_generation_not_match: long
-        :param if_generation_not_match: (Optional) Precondition control if generation not match
+        :param if_generation_not_match: (Optional) Make the operation conditional on whether
+                                        the blob's current generation does not match the given
+                                        value. If no live blob exists, the precondition fails.
+                                        Setting to 0 makes the operation succeed only if there
+                                        is a live version of the blob.
 
         :type if_metageneration_match: long
-        :param if_metageneration_match: (Optional) Precondition control if metageneration match
+        :param if_metageneration_match: (Optional) Make the operation conditional on whether the
+                                        blob's current metageneration matches the given value.
 
         :type if_metageneration_not_match: long
-        :param if_metageneration_not_match: (Optional) Precondition control if metageneration not match
+        :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
+                                            blob's current metageneration does not match the given value.
 
         :rtype: :class:`~requests.Response`
         :returns: The "200 OK" response object returned after the final chunk
@@ -1346,16 +1373,25 @@ class Blob(_PropertyMixin):
         :param predefined_acl: (Optional) Predefined access control list
 
         :type if_generation_match: long
-        :param if_generation_match: (Optional) Precondition control if generation match
+        :param if_generation_match: (Optional) Make the operation conditional on whether
+                                    the blob's current generation matches the given value.
+                                    Setting to 0 makes the operation succeed only if there
+                                    are no live versions of the blob.
 
         :type if_generation_not_match: long
-        :param if_generation_not_match: (Optional) Precondition control if generation not match
+        :param if_generation_not_match: (Optional) Make the operation conditional on whether
+                                        the blob's current generation does not match the given
+                                        value. If no live blob exists, the precondition fails.
+                                        Setting to 0 makes the operation succeed only if there
+                                        is a live version of the blob.
 
         :type if_metageneration_match: long
-        :param if_metageneration_match: (Optional) Precondition control if metageneration match
+        :param if_metageneration_match: (Optional) Make the operation conditional on whether the
+                                        blob's current metageneration matches the given value.
 
         :type if_metageneration_not_match: long
-        :param if_metageneration_not_match: (Optional) Precondition control if metageneration not match
+        :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
+                                            blob's current metageneration does not match the given value.
 
         :rtype: dict
         :returns: The parsed JSON from the "200 OK" response. This will be the
@@ -1466,16 +1502,25 @@ class Blob(_PropertyMixin):
         :param predefined_acl: (Optional) Predefined access control list
 
         :type if_generation_match: long
-        :param if_generation_match: (Optional) Precondition control if generation match
+        :param if_generation_match: (Optional) Make the operation conditional on whether
+                                    the blob's current generation matches the given value.
+                                    Setting to 0 makes the operation succeed only if there
+                                    are no live versions of the blob.
 
         :type if_generation_not_match: long
-        :param if_generation_not_match: (Optional) Precondition control if generation not match
+        :param if_generation_not_match: (Optional) Make the operation conditional on whether
+                                        the blob's current generation does not match the given
+                                        value. If no live blob exists, the precondition fails.
+                                        Setting to 0 makes the operation succeed only if there
+                                        is a live version of the blob.
 
         :type if_metageneration_match: long
-        :param if_metageneration_match: (Optional) Precondition control if metageneration match
+        :param if_metageneration_match: (Optional) Make the operation conditional on whether the
+                                        blob's current metageneration matches the given value.
 
         :type if_metageneration_not_match: long
-        :param if_metageneration_not_match: (Optional) Precondition control if metageneration not match
+        :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
+                                            blob's current metageneration does not match the given value.
 
         :raises: :class:`~google.cloud.exceptions.GoogleCloudError`
                  if the upload response returns an error status.
@@ -1566,16 +1611,25 @@ class Blob(_PropertyMixin):
         :param predefined_acl: (Optional) Predefined access control list
 
         :type if_generation_match: long
-        :param if_generation_match: (Optional) Precondition control if generation match
+        :param if_generation_match: (Optional) Make the operation conditional on whether
+                                    the blob's current generation matches the given value.
+                                    Setting to 0 makes the operation succeed only if there
+                                    are no live versions of the blob.
 
         :type if_generation_not_match: long
-        :param if_generation_not_match: (Optional) Precondition control if generation not match
+        :param if_generation_not_match: (Optional) Make the operation conditional on whether
+                                        the blob's current generation does not match the given
+                                        value. If no live blob exists, the precondition fails.
+                                        Setting to 0 makes the operation succeed only if there
+                                        is a live version of the blob.
 
         :type if_metageneration_match: long
-        :param if_metageneration_match: (Optional) Precondition control if metageneration match
+        :param if_metageneration_match: (Optional) Make the operation conditional on whether the
+                                        blob's current metageneration matches the given value.
 
         :type if_metageneration_not_match: long
-        :param if_metageneration_not_match: (Optional) Precondition control if metageneration not match
+        :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
+                                            blob's current metageneration does not match the given value.
         """
         content_type = self._get_content_type(content_type, filename=filename)
 
@@ -1637,16 +1691,25 @@ class Blob(_PropertyMixin):
         :param predefined_acl: (Optional) Predefined access control list
 
         :type if_generation_match: long
-        :param if_generation_match: (Optional) Precondition control if generation match
+        :param if_generation_match: (Optional) Make the operation conditional on whether
+                                    the blob's current generation matches the given value.
+                                    Setting to 0 makes the operation succeed only if there
+                                    are no live versions of the blob.
 
         :type if_generation_not_match: long
-        :param if_generation_not_match: (Optional) Precondition control if generation not match
+        :param if_generation_not_match: (Optional) Make the operation conditional on whether
+                                        the blob's current generation does not match the given
+                                        value. If no live blob exists, the precondition fails.
+                                        Setting to 0 makes the operation succeed only if there
+                                        is a live version of the blob.
 
         :type if_metageneration_match: long
-        :param if_metageneration_match: (Optional) Precondition control if metageneration match
+        :param if_metageneration_match: (Optional) Make the operation conditional on whether the
+                                        blob's current metageneration matches the given value.
 
         :type if_metageneration_not_match: long
-        :param if_metageneration_not_match: (Optional) Precondition control if metageneration not match
+        :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
+                                            blob's current metageneration does not match the given value.
         """
         data = _to_bytes(data, encoding="utf-8")
         string_buffer = BytesIO(data)
