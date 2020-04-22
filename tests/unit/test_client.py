@@ -899,32 +899,40 @@ class TestClient(unittest.TestCase):
         json_sent = http.request.call_args_list[0][1]["data"]
         self.assertEqual(json_expected, json.loads(json_sent))
 
-    def test_download_blob_to_file_with_blob(self):
-        project = "PROJECT"
+    def test_download_blob_to_file_with_failure(self):
+        import requests
+        from google.resumable_media import InvalidResponse
+        from google.cloud import exceptions
+
+        from google.cloud.storage.bucket import Bucket
+
+        BUCKET_NAME = "bucket-name"
+
+        raw_response = requests.Response()
+        raw_response.status_code = http_client.NOT_FOUND
+        raw_request = requests.Request("GET", "http://example.com")
+        raw_response.request = raw_request.prepare()
+        grmp_response = InvalidResponse(raw_response)
+
         credentials = _make_credentials()
-        client = self._make_one(project=project, credentials=credentials)
+        client = self._make_one(project="PROJECT", credentials=credentials)
+        client._do_download = mock.Mock()
+        client._do_download.side_effect = grmp_response
+
+        media_link = "http://test.invalid"
+
+        bucket = Bucket(client, BUCKET_NAME)
         blob = mock.Mock()
+
         file_obj = io.BytesIO()
+        with self.assertRaises(exceptions.NotFound):
+            client.download_blob_to_file(blob, file_obj)
 
-        client.download_blob_to_file(blob, file_obj)
-        blob.download_to_file.assert_called_once_with(
-            file_obj, client=client, start=None, end=None
-        )
+        self.assertEqual(file_obj.tell(), 0)
 
-    def test_download_blob_to_file_with_uri(self):
-        project = "PROJECT"
-        credentials = _make_credentials()
-        client = self._make_one(project=project, credentials=credentials)
-        blob = mock.Mock()
-        file_obj = io.BytesIO()
-
-        with mock.patch(
-            "google.cloud.storage.client.Blob.from_string", return_value=blob
-        ):
-            client.download_blob_to_file("gs://bucket_name/path/to/object", file_obj)
-
-        blob.download_to_file.assert_called_once_with(
-            file_obj, client=client, start=None, end=None
+        headers = {"accept-encoding": "gzip"}
+        client._do_download.assert_called_once_with(
+            client._http, file_obj, media_link, headers, None, None, False
         )
 
     def test_download_blob_to_file_with_invalid_uri(self):
@@ -1816,3 +1824,59 @@ def _time_functions_patches():
         "google.cloud.storage.client.get_expiration_seconds_v4", return_value=10
     )
     return dtstamps_patch, now_patch, expire_secs_patch
+
+
+class _Connection(object):
+
+    API_BASE_URL = "http://example.com"
+    USER_AGENT = "testing 1.2.3"
+    credentials = object()
+
+    def __init__(self, *responses):
+        self._responses = responses[:]
+        self._requested = []
+        self._signed = []
+
+    def _respond(self, **kw):
+        self._requested.append(kw)
+        response, self._responses = self._responses[0], self._responses[1:]
+        return response
+
+    def api_request(self, **kw):
+        from google.cloud.exceptions import NotFound
+
+        info, content = self._respond(**kw)
+        if info.get("status") == http_client.NOT_FOUND:
+            raise NotFound(info)
+        return content
+
+
+class _Bucket(object):
+    def __init__(self, client=None, name="name", user_project=None):
+        if client is None:
+            connection = _Connection()
+            client = _Client(connection)
+        self.client = client
+        self._blobs = {}
+        self._copied = []
+        self._deleted = []
+        self.name = name
+        self.path = "/b/" + name
+        self.user_project = user_project
+
+    def delete_blob(self, blob_name, client=None, generation=None, timeout=None):
+        del self._blobs[blob_name]
+        self._deleted.append((blob_name, client, generation, timeout))
+
+
+class _Client(object):
+    def __init__(self, connection):
+        self._base_connection = connection
+
+    @property
+    def _connection(self):
+        return self._base_connection
+
+    @property
+    def _credentials(self):
+        return self._base_connection.credentials
