@@ -22,29 +22,13 @@ import functools
 import json
 import warnings
 import google.api_core.client_options
-import hashlib
-
-from six.moves.urllib.parse import parse_qsl
-from six.moves.urllib.parse import urlencode
-from six.moves.urllib.parse import urlsplit
-from six.moves.urllib.parse import urlunsplit
-
-from google import resumable_media
-from google.resumable_media.requests import ChunkedDownload
-from google.resumable_media.requests import Download
-from google.resumable_media.requests import RawDownload
-from google.resumable_media.requests import RawChunkedDownload
 
 from google.auth.credentials import AnonymousCredentials
 
+from google import resumable_media
+
 from google.api_core import page_iterator
-from google.cloud._helpers import (
-    _LocalStack,
-    _NOW,
-    _bytes_to_unicode,
-    _to_bytes,
-)
-from google.cloud import exceptions
+from google.cloud._helpers import _LocalStack, _NOW
 from google.cloud.client import ClientWithProject
 from google.cloud.exceptions import NotFound
 from google.cloud.storage._helpers import _get_storage_host
@@ -53,11 +37,20 @@ from google.cloud.storage._signing import (
     get_expiration_seconds_v4,
     get_v4_now_dtstamps,
     ensure_signed_credentials,
-    _sign_message,
+    _sign_message
 )
 from google.cloud.storage.batch import Batch
-from google.cloud.storage.bucket import Bucket
-from google.cloud.storage.blob import Blob
+from google.cloud.storage.bucket import (
+    Bucket,
+    _item_to_blob,
+    _blobs_page_start
+)
+from google.cloud.storage.blob import (
+    Blob,
+    _get_encryption_headers,
+    _raise_from_invalid_response,
+    _add_query_parameters
+)
 from google.cloud.storage.hmac_key import HMACKeyMetadata
 from google.cloud.storage.acl import BucketACL
 from google.cloud.storage.acl import DefaultObjectACL
@@ -65,44 +58,6 @@ from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 
 
 _marker = object()
-
-def _blobs_page_start(iterator, page, response):
-    """Grab prefixes after a :class:`~google.cloud.iterator.Page` started.
-
-    :type iterator: :class:`~google.api_core.page_iterator.Iterator`
-    :param iterator: The iterator that is currently in use.
-
-    :type page: :class:`~google.cloud.api.core.page_iterator.Page`
-    :param page: The page that was just created.
-
-    :type response: dict
-    :param response: The JSON API response for a page of blobs.
-    """
-    page.prefixes = tuple(response.get("prefixes", ()))
-    iterator.prefixes.update(page.prefixes)
-
-
-def _item_to_blob(iterator, item):
-    """Convert a JSON blob to the native object.
-
-    .. note::
-
-        This assumes that the ``bucket`` attribute has been
-        added to the iterator after being created.
-
-    :type iterator: :class:`~google.api_core.page_iterator.Iterator`
-    :param iterator: The iterator that has retrieved the item.
-
-    :type item: dict
-    :param item: An item to be converted to a blob.
-
-    :rtype: :class:`.Blob`
-    :returns: The next blob in the page.
-    """
-    name = item.get("name")
-    blob = Blob(name, bucket=iterator.bucket)
-    blob._set_properties(item)
-    return blob
 
 
 class Client(ClientWithProject):
@@ -595,30 +550,15 @@ class Client(ClientWithProject):
         if not isinstance(blob_or_uri, Blob):
             blob_or_uri = Blob.from_string(blob_or_uri)
 
-        name_value_pairs = []
-        if blob_or_uri.media_link is None:
-            base_url = self._connection.api_endpoint + \
-                       u"/download/storage/v1{path}?alt=media"\
-                       .format(path=blob_or_uri.path)
-            if blob_or_uri.generation is not None:
-                name_value_pairs.append(
-                    ("generation", "{:d}".format(blob_or_uri.generation)))
-        else:
-            base_url = blob_or_uri.media_link
-
-        if blob_or_uri.user_project is not None:
-            name_value_pairs.append(
-                ("userProject", blob_or_uri.user_project))
-
-        download_url = _add_query_parameters(base_url, name_value_pairs)
+        download_url = blob_or_uri._get_download_url()
         headers = _get_encryption_headers(blob_or_uri._encryption_key)
         headers["accept-encoding"] = "gzip"
 
         transport = self._http
         try:
-            _do_download(
-                blob_or_uri, transport, file_obj, download_url, headers,
-                start, end, raw_download
+            blob_or_uri._do_download(
+                transport, file_obj, download_url, headers, start, end,
+                raw_download
             )
         except resumable_media.InvalidResponse as exc:
             _raise_from_invalid_response(exc)
@@ -664,8 +604,7 @@ class Client(ClientWithProject):
                 emulate hierarchy.
 
             versions (bool):
-                (Optional) Whether r,
-            versions=versions,object versions should be returned
+                (Optional) Whether object versions should be returned
                 as separate blobs.
 
             projection (str):
@@ -1171,146 +1110,3 @@ def _item_to_hmac_key_metadata(iterator, item):
     metadata._properties = item
     return metadata
 
-
-def _add_query_parameters(base_url, name_value_pairs):
-    """Add one query parameter to a base URL.
-
-    :type base_url: string
-    :param base_url: Base URL (may already contain query parameters)
-
-    :type name_value_pairs: list of (string, string) tuples.
-    :param name_value_pairs: Names and values of the query parameters to add
-
-    :rtype: string
-    :returns: URL with additional query strings appended.
-    """
-    if len(name_value_pairs) == 0:
-        return base_url
-
-    scheme, netloc, path, query, frag = urlsplit(base_url)
-    query = parse_qsl(query)
-    query.extend(name_value_pairs)
-    return urlunsplit((scheme, netloc, path, urlencode(query), frag))
-
-
-def _get_encryption_headers(key, source=False):
-    """Builds customer encryption key headers
-
-    :type key: bytes
-    :param key: 32 byte key to build request key and hash.
-
-    :type source: bool
-    :param source: If true, return headers for the "source" blob; otherwise,
-                   return headers for the "destination" blob.
-
-    :rtype: dict
-    :returns: dict of HTTP headers being sent in request.
-    """
-    if key is None:
-        return {}
-
-    key = _to_bytes(key)
-    key_hash = hashlib.sha256(key).digest()
-    key_hash = base64.b64encode(key_hash)
-    key = base64.b64encode(key)
-
-    if source:
-        prefix = "X-Goog-Copy-Source-Encryption-"
-    else:
-        prefix = "X-Goog-Encryption-"
-
-    return {
-        prefix + "Algorithm": "AES256",
-        prefix + "Key": _bytes_to_unicode(key),
-        prefix + "Key-Sha256": _bytes_to_unicode(key_hash),
-    }
-
-
-def _do_download(
-    blob,
-    transport,
-    file_obj,
-    download_url,
-    headers,
-    start=None,
-    end=None,
-    raw_download=False,
-):
-    """Perform a download without any error handling.
-
-    This is intended to be called by :meth:`download_to_file` so it can
-    be wrapped with error handling / remapping.
-
-    :type transport:
-        :class:`~google.auth.transport.requests.AuthorizedSession`
-    :param transport: The transport (with credentials) that will
-                      make authenticated requests.
-
-    :type file_obj: file
-    :param file_obj: A file handle to which to write the blob's data.
-
-    :type download_url: str
-    :param download_url: The URL where the media can be accessed.
-
-    :type headers: dict
-    :param headers: Headers to be sent with the request(s).
-
-    :type start: int
-    :param start: (Optional) The first byte in a range to be downloaded.
-
-    :type end: int
-    :param end: (Optional) The last byte in a range to be downloaded.
-
-    :type raw_download: bool
-    :param raw_download:
-        (Optional) If true, download the object without any expansion.
-    """
-    if blob.chunk_size is None:
-        if raw_download:
-            klass = RawDownload
-        else:
-            klass = Download
-
-        download = klass(
-            download_url, stream=file_obj, headers=headers, start=start, end=end
-        )
-        download.consume(transport)
-
-    else:
-
-        if raw_download:
-            klass = RawChunkedDownload
-        else:
-            klass = ChunkedDownload
-
-        download = klass(
-            download_url,
-            blob.chunk_size,
-            file_obj,
-            headers=headers,
-            start=start if start else 0,
-            end=end,
-        )
-
-        while not download.finished:
-            download.consume_next_chunk(transport)
-
-
-def _raise_from_invalid_response(error):
-    """Re-wrap and raise an ``InvalidResponse`` exception.
-
-    :type error: :exc:`google.resumable_media.InvalidResponse`
-    :param error: A caught exception from the ``google-resumable-media``
-                  library.
-
-    :raises: :class:`~google.cloud.exceptions.GoogleCloudError` corresponding
-             to the failed status code
-    """
-    response = error.response
-    error_message = str(error)
-
-    message = u"{method} {url}: {error}".format(
-        method=response.request.method, url=response.request.url, error=error_message
-    )
-
-    raise exceptions.from_http_status(response.status_code, message, response=response)

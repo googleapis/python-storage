@@ -962,39 +962,18 @@ class Bucket(_PropertyMixin):
             stacklevel=1,
         )
 
-        extra_params = {"projection": projection}
-
-        if prefix is not None:
-            extra_params["prefix"] = prefix
-
-        if delimiter is not None:
-            extra_params["delimiter"] = delimiter
-
-        if versions is not None:
-            extra_params["versions"] = versions
-
-        if fields is not None:
-            extra_params["fields"] = fields
-
-        if self.user_project is not None:
-            extra_params["userProject"] = self.user_project
-
         client = self._require_client(client)
-        path = self.path + "/o"
-        api_request = functools.partial(client._connection.api_request, timeout=timeout)
-        iterator = page_iterator.HTTPIterator(
-            client=client,
-            api_request=api_request,
-            path=path,
-            item_to_value=_item_to_blob,
-            page_token=page_token,
-            max_results=max_results,
-            extra_params=extra_params,
-            page_start=_blobs_page_start,
+        return client.list_blobs(
+            self,
+            max_results,
+            page_token,
+            prefix,
+            delimiter,
+            versions,
+            projection,
+            fields,
+            timeout
         )
-        iterator.bucket = self
-        iterator.prefixes = set()
-        return iterator
 
     def list_notifications(self, client=None, timeout=_DEFAULT_TIMEOUT):
         """List Pub / Sub notifications for this bucket.
