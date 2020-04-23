@@ -43,6 +43,7 @@ from google.cloud._helpers import (
     _NOW,
     _bytes_to_unicode,
     _to_bytes,
+    _set_properties,
 )
 from google.cloud import exceptions
 from google.cloud.client import ClientWithProject
@@ -645,17 +646,39 @@ class Client(ClientWithProject):
             in this bucket matching the arguments.
         """
         bucket = self._bucket_arg_to_bucket(bucket_or_name)
-        return bucket.list_blobs(
-            max_results=max_results,
-            page_token=page_token,
-            prefix=prefix,
-            delimiter=delimiter,
-            versions=versions,
-            projection=projection,
-            fields=fields,
+        extra_params = {"projection": projection}
+
+        if prefix is not None:
+            extra_params["prefix"] = prefix
+
+        if delimiter is not None:
+            extra_params["delimiter"] = delimiter
+
+        if versions is not None:
+            extra_params["versions"] = versions
+
+        if fields is not None:
+            extra_params["fields"] = fields
+
+        if bucket.user_project is not None:
+            extra_params["userProject"] = bucket.user_project
+
+        path = bucket.path + "/o"
+        api_request = functools.partial(self._connection.api_request,
+                                        timeout=timeout)
+        iterator = page_iterator.HTTPIterator(
             client=self,
-            timeout=timeout,
+            api_request=api_request,
+            path=path,
+            item_to_value=_item_to_blob,
+            page_token=page_token,
+            max_results=max_results,
+            extra_params=extra_params,
+            page_start=_blobs_page_start,
         )
+        iterator.bucket = bucket
+        iterator.prefixes = set()
+        return iterator
 
     def list_buckets(
         self,
@@ -1244,3 +1267,44 @@ def _raise_from_invalid_response(error):
     )
 
     raise exceptions.from_http_status(response.status_code, message, response=response)
+
+
+def _blobs_page_start(iterator, page, response):
+    """Grab prefixes after a :class:`~google.cloud.iterator.Page` started.
+
+    :type iterator: :class:`~google.api_core.page_iterator.Iterator`
+    :param iterator: The iterator that is currently in use.
+
+    :type page: :class:`~google.cloud.api.core.page_iterator.Page`
+    :param page: The page that was just created.
+
+    :type response: dict
+    :param response: The JSON API response for a page of blobs.
+    """
+    page.prefixes = tuple(response.get("prefixes", ()))
+    iterator.prefixes.update(page.prefixes)
+
+
+def _item_to_blob(iterator, item):
+    """Convert a JSON blob to the native object.
+
+    .. note::
+
+        This assumes that the ``bucket`` attribute has been
+        added to the iterator after being created.
+
+    :type iterator: :class:`~google.api_core.page_iterator.Iterator`
+    :param iterator: The iterator that has retrieved the item.
+
+    :type item: dict
+    :param item: An item to be converted to a blob.
+
+    :rtype: :class:`.Blob`
+    :returns: The next blob in the page.
+    """
+    name = item.get("name")
+    blob = Blob(name, bucket=iterator.bucket)
+    blob._set_properties(item)
+    return blob
+
+
