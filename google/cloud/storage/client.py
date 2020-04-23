@@ -43,7 +43,6 @@ from google.cloud._helpers import (
     _NOW,
     _bytes_to_unicode,
     _to_bytes,
-    _set_properties,
 )
 from google.cloud import exceptions
 from google.cloud.client import ClientWithProject
@@ -66,6 +65,44 @@ from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 
 
 _marker = object()
+
+def _blobs_page_start(iterator, page, response):
+    """Grab prefixes after a :class:`~google.cloud.iterator.Page` started.
+
+    :type iterator: :class:`~google.api_core.page_iterator.Iterator`
+    :param iterator: The iterator that is currently in use.
+
+    :type page: :class:`~google.cloud.api.core.page_iterator.Page`
+    :param page: The page that was just created.
+
+    :type response: dict
+    :param response: The JSON API response for a page of blobs.
+    """
+    page.prefixes = tuple(response.get("prefixes", ()))
+    iterator.prefixes.update(page.prefixes)
+
+
+def _item_to_blob(iterator, item):
+    """Convert a JSON blob to the native object.
+
+    .. note::
+
+        This assumes that the ``bucket`` attribute has been
+        added to the iterator after being created.
+
+    :type iterator: :class:`~google.api_core.page_iterator.Iterator`
+    :param iterator: The iterator that has retrieved the item.
+
+    :type item: dict
+    :param item: An item to be converted to a blob.
+
+    :rtype: :class:`.Blob`
+    :returns: The next blob in the page.
+    """
+    name = item.get("name")
+    blob = Blob(name, bucket=iterator.bucket)
+    blob._set_properties(item)
+    return blob
 
 
 class Client(ClientWithProject):
@@ -506,7 +543,14 @@ class Client(ClientWithProject):
         bucket._set_properties(api_response)
         return bucket
 
-    def download_blob_to_file(self, blob_or_uri, file_obj, start=None, end=None, raw_download=False):
+    def download_blob_to_file(
+        self,
+        blob_or_uri,
+        file_obj,
+        start=None,
+        end=None,
+        raw_download=False
+    ):
         """Download the contents of a blob object or blob URI into a file-like object.
 
         Args:
@@ -521,6 +565,8 @@ class Client(ClientWithProject):
                 (Optional) The first byte in a range to be downloaded.
             end (int):
                 (Optional) The last byte in a range to be downloaded.
+            raw_download (bool):
+                (Optional) If true, download the object without any expansion.
 
         Examples:
             Download a blob using using a blob resource.
@@ -646,6 +692,7 @@ class Client(ClientWithProject):
             in this bucket matching the arguments.
         """
         bucket = self._bucket_arg_to_bucket(bucket_or_name)
+
         extra_params = {"projection": projection}
 
         if prefix is not None:
@@ -676,7 +723,7 @@ class Client(ClientWithProject):
             extra_params=extra_params,
             page_start=_blobs_page_start,
         )
-        iterator.bucket = bucket
+        iterator.bucket = self
         iterator.prefixes = set()
         return iterator
 
@@ -1267,44 +1314,3 @@ def _raise_from_invalid_response(error):
     )
 
     raise exceptions.from_http_status(response.status_code, message, response=response)
-
-
-def _blobs_page_start(iterator, page, response):
-    """Grab prefixes after a :class:`~google.cloud.iterator.Page` started.
-
-    :type iterator: :class:`~google.api_core.page_iterator.Iterator`
-    :param iterator: The iterator that is currently in use.
-
-    :type page: :class:`~google.cloud.api.core.page_iterator.Page`
-    :param page: The page that was just created.
-
-    :type response: dict
-    :param response: The JSON API response for a page of blobs.
-    """
-    page.prefixes = tuple(response.get("prefixes", ()))
-    iterator.prefixes.update(page.prefixes)
-
-
-def _item_to_blob(iterator, item):
-    """Convert a JSON blob to the native object.
-
-    .. note::
-
-        This assumes that the ``bucket`` attribute has been
-        added to the iterator after being created.
-
-    :type iterator: :class:`~google.api_core.page_iterator.Iterator`
-    :param iterator: The iterator that has retrieved the item.
-
-    :type item: dict
-    :param item: An item to be converted to a blob.
-
-    :rtype: :class:`.Blob`
-    :returns: The next blob in the page.
-    """
-    name = item.get("name")
-    blob = Blob(name, bucket=iterator.bucket)
-    blob._set_properties(item)
-    return blob
-
-

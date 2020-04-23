@@ -741,7 +741,7 @@ class Blob(_PropertyMixin):
     def download_to_file(
         self, file_obj, client=None, start=None, end=None, raw_download=False
     ):
-        """Download the contents of this blob into a file-like object.
+        """DEPRECATED. Download the contents of this blob into a file-like object.
 
         .. note::
 
@@ -786,6 +786,13 @@ class Blob(_PropertyMixin):
 
         :raises: :class:`google.cloud.exceptions.NotFound`
         """
+        warnings.warn(
+            "Blob.download_to_file() is deprecated and will be removed in future."
+            "Use Client.download_blob_to_file() instead.",
+            PendingDeprecationWarning,
+            stacklevel=1,
+        )
+
         download_url = self._get_download_url()
         headers = _get_encryption_headers(self._encryption_key)
         headers["accept-encoding"] = "gzip"

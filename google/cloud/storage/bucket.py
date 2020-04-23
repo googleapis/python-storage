@@ -896,7 +896,7 @@ class Bucket(_PropertyMixin):
         client=None,
         timeout=_DEFAULT_TIMEOUT,
     ):
-        """Return an iterator used to find blobs in the bucket.
+        """DEPRECATED. Return an iterator used to find blobs in the bucket.
 
         .. note::
           Direct use of this method is deprecated. Use ``Client.list_blobs`` instead.
@@ -955,6 +955,13 @@ class Bucket(_PropertyMixin):
         :returns: Iterator of all :class:`~google.cloud.storage.blob.Blob`
                   in this bucket matching the arguments.
         """
+        warnings.warn(
+            "Bucket.list_blobs() is deprecated and will be removed in future."
+            "Use Client.list_blobs() instead.",
+            PendingDeprecationWarning,
+            stacklevel=1,
+        )
+
         extra_params = {"projection": projection}
 
         if prefix is not None:

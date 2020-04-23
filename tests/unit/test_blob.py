@@ -998,7 +998,7 @@ class Test_Blob(unittest.TestCase):
 
         headers = {"accept-encoding": "gzip"}
         blob._do_download.assert_called_once_with(
-            blob, client._http, file_obj, media_link, headers, None, None, False
+            client._http, file_obj, media_link, headers, None, None, False
         )
 
     def test_download_to_file_wo_media_link(self):
