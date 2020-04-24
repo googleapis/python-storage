@@ -648,12 +648,15 @@ class Blob(_PropertyMixin):
         client = self._require_client(client)
         return client._http
 
-    def _get_download_url(self):
+    def _get_download_url(self, client):
         """Get the download URL for the current blob.
 
         If the ``media_link`` has been loaded, it will be used, otherwise
         the URL will be constructed from the current blob's path (and possibly
         generation) to avoid a round trip.
+
+        :type client: :class:`~google.cloud.storage.client.Client`
+        :param client: The client to use.
 
         :rtype: str
         :returns: The download URL for the current blob.
@@ -661,7 +664,7 @@ class Blob(_PropertyMixin):
         name_value_pairs = []
         if self.media_link is None:
             base_url = _DOWNLOAD_URL_TEMPLATE.format(
-                hostname=self.client._connection.API_BASE_URL, path=self.path
+                hostname=client._connection.API_BASE_URL, path=self.path
             )
             if self.generation is not None:
                 name_value_pairs.append(("generation", "{:d}".format(self.generation)))
@@ -790,11 +793,12 @@ class Blob(_PropertyMixin):
 
         :raises: :class:`google.cloud.exceptions.NotFound`
         """
+        client = self._require_client(client)
+        download_url = self._get_download_url(client)
         headers = _get_encryption_headers(self._encryption_key)
         headers["accept-encoding"] = "gzip"
 
         transport = self._get_transport(client)
-        download_url = self._get_download_url()
         try:
             self._do_download(
                 transport, file_obj, download_url, headers, start, end, raw_download

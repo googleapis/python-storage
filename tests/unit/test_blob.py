@@ -751,7 +751,10 @@ class Test_Blob(unittest.TestCase):
         # Set the media link on the blob
         blob._properties["mediaLink"] = media_link
 
-        download_url = blob._get_download_url()
+        client = mock.Mock(_connection=_Connection)
+        client._connection.API_BASE_URL = "https://storage.googleapis.com"
+        download_url = blob._get_download_url(client)
+
         self.assertEqual(download_url, media_link)
 
     def test__get_download_url_with_media_link_w_user_project(self):
@@ -763,7 +766,10 @@ class Test_Blob(unittest.TestCase):
         # Set the media link on the blob
         blob._properties["mediaLink"] = media_link
 
-        download_url = blob._get_download_url()
+        client = mock.Mock(_connection=_Connection)
+        client._connection.API_BASE_URL = "https://storage.googleapis.com"
+        download_url = blob._get_download_url(client)
+
         self.assertEqual(
             download_url, "{}?userProject={}".format(media_link, user_project)
         )
@@ -774,7 +780,9 @@ class Test_Blob(unittest.TestCase):
         blob = self._make_one(blob_name, bucket=bucket)
 
         self.assertIsNone(blob.media_link)
-        download_url = blob._get_download_url()
+        client = mock.Mock(_connection=_Connection)
+        client._connection.API_BASE_URL = "https://storage.googleapis.com"
+        download_url = blob._get_download_url(client)
         expected_url = (
             "https://storage.googleapis.com/download/storage/v1/b/"
             "buhkit/o/bzzz-fly.txt?alt=media"
@@ -790,7 +798,9 @@ class Test_Blob(unittest.TestCase):
         blob._properties["generation"] = str(generation)
 
         self.assertIsNone(blob.media_link)
-        download_url = blob._get_download_url()
+        client = mock.Mock(_connection=_Connection)
+        client._connection.API_BASE_URL = "https://storage.googleapis.com"
+        download_url = blob._get_download_url(client)
         expected_url = (
             "https://storage.googleapis.com/download/storage/v1/b/"
             "fictional/o/pretend.txt?alt=media&generation=1493058489532987"
@@ -804,7 +814,9 @@ class Test_Blob(unittest.TestCase):
         blob = self._make_one(blob_name, bucket=bucket)
 
         self.assertIsNone(blob.media_link)
-        download_url = blob._get_download_url()
+        client = mock.Mock(_connection=_Connection)
+        client._connection.API_BASE_URL = "https://storage.googleapis.com"
+        download_url = blob._get_download_url(client)
         expected_url = (
             "https://storage.googleapis.com/download/storage/v1/b/"
             "fictional/o/pretend.txt?alt=media&userProject={}".format(user_project)
@@ -823,7 +835,9 @@ class Test_Blob(unittest.TestCase):
         blob = self._make_one(blob_name, bucket=bucket, kms_key_name=kms_resource)
 
         self.assertIsNone(blob.media_link)
-        download_url = blob._get_download_url()
+        client = mock.Mock(_connection=_Connection)
+        client._connection.API_BASE_URL = "https://storage.googleapis.com"
+        download_url = blob._get_download_url(client)
         expected_url = (
             "https://storage.googleapis.com/download/storage/v1/b/"
             "buhkit/o/bzzz-fly.txt?alt=media"
