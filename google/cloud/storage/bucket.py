@@ -505,6 +505,10 @@ class Bucket(_PropertyMixin):
     """Allowed values for :attr:`location_type`."""
 
     def __init__(self, client, name=None, user_project=None):
+        """
+        property :attr:`name`
+            Get the bucket's name.
+        """
         name = _validate_name(name)
         super(Bucket, self).__init__(name=name)
         self._client = client
@@ -1254,7 +1258,8 @@ class Bucket(_PropertyMixin):
                        to the ``client`` stored on the current bucket.
 
         :type preserve_acl: bool
-        :param preserve_acl: (Optional) Copies ACL from old blob to new blob.
+        :param preserve_acl: DEPRECATED. This argument is not functional!
+                             (Optional) Copies ACL from old blob to new blob.
                              Default: True.
 
         :type source_generation: long
@@ -1270,6 +1275,20 @@ class Bucket(_PropertyMixin):
 
         :rtype: :class:`google.cloud.storage.blob.Blob`
         :returns: The new Blob.
+
+        Example:
+            Copy a blob including ACL.
+
+            >>> from google.cloud import storage
+
+            >>> client = storage.Client(project="project")
+
+            >>> bucket = client.bucket("bucket")
+            >>> dst_bucket = client.bucket("destination-bucket")
+
+            >>> blob = bucket.blob("file.ext")
+            >>> new_blob = bucket.copy_blob(blob, dst_bucket)
+            >>> new_blob.acl.save(blob.acl)
         """
         client = self._require_client(client)
         query_params = {}

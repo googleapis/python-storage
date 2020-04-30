@@ -31,8 +31,8 @@ import hashlib
 from io import BytesIO
 import mimetypes
 import os
-import time
 import warnings
+import six
 
 from six.moves.urllib.parse import parse_qsl
 from six.moves.urllib.parse import quote
@@ -54,9 +54,9 @@ from google.cloud._helpers import _bytes_to_unicode
 from google.cloud._helpers import _rfc3339_to_datetime
 from google.cloud._helpers import _to_bytes
 from google.cloud.exceptions import NotFound
-from google.cloud.storage._helpers import _get_storage_host
 from google.cloud.storage._helpers import _PropertyMixin
 from google.cloud.storage._helpers import _scalar_property
+from google.cloud.storage._helpers import _convert_to_timestamp
 from google.cloud.storage._signing import generate_signed_url_v2
 from google.cloud.storage._signing import generate_signed_url_v4
 from google.cloud.storage.acl import ACL
@@ -69,12 +69,11 @@ from google.cloud.storage.constants import NEARLINE_STORAGE_CLASS
 from google.cloud.storage.constants import REGIONAL_LEGACY_STORAGE_CLASS
 from google.cloud.storage.constants import STANDARD_STORAGE_CLASS
 
-_STORAGE_HOST = _get_storage_host()
 
 _API_ACCESS_ENDPOINT = "https://storage.googleapis.com"
 _DEFAULT_CONTENT_TYPE = u"application/octet-stream"
-_DOWNLOAD_URL_TEMPLATE = _STORAGE_HOST + u"/download/storage/v1{path}?alt=media"
-_BASE_UPLOAD_TEMPLATE = _STORAGE_HOST + u"/upload/storage/v1{bucket_path}/o?uploadType="
+_DOWNLOAD_URL_TEMPLATE = u"{hostname}/download/storage/v1{path}?alt=media"
+_BASE_UPLOAD_TEMPLATE = u"{hostname}/upload/storage/v1{bucket_path}/o?uploadType="
 _MULTIPART_URL_TEMPLATE = _BASE_UPLOAD_TEMPLATE + u"multipart"
 _RESUMABLE_URL_TEMPLATE = _BASE_UPLOAD_TEMPLATE + u"resumable"
 # NOTE: "acl" is also writeable but we defer ACL management to
@@ -174,16 +173,19 @@ class Blob(_PropertyMixin):
         kms_key_name=None,
         generation=None,
     ):
+        """
+        property :attr:`name`
+            Get the blob's name.
+        """
         name = _bytes_to_unicode(name)
         super(Blob, self).__init__(name=name)
 
         self.chunk_size = chunk_size  # Check that setter accepts value.
         self._bucket = bucket
         self._acl = ObjectACL(self)
-        if encryption_key is not None and kms_key_name is not None:
-            raise ValueError(
-                "Pass at most one of 'encryption_key' " "and 'kms_key_name'"
-            )
+        _raise_for_more_than_one_none(
+            encryption_key=encryption_key, kms_key_name=kms_key_name,
+        )
 
         self._encryption_key = encryption_key
 
@@ -646,19 +648,24 @@ class Blob(_PropertyMixin):
         client = self._require_client(client)
         return client._http
 
-    def _get_download_url(self):
+    def _get_download_url(self, client):
         """Get the download URL for the current blob.
 
         If the ``media_link`` has been loaded, it will be used, otherwise
         the URL will be constructed from the current blob's path (and possibly
         generation) to avoid a round trip.
 
+        :type client: :class:`~google.cloud.storage.client.Client`
+        :param client: The client to use.
+
         :rtype: str
         :returns: The download URL for the current blob.
         """
         name_value_pairs = []
         if self.media_link is None:
-            base_url = _DOWNLOAD_URL_TEMPLATE.format(path=self.path)
+            base_url = _DOWNLOAD_URL_TEMPLATE.format(
+                hostname=client._connection.API_BASE_URL, path=self.path
+            )
             if self.generation is not None:
                 name_value_pairs.append(("generation", "{:d}".format(self.generation)))
         else:
@@ -840,7 +847,10 @@ class Blob(_PropertyMixin):
 
         updated = self.updated
         if updated is not None:
-            mtime = time.mktime(updated.timetuple())
+            if six.PY2:
+                mtime = _convert_to_timestamp(updated)
+            else:
+                mtime = updated.timestamp()
             os.utime(file_obj.name, (mtime, mtime))
 
     def download_as_string(self, client=None, start=None, end=None, raw_download=False):
@@ -964,7 +974,17 @@ class Blob(_PropertyMixin):
         return headers, object_metadata, content_type
 
     def _do_multipart_upload(
-        self, client, stream, content_type, size, num_retries, predefined_acl
+        self,
+        client,
+        stream,
+        content_type,
+        size,
+        num_retries,
+        predefined_acl,
+        if_generation_match,
+        if_generation_not_match,
+        if_metageneration_match,
+        if_metageneration_not_match,
     ):
         """Perform a multipart upload.
 
@@ -997,6 +1017,27 @@ class Blob(_PropertyMixin):
         :type predefined_acl: str
         :param predefined_acl: (Optional) Predefined access control list
 
+        :type if_generation_match: long
+        :param if_generation_match: (Optional) Make the operation conditional on whether
+                                    the blob's current generation matches the given value.
+                                    Setting to 0 makes the operation succeed only if there
+                                    are no live versions of the blob.
+
+        :type if_generation_not_match: long
+        :param if_generation_not_match: (Optional) Make the operation conditional on whether
+                                        the blob's current generation does not match the given
+                                        value. If no live blob exists, the precondition fails.
+                                        Setting to 0 makes the operation succeed only if there
+                                        is a live version of the blob.
+
+        :type if_metageneration_match: long
+        :param if_metageneration_match: (Optional) Make the operation conditional on whether the
+                                        blob's current metageneration matches the given value.
+
+        :type if_metageneration_not_match: long
+        :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
+                                            blob's current metageneration does not match the given value.
+
         :rtype: :class:`~requests.Response`
         :returns: The "200 OK" response object returned after the multipart
                   upload request.
@@ -1015,7 +1056,9 @@ class Blob(_PropertyMixin):
         info = self._get_upload_arguments(content_type)
         headers, object_metadata, content_type = info
 
-        base_url = _MULTIPART_URL_TEMPLATE.format(bucket_path=self.bucket.path)
+        base_url = _MULTIPART_URL_TEMPLATE.format(
+            hostname=self.client._connection.API_BASE_URL, bucket_path=self.bucket.path
+        )
         name_value_pairs = []
 
         if self.user_project is not None:
@@ -1026,6 +1069,20 @@ class Blob(_PropertyMixin):
 
         if predefined_acl is not None:
             name_value_pairs.append(("predefinedAcl", predefined_acl))
+
+        if if_generation_match is not None:
+            name_value_pairs.append(("ifGenerationMatch", if_generation_match))
+
+        if if_generation_not_match is not None:
+            name_value_pairs.append(("ifGenerationNotMatch", if_generation_not_match))
+
+        if if_metageneration_match is not None:
+            name_value_pairs.append(("ifMetagenerationMatch", if_metageneration_match))
+
+        if if_metageneration_not_match is not None:
+            name_value_pairs.append(
+                ("ifMetaGenerationNotMatch", if_metageneration_not_match)
+            )
 
         upload_url = _add_query_parameters(base_url, name_value_pairs)
         upload = MultipartUpload(upload_url, headers=headers)
@@ -1049,6 +1106,10 @@ class Blob(_PropertyMixin):
         predefined_acl=None,
         extra_headers=None,
         chunk_size=None,
+        if_generation_match=None,
+        if_generation_not_match=None,
+        if_metageneration_match=None,
+        if_metageneration_not_match=None,
     ):
         """Initiate a resumable upload.
 
@@ -1092,6 +1153,27 @@ class Blob(_PropertyMixin):
             If not passed, will fall back to the chunk size on the
             current blob.
 
+        :type if_generation_match: long
+        :param if_generation_match: (Optional) Make the operation conditional on whether
+                                    the blob's current generation matches the given value.
+                                    Setting to 0 makes the operation succeed only if there
+                                    are no live versions of the blob.
+
+        :type if_generation_not_match: long
+        :param if_generation_not_match: (Optional) Make the operation conditional on whether
+                                        the blob's current generation does not match the given
+                                        value. If no live blob exists, the precondition fails.
+                                        Setting to 0 makes the operation succeed only if there
+                                        is a live version of the blob.
+
+        :type if_metageneration_match: long
+        :param if_metageneration_match: (Optional) Make the operation conditional on whether the
+                                        blob's current metageneration matches the given value.
+
+        :type if_metageneration_not_match: long
+        :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
+                                            blob's current metageneration does not match the given value.
+
         :rtype: tuple
         :returns:
             Pair of
@@ -1111,7 +1193,9 @@ class Blob(_PropertyMixin):
         if extra_headers is not None:
             headers.update(extra_headers)
 
-        base_url = _RESUMABLE_URL_TEMPLATE.format(bucket_path=self.bucket.path)
+        base_url = _RESUMABLE_URL_TEMPLATE.format(
+            hostname=self.client._connection.API_BASE_URL, bucket_path=self.bucket.path
+        )
         name_value_pairs = []
 
         if self.user_project is not None:
@@ -1122,6 +1206,20 @@ class Blob(_PropertyMixin):
 
         if predefined_acl is not None:
             name_value_pairs.append(("predefinedAcl", predefined_acl))
+
+        if if_generation_match is not None:
+            name_value_pairs.append(("ifGenerationMatch", if_generation_match))
+
+        if if_generation_not_match is not None:
+            name_value_pairs.append(("ifGenerationNotMatch", if_generation_not_match))
+
+        if if_metageneration_match is not None:
+            name_value_pairs.append(("ifMetagenerationMatch", if_metageneration_match))
+
+        if if_metageneration_not_match is not None:
+            name_value_pairs.append(
+                ("ifMetaGenerationNotMatch", if_metageneration_not_match)
+            )
 
         upload_url = _add_query_parameters(base_url, name_value_pairs)
         upload = ResumableUpload(upload_url, chunk_size, headers=headers)
@@ -1143,7 +1241,17 @@ class Blob(_PropertyMixin):
         return upload, transport
 
     def _do_resumable_upload(
-        self, client, stream, content_type, size, num_retries, predefined_acl
+        self,
+        client,
+        stream,
+        content_type,
+        size,
+        num_retries,
+        predefined_acl,
+        if_generation_match,
+        if_generation_not_match,
+        if_metageneration_match,
+        if_metageneration_not_match,
     ):
         """Perform a resumable upload.
 
@@ -1178,6 +1286,27 @@ class Blob(_PropertyMixin):
         :type predefined_acl: str
         :param predefined_acl: (Optional) Predefined access control list
 
+        :type if_generation_match: long
+        :param if_generation_match: (Optional) Make the operation conditional on whether
+                                    the blob's current generation matches the given value.
+                                    Setting to 0 makes the operation succeed only if there
+                                    are no live versions of the blob.
+
+        :type if_generation_not_match: long
+        :param if_generation_not_match: (Optional) Make the operation conditional on whether
+                                        the blob's current generation does not match the given
+                                        value. If no live blob exists, the precondition fails.
+                                        Setting to 0 makes the operation succeed only if there
+                                        is a live version of the blob.
+
+        :type if_metageneration_match: long
+        :param if_metageneration_match: (Optional) Make the operation conditional on whether the
+                                        blob's current metageneration matches the given value.
+
+        :type if_metageneration_not_match: long
+        :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
+                                            blob's current metageneration does not match the given value.
+
         :rtype: :class:`~requests.Response`
         :returns: The "200 OK" response object returned after the final chunk
                   is uploaded.
@@ -1189,6 +1318,10 @@ class Blob(_PropertyMixin):
             size,
             num_retries,
             predefined_acl=predefined_acl,
+            if_generation_match=if_generation_match,
+            if_generation_not_match=if_generation_not_match,
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
         )
 
         while not upload.finished:
@@ -1197,7 +1330,17 @@ class Blob(_PropertyMixin):
         return response
 
     def _do_upload(
-        self, client, stream, content_type, size, num_retries, predefined_acl
+        self,
+        client,
+        stream,
+        content_type,
+        size,
+        num_retries,
+        predefined_acl,
+        if_generation_match,
+        if_generation_not_match,
+        if_metageneration_match,
+        if_metageneration_not_match,
     ):
         """Determine an upload strategy and then perform the upload.
 
@@ -1234,6 +1377,27 @@ class Blob(_PropertyMixin):
         :type predefined_acl: str
         :param predefined_acl: (Optional) Predefined access control list
 
+        :type if_generation_match: long
+        :param if_generation_match: (Optional) Make the operation conditional on whether
+                                    the blob's current generation matches the given value.
+                                    Setting to 0 makes the operation succeed only if there
+                                    are no live versions of the blob.
+
+        :type if_generation_not_match: long
+        :param if_generation_not_match: (Optional) Make the operation conditional on whether
+                                        the blob's current generation does not match the given
+                                        value. If no live blob exists, the precondition fails.
+                                        Setting to 0 makes the operation succeed only if there
+                                        is a live version of the blob.
+
+        :type if_metageneration_match: long
+        :param if_metageneration_match: (Optional) Make the operation conditional on whether the
+                                        blob's current metageneration matches the given value.
+
+        :type if_metageneration_not_match: long
+        :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
+                                            blob's current metageneration does not match the given value.
+
         :rtype: dict
         :returns: The parsed JSON from the "200 OK" response. This will be the
                   **only** response in the multipart case and it will be the
@@ -1241,11 +1405,29 @@ class Blob(_PropertyMixin):
         """
         if size is not None and size <= _MAX_MULTIPART_SIZE:
             response = self._do_multipart_upload(
-                client, stream, content_type, size, num_retries, predefined_acl
+                client,
+                stream,
+                content_type,
+                size,
+                num_retries,
+                predefined_acl,
+                if_generation_match,
+                if_generation_not_match,
+                if_metageneration_match,
+                if_metageneration_not_match,
             )
         else:
             response = self._do_resumable_upload(
-                client, stream, content_type, size, num_retries, predefined_acl
+                client,
+                stream,
+                content_type,
+                size,
+                num_retries,
+                predefined_acl,
+                if_generation_match,
+                if_generation_not_match,
+                if_metageneration_match,
+                if_metageneration_not_match,
             )
 
         return response.json()
@@ -1259,6 +1441,10 @@ class Blob(_PropertyMixin):
         num_retries=None,
         client=None,
         predefined_acl=None,
+        if_generation_match=None,
+        if_generation_not_match=None,
+        if_metageneration_match=None,
+        if_metageneration_not_match=None,
     ):
         """Upload the contents of this blob from a file-like object.
 
@@ -1320,6 +1506,27 @@ class Blob(_PropertyMixin):
         :type predefined_acl: str
         :param predefined_acl: (Optional) Predefined access control list
 
+        :type if_generation_match: long
+        :param if_generation_match: (Optional) Make the operation conditional on whether
+                                    the blob's current generation matches the given value.
+                                    Setting to 0 makes the operation succeed only if there
+                                    are no live versions of the blob.
+
+        :type if_generation_not_match: long
+        :param if_generation_not_match: (Optional) Make the operation conditional on whether
+                                        the blob's current generation does not match the given
+                                        value. If no live blob exists, the precondition fails.
+                                        Setting to 0 makes the operation succeed only if there
+                                        is a live version of the blob.
+
+        :type if_metageneration_match: long
+        :param if_metageneration_match: (Optional) Make the operation conditional on whether the
+                                        blob's current metageneration matches the given value.
+
+        :type if_metageneration_not_match: long
+        :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
+                                            blob's current metageneration does not match the given value.
+
         :raises: :class:`~google.cloud.exceptions.GoogleCloudError`
                  if the upload response returns an error status.
 
@@ -1330,19 +1537,46 @@ class Blob(_PropertyMixin):
         if num_retries is not None:
             warnings.warn(_NUM_RETRIES_MESSAGE, DeprecationWarning, stacklevel=2)
 
+        _raise_for_more_than_one_none(
+            if_generation_match=if_generation_match,
+            if_generation_not_match=if_generation_not_match,
+        )
+
+        _raise_for_more_than_one_none(
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
+        )
+
         _maybe_rewind(file_obj, rewind=rewind)
         predefined_acl = ACL.validate_predefined(predefined_acl)
 
         try:
             created_json = self._do_upload(
-                client, file_obj, content_type, size, num_retries, predefined_acl
+                client,
+                file_obj,
+                content_type,
+                size,
+                num_retries,
+                predefined_acl,
+                if_generation_match,
+                if_generation_not_match,
+                if_metageneration_match,
+                if_metageneration_not_match,
             )
             self._set_properties(created_json)
         except resumable_media.InvalidResponse as exc:
             _raise_from_invalid_response(exc)
 
     def upload_from_filename(
-        self, filename, content_type=None, client=None, predefined_acl=None
+        self,
+        filename,
+        content_type=None,
+        client=None,
+        predefined_acl=None,
+        if_generation_match=None,
+        if_generation_not_match=None,
+        if_metageneration_match=None,
+        if_metageneration_not_match=None,
     ):
         """Upload this blob's contents from the content of a named file.
 
@@ -1380,6 +1614,27 @@ class Blob(_PropertyMixin):
 
         :type predefined_acl: str
         :param predefined_acl: (Optional) Predefined access control list
+
+        :type if_generation_match: long
+        :param if_generation_match: (Optional) Make the operation conditional on whether
+                                    the blob's current generation matches the given value.
+                                    Setting to 0 makes the operation succeed only if there
+                                    are no live versions of the blob.
+
+        :type if_generation_not_match: long
+        :param if_generation_not_match: (Optional) Make the operation conditional on whether
+                                        the blob's current generation does not match the given
+                                        value. If no live blob exists, the precondition fails.
+                                        Setting to 0 makes the operation succeed only if there
+                                        is a live version of the blob.
+
+        :type if_metageneration_match: long
+        :param if_metageneration_match: (Optional) Make the operation conditional on whether the
+                                        blob's current metageneration matches the given value.
+
+        :type if_metageneration_not_match: long
+        :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
+                                            blob's current metageneration does not match the given value.
         """
         content_type = self._get_content_type(content_type, filename=filename)
 
@@ -1391,10 +1646,22 @@ class Blob(_PropertyMixin):
                 client=client,
                 size=total_bytes,
                 predefined_acl=predefined_acl,
+                if_generation_match=if_generation_match,
+                if_generation_not_match=if_generation_not_match,
+                if_metageneration_match=if_metageneration_match,
+                if_metageneration_not_match=if_metageneration_not_match,
             )
 
     def upload_from_string(
-        self, data, content_type="text/plain", client=None, predefined_acl=None
+        self,
+        data,
+        content_type="text/plain",
+        client=None,
+        predefined_acl=None,
+        if_generation_match=None,
+        if_generation_not_match=None,
+        if_metageneration_match=None,
+        if_metageneration_not_match=None,
     ):
         """Upload contents of this blob from the provided string.
 
@@ -1427,6 +1694,27 @@ class Blob(_PropertyMixin):
 
         :type predefined_acl: str
         :param predefined_acl: (Optional) Predefined access control list
+
+        :type if_generation_match: long
+        :param if_generation_match: (Optional) Make the operation conditional on whether
+                                    the blob's current generation matches the given value.
+                                    Setting to 0 makes the operation succeed only if there
+                                    are no live versions of the blob.
+
+        :type if_generation_not_match: long
+        :param if_generation_not_match: (Optional) Make the operation conditional on whether
+                                        the blob's current generation does not match the given
+                                        value. If no live blob exists, the precondition fails.
+                                        Setting to 0 makes the operation succeed only if there
+                                        is a live version of the blob.
+
+        :type if_metageneration_match: long
+        :param if_metageneration_match: (Optional) Make the operation conditional on whether the
+                                        blob's current metageneration matches the given value.
+
+        :type if_metageneration_not_match: long
+        :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
+                                            blob's current metageneration does not match the given value.
         """
         data = _to_bytes(data, encoding="utf-8")
         string_buffer = BytesIO(data)
@@ -1436,6 +1724,10 @@ class Blob(_PropertyMixin):
             content_type=content_type,
             client=client,
             predefined_acl=predefined_acl,
+            if_generation_match=if_generation_match,
+            if_generation_not_match=if_generation_not_match,
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
         )
 
     def create_resumable_upload_session(
@@ -2344,3 +2636,24 @@ def _add_query_parameters(base_url, name_value_pairs):
     query = parse_qsl(query)
     query.extend(name_value_pairs)
     return urlunsplit((scheme, netloc, path, urlencode(query), frag))
+
+
+def _raise_for_more_than_one_none(**kwargs):
+    """Raise ``ValueError`` exception if more than one parameter was set.
+
+    :type error: :exc:`ValueError`
+    :param error: Description of which fields were set
+
+    :raises: :class:`~ValueError` containing the fields that were set
+    """
+    if sum(arg is not None for arg in kwargs.values()) > 1:
+        escaped_keys = ["'%s'" % name for name in kwargs.keys()]
+
+        keys_but_last = ", ".join(escaped_keys[:-1])
+        last_key = escaped_keys[-1]
+
+        msg = "Pass at most one of {keys_but_last} and {last_key}".format(
+            keys_but_last=keys_but_last, last_key=last_key
+        )
+
+        raise ValueError(msg)
