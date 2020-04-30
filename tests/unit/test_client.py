@@ -903,10 +903,7 @@ class TestClient(unittest.TestCase):
         import requests
         from google.resumable_media import InvalidResponse
         from google.cloud import exceptions
-
-        from google.cloud.storage.bucket import Bucket
-
-        BUCKET_NAME = "bucket-name"
+        from google.cloud.storage.blob import Blob
 
         raw_response = requests.Response()
         raw_response.status_code = http_client.NOT_FOUND
@@ -914,15 +911,15 @@ class TestClient(unittest.TestCase):
         raw_response.request = raw_request.prepare()
         grmp_response = InvalidResponse(raw_response)
 
-        credentials = _make_credentials()
-        client = self._make_one(project="PROJECT", credentials=credentials)
-        client._do_download = mock.Mock()
-        client._do_download.side_effect = grmp_response
-
+        blob_name = "blob-name"
         media_link = "http://test.invalid"
-
-        bucket = Bucket(client, BUCKET_NAME)
-        blob = mock.Mock()
+        credentials = _make_credentials()
+        client = self._make_one(credentials=credentials)
+        bucket = _Bucket(client)
+        blob = Blob(blob_name, bucket=bucket)
+        blob._properties["mediaLink"] = media_link
+        blob._do_download = mock.Mock()
+        blob._do_download.side_effect = grmp_response
 
         file_obj = io.BytesIO()
         with self.assertRaises(exceptions.NotFound):
@@ -931,9 +928,73 @@ class TestClient(unittest.TestCase):
         self.assertEqual(file_obj.tell(), 0)
 
         headers = {"accept-encoding": "gzip"}
-        client._do_download.assert_called_once_with(
+        blob._do_download.assert_called_once_with(
             client._http, file_obj, media_link, headers, None, None, False
         )
+
+    def test_download_blob_to_file_wo_media_link(self):
+        from google.cloud.storage.blob import Blob
+
+        blob_name = "blob-name"
+        credentials = _make_credentials()
+        client = self._make_one(credentials=credentials)
+        bucket = _Bucket(client)
+        blob = Blob(blob_name, bucket=bucket)
+        blob._do_download = mock.Mock()
+        file_obj = io.BytesIO()
+
+        client.download_blob_to_file(blob, file_obj)
+
+        # Make sure the media link is still unknown.
+        self.assertIsNone(blob.media_link)
+
+        expected_url = (
+            "https://storage.googleapis.com/download/storage/v1/b/"
+            "name/o/blob-name?alt=media"
+        )
+        headers = {"accept-encoding": "gzip"}
+        blob._do_download.assert_called_once_with(
+            client._http, file_obj, expected_url, headers, None, None, False
+        )
+
+    def _download_blob_to_file_helper(self, use_chunks, raw_download):
+        from google.cloud.storage.blob import Blob
+
+        blob_name = "blob-name"
+        credentials = _make_credentials()
+        client = self._make_one(credentials=credentials)
+        bucket = _Bucket(client)
+        media_link = "http://example.com/media/"
+        properties = {"mediaLink": media_link}
+        blob = Blob(blob_name, bucket=bucket)
+        blob._properties.update(properties)
+        if use_chunks:
+            blob._CHUNK_SIZE_MULTIPLE = 1
+            blob.chunk_size = 3
+        blob._do_download = mock.Mock()
+
+        file_obj = io.BytesIO()
+        if raw_download:
+            client.download_blob_to_file(blob, file_obj, raw_download=True)
+        else:
+            client.download_blob_to_file(blob, file_obj)
+
+        headers = {"accept-encoding": "gzip"}
+        blob._do_download.assert_called_once_with(
+            client._http, file_obj, media_link, headers, None, None, raw_download
+        )
+
+    def test_download_blob_to_file_wo_chunks_wo_raw(self):
+        self._download_blob_to_file_helper(use_chunks=False, raw_download=False)
+
+    def test_download_blob_to_file_w_chunks_wo_raw(self):
+        self._download_blob_to_file_helper(use_chunks=True, raw_download=False)
+
+    def test_download_blob_to_file_wo_chunks_w_raw(self):
+        self._download_blob_to_file_helper(use_chunks=False, raw_download=True)
+
+    def test_download_blob_to_file_w_chunks_w_raw(self):
+        self._download_blob_to_file_helper(use_chunks=True, raw_download=True)
 
     def test_download_blob_to_file_with_invalid_uri(self):
         project = "PROJECT"
@@ -1826,36 +1887,8 @@ def _time_functions_patches():
     return dtstamps_patch, now_patch, expire_secs_patch
 
 
-class _Connection(object):
-
-    API_BASE_URL = "http://example.com"
-    USER_AGENT = "testing 1.2.3"
-    credentials = object()
-
-    def __init__(self, *responses):
-        self._responses = responses[:]
-        self._requested = []
-        self._signed = []
-
-    def _respond(self, **kw):
-        self._requested.append(kw)
-        response, self._responses = self._responses[0], self._responses[1:]
-        return response
-
-    def api_request(self, **kw):
-        from google.cloud.exceptions import NotFound
-
-        info, content = self._respond(**kw)
-        if info.get("status") == http_client.NOT_FOUND:
-            raise NotFound(info)
-        return content
-
-
 class _Bucket(object):
     def __init__(self, client=None, name="name", user_project=None):
-        if client is None:
-            connection = _Connection()
-            client = _Client(connection)
         self.client = client
         self._blobs = {}
         self._copied = []
@@ -1863,20 +1896,3 @@ class _Bucket(object):
         self.name = name
         self.path = "/b/" + name
         self.user_project = user_project
-
-    def delete_blob(self, blob_name, client=None, generation=None, timeout=None):
-        del self._blobs[blob_name]
-        self._deleted.append((blob_name, client, generation, timeout))
-
-
-class _Client(object):
-    def __init__(self, connection):
-        self._base_connection = connection
-
-    @property
-    def _connection(self):
-        return self._base_connection
-
-    @property
-    def _credentials(self):
-        return self._base_connection.credentials

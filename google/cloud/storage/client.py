@@ -662,7 +662,7 @@ class Client(ClientWithProject):
             extra_params=extra_params,
             page_start=_blobs_page_start,
         )
-        iterator.bucket = self
+        iterator.bucket = bucket
         iterator.prefixes = set()
         return iterator
 
