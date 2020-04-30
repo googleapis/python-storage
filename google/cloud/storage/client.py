@@ -48,8 +48,7 @@ from google.cloud.storage.bucket import (
 from google.cloud.storage.blob import (
     Blob,
     _get_encryption_headers,
-    _raise_from_invalid_response,
-    _add_query_parameters
+    _raise_from_invalid_response
 )
 from google.cloud.storage.hmac_key import HMACKeyMetadata
 from google.cloud.storage.acl import BucketACL
