@@ -2006,25 +2006,46 @@ class Blob(_PropertyMixin):
         self.acl.all().revoke_read()
         self.acl.save(client=client)
 
-    def compose(self, sources, client=None, timeout=_DEFAULT_TIMEOUT):
+    def compose(
+        self,
+        sources,
+        client=None,
+        timeout=_DEFAULT_TIMEOUT,
+        if_generation_match=None,
+        if_metageneration_match=None,
+    ):
         """Concatenate source blobs into this one.
 
         If :attr:`user_project` is set on the bucket, bills the API request
         to that project.
 
         :type sources: list of :class:`Blob`
-        :param sources: blobs whose contents will be composed into this blob.
+        :param sources: Blobs whose contents will be composed into this blob.
 
         :type client: :class:`~google.cloud.storage.client.Client` or
                       ``NoneType``
-        :param client: (Optional) The client to use.  If not passed, falls back
+        :param client: (Optional) The client to use. If not passed, falls back
                        to the ``client`` stored on the blob's bucket.
+
         :type timeout: float or tuple
         :param timeout: (Optional) The amount of time, in seconds, to wait
             for the server response.
 
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
+
+        :type if_generation_match: list of long
+        :param if_generation_match: (Optional) Make the operation conditional on whether
+                                    the blob's current generation matches the given value.
+                                    Setting to 0 makes the operation succeed only if there
+                                    are no live versions of the blob. Generation numbers list
+                                    should have the same order that ``sources`` have.
+
+        :type if_metageneration_match: list of long
+        :param if_metageneration_match: (Optional) Make the operation conditional on whether the
+                                        blob's current metageneration matches the given value.
+                                        Metageneration numbers list should have the same order
+                                        that ``sources`` have.
         """
         client = self._require_client(client)
         query_params = {}
@@ -2032,8 +2053,24 @@ class Blob(_PropertyMixin):
         if self.user_project is not None:
             query_params["userProject"] = self.user_project
 
+        source_objects = []
+        for index, source in enumerate(sources):
+            source_object = {"name": source.name}
+
+            preconditions = {}
+            if if_generation_match is not None:
+                preconditions["ifGenerationMatch"] = if_generation_match[index]
+
+            if if_metageneration_match is not None:
+                preconditions["ifMetagenerationMatch"] = if_metageneration_match[index]
+
+            if preconditions:
+                source_object["objectPreconditions"] = preconditions
+
+            source_objects.append(source_object)
+
         request = {
-            "sourceObjects": [{"name": source.name} for source in sources],
+            "sourceObjects": source_objects,
             "destination": self._properties.copy(),
         }
         api_response = client._connection.api_request(
