@@ -137,18 +137,16 @@ class TestClient(unittest.TestCase):
         )
 
     def test_ctor_w_client_options_dict(self):
-
         PROJECT = "PROJECT"
         credentials = _make_credentials()
-        client_options = {"api_endpoint": "https://www.foo-googleapis.com"}
+        api_endpoint = "https://www.foo-googleapis.com"
+        client_options = {"api_endpoint": api_endpoint}
 
         client = self._make_one(
             project=PROJECT, credentials=credentials, client_options=client_options
         )
 
-        self.assertEqual(
-            client._connection.API_BASE_URL, "https://www.foo-googleapis.com"
-        )
+        self.assertEqual(client._connection.API_BASE_URL, api_endpoint)
 
     def test_ctor_w_client_options_object(self):
         from google.api_core.client_options import ClientOptions
@@ -1572,7 +1570,7 @@ class TestClient(unittest.TestCase):
         BUCKET_NAME = "bucket-name"
         BLOB_NAME = "object-name"
         EXPECTED_SIGN = "5369676e61747572655f6279746573"
-        EXPECTED_POLICY = b"eyJjb25kaXRpb25zIjpbeyJidWNrZXQiOiJidWNrZXQtbmFtZSJ9LHsiYWNsIjoicHJpdmF0ZSJ9LFsic3RhcnRzLXdpdGgiLCIkQ29udGVudC1UeXBlIiwidGV4dC9wbGFpbiJdLHsia2V5Ijoib2JqZWN0LW5hbWUifSx7IngtZ29vZy1kYXRlIjoiMjAyMDAzMTJUMTE0NzE2WiJ9LHsieC1nb29nLWNyZWRlbnRpYWwiOiJ0ZXN0QG1haWwuY29tLzIwMjAwMzEyL2F1dG8vc3RvcmFnZS9nb29nNF9yZXF1ZXN0In0seyJ4LWdvb2ctYWxnb3JpdGhtIjoiR09PRzQtUlNBLVNIQTI1NiJ9XSwiZXhwaXJhdGlvbiI6IjIwMjAtMDMtMjZUMDA6MDA6MTBaIn0="
+        EXPECTED_POLICY = b"eyJjb25kaXRpb25zIjpbeyJidWNrZXQiOiJidWNrZXQtbmFtZSJ9LHsiYWNsIjoicHJpdmF0ZSJ9LFsic3RhcnRzLXdpdGgiLCIkQ29udGVudC1UeXBlIiwidGV4dC9wbGFpbiJdLHsiYnVja2V0IjoiYnVja2V0LW5hbWUifSx7ImtleSI6Im9iamVjdC1uYW1lIn0seyJ4LWdvb2ctZGF0ZSI6IjIwMjAwMzEyVDExNDcxNloifSx7IngtZ29vZy1jcmVkZW50aWFsIjoidGVzdEBtYWlsLmNvbS8yMDIwMDMxMi9hdXRvL3N0b3JhZ2UvZ29vZzRfcmVxdWVzdCJ9LHsieC1nb29nLWFsZ29yaXRobSI6IkdPT0c0LVJTQS1TSEEyNTYifV0sImV4cGlyYXRpb24iOiIyMDIwLTAzLTI2VDAwOjAwOjEwWiJ9"
 
         client = self._make_one(project="PROJECT")
 
@@ -1610,7 +1608,7 @@ class TestClient(unittest.TestCase):
         BUCKET_NAME = "bucket-name"
         BLOB_NAME = "object-name"
         EXPECTED_SIGN = "5369676e61747572655f6279746573"
-        EXPECTED_POLICY = b"eyJjb25kaXRpb25zIjpbeyJidWNrZXQiOiJidWNrZXQtbmFtZSJ9LHsiYWNsIjoicHJpdmF0ZSJ9LFsic3RhcnRzLXdpdGgiLCIkQ29udGVudC1UeXBlIiwidGV4dC9wbGFpbiJdLHsia2V5Ijoib2JqZWN0LW5hbWUifSx7IngtZ29vZy1kYXRlIjoiMjAyMDAzMTJUMTE0NzE2WiJ9LHsieC1nb29nLWNyZWRlbnRpYWwiOiJ0ZXN0QG1haWwuY29tLzIwMjAwMzEyL2F1dG8vc3RvcmFnZS9nb29nNF9yZXF1ZXN0In0seyJ4LWdvb2ctYWxnb3JpdGhtIjoiR09PRzQtUlNBLVNIQTI1NiJ9XSwiZXhwaXJhdGlvbiI6IjIwMjAtMDMtMjZUMDA6MDA6MTBaIn0="
+        EXPECTED_POLICY = b"eyJjb25kaXRpb25zIjpbeyJidWNrZXQiOiJidWNrZXQtbmFtZSJ9LHsiYWNsIjoicHJpdmF0ZSJ9LFsic3RhcnRzLXdpdGgiLCIkQ29udGVudC1UeXBlIiwidGV4dC9wbGFpbiJdLHsiYnVja2V0IjoiYnVja2V0LW5hbWUifSx7ImtleSI6Im9iamVjdC1uYW1lIn0seyJ4LWdvb2ctZGF0ZSI6IjIwMjAwMzEyVDExNDcxNloifSx7IngtZ29vZy1jcmVkZW50aWFsIjoidGVzdEBtYWlsLmNvbS8yMDIwMDMxMi9hdXRvL3N0b3JhZ2UvZ29vZzRfcmVxdWVzdCJ9LHsieC1nb29nLWFsZ29yaXRobSI6IkdPT0c0LVJTQS1TSEEyNTYifV0sImV4cGlyYXRpb24iOiIyMDIwLTAzLTI2VDAwOjAwOjEwWiJ9"
 
         client = self._make_one(
             project="PROJECT", credentials=_create_signing_credentials()
@@ -1650,7 +1648,7 @@ class TestClient(unittest.TestCase):
         BLOB_NAME = "object-name"
         FIELD1_VALUE = "Value1"
         EXPECTED_SIGN = "5369676e61747572655f6279746573"
-        EXPECTED_POLICY = b"eyJjb25kaXRpb25zIjpbeyJidWNrZXQiOiJidWNrZXQtbmFtZSJ9LHsiYWNsIjoicHJpdmF0ZSJ9LFsic3RhcnRzLXdpdGgiLCIkQ29udGVudC1UeXBlIiwidGV4dC9wbGFpbiJdLHsiZmllbGQxIjoiVmFsdWUxIn0seyJrZXkiOiJvYmplY3QtbmFtZSJ9LHsieC1nb29nLWRhdGUiOiIyMDIwMDMxMlQxMTQ3MTZaIn0seyJ4LWdvb2ctY3JlZGVudGlhbCI6InRlc3RAbWFpbC5jb20vMjAyMDAzMTIvYXV0by9zdG9yYWdlL2dvb2c0X3JlcXVlc3QifSx7IngtZ29vZy1hbGdvcml0aG0iOiJHT09HNC1SU0EtU0hBMjU2In1dLCJleHBpcmF0aW9uIjoiMjAyMC0wMy0yNlQwMDowMDoxMFoifQ=="
+        EXPECTED_POLICY = b"eyJjb25kaXRpb25zIjpbeyJidWNrZXQiOiJidWNrZXQtbmFtZSJ9LHsiYWNsIjoicHJpdmF0ZSJ9LFsic3RhcnRzLXdpdGgiLCIkQ29udGVudC1UeXBlIiwidGV4dC9wbGFpbiJdLHsiZmllbGQxIjoiVmFsdWUxIn0seyJidWNrZXQiOiJidWNrZXQtbmFtZSJ9LHsia2V5Ijoib2JqZWN0LW5hbWUifSx7IngtZ29vZy1kYXRlIjoiMjAyMDAzMTJUMTE0NzE2WiJ9LHsieC1nb29nLWNyZWRlbnRpYWwiOiJ0ZXN0QG1haWwuY29tLzIwMjAwMzEyL2F1dG8vc3RvcmFnZS9nb29nNF9yZXF1ZXN0In0seyJ4LWdvb2ctYWxnb3JpdGhtIjoiR09PRzQtUlNBLVNIQTI1NiJ9XSwiZXhwaXJhdGlvbiI6IjIwMjAtMDMtMjZUMDA6MDA6MTBaIn0="
 
         client = self._make_one(project="PROJECT")
 
@@ -1740,7 +1738,7 @@ class TestClient(unittest.TestCase):
 
     def test_get_signed_policy_v4_no_expiration(self):
         BUCKET_NAME = "bucket-name"
-        EXPECTED_POLICY = b"eyJjb25kaXRpb25zIjpbeyJrZXkiOiJvYmplY3QtbmFtZSJ9LHsieC1nb29nLWRhdGUiOiIyMDIwMDMxMlQxMTQ3MTZaIn0seyJ4LWdvb2ctY3JlZGVudGlhbCI6InRlc3RAbWFpbC5jb20vMjAyMDAzMTIvYXV0by9zdG9yYWdlL2dvb2c0X3JlcXVlc3QifSx7IngtZ29vZy1hbGdvcml0aG0iOiJHT09HNC1SU0EtU0hBMjU2In1dLCJleHBpcmF0aW9uIjoiMjAyMC0wMy0yNlQwMDowMDoxMFoifQ=="
+        EXPECTED_POLICY = b"eyJjb25kaXRpb25zIjpbeyJidWNrZXQiOiJidWNrZXQtbmFtZSJ9LHsia2V5Ijoib2JqZWN0LW5hbWUifSx7IngtZ29vZy1kYXRlIjoiMjAyMDAzMTJUMTE0NzE2WiJ9LHsieC1nb29nLWNyZWRlbnRpYWwiOiJ0ZXN0QG1haWwuY29tLzIwMjAwMzEyL2F1dG8vc3RvcmFnZS9nb29nNF9yZXF1ZXN0In0seyJ4LWdvb2ctYWxnb3JpdGhtIjoiR09PRzQtUlNBLVNIQTI1NiJ9XSwiZXhwaXJhdGlvbiI6IjIwMjAtMDMtMjZUMDA6MDA6MTBaIn0="
 
         client = self._make_one(project="PROJECT")
 
@@ -1764,7 +1762,7 @@ class TestClient(unittest.TestCase):
         BUCKET_NAME = "bucket-name"
         BLOB_NAME = "object-name"
         EXPECTED_SIGN = "0c4003044105"
-        EXPECTED_POLICY = b"eyJjb25kaXRpb25zIjpbeyJidWNrZXQiOiJidWNrZXQtbmFtZSJ9LHsiYWNsIjoicHJpdmF0ZSJ9LFsic3RhcnRzLXdpdGgiLCIkQ29udGVudC1UeXBlIiwidGV4dC9wbGFpbiJdLHsia2V5Ijoib2JqZWN0LW5hbWUifSx7IngtZ29vZy1kYXRlIjoiMjAyMDAzMTJUMTE0NzE2WiJ9LHsieC1nb29nLWNyZWRlbnRpYWwiOiJ0ZXN0QG1haWwuY29tLzIwMjAwMzEyL2F1dG8vc3RvcmFnZS9nb29nNF9yZXF1ZXN0In0seyJ4LWdvb2ctYWxnb3JpdGhtIjoiR09PRzQtUlNBLVNIQTI1NiJ9XSwiZXhwaXJhdGlvbiI6IjIwMjAtMDMtMjZUMDA6MDA6MTBaIn0="
+        EXPECTED_POLICY = b"eyJjb25kaXRpb25zIjpbeyJidWNrZXQiOiJidWNrZXQtbmFtZSJ9LHsiYWNsIjoicHJpdmF0ZSJ9LFsic3RhcnRzLXdpdGgiLCIkQ29udGVudC1UeXBlIiwidGV4dC9wbGFpbiJdLHsiYnVja2V0IjoiYnVja2V0LW5hbWUifSx7ImtleSI6Im9iamVjdC1uYW1lIn0seyJ4LWdvb2ctZGF0ZSI6IjIwMjAwMzEyVDExNDcxNloifSx7IngtZ29vZy1jcmVkZW50aWFsIjoidGVzdEBtYWlsLmNvbS8yMDIwMDMxMi9hdXRvL3N0b3JhZ2UvZ29vZzRfcmVxdWVzdCJ9LHsieC1nb29nLWFsZ29yaXRobSI6IkdPT0c0LVJTQS1TSEEyNTYifV0sImV4cGlyYXRpb24iOiIyMDIwLTAzLTI2VDAwOjAwOjEwWiJ9"
 
         client = self._make_one(project="PROJECT")
 
