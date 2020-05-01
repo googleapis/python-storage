@@ -44,6 +44,12 @@ class Test_Blob(unittest.TestCase):
         return blob
 
     @staticmethod
+    def _make_one_client(*args, **kw):
+        from google.cloud.storage.client import Client
+
+        return Client(*args, **kw)
+
+    @staticmethod
     def _get_default_timeout():
         from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 
@@ -988,7 +994,6 @@ class Test_Blob(unittest.TestCase):
         import requests
         from google.resumable_media import InvalidResponse
         from google.cloud import exceptions
-        from google.cloud.storage.client import Client
 
         raw_response = requests.Response()
         raw_response.status_code = http_client.NOT_FOUND
@@ -998,7 +1003,7 @@ class Test_Blob(unittest.TestCase):
 
         blob_name = "blob-name"
         media_link = "http://test.invalid"
-        client = Client()
+        client = self._make_one_client()
         bucket = _Bucket(client)
         blob = self._make_one(blob_name, bucket=bucket)
         blob._properties["mediaLink"] = media_link
@@ -1017,10 +1022,8 @@ class Test_Blob(unittest.TestCase):
         )
 
     def test_download_to_file_wo_media_link(self):
-        from google.cloud.storage.client import Client
-
         blob_name = "blob-name"
-        client = Client()
+        client = self._make_one_client()
         bucket = _Bucket(client)
         blob = self._make_one(blob_name, bucket=bucket)
         blob._do_download = mock.Mock()
@@ -1041,10 +1044,8 @@ class Test_Blob(unittest.TestCase):
         )
 
     def _download_to_file_helper(self, use_chunks, raw_download):
-        from google.cloud.storage.client import Client
-
         blob_name = "blob-name"
-        client = Client()
+        client = self._make_one_client()
         bucket = _Bucket(client)
         media_link = "http://example.com/media/"
         properties = {"mediaLink": media_link}
@@ -1081,10 +1082,8 @@ class Test_Blob(unittest.TestCase):
         import os
         from google.cloud.storage._helpers import _convert_to_timestamp
         from google.cloud._testing import _NamedTemporaryFile
-        from google.cloud.storage.client import Client
-
         blob_name = "blob-name"
-        client = Client()
+        client = self._make_one_client()
         bucket = _Bucket(client)
         media_link = "http://example.com/media/"
         properties = {"mediaLink": media_link}
@@ -1129,10 +1128,9 @@ class Test_Blob(unittest.TestCase):
 
     def test_download_to_filename_corrupted(self):
         from google.resumable_media import DataCorruption
-        from google.cloud.storage.client import Client
 
         blob_name = "blob-name"
-        client = Client()
+        client = self._make_one_client()
         bucket = _Bucket(client)
         media_link = "http://example.com/media/"
         properties = {"mediaLink": media_link}
@@ -1164,11 +1162,9 @@ class Test_Blob(unittest.TestCase):
     def test_download_to_filename_w_key(self):
         from google.cloud._testing import _NamedTemporaryFile
         from google.cloud.storage.blob import _get_encryption_headers
-        from google.cloud.storage.client import Client
-
         blob_name = "blob-name"
         # Create a fake client/bucket and use them in the Blob() constructor.
-        client = Client()
+        client = self._make_one_client()
         bucket = _Bucket(client)
         media_link = "http://example.com/media/"
         properties = {"mediaLink": media_link}
@@ -1190,10 +1186,8 @@ class Test_Blob(unittest.TestCase):
         self.assertEqual(stream.name, temp.name)
 
     def _download_as_string_helper(self, raw_download):
-        from google.cloud.storage.client import Client
-
         blob_name = "blob-name"
-        client = Client()
+        client = self._make_one_client()
         bucket = _Bucket(client)
         media_link = "http://example.com/media/"
         properties = {"mediaLink": media_link}

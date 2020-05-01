@@ -549,7 +549,7 @@ class Client(ClientWithProject):
         if not isinstance(blob_or_uri, Blob):
             blob_or_uri = Blob.from_string(blob_or_uri)
 
-        download_url = blob_or_uri._get_download_url()
+        download_url = blob_or_uri._get_download_url(self)
         headers = _get_encryption_headers(blob_or_uri._encryption_key)
         headers["accept-encoding"] = "gzip"
 
