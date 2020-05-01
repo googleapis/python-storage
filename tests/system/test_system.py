@@ -835,7 +835,8 @@ class TestStorageListFiles(TestStorageFiles):
         iterator = self.bucket.list_blobs(
             max_results=count,
             start_offset=inclusive_start_offset,
-            end_offset=exclusive_end_offset)
+            end_offset=exclusive_end_offset,
+        )
         page_iter = iterator.pages
 
         page1 = six.next(page_iter)
@@ -908,7 +909,8 @@ class TestStoragePseudoHierarchy(TestStorageFiles):
         page = six.next(iterator.pages)
         blobs = list(page)
         self.assertEqual(
-            [blob.name for blob in blobs], ["parent/", "parent/file11.txt"])
+            [blob.name for blob in blobs], ["parent/", "parent/file11.txt"]
+        )
         self.assertIsNone(iterator.next_page_token)
         self.assertEqual(iterator.prefixes, set(["parent/child/"]))
 
@@ -943,11 +945,11 @@ class TestStoragePseudoHierarchy(TestStorageFiles):
     @RetryErrors(unittest.TestCase.failureException)
     def test_include_trailing_delimiter(self):
         iterator = self.bucket.list_blobs(
-            delimiter="/", include_trailing_delimiter=True)
+            delimiter="/", include_trailing_delimiter=True
+        )
         page = six.next(iterator.pages)
         blobs = list(page)
-        self.assertEqual(
-            [blob.name for blob in blobs], ["file01.txt", "parent/"])
+        self.assertEqual([blob.name for blob in blobs], ["file01.txt", "parent/"])
         self.assertIsNone(iterator.next_page_token)
         self.assertEqual(iterator.prefixes, set(["parent/"]))
 
