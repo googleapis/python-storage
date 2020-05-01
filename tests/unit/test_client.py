@@ -623,13 +623,23 @@ class TestClient(unittest.TestCase):
         client = self._make_one(project=PROJECT, credentials=CREDENTIALS)
 
         BUCKET_NAME = "bucket-name"
-        URI = "/".join(
+        URI1 = "/".join(
             [
                 client._connection.API_BASE_URL,
                 "storage",
                 client._connection.API_VERSION,
                 "b",
                 "%s?projection=noAcl&ifMetagenerationMatch=%s"
+                % (BUCKET_NAME, METAGENERATION_NUMBER),
+            ]
+        )
+        URI2 = "/".join(
+            [
+                client._connection.API_BASE_URL,
+                "storage",
+                client._connection.API_VERSION,
+                "b",
+                "%s?ifMetagenerationMatch=%s&projection=noAcl"
                 % (BUCKET_NAME, METAGENERATION_NUMBER),
             ]
         )
@@ -644,11 +654,13 @@ class TestClient(unittest.TestCase):
         self.assertEqual(bucket.name, BUCKET_NAME)
         http.request.assert_called_once_with(
             method="GET",
-            url=URI,
+            url=mock.ANY,
             data=mock.ANY,
             headers=mock.ANY,
             timeout=self._get_default_timeout(),
         )
+        _, kwargs = http.request.call_args
+        self.assertIn(kwargs.get("url"), (URI1, URI2))
 
     def test_create_bucket_w_missing_client_project(self):
         credentials = _make_credentials()
