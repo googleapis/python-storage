@@ -437,6 +437,48 @@ class Test__base64_md5hash(unittest.TestCase):
         self.assertEqual(MD5.hash_obj._blocks, [BYTES_TO_SIGN])
 
 
+class Test__add_generation_match_parameters(unittest.TestCase):
+    def _call_fut(self, params, **match_params):
+        from google.cloud.storage._helpers import _add_generation_match_parameters
+
+        return _add_generation_match_parameters(params, **match_params)
+
+    def test_add_generation_match_parameters_list(self):
+        GENERATION_NUMBER = 9
+        METAGENERATION_NUMBER = 6
+        EXPECTED_PARAMS = [
+            ("param1", "value1"),
+            ("param2", "value2"),
+            ("ifGenerationMatch", GENERATION_NUMBER),
+            ("ifMetagenerationMatch", METAGENERATION_NUMBER),
+        ]
+        params = [("param1", "value1"), ("param2", "value2")]
+        self._call_fut(
+            params,
+            if_generation_match=GENERATION_NUMBER,
+            if_metageneration_match=METAGENERATION_NUMBER,
+        )
+        self.assertEqual(params, EXPECTED_PARAMS)
+
+    def test_add_generation_match_parameters_dict(self):
+        GENERATION_NUMBER = 9
+        METAGENERATION_NUMBER = 6
+        EXPECTED_PARAMS = {
+            "param1": "value1",
+            "param2": "value2",
+            "ifGenerationMatch": GENERATION_NUMBER,
+            "ifMetagenerationMatch": METAGENERATION_NUMBER,
+        }
+
+        params = {"param1": "value1", "param2": "value2"}
+        self._call_fut(
+            params,
+            if_generation_match=GENERATION_NUMBER,
+            if_metageneration_match=METAGENERATION_NUMBER,
+        )
+        self.assertEqual(params, EXPECTED_PARAMS)
+
+
 class _Connection(object):
     def __init__(self, *responses):
         self._responses = responses

@@ -404,24 +404,24 @@ def _convert_to_timestamp(value):
     return mtime
 
 
-def _add_generation_match_parameters(name_value_pairs, **parameters):
+def _add_generation_match_parameters(parameters, **match_parameters):
     """Add generation match parameters into the given parameters list.
 
-    :type name_value_pairs: list or dict
-    :param name_value_pairs: Parameters list or dict.
+    :type parameters: list or dict
+    :param parameters: Parameters list or dict.
 
-    :type parameters: dict
-    :param parameters: if*generation*match parameters to add.
+    :type match_parameters: dict
+    :param match_parameters: if*generation*match parameters to add.
     """
     for snakecase_name, camelcase_name in _GENERATION_MATCH_PARAMETERS:
-        value = parameters.get(snakecase_name)
+        value = match_parameters.get(snakecase_name)
 
         if value is not None:
-            if isinstance(name_value_pairs, list):
-                name_value_pairs.append((camelcase_name, value))
+            if isinstance(parameters, list):
+                parameters.append((camelcase_name, value))
 
-            elif isinstance(name_value_pairs, dict):
-                name_value_pairs[camelcase_name] = value
+            elif isinstance(parameters, dict):
+                parameters[camelcase_name] = value
 
 
 def _raise_for_more_than_one_none(**kwargs):
