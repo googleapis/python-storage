@@ -54,6 +54,7 @@ from google.cloud._helpers import _bytes_to_unicode
 from google.cloud._helpers import _rfc3339_to_datetime
 from google.cloud._helpers import _to_bytes
 from google.cloud.exceptions import NotFound
+from google.cloud.storage._helpers import _add_generation_match_parameters
 from google.cloud.storage._helpers import _PropertyMixin
 from google.cloud.storage._helpers import _scalar_property
 from google.cloud.storage._helpers import _convert_to_timestamp
@@ -566,7 +567,15 @@ class Blob(_PropertyMixin):
             access_token=access_token,
         )
 
-    def exists(self, client=None, timeout=_DEFAULT_TIMEOUT):
+    def exists(
+        self,
+        client=None,
+        timeout=_DEFAULT_TIMEOUT,
+        if_generation_match=None,
+        if_generation_not_match=None,
+        if_metageneration_match=None,
+        if_metageneration_not_match=None,
+    ):
         """Determines whether or not this blob exists.
 
         If :attr:`user_project` is set on the bucket, bills the API request
@@ -583,15 +592,56 @@ class Blob(_PropertyMixin):
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
 
+        :type if_generation_match: long
+        :param if_generation_match: (Optional) Make the operation conditional on whether
+                                    the blob's current generation matches the given value.
+                                    Setting to 0 makes the operation succeed only if there
+                                    are no live versions of the blob.
+
+        :type if_generation_not_match: long
+        :param if_generation_not_match: (Optional) Make the operation conditional on whether
+                                        the blob's current generation does not match the given
+                                        value. If no live blob exists, the precondition fails.
+                                        Setting to 0 makes the operation succeed only if there
+                                        is a live version of the blob.
+
+        :type if_metageneration_match: long
+        :param if_metageneration_match: (Optional) Make the operation conditional on whether the
+                                        blob's current metageneration matches the given value.
+
+        :type if_metageneration_not_match: long
+        :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
+                                            blob's current metageneration does not match the given value.
+
+        :raises: :class:`ValueError` if ``if_metageneration_match`` and
+                 ``if_metageneration_not_match``, or
+                 ``if_generation_match`` and ``if_generation_not_match``
+                 are both set.
+
         :rtype: bool
         :returns: True if the blob exists in Cloud Storage.
         """
+        _raise_for_more_than_one_none(
+            if_generation_match=if_generation_match,
+            if_generation_not_match=if_generation_not_match,
+        )
+        _raise_for_more_than_one_none(
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
+        )
         client = self._require_client(client)
         # We only need the status code (200 or not) so we seek to
         # minimize the returned payload.
         query_params = self._query_params
         query_params["fields"] = "name"
 
+        _add_generation_match_parameters(
+            query_params,
+            if_generation_match=if_generation_match,
+            if_generation_not_match=if_generation_not_match,
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
+        )
         try:
             # We intentionally pass `_target_object=None` since fields=name
             # would limit the local properties.
@@ -609,7 +659,15 @@ class Blob(_PropertyMixin):
         except NotFound:
             return False
 
-    def delete(self, client=None, timeout=_DEFAULT_TIMEOUT):
+    def delete(
+        self,
+        client=None,
+        timeout=_DEFAULT_TIMEOUT,
+        if_generation_match=None,
+        if_generation_not_match=None,
+        if_metageneration_match=None,
+        if_metageneration_not_match=None,
+    ):
         """Deletes a blob from Cloud Storage.
 
         If :attr:`user_project` is set on the bucket, bills the API request
@@ -617,8 +675,9 @@ class Blob(_PropertyMixin):
 
         :type client: :class:`~google.cloud.storage.client.Client` or
                       ``NoneType``
-        :param client: (Optional) The client to use.  If not passed, falls back
+        :param client: (Optional) The client to use. If not passed, falls back
                        to the ``client`` stored on the blob's bucket.
+
         :type timeout: float or tuple
         :param timeout: (Optional) The amount of time, in seconds, to wait
             for the server response.
@@ -626,12 +685,45 @@ class Blob(_PropertyMixin):
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
 
+        :type if_generation_match: long
+        :param if_generation_match: (Optional) Make the operation conditional on whether
+                                    the blob's current generation matches the given value.
+                                    Setting to 0 makes the operation succeed only if there
+                                    are no live versions of the blob.
+
+        :type if_generation_not_match: long
+        :param if_generation_not_match: (Optional) Make the operation conditional on whether
+                                        the blob's current generation does not match the given
+                                        value. If no live blob exists, the precondition fails.
+                                        Setting to 0 makes the operation succeed only if there
+                                        is a live version of the blob.
+
+        :type if_metageneration_match: long
+        :param if_metageneration_match: (Optional) Make the operation conditional on whether the
+                                        blob's current metageneration matches the given value.
+
+        :type if_metageneration_not_match: long
+        :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
+                                            blob's current metageneration does not match the given value.
+
         :raises: :class:`google.cloud.exceptions.NotFound`
                  (propagated from
                  :meth:`google.cloud.storage.bucket.Bucket.delete_blob`).
+
+        :raises: :class:`ValueError` if ``if_metageneration_match`` and
+                 ``if_metageneration_not_match``, or
+                 ``if_generation_match`` and ``if_generation_not_match``
+                 are both set.
         """
         self.bucket.delete_blob(
-            self.name, client=client, generation=self.generation, timeout=timeout
+            self.name,
+            client=client,
+            generation=self.generation,
+            timeout=timeout,
+            if_generation_match=if_generation_match,
+            if_generation_not_match=if_generation_not_match,
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
         )
 
     def _get_transport(self, client):

@@ -722,6 +722,26 @@ class Test_Bucket(unittest.TestCase):
         self.assertEqual(kw["query_params"], expected_qp)
         self.assertEqual(kw["timeout"], self._get_default_timeout())
 
+    def test_get_blob_w_generation_match(self):
+        NAME = "name"
+        BLOB_NAME = "blob-name"
+        GENERATION = 1512565576797178
+
+        connection = _Connection({"name": BLOB_NAME, "generation": GENERATION})
+        client = _Client(connection)
+        bucket = self._make_one(name=NAME)
+        blob = bucket.get_blob(BLOB_NAME, client=client, if_generation_match=GENERATION)
+
+        self.assertIs(blob.bucket, bucket)
+        self.assertEqual(blob.name, BLOB_NAME)
+        self.assertEqual(blob.generation, GENERATION)
+        (kw,) = connection._requested
+        expected_qp = {"ifGenerationMatch": GENERATION, "projection": "noAcl"}
+        self.assertEqual(kw["method"], "GET")
+        self.assertEqual(kw["path"], "/b/%s/o/%s" % (NAME, BLOB_NAME))
+        self.assertEqual(kw["query_params"], expected_qp)
+        self.assertEqual(kw["timeout"], self._get_default_timeout())
+
     def test_get_blob_hit_with_kwargs(self):
         from google.cloud.storage.blob import _get_encryption_headers
 
@@ -1067,6 +1087,31 @@ class Test_Bucket(unittest.TestCase):
         self.assertEqual(kw["method"], "DELETE")
         self.assertEqual(kw["path"], "/b/%s/o/%s" % (NAME, BLOB_NAME))
         self.assertEqual(kw["query_params"], {"generation": GENERATION})
+        self.assertEqual(kw["timeout"], self._get_default_timeout())
+
+    def test_delete_blob_with_generation_match(self):
+        NAME = "name"
+        BLOB_NAME = "blob-name"
+        GENERATION = 6
+        METAGENERATION = 9
+
+        connection = _Connection({})
+        client = _Client(connection)
+        bucket = self._make_one(client=client, name=NAME)
+        result = bucket.delete_blob(
+            BLOB_NAME,
+            if_generation_match=GENERATION,
+            if_metageneration_match=METAGENERATION,
+        )
+
+        self.assertIsNone(result)
+        (kw,) = connection._requested
+        self.assertEqual(kw["method"], "DELETE")
+        self.assertEqual(kw["path"], "/b/%s/o/%s" % (NAME, BLOB_NAME))
+        self.assertEqual(
+            kw["query_params"],
+            {"ifGenerationMatch": GENERATION, "ifMetagenerationMatch": METAGENERATION},
+        )
         self.assertEqual(kw["timeout"], self._get_default_timeout())
 
     def test_delete_blobs_empty(self):
