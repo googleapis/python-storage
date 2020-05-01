@@ -57,6 +57,7 @@ from google.cloud.exceptions import NotFound
 from google.cloud.storage._helpers import _PropertyMixin
 from google.cloud.storage._helpers import _scalar_property
 from google.cloud.storage._helpers import _convert_to_timestamp
+from google.cloud.storage._helpers import _raise_for_more_than_one_none
 from google.cloud.storage._signing import generate_signed_url_v2
 from google.cloud.storage._signing import generate_signed_url_v4
 from google.cloud.storage.acl import ACL
@@ -2639,24 +2640,3 @@ def _add_query_parameters(base_url, name_value_pairs):
     query = parse_qsl(query)
     query.extend(name_value_pairs)
     return urlunsplit((scheme, netloc, path, urlencode(query), frag))
-
-
-def _raise_for_more_than_one_none(**kwargs):
-    """Raise ``ValueError`` exception if more than one parameter was set.
-
-    :type error: :exc:`ValueError`
-    :param error: Description of which fields were set
-
-    :raises: :class:`~ValueError` containing the fields that were set
-    """
-    if sum(arg is not None for arg in kwargs.values()) > 1:
-        escaped_keys = ["'%s'" % name for name in kwargs.keys()]
-
-        keys_but_last = ", ".join(escaped_keys[:-1])
-        last_key = escaped_keys[-1]
-
-        msg = "Pass at most one of {keys_but_last} and {last_key}".format(
-            keys_but_last=keys_but_last, last_key=last_key
-        )
-
-        raise ValueError(msg)

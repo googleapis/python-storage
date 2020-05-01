@@ -32,7 +32,9 @@ from google.cloud._helpers import _rfc3339_to_datetime
 from google.cloud.exceptions import NotFound
 from google.api_core.iam import Policy
 from google.cloud.storage import _signing
+from google.cloud.storage._helpers import _add_generation_match_parameters
 from google.cloud.storage._helpers import _PropertyMixin
+from google.cloud.storage._helpers import _raise_for_more_than_one_none
 from google.cloud.storage._helpers import _scalar_property
 from google.cloud.storage._helpers import _validate_name
 from google.cloud.storage._signing import generate_signed_url_v2
@@ -646,15 +648,22 @@ class Bucket(_PropertyMixin):
             notification_id=notification_id,
         )
 
-    def exists(self, client=None, timeout=_DEFAULT_TIMEOUT):
+    def exists(
+        self,
+        client=None,
+        timeout=_DEFAULT_TIMEOUT,
+        if_metageneration_match=None,
+        if_metageneration_not_match=None,
+    ):
         """Determines whether or not this bucket exists.
 
         If :attr:`user_project` is set, bills the API request to that project.
 
         :type client: :class:`~google.cloud.storage.client.Client` or
                       ``NoneType``
-        :param client: (Optional) The client to use.  If not passed, falls back
+        :param client: (Optional) The client to use. If not passed, falls back
                        to the ``client`` stored on the current bucket.
+
         :type timeout: float or tuple
         :param timeout: (Optional) The amount of time, in seconds, to wait
             for the server response.
@@ -662,9 +671,24 @@ class Bucket(_PropertyMixin):
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
 
+        :type if_metageneration_match: long
+        :param if_metageneration_match: (Optional) Make the operation conditional on whether the
+                                        blob's current metageneration matches the given value.
+
+        :type if_metageneration_not_match: long
+        :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
+                                            blob's current metageneration does not match the given value.
+
         :rtype: bool
         :returns: True if the bucket exists in Cloud Storage.
+
+        :raises: :class:`ValueError` if ``if_metageneration_match`` and
+                 ``if_metageneration_not_match`` are both set.
         """
+        _raise_for_more_than_one_none(
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
+        )
         client = self._require_client(client)
         # We only need the status code (200 or not) so we seek to
         # minimize the returned payload.
@@ -673,6 +697,11 @@ class Bucket(_PropertyMixin):
         if self.user_project is not None:
             query_params["userProject"] = self.user_project
 
+        _add_generation_match_parameters(
+            query_params,
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
+        )
         try:
             # We intentionally pass `_target_object=None` since fields=name
             # would limit the local properties.
@@ -762,7 +791,13 @@ class Bucket(_PropertyMixin):
             timeout=timeout,
         )
 
-    def patch(self, client=None, timeout=_DEFAULT_TIMEOUT):
+    def patch(
+        self,
+        client=None,
+        timeout=_DEFAULT_TIMEOUT,
+        if_metageneration_match=None,
+        if_metageneration_not_match=None,
+    ):
         """Sends all changed properties in a PATCH request.
 
         Updates the ``_properties`` with the response from the backend.
@@ -771,15 +806,31 @@ class Bucket(_PropertyMixin):
 
         :type client: :class:`~google.cloud.storage.client.Client` or
                       ``NoneType``
-        :param client: the client to use.  If not passed, falls back to the
+        :param client: the client to use. If not passed, falls back to the
                        ``client`` stored on the current object.
+
         :type timeout: float or tuple
         :param timeout: (Optional) The amount of time, in seconds, to wait
             for the server response.
 
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
+
+        :type if_metageneration_match: long
+        :param if_metageneration_match: (Optional) Make the operation conditional on whether the
+                                        blob's current metageneration matches the given value.
+
+        :type if_metageneration_not_match: long
+        :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
+                                            blob's current metageneration does not match the given value.
+
+        :raises: :class:`ValueError` if ``if_metageneration_match`` and
+                 ``if_metageneration_not_match`` are both set.
         """
+        _raise_for_more_than_one_none(
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
+        )
         # Special case: For buckets, it is possible that labels are being
         # removed; this requires special handling.
         if self._label_removals:
@@ -789,7 +840,12 @@ class Bucket(_PropertyMixin):
                 self._properties["labels"][removed_label] = None
 
         # Call the superclass method.
-        return super(Bucket, self).patch(client=client, timeout=timeout)
+        return super(Bucket, self).patch(
+            client=client,
+            timeout=timeout,
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
+        )
 
     @property
     def acl(self):
@@ -1065,7 +1121,14 @@ class Bucket(_PropertyMixin):
         notification.reload(client=client, timeout=timeout)
         return notification
 
-    def delete(self, force=False, client=None, timeout=_DEFAULT_TIMEOUT):
+    def delete(
+        self,
+        force=False,
+        client=None,
+        timeout=_DEFAULT_TIMEOUT,
+        if_metageneration_match=None,
+        if_metageneration_not_match=None,
+    ):
         """Delete this bucket.
 
         The bucket **must** be empty in order to submit a delete request. If
@@ -1073,9 +1136,8 @@ class Bucket(_PropertyMixin):
         objects / blobs in the bucket (i.e. try to empty the bucket).
 
         If the bucket doesn't exist, this will raise
-        :class:`google.cloud.exceptions.NotFound`.  If the bucket is not empty
-        (and ``force=False``), will raise
-        :class:`google.cloud.exceptions.Conflict`.
+        :class:`google.cloud.exceptions.NotFound`. If the bucket is not empty
+        (and ``force=False``), will raise :class:`google.cloud.exceptions.Conflict`.
 
         If ``force=True`` and the bucket contains more than 256 objects / blobs
         this will cowardly refuse to delete the objects (or the bucket). This
@@ -1089,8 +1151,9 @@ class Bucket(_PropertyMixin):
 
         :type client: :class:`~google.cloud.storage.client.Client` or
                       ``NoneType``
-        :param client: (Optional) The client to use.  If not passed, falls back
+        :param client: (Optional) The client to use. If not passed, falls back
                        to the ``client`` stored on the current bucket.
+
         :type timeout: float or tuple
         :param timeout: (Optional) The amount of time, in seconds, to wait
             for the server response on each request.
@@ -1098,15 +1161,35 @@ class Bucket(_PropertyMixin):
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
 
+        :type if_metageneration_match: long
+        :param if_metageneration_match: (Optional) Make the operation conditional on whether the
+                                        blob's current metageneration matches the given value.
+
+        :type if_metageneration_not_match: long
+        :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
+                                            blob's current metageneration does not match the given value.
+
         :raises: :class:`ValueError` if ``force`` is ``True`` and the bucket
                  contains more than 256 objects / blobs.
+
+        :raises: :class:`ValueError` if ``if_metageneration_match`` and
+                 ``if_metageneration_not_match`` are both set.
         """
+        _raise_for_more_than_one_none(
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
+        )
         client = self._require_client(client)
         query_params = {}
 
         if self.user_project is not None:
             query_params["userProject"] = self.user_project
 
+        _add_generation_match_parameters(
+            query_params,
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
+        )
         if force:
             blobs = list(
                 self.list_blobs(
