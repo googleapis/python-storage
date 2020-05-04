@@ -37,7 +37,7 @@ from google.cloud.storage._signing import (
     get_expiration_seconds_v4,
     get_v4_now_dtstamps,
     ensure_signed_credentials,
-    _sign_message
+    _sign_message,
 )
 from google.cloud.storage.batch import Batch
 from google.cloud.storage.bucket import (
