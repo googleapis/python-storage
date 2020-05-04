@@ -818,7 +818,7 @@ class TestStorageListFiles(TestStorageFiles):
         # Technically the iterator is exhausted.
         self.assertEqual(iterator.num_results, iterator.max_results)
         # But we modify the iterator to continue paging after
-        # articially stopping after ``count`` items.
+        # artificially stopping after ``count`` items.
         iterator.max_results = None
 
         page2 = six.next(page_iter)
@@ -847,7 +847,7 @@ class TestStorageListFiles(TestStorageFiles):
         # Technically the iterator is exhausted.
         self.assertEqual(iterator.num_results, iterator.max_results)
         # But we modify the iterator to continue paging after
-        # articially stopping after ``count`` items.
+        # artificially stopping after ``count`` items.
         iterator.max_results = None
 
         page2 = six.next(page_iter)
