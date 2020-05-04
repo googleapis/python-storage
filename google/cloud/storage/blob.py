@@ -741,7 +741,14 @@ class Blob(_PropertyMixin):
         client = self._require_client(client)
         return client._http
 
-    def _get_download_url(self, client):
+    def _get_download_url(
+        self,
+        client,
+        if_generation_match=None,
+        if_generation_not_match=None,
+        if_metageneration_match=None,
+        if_metageneration_not_match=None,
+    ):
         """Get the download URL for the current blob.
 
         If the ``media_link`` has been loaded, it will be used, otherwise
@@ -751,9 +758,42 @@ class Blob(_PropertyMixin):
         :type client: :class:`~google.cloud.storage.client.Client`
         :param client: The client to use.
 
+        :type if_generation_match: long
+        :param if_generation_match: (Optional) Make the operation conditional on whether
+                                    the blob's current generation matches the given value.
+                                    Setting to 0 makes the operation succeed only if there
+                                    are no live versions of the blob.
+
+        :type if_generation_not_match: long
+        :param if_generation_not_match: (Optional) Make the operation conditional on whether
+                                        the blob's current generation does not match the given
+                                        value. If no live blob exists, the precondition fails.
+                                        Setting to 0 makes the operation succeed only if there
+                                        is a live version of the blob.
+
+        :param if_metageneration_match: (Optional) Make the operation conditional on whether the
+                                        blob's current metageneration matches the given value.
+
+        :type if_metageneration_not_match: long
+        :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
+                                            blob's current metageneration does not match the given value.
+
         :rtype: str
         :returns: The download URL for the current blob.
+
+        :raises: :class:`ValueError` if ``if_metageneration_match`` and
+                 ``if_metageneration_not_match``, or
+                 ``if_generation_match`` and ``if_generation_not_match``
+                 are both set.
         """
+        _raise_for_more_than_one_none(
+            if_generation_match=if_generation_match,
+            if_generation_not_match=if_generation_not_match,
+        )
+        _raise_for_more_than_one_none(
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
+        )
         name_value_pairs = []
         if self.media_link is None:
             base_url = _DOWNLOAD_URL_TEMPLATE.format(
@@ -767,6 +807,13 @@ class Blob(_PropertyMixin):
         if self.user_project is not None:
             name_value_pairs.append(("userProject", self.user_project))
 
+        _add_generation_match_parameters(
+            name_value_pairs,
+            if_generation_match=if_generation_match,
+            if_generation_not_match=if_generation_not_match,
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
+        )
         return _add_query_parameters(base_url, name_value_pairs)
 
     def _do_download(
@@ -839,7 +886,16 @@ class Blob(_PropertyMixin):
                 download.consume_next_chunk(transport)
 
     def download_to_file(
-        self, file_obj, client=None, start=None, end=None, raw_download=False
+        self,
+        file_obj,
+        client=None,
+        start=None,
+        end=None,
+        raw_download=False,
+        if_generation_match=None,
+        if_generation_not_match=None,
+        if_metageneration_match=None,
+        if_metageneration_not_match=None,
     ):
         """Download the contents of this blob into a file-like object.
 
@@ -884,10 +940,42 @@ class Blob(_PropertyMixin):
         :param raw_download:
             (Optional) If true, download the object without any expansion.
 
+        :type if_generation_match: long
+        :param if_generation_match: (Optional) Make the operation conditional on whether
+                                    the blob's current generation matches the given value.
+                                    Setting to 0 makes the operation succeed only if there
+                                    are no live versions of the blob.
+
+        :type if_generation_not_match: long
+        :param if_generation_not_match: (Optional) Make the operation conditional on whether
+                                        the blob's current generation does not match the given
+                                        value. If no live blob exists, the precondition fails.
+                                        Setting to 0 makes the operation succeed only if there
+                                        is a live version of the blob.
+
+        :param if_metageneration_match: (Optional) Make the operation conditional on whether the
+                                        blob's current metageneration matches the given value.
+
+        :type if_metageneration_not_match: long
+        :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
+                                            blob's current metageneration does not match the given value.
+
         :raises: :class:`google.cloud.exceptions.NotFound`
+
+        :raises: :class:`ValueError` if ``if_metageneration_match`` and
+                 ``if_metageneration_not_match``, or
+                 ``if_generation_match`` and ``if_generation_not_match``
+                 are both set.
         """
         client = self._require_client(client)
-        download_url = self._get_download_url(client)
+
+        download_url = self._get_download_url(
+            client,
+            if_generation_match=if_generation_match,
+            if_generation_not_match=if_generation_not_match,
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
+        )
         headers = _get_encryption_headers(self._encryption_key)
         headers["accept-encoding"] = "gzip"
 
@@ -900,7 +988,16 @@ class Blob(_PropertyMixin):
             _raise_from_invalid_response(exc)
 
     def download_to_filename(
-        self, filename, client=None, start=None, end=None, raw_download=False
+        self,
+        filename,
+        client=None,
+        start=None,
+        end=None,
+        raw_download=False,
+        if_generation_match=None,
+        if_generation_not_match=None,
+        if_metageneration_match=None,
+        if_metageneration_not_match=None,
     ):
         """Download the contents of this blob into a named file.
 
@@ -912,7 +1009,7 @@ class Blob(_PropertyMixin):
 
         :type client: :class:`~google.cloud.storage.client.Client` or
                       ``NoneType``
-        :param client: (Optional) The client to use.  If not passed, falls back
+        :param client: (Optional) The client to use. If not passed, falls back
                        to the ``client`` stored on the blob's bucket.
 
         :type start: int
@@ -925,7 +1022,32 @@ class Blob(_PropertyMixin):
         :param raw_download:
             (Optional) If true, download the object without any expansion.
 
+        :type if_generation_match: long
+        :param if_generation_match: (Optional) Make the operation conditional on whether
+                                    the blob's current generation matches the given value.
+                                    Setting to 0 makes the operation succeed only if there
+                                    are no live versions of the blob.
+
+        :type if_generation_not_match: long
+        :param if_generation_not_match: (Optional) Make the operation conditional on whether
+                                        the blob's current generation does not match the given
+                                        value. If no live blob exists, the precondition fails.
+                                        Setting to 0 makes the operation succeed only if there
+                                        is a live version of the blob.
+
+        :param if_metageneration_match: (Optional) Make the operation conditional on whether the
+                                        blob's current metageneration matches the given value.
+
+        :type if_metageneration_not_match: long
+        :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
+                                            blob's current metageneration does not match the given value.
+
         :raises: :class:`google.cloud.exceptions.NotFound`
+
+        :raises: :class:`ValueError` if ``if_metageneration_match`` and
+                 ``if_metageneration_not_match``, or
+                 ``if_generation_match`` and ``if_generation_not_match``
+                 are both set.
         """
         try:
             with open(filename, "wb") as file_obj:
@@ -935,6 +1057,10 @@ class Blob(_PropertyMixin):
                     start=start,
                     end=end,
                     raw_download=raw_download,
+                    if_generation_match=if_generation_match,
+                    if_generation_not_match=if_generation_not_match,
+                    if_metageneration_match=if_metageneration_match,
+                    if_metageneration_not_match=if_metageneration_not_match,
                 )
         except resumable_media.DataCorruption:
             # Delete the corrupt downloaded file.
@@ -949,7 +1075,17 @@ class Blob(_PropertyMixin):
                 mtime = updated.timestamp()
             os.utime(file_obj.name, (mtime, mtime))
 
-    def download_as_string(self, client=None, start=None, end=None, raw_download=False):
+    def download_as_string(
+        self,
+        client=None,
+        start=None,
+        end=None,
+        raw_download=False,
+        if_generation_match=None,
+        if_generation_not_match=None,
+        if_metageneration_match=None,
+        if_metageneration_not_match=None,
+    ):
         """Download the contents of this blob as a bytes object.
 
         If :attr:`user_project` is set on the bucket, bills the API request
@@ -957,7 +1093,7 @@ class Blob(_PropertyMixin):
 
         :type client: :class:`~google.cloud.storage.client.Client` or
                       ``NoneType``
-        :param client: (Optional) The client to use.  If not passed, falls back
+        :param client: (Optional) The client to use. If not passed, falls back
                        to the ``client`` stored on the blob's bucket.
 
         :type start: int
@@ -970,9 +1106,35 @@ class Blob(_PropertyMixin):
         :param raw_download:
             (Optional) If true, download the object without any expansion.
 
+        :type if_generation_match: long
+        :param if_generation_match: (Optional) Make the operation conditional on whether
+                                    the blob's current generation matches the given value.
+                                    Setting to 0 makes the operation succeed only if there
+                                    are no live versions of the blob.
+
+        :type if_generation_not_match: long
+        :param if_generation_not_match: (Optional) Make the operation conditional on whether
+                                        the blob's current generation does not match the given
+                                        value. If no live blob exists, the precondition fails.
+                                        Setting to 0 makes the operation succeed only if there
+                                        is a live version of the blob.
+
+        :param if_metageneration_match: (Optional) Make the operation conditional on whether the
+                                        blob's current metageneration matches the given value.
+
+        :type if_metageneration_not_match: long
+        :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
+                                            blob's current metageneration does not match the given value.
+
         :rtype: bytes
         :returns: The data stored in this blob.
+
         :raises: :class:`google.cloud.exceptions.NotFound`
+
+        :raises: :class:`ValueError` if ``if_metageneration_match`` and
+                 ``if_metageneration_not_match``, or
+                 ``if_generation_match`` and ``if_generation_not_match``
+                 are both set.
         """
         string_buffer = BytesIO()
         self.download_to_file(
@@ -981,6 +1143,10 @@ class Blob(_PropertyMixin):
             start=start,
             end=end,
             raw_download=raw_download,
+            if_generation_match=if_generation_match,
+            if_generation_not_match=if_generation_not_match,
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
         )
         return string_buffer.getvalue()
 
@@ -2139,7 +2305,21 @@ class Blob(_PropertyMixin):
         )
         self._set_properties(api_response)
 
-    def rewrite(self, source, token=None, client=None, timeout=_DEFAULT_TIMEOUT):
+    def rewrite(
+        self,
+        source,
+        token=None,
+        client=None,
+        timeout=_DEFAULT_TIMEOUT,
+        if_generation_match=None,
+        if_generation_not_match=None,
+        if_metageneration_match=None,
+        if_metageneration_not_match=None,
+        if_source_generation_match=None,
+        if_source_generation_not_match=None,
+        if_source_metageneration_match=None,
+        if_source_metageneration_not_match=None,
+    ):
         """Rewrite source blob into this one.
 
         If :attr:`user_project` is set on the bucket, bills the API request
@@ -2165,13 +2345,95 @@ class Blob(_PropertyMixin):
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
 
+        :type if_generation_match: long
+        :param if_generation_match: (Optional) Makes the operation
+                                    conditional on whether the destination
+                                    object's current generation matches the
+                                    given value. Setting to 0 makes the
+                                    operation succeed only if there are no
+                                    live versions of the object.
+
+        :type if_generation_not_match: long
+        :param if_generation_not_match: (Optional) Makes the operation
+                                        conditional on whether the
+                                        destination object's current
+                                        generation does not match the given
+                                        value. If no live object exists,
+                                        the precondition fails. Setting to
+                                        0 makes the operation succeed only
+                                        if there is a live version
+                                        of the object.
+
+        :type if_metageneration_match: long
+        :param if_metageneration_match: (Optional) Makes the operation
+                                        conditional on whether the
+                                        destination object's current
+                                        metageneration matches the given
+                                        value.
+
+        :type if_metageneration_not_match: long
+        :param if_metageneration_not_match: (Optional) Makes the operation
+                                            conditional on whether the
+                                            destination object's current
+                                            metageneration does not match
+                                            the given value.
+
+        :type if_source_generation_match: long
+        :param if_source_generation_match: (Optional) Makes the operation
+                                           conditional on whether the source
+                                           object's generation matches the
+                                           given value.
+
+        :type if_source_generation_not_match: long
+        :param if_source_generation_not_match: (Optional) Makes the operation
+                                               conditional on whether the source
+                                               object's generation does not match
+                                               the given value.
+
+        :type if_source_metageneration_match: long
+        :param if_source_metageneration_match: (Optional) Makes the operation
+                                               conditional on whether the source
+                                               object's current metageneration
+                                               matches the given value.
+
+        :type if_source_metageneration_not_match: long
+        :param if_source_metageneration_not_match: (Optional) Makes the operation
+                                                   conditional on whether the source
+                                                   object's current metageneration
+                                                   does not match the given value.
+
         :rtype: tuple
         :returns: ``(token, bytes_rewritten, total_bytes)``, where ``token``
                   is a rewrite token (``None`` if the rewrite is complete),
                   ``bytes_rewritten`` is the number of bytes rewritten so far,
                   and ``total_bytes`` is the total number of bytes to be
                   rewritten.
+
+        :raises: :class:`ValueError` if ``if_metageneration_match`` and
+                 ``if_metageneration_not_match``, or
+                 ``if_generation_match`` and ``if_generation_not_match``,
+                 or ``if_source_generation_match`` and
+                 ``if_source_generation_not_match``, or
+                 ``if_source_metageneration_match`` and
+                 ``if_source_metageneration_not_match``
+                 are both set.
         """
+        _raise_for_more_than_one_none(
+            if_generation_match=if_generation_match,
+            if_generation_not_match=if_generation_not_match,
+        )
+        _raise_for_more_than_one_none(
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
+        )
+        _raise_for_more_than_one_none(
+            if_source_generation_match=if_source_generation_match,
+            if_source_generation_not_match=if_source_generation_not_match,
+        )
+        _raise_for_more_than_one_none(
+            if_source_metageneration_match=if_source_metageneration_match,
+            if_source_metageneration_not_match=if_source_metageneration_not_match,
+        )
         client = self._require_client(client)
         headers = _get_encryption_headers(self._encryption_key)
         headers.update(_get_encryption_headers(source._encryption_key, source=True))
@@ -2188,6 +2450,18 @@ class Blob(_PropertyMixin):
 
         if self.kms_key_name is not None:
             query_params["destinationKmsKeyName"] = self.kms_key_name
+
+        _add_generation_match_parameters(
+            query_params,
+            if_generation_match=if_generation_match,
+            if_generation_not_match=if_generation_not_match,
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
+            if_source_generation_match=if_source_generation_match,
+            if_source_generation_not_match=if_source_generation_not_match,
+            if_source_metageneration_match=if_source_metageneration_match,
+            if_source_metageneration_not_match=if_source_metageneration_not_match,
+        )
 
         api_response = client._connection.api_request(
             method="POST",
@@ -2210,7 +2484,19 @@ class Blob(_PropertyMixin):
 
         return api_response["rewriteToken"], rewritten, size
 
-    def update_storage_class(self, new_class, client=None):
+    def update_storage_class(
+        self,
+        new_class,
+        client=None,
+        if_generation_match=None,
+        if_generation_not_match=None,
+        if_metageneration_match=None,
+        if_metageneration_not_match=None,
+        if_source_generation_match=None,
+        if_source_generation_not_match=None,
+        if_source_metageneration_match=None,
+        if_source_metageneration_not_match=None,
+    ):
         """Update blob's storage class via a rewrite-in-place. This helper will
         wait for the rewrite to complete before returning, so it may take some
         time for large files.
@@ -2235,6 +2521,72 @@ class Blob(_PropertyMixin):
         :type client: :class:`~google.cloud.storage.client.Client`
         :param client: (Optional) The client to use.  If not passed, falls back
                        to the ``client`` stored on the blob's bucket.
+
+        :type if_generation_match: long
+        :param if_generation_match: (Optional) Makes the operation
+                                    conditional on whether the destination
+                                    object's current generation matches the
+                                    given value. Setting to 0 makes the
+                                    operation succeed only if there are no
+                                    live versions of the object.
+
+        :type if_generation_not_match: long
+        :param if_generation_not_match: (Optional) Makes the operation
+                                        conditional on whether the
+                                        destination object's current
+                                        generation does not match the given
+                                        value. If no live object exists,
+                                        the precondition fails. Setting to
+                                        0 makes the operation succeed only
+                                        if there is a live version
+                                        of the object.
+
+        :type if_metageneration_match: long
+        :param if_metageneration_match: (Optional) Makes the operation
+                                        conditional on whether the
+                                        destination object's current
+                                        metageneration matches the given
+                                        value.
+
+        :type if_metageneration_not_match: long
+        :param if_metageneration_not_match: (Optional) Makes the operation
+                                            conditional on whether the
+                                            destination object's current
+                                            metageneration does not match
+                                            the given value.
+
+        :type if_source_generation_match: long
+        :param if_source_generation_match: (Optional) Makes the operation
+                                           conditional on whether the source
+                                           object's generation matches the
+                                           given value.
+
+        :type if_source_generation_not_match: long
+        :param if_source_generation_not_match: (Optional) Makes the operation
+                                               conditional on whether the source
+                                               object's generation does not match
+                                               the given value.
+
+        :type if_source_metageneration_match: long
+        :param if_source_metageneration_match: (Optional) Makes the operation
+                                               conditional on whether the source
+                                               object's current metageneration
+                                               matches the given value.
+
+        :type if_source_metageneration_not_match: long
+        :param if_source_metageneration_not_match: (Optional) Makes the operation
+                                                   conditional on whether the source
+                                                   object's current metageneration
+                                                   does not match the given value.
+
+        :raises: :class:`ValueError` if ``if_metageneration_match`` and
+                 ``if_metageneration_not_match``, or
+                 ``if_generation_match`` and ``if_generation_not_match``,
+                 or ``if_source_generation_match`` and
+                 ``if_source_generation_not_match``, or
+                 ``if_source_metageneration_match`` and
+                 ``if_source_metageneration_not_match``
+                 are both set.
         """
         if new_class not in self.STORAGE_CLASSES:
             raise ValueError("Invalid storage class: %s" % (new_class,))
@@ -2243,9 +2595,30 @@ class Blob(_PropertyMixin):
         self._patch_property("storageClass", new_class)
 
         # Execute consecutive rewrite operations until operation is done
-        token, _, _ = self.rewrite(self)
+        token, _, _ = self.rewrite(
+            self,
+            if_generation_match=if_generation_match,
+            if_generation_not_match=if_generation_not_match,
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
+            if_source_generation_match=if_source_generation_match,
+            if_source_generation_not_match=if_source_generation_not_match,
+            if_source_metageneration_match=if_source_metageneration_match,
+            if_source_metageneration_not_match=if_source_metageneration_not_match,
+        )
         while token is not None:
-            token, _, _ = self.rewrite(self, token=token)
+            token, _, _ = self.rewrite(
+                self,
+                token=token,
+                if_generation_match=if_generation_match,
+                if_generation_not_match=if_generation_not_match,
+                if_metageneration_match=if_metageneration_match,
+                if_metageneration_not_match=if_metageneration_not_match,
+                if_source_generation_match=if_source_generation_match,
+                if_source_generation_not_match=if_source_generation_not_match,
+                if_source_metageneration_match=if_source_metageneration_match,
+                if_source_metageneration_not_match=if_source_metageneration_not_match,
+            )
 
     cache_control = _scalar_property("cacheControl")
     """HTTP 'Cache-Control' header for this object.

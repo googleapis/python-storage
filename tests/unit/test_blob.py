@@ -810,6 +810,24 @@ class Test_Blob(unittest.TestCase):
 
         self.assertEqual(download_url, media_link)
 
+    def test__get_download_url_with_generation_match(self):
+        GENERATION_NUMBER = 6
+        MEDIA_LINK = "http://test.invalid"
+
+        blob = self._make_one("something.txt", bucket=_Bucket(name="IRRELEVANT"))
+        # Set the media link on the blob
+        blob._properties["mediaLink"] = MEDIA_LINK
+
+        client = mock.Mock(_connection=_Connection)
+        client._connection.API_BASE_URL = "https://storage.googleapis.com"
+        download_url = blob._get_download_url(
+            client, if_generation_match=GENERATION_NUMBER
+        )
+        self.assertEqual(
+            download_url,
+            "{}?ifGenerationMatch={}".format(MEDIA_LINK, GENERATION_NUMBER),
+        )
+
     def test__get_download_url_with_media_link_w_user_project(self):
         blob_name = "something.txt"
         user_project = "user-project-123"
@@ -1091,6 +1109,28 @@ class Test_Blob(unittest.TestCase):
             client._http, file_obj, expected_url, headers, None, None, False
         )
 
+    def test_download_to_file_w_generation_match(self):
+        GENERATION_NUMBER = 6
+        HEADERS = {"accept-encoding": "gzip"}
+        EXPECTED_URL = (
+            "https://storage.googleapis.com/download/storage/v1/b/"
+            "name/o/blob-name?alt=media&ifGenerationNotMatch={}".format(
+                GENERATION_NUMBER
+            )
+        )
+
+        client = mock.Mock(_connection=_Connection, spec=[u"_http"])
+        client._connection.API_BASE_URL = "https://storage.googleapis.com"
+        blob = self._make_one("blob-name", bucket=_Bucket(client))
+        blob._do_download = mock.Mock()
+        file_obj = io.BytesIO()
+
+        blob.download_to_file(file_obj, if_generation_not_match=GENERATION_NUMBER)
+
+        blob._do_download.assert_called_once_with(
+            client._http, file_obj, EXPECTED_URL, HEADERS, None, None, False
+        )
+
     def _download_to_file_helper(self, use_chunks, raw_download):
         blob_name = "blob-name"
         client = mock.Mock(spec=[u"_http"])
@@ -1160,6 +1200,26 @@ class Test_Blob(unittest.TestCase):
         )
         stream = blob._do_download.mock_calls[0].args[1]
         self.assertEqual(stream.name, temp.name)
+
+    def test_download_to_filename_w_generation_match(self):
+        from google.cloud._testing import _NamedTemporaryFile
+
+        GENERATION_NUMBER = 6
+        MEDIA_LINK = "http://example.com/media/"
+        EXPECTED_LINK = MEDIA_LINK + "?ifGenerationMatch={}".format(GENERATION_NUMBER)
+        HEADERS = {"accept-encoding": "gzip"}
+
+        client = mock.Mock(spec=["_http"])
+
+        blob = self._make_one("blob-name", bucket=_Bucket(client), properties={"mediaLink": MEDIA_LINK})
+        blob._do_download = mock.Mock()
+
+        with _NamedTemporaryFile() as temp:
+            blob.download_to_filename(temp.name, if_generation_match=GENERATION_NUMBER)
+
+        blob._do_download.assert_called_once_with(
+            client._http, mock.ANY, EXPECTED_LINK, HEADERS, None, None, False
+        )
 
     def test_download_to_filename_w_updated_wo_raw(self):
         updated = "2014-12-06T13:13:50.690Z"
@@ -1253,6 +1313,33 @@ class Test_Blob(unittest.TestCase):
         )
         stream = blob._do_download.mock_calls[0].args[1]
         self.assertIsInstance(stream, io.BytesIO)
+
+    def test_download_as_string_w_generation_match(self):
+        GENERATION_NUMBER = 6
+        MEDIA_LINK = "http://example.com/media/"
+
+        client = mock.Mock(spec=["_http"])
+        blob = self._make_one(
+            "blob-name",
+            bucket=_Bucket(client),
+            properties={"mediaLink": MEDIA_LINK}
+        )
+        blob.download_to_file = mock.Mock()
+
+        fetched = blob.download_as_string(if_generation_match=GENERATION_NUMBER)
+        self.assertEqual(fetched, b"")
+
+        blob.download_to_file.assert_called_once_with(
+            mock.ANY,
+            client=None,
+            start=None,
+            end=None,
+            raw_download=False,
+            if_generation_match=GENERATION_NUMBER,
+            if_generation_not_match=None,
+            if_metageneration_match=None,
+            if_metageneration_not_match=None,
+        )
 
     def test_download_as_string_wo_raw(self):
         self._download_as_string_helper(raw_download=False)
@@ -2737,6 +2824,55 @@ class Test_Blob(unittest.TestCase):
         self.assertEqual(kw["query_params"], {"sourceGeneration": SOURCE_GENERATION})
         self.assertEqual(kw["timeout"], 42)
 
+    def test_rewrite_w_generation_match(self):
+        SOURCE_BLOB = "source"
+        SOURCE_GENERATION_NUMBER = 42
+        DEST_BLOB = "dest"
+        DEST_BUCKET = "other-bucket"
+        DEST_GENERATION_NUMBER = 16
+        TOKEN = "TOKEN"
+        RESPONSE = {
+            "totalBytesRewritten": 33,
+            "objectSize": 42,
+            "done": False,
+            "rewriteToken": TOKEN,
+        }
+        response = ({"status": http_client.OK}, RESPONSE)
+        connection = _Connection(response)
+        client = _Client(connection)
+        source_bucket = _Bucket(client=client)
+        source_blob = self._make_one(
+            SOURCE_BLOB, bucket=source_bucket, generation=SOURCE_GENERATION_NUMBER
+        )
+        dest_bucket = _Bucket(client=client, name=DEST_BUCKET)
+        dest_blob = self._make_one(
+            DEST_BLOB, bucket=dest_bucket, generation=DEST_GENERATION_NUMBER
+        )
+        token, rewritten, size = dest_blob.rewrite(
+            source_blob,
+            timeout=42,
+            if_generation_match=dest_blob.generation,
+            if_source_generation_match=source_blob.generation,
+        )
+        (kw,) = connection._requested
+        self.assertEqual(kw["method"], "POST")
+        self.assertEqual(
+            kw["path"],
+            "/b/%s/o/%s/rewriteTo/b/%s/o/%s"
+            % (
+                (source_bucket.name, source_blob.name, dest_bucket.name, dest_blob.name)
+            ),
+        )
+        self.assertEqual(
+            kw["query_params"],
+            {
+                "ifSourceGenerationMatch": SOURCE_GENERATION_NUMBER,
+                "ifGenerationMatch": DEST_GENERATION_NUMBER,
+                "sourceGeneration": SOURCE_GENERATION_NUMBER,
+            },
+        )
+        self.assertEqual(kw["timeout"], 42)
+
     def test_rewrite_other_bucket_other_name_no_encryption_partial(self):
         SOURCE_BLOB = "source"
         DEST_BLOB = "dest"
@@ -3044,6 +3180,45 @@ class Test_Blob(unittest.TestCase):
         self.assertEqual(headers["X-Goog-Encryption-Algorithm"], "AES256")
         self.assertEqual(headers["X-Goog-Encryption-Key"], BLOB_KEY_B64)
         self.assertEqual(headers["X-Goog-Encryption-Key-Sha256"], BLOB_KEY_HASH_B64)
+
+    def test_update_storage_class_w_generation_match(self):
+        BLOB_NAME = "blob-name"
+        STORAGE_CLASS = u"NEARLINE"
+        GENERATION_NUMBER = 6
+        SOURCE_GENERATION_NUMBER = 9
+        RESPONSE = {
+            "totalBytesRewritten": 42,
+            "objectSize": 42,
+            "done": True,
+            "resource": {"storageClass": STORAGE_CLASS},
+        }
+        response = ({"status": http_client.OK}, RESPONSE)
+        connection = _Connection(response)
+        client = _Client(connection)
+        bucket = _Bucket(client=client)
+        blob = self._make_one(BLOB_NAME, bucket=bucket)
+
+        blob.update_storage_class(
+            "NEARLINE",
+            if_generation_match=GENERATION_NUMBER,
+            if_source_generation_match=SOURCE_GENERATION_NUMBER,
+        )
+        self.assertEqual(blob.storage_class, "NEARLINE")
+
+        kw = connection._requested
+        self.assertEqual(len(kw), 1)
+        self.assertEqual(kw[0]["method"], "POST")
+        PATH = "/b/name/o/%s/rewriteTo/b/name/o/%s" % (BLOB_NAME, BLOB_NAME)
+        self.assertEqual(kw[0]["path"], PATH)
+        self.assertEqual(
+            kw[0]["query_params"],
+            {
+                "ifGenerationMatch": GENERATION_NUMBER,
+                "ifSourceGenerationMatch": SOURCE_GENERATION_NUMBER,
+            },
+        )
+        SENT = {"storageClass": STORAGE_CLASS}
+        self.assertEqual(kw[0]["data"], SENT)
 
     def test_cache_control_getter(self):
         BLOB_NAME = "blob-name"

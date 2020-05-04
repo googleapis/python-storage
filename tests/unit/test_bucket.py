@@ -1234,6 +1234,43 @@ class Test_Bucket(unittest.TestCase):
         self.assertEqual(kw["query_params"], {"sourceGeneration": GENERATION})
         self.assertEqual(kw["timeout"], self._get_default_timeout())
 
+    def test_copy_blobs_w_generation_match(self):
+        SOURCE = "source"
+        DEST = "dest"
+        BLOB_NAME = "blob-name"
+        GENERATION_NUMBER = 6
+        SOURCE_GENERATION_NUMBER = 9
+
+        connection = _Connection({})
+        client = _Client(connection)
+        source = self._make_one(client=client, name=SOURCE)
+        dest = self._make_one(client=client, name=DEST)
+        blob = self._make_blob(SOURCE, BLOB_NAME)
+
+        new_blob = source.copy_blob(
+            blob,
+            dest,
+            if_generation_match=GENERATION_NUMBER,
+            if_source_generation_match=SOURCE_GENERATION_NUMBER,
+        )
+        self.assertIs(new_blob.bucket, dest)
+        self.assertEqual(new_blob.name, BLOB_NAME)
+
+        (kw,) = connection._requested
+        COPY_PATH = "/b/{}/o/{}/copyTo/b/{}/o/{}".format(
+            SOURCE, BLOB_NAME, DEST, BLOB_NAME
+        )
+        self.assertEqual(kw["method"], "POST")
+        self.assertEqual(kw["path"], COPY_PATH)
+        self.assertEqual(
+            kw["query_params"],
+            {
+                "ifGenerationMatch": GENERATION_NUMBER,
+                "ifSourceGenerationMatch": SOURCE_GENERATION_NUMBER,
+            },
+        )
+        self.assertEqual(kw["timeout"], self._get_default_timeout())
+
     def test_copy_blobs_preserve_acl(self):
         from google.cloud.storage.acl import ObjectACL
 
