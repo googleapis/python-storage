@@ -1211,7 +1211,9 @@ class Test_Blob(unittest.TestCase):
 
         client = mock.Mock(spec=["_http"])
 
-        blob = self._make_one("blob-name", bucket=_Bucket(client), properties={"mediaLink": MEDIA_LINK})
+        blob = self._make_one(
+            "blob-name", bucket=_Bucket(client), properties={"mediaLink": MEDIA_LINK}
+        )
         blob._do_download = mock.Mock()
 
         with _NamedTemporaryFile() as temp:
@@ -1320,9 +1322,7 @@ class Test_Blob(unittest.TestCase):
 
         client = mock.Mock(spec=["_http"])
         blob = self._make_one(
-            "blob-name",
-            bucket=_Bucket(client),
-            properties={"mediaLink": MEDIA_LINK}
+            "blob-name", bucket=_Bucket(client), properties={"mediaLink": MEDIA_LINK}
         )
         blob.download_to_file = mock.Mock()
 
