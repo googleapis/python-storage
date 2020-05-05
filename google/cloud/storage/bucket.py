@@ -1485,15 +1485,6 @@ class Bucket(_PropertyMixin):
         :rtype: :class:`google.cloud.storage.blob.Blob`
         :returns: The new Blob.
 
-        :raises: :class:`ValueError` if ``if_metageneration_match`` and
-                 ``if_metageneration_not_match``, or
-                 ``if_generation_match`` and ``if_generation_not_match``,
-                 or ``if_source_generation_match`` and
-                 ``if_source_generation_not_match``, or
-                 ``if_source_metageneration_match`` and
-                 ``if_source_metageneration_not_match``
-                 are both set.
-
         Example:
             Copy a blob including ACL.
 
@@ -1508,22 +1499,6 @@ class Bucket(_PropertyMixin):
             >>> new_blob = bucket.copy_blob(blob, dst_bucket)
             >>> new_blob.acl.save(blob.acl)
         """
-        _raise_for_more_than_one_none(
-            if_generation_match=if_generation_match,
-            if_generation_not_match=if_generation_not_match,
-        )
-        _raise_for_more_than_one_none(
-            if_metageneration_match=if_metageneration_match,
-            if_metageneration_not_match=if_metageneration_not_match,
-        )
-        _raise_for_more_than_one_none(
-            if_source_generation_match=if_source_generation_match,
-            if_source_generation_not_match=if_source_generation_not_match,
-        )
-        _raise_for_more_than_one_none(
-            if_source_metageneration_match=if_source_metageneration_match,
-            if_source_metageneration_not_match=if_source_metageneration_not_match,
-        )
         client = self._require_client(client)
         query_params = {}
 

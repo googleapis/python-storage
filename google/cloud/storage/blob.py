@@ -762,20 +762,7 @@ class Blob(_PropertyMixin):
 
         :rtype: str
         :returns: The download URL for the current blob.
-
-        :raises: :class:`ValueError` if ``if_metageneration_match`` and
-                 ``if_metageneration_not_match``, or
-                 ``if_generation_match`` and ``if_generation_not_match``
-                 are both set.
         """
-        _raise_for_more_than_one_none(
-            if_generation_match=if_generation_match,
-            if_generation_not_match=if_generation_not_match,
-        )
-        _raise_for_more_than_one_none(
-            if_metageneration_match=if_metageneration_match,
-            if_metageneration_not_match=if_metageneration_not_match,
-        )
         name_value_pairs = []
         if self.media_link is None:
             base_url = _DOWNLOAD_URL_TEMPLATE.format(
@@ -943,11 +930,6 @@ class Blob(_PropertyMixin):
                                             blob's current metageneration does not match the given value.
 
         :raises: :class:`google.cloud.exceptions.NotFound`
-
-        :raises: :class:`ValueError` if ``if_metageneration_match`` and
-                 ``if_metageneration_not_match``, or
-                 ``if_generation_match`` and ``if_generation_not_match``
-                 are both set.
         """
         client = self._require_client(client)
 
@@ -1025,11 +1007,6 @@ class Blob(_PropertyMixin):
                                             blob's current metageneration does not match the given value.
 
         :raises: :class:`google.cloud.exceptions.NotFound`
-
-        :raises: :class:`ValueError` if ``if_metageneration_match`` and
-                 ``if_metageneration_not_match``, or
-                 ``if_generation_match`` and ``if_generation_not_match``
-                 are both set.
         """
         try:
             with open(filename, "wb") as file_obj:
@@ -1112,11 +1089,6 @@ class Blob(_PropertyMixin):
         :returns: The data stored in this blob.
 
         :raises: :class:`google.cloud.exceptions.NotFound`
-
-        :raises: :class:`ValueError` if ``if_metageneration_match`` and
-                 ``if_metageneration_not_match``, or
-                 ``if_generation_match`` and ``if_generation_not_match``
-                 are both set.
         """
         string_buffer = BytesIO()
         self.download_to_file(
@@ -2390,32 +2362,7 @@ class Blob(_PropertyMixin):
                   ``bytes_rewritten`` is the number of bytes rewritten so far,
                   and ``total_bytes`` is the total number of bytes to be
                   rewritten.
-
-        :raises: :class:`ValueError` if ``if_metageneration_match`` and
-                 ``if_metageneration_not_match``, or
-                 ``if_generation_match`` and ``if_generation_not_match``,
-                 or ``if_source_generation_match`` and
-                 ``if_source_generation_not_match``, or
-                 ``if_source_metageneration_match`` and
-                 ``if_source_metageneration_not_match``
-                 are both set.
         """
-        _raise_for_more_than_one_none(
-            if_generation_match=if_generation_match,
-            if_generation_not_match=if_generation_not_match,
-        )
-        _raise_for_more_than_one_none(
-            if_metageneration_match=if_metageneration_match,
-            if_metageneration_not_match=if_metageneration_not_match,
-        )
-        _raise_for_more_than_one_none(
-            if_source_generation_match=if_source_generation_match,
-            if_source_generation_not_match=if_source_generation_not_match,
-        )
-        _raise_for_more_than_one_none(
-            if_source_metageneration_match=if_source_metageneration_match,
-            if_source_metageneration_not_match=if_source_metageneration_not_match,
-        )
         client = self._require_client(client)
         headers = _get_encryption_headers(self._encryption_key)
         headers.update(_get_encryption_headers(source._encryption_key, source=True))
@@ -2560,15 +2507,6 @@ class Blob(_PropertyMixin):
                                                    conditional on whether the source
                                                    object's current metageneration
                                                    does not match the given value.
-
-        :raises: :class:`ValueError` if ``if_metageneration_match`` and
-                 ``if_metageneration_not_match``, or
-                 ``if_generation_match`` and ``if_generation_not_match``,
-                 or ``if_source_generation_match`` and
-                 ``if_source_generation_not_match``, or
-                 ``if_source_metageneration_match`` and
-                 ``if_source_metageneration_not_match``
-                 are both set.
         """
         if new_class not in self.STORAGE_CLASSES:
             raise ValueError("Invalid storage class: %s" % (new_class,))
