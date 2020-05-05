@@ -34,7 +34,6 @@ from google.api_core.iam import Policy
 from google.cloud.storage import _signing
 from google.cloud.storage._helpers import _add_generation_match_parameters
 from google.cloud.storage._helpers import _PropertyMixin
-from google.cloud.storage._helpers import _raise_for_more_than_one_none
 from google.cloud.storage._helpers import _scalar_property
 from google.cloud.storage._helpers import _validate_name
 from google.cloud.storage._signing import generate_signed_url_v2
