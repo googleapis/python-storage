@@ -1328,7 +1328,17 @@ class Bucket(_PropertyMixin):
             timeout=timeout,
         )
 
-    def delete_blobs(self, blobs, on_error=None, client=None, timeout=_DEFAULT_TIMEOUT):
+    def delete_blobs(
+        self,
+        blobs,
+        on_error=None,
+        client=None,
+        timeout=_DEFAULT_TIMEOUT,
+        if_generation_match=[],
+        if_generation_not_match=[],
+        if_metageneration_match=[],
+        if_metageneration_not_match=[],
+    ):
         """Deletes a list of blobs from the current bucket.
 
         Uses :meth:`delete_blob` to delete each individual blob.
@@ -1357,15 +1367,53 @@ class Bucket(_PropertyMixin):
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
 
+        :type if_generation_match: list of long
+        :param if_generation_match: (Optional) Make the operation conditional on whether
+                                    the blob's current generation matches the given value.
+                                    Setting to 0 makes the operation succeed only if there
+                                    are no live versions of the blob. The list must be
+                                    ordered corresponding to ``blobs`` order.
+
+        :type if_generation_not_match: list of long
+        :param if_generation_not_match: (Optional) Make the operation conditional on whether
+                                        the blob's current generation does not match the given
+                                        value. If no live blob exists, the precondition fails.
+                                        Setting to 0 makes the operation succeed only if there
+                                        is a live version of the blob. The list must be ordered
+                                        corresponding to ``blobs`` order.
+
+        :type if_metageneration_match: list of long
+        :param if_metageneration_match: (Optional) Make the operation conditional on whether the
+                                        blob's current metageneration matches the given value.
+                                        The list must be ordered corresponding to ``blobs`` order.
+
+        :type if_metageneration_not_match: list of long
+        :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
+                                            blob's current metageneration does not match the given value.
+                                            The list must be ordered corresponding to ``blobs`` order.
+
         :raises: :class:`~google.cloud.exceptions.NotFound` (if
                  `on_error` is not passed).
         """
+        if_generation_match = iter(if_generation_match)
+        if_generation_not_match = iter(if_generation_not_match)
+        if_metageneration_match = iter(if_metageneration_match)
+        if_metageneration_not_match = iter(if_metageneration_not_match)
+
         for blob in blobs:
             try:
                 blob_name = blob
                 if not isinstance(blob_name, six.string_types):
                     blob_name = blob.name
-                self.delete_blob(blob_name, client=client, timeout=timeout)
+                self.delete_blob(
+                    blob_name,
+                    client=client,
+                    timeout=timeout,
+                    if_generation_match=next(if_generation_match, None),
+                    if_generation_not_match=next(if_generation_not_match, None),
+                    if_metageneration_match=next(if_metageneration_match, None),
+                    if_metageneration_not_match=next(if_metageneration_not_match, None),
+                )
             except NotFound:
                 if on_error is not None:
                     on_error(blob)
