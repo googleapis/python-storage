@@ -681,14 +681,7 @@ class Bucket(_PropertyMixin):
 
         :rtype: bool
         :returns: True if the bucket exists in Cloud Storage.
-
-        :raises: :class:`ValueError` if ``if_metageneration_match`` and
-                 ``if_metageneration_not_match`` are both set.
         """
-        _raise_for_more_than_one_none(
-            if_metageneration_match=if_metageneration_match,
-            if_metageneration_not_match=if_metageneration_not_match,
-        )
         client = self._require_client(client)
         # We only need the status code (200 or not) so we seek to
         # minimize the returned payload.
@@ -823,14 +816,7 @@ class Bucket(_PropertyMixin):
         :type if_metageneration_not_match: long
         :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
                                             blob's current metageneration does not match the given value.
-
-        :raises: :class:`ValueError` if ``if_metageneration_match`` and
-                 ``if_metageneration_not_match`` are both set.
         """
-        _raise_for_more_than_one_none(
-            if_metageneration_match=if_metageneration_match,
-            if_metageneration_not_match=if_metageneration_not_match,
-        )
         # Special case: For buckets, it is possible that labels are being
         # removed; this requires special handling.
         if self._label_removals:
@@ -951,11 +937,6 @@ class Bucket(_PropertyMixin):
 
         :rtype: :class:`google.cloud.storage.blob.Blob` or None
         :returns: The blob object if it exists, otherwise None.
-
-        :raises: :class:`ValueError` if ``if_metageneration_match`` and
-                 ``if_metageneration_not_match``, or
-                 ``if_generation_match`` and ``if_generation_not_match``
-                 are both set.
         """
         blob = Blob(
             bucket=self,
@@ -1208,14 +1189,7 @@ class Bucket(_PropertyMixin):
 
         :raises: :class:`ValueError` if ``force`` is ``True`` and the bucket
                  contains more than 256 objects / blobs.
-
-        :raises: :class:`ValueError` if ``if_metageneration_match`` and
-                 ``if_metageneration_not_match`` are both set.
         """
-        _raise_for_more_than_one_none(
-            if_metageneration_match=if_metageneration_match,
-            if_metageneration_not_match=if_metageneration_not_match,
-        )
         client = self._require_client(client)
         query_params = {}
 
@@ -1328,24 +1302,11 @@ class Bucket(_PropertyMixin):
                  the exception, call ``delete_blobs``, passing a no-op
                  ``on_error`` callback, e.g.:
 
-        :raises: :class:`ValueError` if ``if_metageneration_match`` and
-                 ``if_metageneration_not_match``, or
-                 ``if_generation_match`` and ``if_generation_not_match``
-                 are both set.
-
         .. literalinclude:: snippets.py
             :start-after: [START delete_blobs]
             :end-before: [END delete_blobs]
 
         """
-        _raise_for_more_than_one_none(
-            if_generation_match=if_generation_match,
-            if_generation_not_match=if_generation_not_match,
-        )
-        _raise_for_more_than_one_none(
-            if_metageneration_match=if_metageneration_match,
-            if_metageneration_not_match=if_metageneration_not_match,
-        )
         client = self._require_client(client)
         blob = Blob(blob_name, bucket=self, generation=generation)
 

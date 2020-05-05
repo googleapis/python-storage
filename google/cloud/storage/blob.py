@@ -613,22 +613,9 @@ class Blob(_PropertyMixin):
         :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
                                             blob's current metageneration does not match the given value.
 
-        :raises: :class:`ValueError` if ``if_metageneration_match`` and
-                 ``if_metageneration_not_match``, or
-                 ``if_generation_match`` and ``if_generation_not_match``
-                 are both set.
-
         :rtype: bool
         :returns: True if the blob exists in Cloud Storage.
         """
-        _raise_for_more_than_one_none(
-            if_generation_match=if_generation_match,
-            if_generation_not_match=if_generation_not_match,
-        )
-        _raise_for_more_than_one_none(
-            if_metageneration_match=if_metageneration_match,
-            if_metageneration_not_match=if_metageneration_not_match,
-        )
         client = self._require_client(client)
         # We only need the status code (200 or not) so we seek to
         # minimize the returned payload.
@@ -709,11 +696,6 @@ class Blob(_PropertyMixin):
         :raises: :class:`google.cloud.exceptions.NotFound`
                  (propagated from
                  :meth:`google.cloud.storage.bucket.Bucket.delete_blob`).
-
-        :raises: :class:`ValueError` if ``if_metageneration_match`` and
-                 ``if_metageneration_not_match``, or
-                 ``if_generation_match`` and ``if_generation_not_match``
-                 are both set.
         """
         self.bucket.delete_blob(
             self.name,

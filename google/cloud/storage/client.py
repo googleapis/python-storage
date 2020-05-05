@@ -322,10 +322,6 @@ class Client(ClientWithProject):
             google.cloud.exceptions.NotFound
                 If the bucket is not found.
 
-            ValueError
-                If `if_metageneration_match` and
-                `if_metageneration_not_match` are both set.
-
         Examples:
             Retrieve a bucket using a string.
 
@@ -391,9 +387,6 @@ class Client(ClientWithProject):
 
         :rtype: :class:`google.cloud.storage.bucket.Bucket`
         :returns: The bucket matching the name provided or None if not found.
-
-        :raises: :class:`ValueError` if ``if_metageneration_match`` and
-                 ``if_metageneration_not_match`` are both set.
         """
         try:
             return self.get_bucket(
