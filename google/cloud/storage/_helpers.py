@@ -327,6 +327,9 @@ def _bucket_bound_hostname_url(host, scheme=None, end_slash=False):
     :type end_slash: bool
     :param end_slash: (Optional) If True, add "/" slash to
                       the end of the result URL.
+
+    :rtype: str
+    :returns: A bucket bound hostname URL.
     """
     if ":" in host:
         return host
