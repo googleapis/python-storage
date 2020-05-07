@@ -494,6 +494,7 @@ class Test__add_generation_match_parameters(unittest.TestCase):
         )
         self.assertEqual(params, EXPECTED_PARAMS)
 
+
 class _Connection(object):
     def __init__(self, *responses):
         self._responses = responses
