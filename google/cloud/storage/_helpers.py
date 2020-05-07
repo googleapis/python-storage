@@ -312,3 +312,25 @@ def _convert_to_timestamp(value):
     utc_naive = value.replace(tzinfo=None) - value.utcoffset()
     mtime = (utc_naive - datetime(1970, 1, 1)).total_seconds()
     return mtime
+
+
+def _bucket_bound_hostname_url(host, scheme=None, end_slash=False):
+    """Helper to build bucket bound hostname URL.
+
+    :type host: str
+    :param host: Host name.
+
+    :type scheme: str
+    :param scheme: (Optional) Web scheme. If passed, use it
+                   as a scheme in the result URL.
+
+    :type end_slash: bool
+    :param end_slash: (Optional) If True, add "/" slash to
+                      the end of the result URL.
+    """
+    if ":" in host:
+        return host
+
+    return "{scheme}://{host}{slash}".format(
+        scheme=scheme, host=host, slash="/" if end_slash else ""
+    )

@@ -56,6 +56,7 @@ from google.cloud._helpers import _to_bytes
 from google.cloud.exceptions import NotFound
 from google.cloud.storage._helpers import _PropertyMixin
 from google.cloud.storage._helpers import _scalar_property
+from google.cloud.storage._helpers import _bucket_bound_hostname_url
 from google.cloud.storage._helpers import _convert_to_timestamp
 from google.cloud.storage._signing import generate_signed_url_v2
 from google.cloud.storage._signing import generate_signed_url_v4
@@ -514,12 +515,9 @@ class Blob(_PropertyMixin):
                 bucket_name=self.bucket.name
             )
         elif bucket_bound_hostname:
-            if ":" in bucket_bound_hostname:
-                api_access_endpoint = bucket_bound_hostname
-            else:
-                api_access_endpoint = "{scheme}://{bucket_bound_hostname}".format(
-                    scheme=scheme, bucket_bound_hostname=bucket_bound_hostname
-                )
+            api_access_endpoint = _bucket_bound_hostname_url(
+                bucket_bound_hostname, scheme
+            )
         else:
             resource = "/{bucket_name}/{quoted_name}".format(
                 bucket_name=self.bucket.name, quoted_name=quoted_name
