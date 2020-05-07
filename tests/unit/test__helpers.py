@@ -342,6 +342,7 @@ class Test__base64_md5hash(unittest.TestCase):
         self.assertEqual(MD5.hash_obj.num_digest_calls, 1)
         self.assertEqual(MD5.hash_obj._blocks, [BYTES_TO_SIGN])
 
+
 class Test__bucket_bound_hostname_url(unittest.TestCase):
     def _call_fut(self, **args):
         from google.cloud.storage._helpers import _bucket_bound_hostname_url
