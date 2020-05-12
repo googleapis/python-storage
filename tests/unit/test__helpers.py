@@ -481,18 +481,14 @@ class Test__add_generation_match_parameters(unittest.TestCase):
     def test_add_generation_match_parameters_tuple(self):
         GENERATION_NUMBER = 9
         METAGENERATION_NUMBER = 6
-        EXPECTED_PARAMS = (
-            ("param1", "value1"),
-            ("param2", "value2"),
-        )
 
         params = (("param1", "value1"), ("param2", "value2"))
-        self._call_fut(
-            params,
-            if_generation_match=GENERATION_NUMBER,
-            if_metageneration_match=METAGENERATION_NUMBER,
-        )
-        self.assertEqual(params, EXPECTED_PARAMS)
+        with self.assertRaises(ValueError):
+            self._call_fut(
+                params,
+                if_generation_match=GENERATION_NUMBER,
+                if_metageneration_match=METAGENERATION_NUMBER,
+            )
 
 
 class _Connection(object):

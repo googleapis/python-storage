@@ -967,6 +967,9 @@ class Bucket(_PropertyMixin):
         page_token=None,
         prefix=None,
         delimiter=None,
+        start_offset=None,
+        end_offset=None,
+        include_trailing_delimiter=None,
         versions=None,
         projection="noAcl",
         fields=None,
@@ -998,6 +1001,26 @@ class Bucket(_PropertyMixin):
         :type delimiter: str
         :param delimiter: (Optional) Delimiter, used with ``prefix`` to
                           emulate hierarchy.
+
+        :type start_offset: str
+        :param start_offset:
+            (Optional) Filter results to objects whose names are
+            lexicographically equal to or after ``startOffset``. If
+            ``endOffset`` is also set, the objects listed will have names
+            between ``startOffset`` (inclusive) and ``endOffset`` (exclusive).
+
+        :type end_offset: str
+        :param end_offset:
+            (Optional) Filter results to objects whose names are
+            lexicographically before ``endOffset``. If ``startOffset`` is also
+            set, the objects listed will have names between ``startOffset``
+            (inclusive) and ``endOffset`` (exclusive).
+
+        :type include_trailing_delimiter: boolean
+        :param include_trailing_delimiter:
+            (Optional) If true, objects that end in exactly one instance of
+            ``delimiter`` will have their metadata included in ``items`` in
+            addition to ``prefixes``.
 
         :type versions: bool
         :param versions: (Optional) Whether object versions should be returned
@@ -1039,6 +1062,15 @@ class Bucket(_PropertyMixin):
 
         if delimiter is not None:
             extra_params["delimiter"] = delimiter
+
+        if start_offset is not None:
+            extra_params["startOffset"] = start_offset
+
+        if end_offset is not None:
+            extra_params["endOffset"] = end_offset
+
+        if include_trailing_delimiter is not None:
+            extra_params["includeTrailingDelimiter"] = include_trailing_delimiter
 
         if versions is not None:
             extra_params["versions"] = versions

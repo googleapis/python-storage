@@ -58,7 +58,7 @@ from google.cloud.storage._helpers import _add_generation_match_parameters
 from google.cloud.storage._helpers import _PropertyMixin
 from google.cloud.storage._helpers import _scalar_property
 from google.cloud.storage._helpers import _convert_to_timestamp
-from google.cloud.storage._helpers import _raise_for_more_than_one_none
+from google.cloud.storage._helpers import _raise_if_more_than_one_set
 from google.cloud.storage._signing import generate_signed_url_v2
 from google.cloud.storage._signing import generate_signed_url_v4
 from google.cloud.storage.acl import ACL
@@ -185,7 +185,7 @@ class Blob(_PropertyMixin):
         self.chunk_size = chunk_size  # Check that setter accepts value.
         self._bucket = bucket
         self._acl = ObjectACL(self)
-        _raise_for_more_than_one_none(
+        _raise_if_more_than_one_set(
             encryption_key=encryption_key, kms_key_name=kms_key_name,
         )
 
@@ -1753,12 +1753,12 @@ class Blob(_PropertyMixin):
         if num_retries is not None:
             warnings.warn(_NUM_RETRIES_MESSAGE, DeprecationWarning, stacklevel=2)
 
-        _raise_for_more_than_one_none(
+        _raise_if_more_than_one_set(
             if_generation_match=if_generation_match,
             if_generation_not_match=if_generation_not_match,
         )
 
-        _raise_for_more_than_one_none(
+        _raise_if_more_than_one_set(
             if_metageneration_match=if_metageneration_match,
             if_metageneration_not_match=if_metageneration_not_match,
         )

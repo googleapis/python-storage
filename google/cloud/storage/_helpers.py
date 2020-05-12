@@ -440,6 +440,9 @@ def _add_generation_match_parameters(parameters, **match_parameters):
 
     :type match_parameters: dict
     :param match_parameters: if*generation*match parameters to add.
+
+    :raises: :exc:`ValueError` if ``parameters`` is not a ``list()``
+             or a ``dict()``.
     """
     for snakecase_name, camelcase_name in _GENERATION_MATCH_PARAMETERS:
         value = match_parameters.get(snakecase_name)
@@ -451,8 +454,13 @@ def _add_generation_match_parameters(parameters, **match_parameters):
             elif isinstance(parameters, dict):
                 parameters[camelcase_name] = value
 
+            else:
+                raise ValueError(
+                    "`parameters` argument should be a dict() or a list()."
+                )
 
-def _raise_for_more_than_one_none(**kwargs):
+
+def _raise_if_more_than_one_set(**kwargs):
     """Raise ``ValueError`` exception if more than one parameter was set.
 
     :type error: :exc:`ValueError`
