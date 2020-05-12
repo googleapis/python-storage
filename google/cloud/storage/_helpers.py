@@ -36,6 +36,10 @@ _GENERATION_MATCH_PARAMETERS = (
     ("if_generation_not_match", "ifGenerationNotMatch"),
     ("if_metageneration_match", "ifMetagenerationMatch"),
     ("if_metageneration_not_match", "ifMetagenerationNotMatch"),
+    ("if_source_generation_match", "ifSourceGenerationMatch"),
+    ("if_source_generation_not_match", "ifSourceGenerationNotMatch"),
+    ("if_source_metageneration_match", "ifSourceMetagenerationMatch"),
+    ("if_source_metageneration_not_match", "ifSourceMetagenerationNotMatch"),
 )
 
 
