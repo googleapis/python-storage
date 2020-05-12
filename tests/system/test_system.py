@@ -1290,6 +1290,13 @@ class TestStorageCompose(TestStorageFiles):
         to_append.upload_from_string(TO_APPEND)
         self.case_blobs_to_delete.append(to_append)
 
+        with self.assertRaises(google.api_core.exceptions.PreconditionFailed):
+            original.compose(
+                [original, to_append],
+                if_generation_match=[6, 7],
+                if_metageneration_match=[8, 9],
+            )
+
         original.compose(
             [original, to_append],
             if_generation_match=[original.generation, to_append.generation],
