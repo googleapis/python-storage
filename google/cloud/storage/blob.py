@@ -1314,6 +1314,11 @@ class Blob(_PropertyMixin):
         :returns: The "200 OK" response object returned after the final chunk
                   is uploaded.
         """
+        if size is not None:
+            data = stream.read(size)
+            byte_data = _to_bytes(data, encoding="utf-8")
+            stream = BytesIO(byte_data)
+
         upload, transport = self._initiate_resumable_upload(
             client,
             stream,
