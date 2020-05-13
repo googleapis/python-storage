@@ -737,6 +737,21 @@ class TestStorageWriteFiles(TestStorageFiles):
             with open(file_data["path"], "rb") as file_obj:
                 blob.upload_from_file(file_obj, if_metageneration_match=3)
 
+    def test_file_size_greater_than_max_multipart_size_write_from_stream(self):
+        from google.cloud.storage import blob
+
+        size = 4000000
+        blob._MAX_MULTIPART_SIZE = 3145728  # 3 MB
+        blob = self.bucket.blob("LargeFile")
+
+        file_data = self.FILES["big"]
+        with open(file_data["path"], "rb") as file_obj:
+            blob.upload_from_file(file_obj, size=size)
+            self.case_blobs_to_delete.append(blob)
+
+        uploaded_blob = self.bucket.get_blob(blob.name)
+        self.assertEqual(uploaded_blob.size, size)
+
 
 class TestUnicode(unittest.TestCase):
     @vpcsc_config.skip_if_inside_vpcsc
