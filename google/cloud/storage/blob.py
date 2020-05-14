@@ -1753,16 +1753,6 @@ class Blob(_PropertyMixin):
         if num_retries is not None:
             warnings.warn(_NUM_RETRIES_MESSAGE, DeprecationWarning, stacklevel=2)
 
-        _raise_if_more_than_one_set(
-            if_generation_match=if_generation_match,
-            if_generation_not_match=if_generation_not_match,
-        )
-
-        _raise_if_more_than_one_set(
-            if_metageneration_match=if_metageneration_match,
-            if_metageneration_not_match=if_metageneration_not_match,
-        )
-
         _maybe_rewind(file_obj, rewind=rewind)
         predefined_acl = ACL.validate_predefined(predefined_acl)
 
