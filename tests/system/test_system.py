@@ -446,7 +446,7 @@ class TestStorageBuckets(unittest.TestCase):
                 blob,
                 dest_bucket,
                 "simple-copy",
-                if_source_generation_match=blob.metageneration,
+                if_source_generation_match=blob.generation,
             )
             to_delete.append(new_blob)
 
@@ -1564,7 +1564,7 @@ class TestStorageRewrite(TestStorageFiles):
     def test_rewrite_with_generation_match(self):
         BLOB_NAME = "rotating-keys"
         file_data = self.FILES["simple"]
-        new_bucket_name = "rewrite-generation-match"  # + unique_resource_id("-")
+        new_bucket_name = "rewrite-generation-match" + unique_resource_id("-")
         created = Config.CLIENT.create_bucket(new_bucket_name, requester_pays=True)
         try:
             with_user_project = Config.CLIENT.bucket(
