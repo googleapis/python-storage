@@ -1562,26 +1562,26 @@ class TestStorageRewrite(TestStorageFiles):
             retry_429_harder(created.delete)(force=True)
 
     def test_rewrite_with_generation_match(self):
-        BLOB_NAME = "rotating-keys"
+        WRONG_GENERATION_NUMBER = 6
+        BLOB_NAME = "generation-match"
+
         file_data = self.FILES["simple"]
         new_bucket_name = "rewrite-generation-match" + unique_resource_id("-")
-        created = Config.CLIENT.create_bucket(new_bucket_name, requester_pays=True)
+        created = Config.CLIENT.create_bucket(new_bucket_name)
         try:
             with_user_project = Config.CLIENT.bucket(
                 new_bucket_name, user_project=USER_PROJECT
             )
 
-            SOURCE_KEY = os.urandom(32)
-            source = with_user_project.blob(BLOB_NAME, encryption_key=SOURCE_KEY)
+            source = with_user_project.blob(BLOB_NAME)
             source.upload_from_filename(file_data["path"])
             source_data = source.download_as_string()
 
-            DEST_KEY = os.urandom(32)
-            dest = with_user_project.blob(BLOB_NAME, encryption_key=DEST_KEY)
+            dest = with_user_project.blob(BLOB_NAME)
 
             with self.assertRaises(google.api_core.exceptions.PreconditionFailed):
                 token, rewritten, total = dest.rewrite(
-                    source, if_generation_not_match=dest.generation
+                    source, if_generation_match=WRONG_GENERATION_NUMBER
                 )
 
             token, rewritten, total = dest.rewrite(
