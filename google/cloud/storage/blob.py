@@ -2007,12 +2007,7 @@ class Blob(_PropertyMixin):
         self.acl.save(client=client)
 
     def compose(
-        self,
-        sources,
-        client=None,
-        timeout=_DEFAULT_TIMEOUT,
-        if_generation_match=None,
-        if_metageneration_match=None,
+        self, sources, client=None, timeout=_DEFAULT_TIMEOUT,
     ):
         """Concatenate source blobs into this one.
 
@@ -2054,18 +2049,17 @@ class Blob(_PropertyMixin):
             query_params["userProject"] = self.user_project
 
         source_objects = []
-        for index, source in enumerate(sources):
-            source_object = {"name": source.name}
+        for source in sources:
+            if isinstance(source, dict):
+                source_object = {"name": source["blob"].name}
 
-            preconditions = {}
-            if if_generation_match is not None:
-                preconditions["ifGenerationMatch"] = if_generation_match[index]
+                preconditions = {}
+                _add_generation_match_parameters(preconditions, **source)
 
-            if if_metageneration_match is not None:
-                preconditions["ifMetagenerationMatch"] = if_metageneration_match[index]
-
-            if preconditions:
-                source_object["objectPreconditions"] = preconditions
+                if preconditions:
+                    source_object["objectPreconditions"] = preconditions
+            else:
+                source_object = {"name": source.name}
 
             source_objects.append(source_object)
 
@@ -2697,3 +2691,40 @@ def _raise_for_more_than_one_none(**kwargs):
         )
 
         raise ValueError(msg)
+
+
+_GENERATION_MATCH_PARAMETERS = (
+    ("if_generation_match", "ifGenerationMatch"),
+    ("if_generation_not_match", "ifGenerationNotMatch"),
+    ("if_metageneration_match", "ifMetagenerationMatch"),
+    ("if_metageneration_not_match", "ifMetagenerationNotMatch"),
+    ("if_source_generation_match", "ifSourceGenerationMatch"),
+    ("if_source_generation_not_match", "ifSourceGenerationNotMatch"),
+    ("if_source_metageneration_match", "ifSourceMetagenerationMatch"),
+    ("if_source_metageneration_not_match", "ifSourceMetagenerationNotMatch"),
+)
+
+
+def _add_generation_match_parameters(parameters, **match_parameters):
+    """Add generation match parameters into the given parameters list.
+    :type parameters: list or dict
+    :param parameters: Parameters list or dict.
+    :type match_parameters: dict
+    :param match_parameters: if*generation*match parameters to add.
+    :raises: :exc:`ValueError` if ``parameters`` is not a ``list()``
+             or a ``dict()``.
+    """
+    for snakecase_name, camelcase_name in _GENERATION_MATCH_PARAMETERS:
+        value = match_parameters.get(snakecase_name)
+
+        if value is not None:
+            if isinstance(parameters, list):
+                parameters.append((camelcase_name, value))
+
+            elif isinstance(parameters, dict):
+                parameters[camelcase_name] = value
+
+            else:
+                raise ValueError(
+                    "`parameters` argument should be a dict() or a list()."
+                )
