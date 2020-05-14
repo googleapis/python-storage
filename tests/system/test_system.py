@@ -670,7 +670,7 @@ class TestStorageWriteFiles(TestStorageFiles):
         blob1 = bucket.blob("SmallFile", generation=gen1)
 
         try:
-            # Exercise 'objects.get' (metadata) w/ generation_match.
+            # Exercise 'objects.get' (metadata) w/ generation match.
             with self.assertRaises(google.api_core.exceptions.PreconditionFailed):
                 blob.exists(if_generation_match=WRONG_GENERATION_NUMBER)
 
@@ -681,7 +681,7 @@ class TestStorageWriteFiles(TestStorageFiles):
 
             blob.reload(if_generation_match=gen1)
 
-            # # Exercise 'objects.get' (media) w/ generation match.
+            # Exercise 'objects.get' (media) w/ generation match.
             self.assertEqual(
                 blob0.download_as_string(if_generation_match=gen0), file_contents
             )
@@ -689,14 +689,14 @@ class TestStorageWriteFiles(TestStorageFiles):
                 blob1.download_as_string(if_generation_not_match=gen0), b"gen1"
             )
 
-            # # Exercise 'objects.patch' w/ generation match.
+            # Exercise 'objects.patch' w/ generation match.
             blob0.content_language = "en"
             blob0.patch(if_generation_match=gen0)
 
             self.assertEqual(blob0.content_language, "en")
             self.assertIsNone(blob1.content_language)
 
-            # # Exercise 'objects.update' w/ generation match.
+            # Exercise 'objects.update' w/ generation match.
             metadata = {"foo": "Foo", "bar": "Bar"}
             blob0.metadata = metadata
             blob0.update(if_generation_match=gen0)
@@ -1567,17 +1567,15 @@ class TestStorageRewrite(TestStorageFiles):
 
         file_data = self.FILES["simple"]
         new_bucket_name = "rewrite-generation-match" + unique_resource_id("-")
-        created = Config.CLIENT.create_bucket(new_bucket_name)
+        created = retry_429_503(Config.CLIENT.create_bucket)(new_bucket_name)
         try:
-            with_user_project = Config.CLIENT.bucket(
-                new_bucket_name, user_project=USER_PROJECT
-            )
+            bucket = Config.CLIENT.bucket(new_bucket_name)
 
-            source = with_user_project.blob(BLOB_NAME)
+            source = bucket.blob(BLOB_NAME)
             source.upload_from_filename(file_data["path"])
             source_data = source.download_as_string()
 
-            dest = with_user_project.blob(BLOB_NAME)
+            dest = bucket.blob(BLOB_NAME)
 
             with self.assertRaises(google.api_core.exceptions.PreconditionFailed):
                 token, rewritten, total = dest.rewrite(
@@ -1593,10 +1591,9 @@ class TestStorageRewrite(TestStorageFiles):
             self.assertEqual(token, None)
             self.assertEqual(rewritten, len(source_data))
             self.assertEqual(total, len(source_data))
-
             self.assertEqual(dest.download_as_string(), source_data)
         finally:
-            created.delete(force=True)
+            retry_429_harder(created.delete)(force=True)
 
 
 class TestStorageUpdateStorageClass(TestStorageFiles):

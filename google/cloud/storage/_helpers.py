@@ -345,6 +345,10 @@ class _PropertyMixin(object):
         :type if_metageneration_match: long
         :param if_metageneration_match: (Optional) Make the operation conditional on whether the
                                         blob's current metageneration matches the given value.
+
+        :type if_metageneration_not_match: long
+        :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
+                                            blob's current metageneration does not match the given value.
         """
         client = self._require_client(client)
 
