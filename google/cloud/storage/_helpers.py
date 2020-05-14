@@ -121,10 +121,15 @@ class _PropertyMixin(object):
             params["userProject"] = self.user_project
         return params
 
-    def reload(self, client=None, timeout=_DEFAULT_TIMEOUT):
+    def reload(self, projection="noAcl", client=None, timeout=_DEFAULT_TIMEOUT):
         """Reload properties from Cloud Storage.
 
         If :attr:`user_project` is set, bills the API request to that project.
+
+        :type projection: str
+        :param projection: (Optional) If used, must be 'full' or 'noAcl'.
+                           Defaults to ``'noAcl'``. Specifies the set of
+                           properties to return.
 
         :type client: :class:`~google.cloud.storage.client.Client` or
                       ``NoneType``
@@ -139,9 +144,7 @@ class _PropertyMixin(object):
         """
         client = self._require_client(client)
         query_params = self._query_params
-        # Pass only '?projection=noAcl' here because 'acl' and related
-        # are handled via custom endpoints.
-        query_params["projection"] = "noAcl"
+        query_params["projection"] = projection
         api_response = client._connection.api_request(
             method="GET",
             path=self.path,
