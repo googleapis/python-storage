@@ -126,7 +126,8 @@ class Test_PropertyMixin(unittest.TestCase):
         )
         self.assertEqual(derived._changes, set())
 
-    def test_reload_with_metageneration_match(self):
+    def test_reload_with_generation_match(self):
+        GENERATION_NUMBER = 9
         METAGENERATION_NUMBER = 6
 
         connection = _Connection({"foo": "Foo"})
@@ -136,7 +137,10 @@ class Test_PropertyMixin(unittest.TestCase):
         # (which will clear / replace it with an empty set), checked below.
         derived._changes = object()
         derived.reload(
-            client=client, timeout=42, if_metageneration_match=METAGENERATION_NUMBER
+            client=client,
+            timeout=42,
+            if_generation_match=GENERATION_NUMBER,
+            if_metageneration_match=METAGENERATION_NUMBER,
         )
         self.assertEqual(derived._properties, {"foo": "Foo"})
         kw = connection._requested
@@ -148,6 +152,7 @@ class Test_PropertyMixin(unittest.TestCase):
                 "path": "/path",
                 "query_params": {
                     "projection": "noAcl",
+                    "ifGenerationMatch": GENERATION_NUMBER,
                     "ifMetagenerationMatch": METAGENERATION_NUMBER,
                 },
                 "headers": {},
@@ -223,6 +228,7 @@ class Test_PropertyMixin(unittest.TestCase):
         self.assertEqual(derived._changes, set())
 
     def test_patch_with_metageneration_match(self):
+        GENERATION_NUMBER = 9
         METAGENERATION_NUMBER = 6
 
         connection = _Connection({"foo": "Foo"})
@@ -234,7 +240,10 @@ class Test_PropertyMixin(unittest.TestCase):
         derived._properties = {"bar": BAR, "baz": BAZ}
         derived._changes = set(["bar"])  # Ignore baz.
         derived.patch(
-            client=client, timeout=42, if_metageneration_match=METAGENERATION_NUMBER
+            client=client,
+            timeout=42,
+            if_generation_match=GENERATION_NUMBER,
+            if_metageneration_match=METAGENERATION_NUMBER,
         )
         self.assertEqual(derived._properties, {"foo": "Foo"})
         kw = connection._requested
@@ -246,6 +255,7 @@ class Test_PropertyMixin(unittest.TestCase):
                 "path": "/path",
                 "query_params": {
                     "projection": "full",
+                    "ifGenerationMatch": GENERATION_NUMBER,
                     "ifMetagenerationMatch": METAGENERATION_NUMBER,
                 },
                 # Since changes does not include `baz`, we don't see it sent.
