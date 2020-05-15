@@ -135,8 +135,8 @@ class _PropertyMixin(object):
 
     def reload(
         self,
-        projection="noAcl",
         client=None,
+        projection="noAcl",
         timeout=_DEFAULT_TIMEOUT,
         if_generation_match=None,
         if_generation_not_match=None,
@@ -147,15 +147,15 @@ class _PropertyMixin(object):
 
         If :attr:`user_project` is set, bills the API request to that project.
 
-        :type projection: str
-        :param projection: (Optional) If used, must be 'full' or 'noAcl'.
-                           Defaults to ``'noAcl'``. Specifies the set of
-                           properties to return.
-
         :type client: :class:`~google.cloud.storage.client.Client` or
                       ``NoneType``
         :param client: the client to use. If not passed, falls back to the
                        ``client`` stored on the current object.
+
+        :type projection: str
+        :param projection: (Optional) If used, must be 'full' or 'noAcl'.
+                           Defaults to ``'noAcl'``. Specifies the set of
+                           properties to return.
 
         :type timeout: float or tuple
         :param timeout: (Optional) The amount of time, in seconds, to wait
