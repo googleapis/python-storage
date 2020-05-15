@@ -436,6 +436,54 @@ class TestClient(unittest.TestCase):
             timeout=self._get_default_timeout(),
         )
 
+    def test_get_bucket_with_metageneration_match(self):
+        from google.cloud.storage.bucket import Bucket
+
+        PROJECT = "PROJECT"
+        CREDENTIALS = _make_credentials()
+        METAGENERATION_NUMBER = 6
+        client = self._make_one(project=PROJECT, credentials=CREDENTIALS)
+
+        BUCKET_NAME = "bucket-name"
+        URI1 = "/".join(
+            [
+                client._connection.API_BASE_URL,
+                "storage",
+                client._connection.API_VERSION,
+                "b",
+                "%s?projection=noAcl&ifMetagenerationMatch=%s"
+                % (BUCKET_NAME, METAGENERATION_NUMBER),
+            ]
+        )
+        URI2 = "/".join(
+            [
+                client._connection.API_BASE_URL,
+                "storage",
+                client._connection.API_VERSION,
+                "b",
+                "%s?ifMetagenerationMatch=%s&projection=noAcl"
+                % (BUCKET_NAME, METAGENERATION_NUMBER),
+            ]
+        )
+        data = {"name": BUCKET_NAME}
+        http = _make_requests_session([_make_json_response(data)])
+        client._http_internal = http
+
+        bucket = client.get_bucket(
+            BUCKET_NAME, if_metageneration_match=METAGENERATION_NUMBER
+        )
+        self.assertIsInstance(bucket, Bucket)
+        self.assertEqual(bucket.name, BUCKET_NAME)
+        http.request.assert_called_once_with(
+            method="GET",
+            url=mock.ANY,
+            data=mock.ANY,
+            headers=mock.ANY,
+            timeout=self._get_default_timeout(),
+        )
+        _, kwargs = http.request.call_args
+        self.assertIn(kwargs.get("url"), (URI1, URI2))
+
     def test_get_bucket_with_object_miss(self):
         from google.cloud.exceptions import NotFound
         from google.cloud.storage.bucket import Bucket
@@ -565,6 +613,54 @@ class TestClient(unittest.TestCase):
             headers=mock.ANY,
             timeout=self._get_default_timeout(),
         )
+
+    def test_lookup_bucket_with_metageneration_match(self):
+        from google.cloud.storage.bucket import Bucket
+
+        PROJECT = "PROJECT"
+        CREDENTIALS = _make_credentials()
+        METAGENERATION_NUMBER = 6
+        client = self._make_one(project=PROJECT, credentials=CREDENTIALS)
+
+        BUCKET_NAME = "bucket-name"
+        URI1 = "/".join(
+            [
+                client._connection.API_BASE_URL,
+                "storage",
+                client._connection.API_VERSION,
+                "b",
+                "%s?projection=noAcl&ifMetagenerationMatch=%s"
+                % (BUCKET_NAME, METAGENERATION_NUMBER),
+            ]
+        )
+        URI2 = "/".join(
+            [
+                client._connection.API_BASE_URL,
+                "storage",
+                client._connection.API_VERSION,
+                "b",
+                "%s?ifMetagenerationMatch=%s&projection=noAcl"
+                % (BUCKET_NAME, METAGENERATION_NUMBER),
+            ]
+        )
+        data = {"name": BUCKET_NAME}
+        http = _make_requests_session([_make_json_response(data)])
+        client._http_internal = http
+
+        bucket = client.lookup_bucket(
+            BUCKET_NAME, if_metageneration_match=METAGENERATION_NUMBER
+        )
+        self.assertIsInstance(bucket, Bucket)
+        self.assertEqual(bucket.name, BUCKET_NAME)
+        http.request.assert_called_once_with(
+            method="GET",
+            url=mock.ANY,
+            data=mock.ANY,
+            headers=mock.ANY,
+            timeout=self._get_default_timeout(),
+        )
+        _, kwargs = http.request.call_args
+        self.assertIn(kwargs.get("url"), (URI1, URI2))
 
     def test_create_bucket_w_missing_client_project(self):
         credentials = _make_credentials()
@@ -970,6 +1066,9 @@ class TestClient(unittest.TestCase):
         PAGE_TOKEN = "ABCD"
         PREFIX = "subfolder"
         DELIMITER = "/"
+        START_OFFSET = "c"
+        END_OFFSET = "g"
+        INCLUDE_TRAILING_DELIMITER = True
         VERSIONS = True
         PROJECTION = "full"
         FIELDS = "items/contentLanguage,nextPageToken"
@@ -978,6 +1077,9 @@ class TestClient(unittest.TestCase):
             "pageToken": PAGE_TOKEN,
             "prefix": PREFIX,
             "delimiter": DELIMITER,
+            "startOffset": START_OFFSET,
+            "endOffset": END_OFFSET,
+            "includeTrailingDelimiter": INCLUDE_TRAILING_DELIMITER,
             "versions": VERSIONS,
             "projection": PROJECTION,
             "fields": FIELDS,
@@ -1001,6 +1103,9 @@ class TestClient(unittest.TestCase):
                 page_token=PAGE_TOKEN,
                 prefix=PREFIX,
                 delimiter=DELIMITER,
+                start_offset=START_OFFSET,
+                end_offset=END_OFFSET,
+                include_trailing_delimiter=INCLUDE_TRAILING_DELIMITER,
                 versions=VERSIONS,
                 projection=PROJECTION,
                 fields=FIELDS,
