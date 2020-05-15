@@ -508,4 +508,3 @@ def _bucket_bound_hostname_url(host, scheme=None, end_slash=False):
     return "{scheme}://{host}{slash}".format(
         scheme=scheme, host=host, slash="/" if end_slash else ""
     )
-
