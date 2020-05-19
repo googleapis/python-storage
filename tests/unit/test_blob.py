@@ -2670,6 +2670,32 @@ class Test_Blob(unittest.TestCase):
             },
         )
 
+    def test_compose_w_generation_match_bad_length(self):
+        SOURCE_1 = "source-1"
+        SOURCE_2 = "source-2"
+        DESTINATION = "destination"
+        GENERATION_NUMBERS = [6]
+        METAGENERATION_NUMBERS = [7]
+
+        after = ({"status": http_client.OK}, {})
+        connection = _Connection(after)
+        client = _Client(connection)
+        bucket = _Bucket(client=client)
+        source_1 = self._make_one(SOURCE_1, bucket=bucket)
+        source_2 = self._make_one(SOURCE_2, bucket=bucket)
+
+        destination = self._make_one(DESTINATION, bucket=bucket)
+
+        with self.assertRaises(ValueError):
+            destination.compose(
+                sources=[source_1, source_2], if_generation_match=GENERATION_NUMBERS,
+            )
+        with self.assertRaises(ValueError):
+            destination.compose(
+                sources=[source_1, source_2],
+                if_metageneration_match=METAGENERATION_NUMBERS,
+            )
+
     def test_rewrite_response_without_resource(self):
         SOURCE_BLOB = "source"
         DEST_BLOB = "dest"

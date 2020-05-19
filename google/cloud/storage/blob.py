@@ -2046,7 +2046,35 @@ class Blob(_PropertyMixin):
                                         blob's current metageneration matches the given value.
                                         Metageneration numbers list should have the same order
                                         that ``sources`` have.
+
+        Example:
+            Compose blobs using generation match preconditions.
+
+            >>> from google.cloud import storage
+            >>> client = storage.Client()
+            >>> bucket = client.bucket('bucket-name')
+
+            >>> blobs = [bucket.blob("blob-name-1"), bucket.blob("blob-name-2")]
+            >>> if_generation_match = [None] * len(blobs)
+            >>> if_generation_match[0] = "123"
+
+            >>> composed_blob = bucket.blob("composed-name")
+            >>> composed_blob.compose(blobs, if_generation_match)
         """
+        sources_len = len(sources)
+        if if_generation_match is not None and len(if_generation_match) != sources_len:
+            raise ValueError(
+                "'if_generation_match' length must be the same as 'sources' length"
+            )
+
+        if (
+            if_metageneration_match is not None
+            and len(if_metageneration_match) != sources_len
+        ):
+            raise ValueError(
+                "'if_metageneration_match' length must be the same as 'sources' length"
+            )
+
         client = self._require_client(client)
         query_params = {}
 
