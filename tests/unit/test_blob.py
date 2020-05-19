@@ -2619,11 +2619,10 @@ class Test_Blob(unittest.TestCase):
     def test_compose_w_generation_match(self):
         SOURCE_1 = "source-1"
         SOURCE_2 = "source-2"
-        SOURCE_3 = "source-3"
         DESTINATION = "destination"
         RESOURCE = {}
-        GENERATION_NUMBER = 6
-        METAGENERATION_NUMBER = 9
+        GENERATION_NUMBERS = [6, 9]
+        METAGENERATION_NUMBERS = [7, 1]
 
         after = ({"status": http_client.OK}, RESOURCE)
         connection = _Connection(after)
@@ -2631,15 +2630,12 @@ class Test_Blob(unittest.TestCase):
         bucket = _Bucket(client=client)
         source_1 = self._make_one(SOURCE_1, bucket=bucket)
         source_2 = self._make_one(SOURCE_2, bucket=bucket)
-        source_3 = self._make_one(SOURCE_3, bucket=bucket)
 
         destination = self._make_one(DESTINATION, bucket=bucket)
         destination.compose(
-            sources=[
-                {"blob": source_1, "if_generation_match": GENERATION_NUMBER},
-                {"blob": source_2, "if_metageneration_match": METAGENERATION_NUMBER},
-                source_3,
-            ]
+            sources=[source_1, source_2],
+            if_generation_match=GENERATION_NUMBERS,
+            if_metageneration_match=METAGENERATION_NUMBERS,
         )
 
         kw = connection._requested
@@ -2655,16 +2651,17 @@ class Test_Blob(unittest.TestCase):
                         {
                             "name": source_1.name,
                             "objectPreconditions": {
-                                "ifGenerationMatch": GENERATION_NUMBER,
+                                "ifGenerationMatch": GENERATION_NUMBERS[0],
+                                "ifMetagenerationMatch": METAGENERATION_NUMBERS[0],
                             },
                         },
                         {
                             "name": source_2.name,
                             "objectPreconditions": {
-                                "ifMetagenerationMatch": METAGENERATION_NUMBER,
+                                "ifGenerationMatch": GENERATION_NUMBERS[1],
+                                "ifMetagenerationMatch": METAGENERATION_NUMBERS[1],
                             },
                         },
-                        {"name": source_3.name},
                     ],
                     "destination": {},
                 },

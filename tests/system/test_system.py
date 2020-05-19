@@ -1292,21 +1292,17 @@ class TestStorageCompose(TestStorageFiles):
 
         with self.assertRaises(google.api_core.exceptions.PreconditionFailed):
             original.compose(
-                [
-                    {"blob": original, "if_generation_match": 6},
-                    {"blob": to_append, "if_metageneration_match": 9},
-                ],
+                [original, to_append],
+                if_generation_match=[6, 7],
+                if_metageneration_match=[8, 9],
             )
+
         original.compose(
-            [
-                {
-                    "blob": original,
-                    "if_generation_match": original.generation,
-                    "if_metageneration_match": original.metageneration,
-                },
-                to_append,
-            ]
+            [original, to_append],
+            if_generation_match=[original.generation, to_append.generation],
+            if_metageneration_match=[original.metageneration, to_append.metageneration],
         )
+
         composed = original.download_as_string()
         self.assertEqual(composed, BEFORE + TO_APPEND)
 
