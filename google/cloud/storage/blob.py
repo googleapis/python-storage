@@ -2052,7 +2052,7 @@ class Blob(_PropertyMixin):
 
             >>> from google.cloud import storage
             >>> client = storage.Client()
-            >>> bucket = client.bucket('bucket-name')
+            >>> bucket = client.bucket("bucket-name")
 
             >>> blobs = [bucket.blob("blob-name-1"), bucket.blob("blob-name-2")]
             >>> if_generation_match = [None] * len(blobs)
@@ -2086,10 +2086,16 @@ class Blob(_PropertyMixin):
             source_object = {"name": source.name}
 
             preconditions = {}
-            if if_generation_match is not None:
+            if (
+                if_generation_match is not None
+                and if_generation_match[index] is not None
+            ):
                 preconditions["ifGenerationMatch"] = if_generation_match[index]
 
-            if if_metageneration_match is not None:
+            if (
+                if_metageneration_match is not None
+                and if_metageneration_match[index] is not None
+            ):
                 preconditions["ifMetagenerationMatch"] = if_metageneration_match[index]
 
             if preconditions:
