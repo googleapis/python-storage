@@ -152,7 +152,6 @@ class _PropertyMixin(object):
         :param client: the client to use. If not passed, falls back to the
                        ``client`` stored on the current object.
 
-
         :type projection: str
         :param projection: (Optional) If used, must be 'full' or 'noAcl'.
                            Defaults to ``'noAcl'``. Specifies the set of
