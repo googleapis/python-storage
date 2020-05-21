@@ -709,7 +709,8 @@ class Test_Blob(unittest.TestCase):
 
     def test_exists_w_generation_match(self):
         BLOB_NAME = "blob-name"
-        GENERATION = 123456
+        GENERATION_NUMBER = 123456
+        METAGENERATION_NUMBER = 6
 
         found_response = ({"status": http_client.OK}, b"")
         connection = _Connection(found_response)
@@ -717,14 +718,23 @@ class Test_Blob(unittest.TestCase):
         bucket = _Bucket(client)
         blob = self._make_one(BLOB_NAME, bucket=bucket)
         bucket._blobs[BLOB_NAME] = 1
-        self.assertTrue(blob.exists(if_generation_match=GENERATION))
+        self.assertTrue(
+            blob.exists(
+                if_generation_match=GENERATION_NUMBER,
+                if_metageneration_match=METAGENERATION_NUMBER,
+            )
+        )
         self.assertEqual(len(connection._requested), 1)
         self.assertEqual(
             connection._requested[0],
             {
                 "method": "GET",
                 "path": "/b/name/o/{}".format(BLOB_NAME),
-                "query_params": {"fields": "name", "ifGenerationMatch": GENERATION},
+                "query_params": {
+                    "fields": "name",
+                    "ifGenerationMatch": GENERATION_NUMBER,
+                    "ifMetagenerationMatch": METAGENERATION_NUMBER,
+                },
                 "_target_object": None,
                 "timeout": self._get_default_timeout(),
             },
