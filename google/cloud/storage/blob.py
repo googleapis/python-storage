@@ -2038,14 +2038,13 @@ class Blob(_PropertyMixin):
         :param if_generation_match: (Optional) Make the operation conditional on whether
                                     the blob's current generation matches the given value.
                                     Setting to 0 makes the operation succeed only if there
-                                    are no live versions of the blob. Generation numbers list
-                                    should have the same order that ``sources`` have.
+                                    are no live versions of the blob. The list must match
+                                    ``sources`` item-to-item.
 
         :type if_metageneration_match: list of long
-        :param if_metageneration_match: (Optional) Make the operation conditional on whether the
-                                        blob's current metageneration matches the given value.
-                                        Metageneration numbers list should have the same order
-                                        that ``sources`` have.
+        :param if_metageneration_match: (Optional) Make the operation conditional on whether
+                                        the blob's current metageneration matches the given
+                                        value. The list must match ``sources`` item-to-item.
 
         Example:
             Compose blobs using generation match preconditions.
@@ -2056,7 +2055,7 @@ class Blob(_PropertyMixin):
 
             >>> blobs = [bucket.blob("blob-name-1"), bucket.blob("blob-name-2")]
             >>> if_generation_match = [None] * len(blobs)
-            >>> if_generation_match[0] = "123"
+            >>> if_generation_match[0] = "123"  # precondition for "blob-name-1"
 
             >>> composed_blob = bucket.blob("composed-name")
             >>> composed_blob.compose(blobs, if_generation_match)
