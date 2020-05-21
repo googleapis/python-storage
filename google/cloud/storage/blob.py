@@ -1280,7 +1280,10 @@ class Blob(_PropertyMixin):
         if self.user_project is not None:
             name_value_pairs.append(("userProject", self.user_project))
 
-        if self.kms_key_name is not None:
+        if (
+            self.kms_key_name is not None
+            and "cryptoKeyVersions" not in self.kms_key_name
+        ):
             name_value_pairs.append(("kmsKeyName", self.kms_key_name))
 
         if predefined_acl is not None:
@@ -1417,7 +1420,10 @@ class Blob(_PropertyMixin):
         if self.user_project is not None:
             name_value_pairs.append(("userProject", self.user_project))
 
-        if self.kms_key_name is not None:
+        if (
+            self.kms_key_name is not None
+            and "cryptoKeyVersions" not in self.kms_key_name
+        ):
             name_value_pairs.append(("kmsKeyName", self.kms_key_name))
 
         if predefined_acl is not None:
