@@ -493,7 +493,7 @@ def _raise_if_more_than_one_set(**kwargs):
         raise ValueError(msg)
 
 
-def _bucket_bound_hostname_url(host, scheme=None, end_slash=False):
+def _bucket_bound_hostname_url(host, scheme=None):
     """Helper to build bucket bound hostname URL.
 
     :type host: str
@@ -503,16 +503,10 @@ def _bucket_bound_hostname_url(host, scheme=None, end_slash=False):
     :param scheme: (Optional) Web scheme. If passed, use it
                    as a scheme in the result URL.
 
-    :type end_slash: bool
-    :param end_slash: (Optional) If True, add "/" slash to
-                      the end of the result URL.
-
     :rtype: str
     :returns: A bucket bound hostname URL.
     """
     if ":" in host:
         return host
 
-    return "{scheme}://{host}{slash}".format(
-        scheme=scheme, host=host, slash="/" if end_slash else ""
-    )
+    return "{scheme}://{host}/".format(scheme=scheme, host=host)

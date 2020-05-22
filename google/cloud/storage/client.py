@@ -1081,9 +1081,7 @@ class Client(ClientWithProject):
         if virtual_hosted_style:
             url = "https://{}.storage.googleapis.com/".format(bucket_name)
         elif bucket_bound_hostname:
-            url = _bucket_bound_hostname_url(
-                bucket_bound_hostname, scheme, end_slash=True
-            )
+            url = _bucket_bound_hostname_url(bucket_bound_hostname, scheme)
         else:
             url = "https://storage.googleapis.com/{}/".format(bucket_name)
 
