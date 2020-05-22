@@ -1280,6 +1280,10 @@ class Blob(_PropertyMixin):
         if self.user_project is not None:
             name_value_pairs.append(("userProject", self.user_project))
 
+        # When cmek is enabled for bucket blob.metadata stores the value of
+        # kmsKeyName with version information whereas upload method expect
+        # information without version so this condition ignores the  kmsKeyName
+        # which has cryptoKeyVersions.
         if (
             self.kms_key_name is not None
             and "cryptoKeyVersions" not in self.kms_key_name
@@ -1420,6 +1424,10 @@ class Blob(_PropertyMixin):
         if self.user_project is not None:
             name_value_pairs.append(("userProject", self.user_project))
 
+        # When cmek is enabled for bucket blob.metadata stores the value of
+        # kmsKeyName with version information whereas upload method expect
+        # information without version so this condition ignores the  kmsKeyName
+        # which has cryptoKeyVersions.
         if (
             self.kms_key_name is not None
             and "cryptoKeyVersions" not in self.kms_key_name
