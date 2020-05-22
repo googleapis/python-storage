@@ -22,6 +22,7 @@ from hashlib import md5
 from datetime import datetime
 import os
 
+from six.moves.urllib.parse import urlsplit
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 
 
@@ -506,7 +507,8 @@ def _bucket_bound_hostname_url(host, scheme=None):
     :rtype: str
     :returns: A bucket bound hostname URL.
     """
-    if ":" in host:
+    url_parts = urlsplit(host)
+    if url_parts.scheme and url_parts.netloc:
         return host
 
     return "{scheme}://{host}/".format(scheme=scheme, host=host)
