@@ -1523,7 +1523,7 @@ class Test_Blob(unittest.TestCase):
         if predefined_acl is not None:
             qs_params.append(("predefinedAcl", predefined_acl))
 
-        if kms_key_name is not None:
+        if kms_key_name is not None and "cryptoKeyVersions" not in kms_key_name:
             qs_params.append(("kmsKeyName", kms_key_name))
 
         if if_generation_match is not None:
@@ -1574,6 +1574,17 @@ class Test_Blob(unittest.TestCase):
             "locations/us/"
             "keyRings/test-ring/"
             "cryptoKeys/test-key"
+        )
+        self._do_multipart_success(mock_get_boundary, kms_key_name=kms_resource)
+
+    @mock.patch(u"google.resumable_media._upload.get_boundary", return_value=b"==0==")
+    def test__do_multipart_upload_with_kms_with_version(self, mock_get_boundary):
+        kms_resource = (
+            "projects/test-project-123/"
+            "locations/us/"
+            "keyRings/test-ring/"
+            "cryptoKeys/test-key"
+            "cryptoKeyVersions/1"
         )
         self._do_multipart_success(mock_get_boundary, kms_key_name=kms_resource)
 
@@ -1683,7 +1694,7 @@ class Test_Blob(unittest.TestCase):
         if predefined_acl is not None:
             qs_params.append(("predefinedAcl", predefined_acl))
 
-        if kms_key_name is not None:
+        if kms_key_name is not None and "cryptoKeyVersions" not in kms_key_name:
             qs_params.append(("kmsKeyName", kms_key_name))
 
         if if_generation_match is not None:
@@ -1765,6 +1776,16 @@ class Test_Blob(unittest.TestCase):
             "locations/us/"
             "keyRings/test-ring/"
             "cryptoKeys/test-key"
+        )
+        self._initiate_resumable_helper(kms_key_name=kms_resource)
+
+    def test__initiate_resumable_upload_with_kms_with_version(self):
+        kms_resource = (
+            "projects/test-project-123/"
+            "locations/us/"
+            "keyRings/test-ring/"
+            "cryptoKeys/test-key"
+            "cryptoKeyVersions/1"
         )
         self._initiate_resumable_helper(kms_key_name=kms_resource)
 
