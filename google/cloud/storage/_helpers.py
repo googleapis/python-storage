@@ -512,3 +512,16 @@ def _bucket_bound_hostname_url(host, scheme=None):
         return host
 
     return "{scheme}://{host}/".format(scheme=scheme, host=host)
+
+
+def _datetime_to_string(value):
+    """Convert a timestamp to a string, include only milliseconds.
+
+    :type value: :class:`datetime.datetime`
+    :param value: The datetime object to be converted to a string.
+
+    :rtype: str
+    :returns: The string representing the datetime stamp.
+              The string format is `YYYY-MM-DDTHH:MM:SS.sssZ`
+    """
+    return "%s.%iZ" % (value.strftime("%Y-%m-%dT%H:%M:%S"), value.microsecond / 1000)

@@ -39,6 +39,7 @@ from google.cloud.storage._helpers import _validate_name
 from google.cloud.storage._signing import generate_signed_url_v2
 from google.cloud.storage._signing import generate_signed_url_v4
 from google.cloud.storage._helpers import _bucket_bound_hostname_url
+from google.cloud.storage._helpers import _datetime_to_string
 from google.cloud.storage.acl import BucketACL
 from google.cloud.storage.acl import DefaultObjectACL
 from google.cloud.storage.blob import Blob
@@ -221,7 +222,7 @@ class LifecycleRuleConditions(dict):
             conditions["daysSinceNoncurrentTime"] = days_since_noncurrent_time
 
         if noncurrent_time_before is not None:
-            conditions["noncurrentTimeBefore"] = _datetime_to_rfc3339(
+            conditions["noncurrentTimeBefore"] = _datetime_to_string(
                 noncurrent_time_before
             )
 
@@ -276,9 +277,7 @@ class LifecycleRuleConditions(dict):
     @property
     def noncurrent_time_before(self):
         """Conditon's 'noncurrent_time_before' value."""
-        noncurrent_time = self.get("noncurrentTimeBefore")
-        if noncurrent_time is not None:
-            return _rfc3339_to_datetime(noncurrent_time)
+        return self.get("noncurrentTimeBefore")
 
 
 class LifecycleRuleDelete(dict):
