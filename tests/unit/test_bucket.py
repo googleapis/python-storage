@@ -77,6 +77,7 @@ class Test_LifecycleRuleConditions(unittest.TestCase):
         self.assertEqual(conditions.is_live, False)
         self.assertIsNone(conditions.matches_storage_class)
         self.assertIsNone(conditions.number_of_newer_versions)
+        self.assertIsNone(conditions.noncurrent_time_before)
 
     def test_ctor_w_number_of_newer_versions(self):
         conditions = self._make_one(number_of_newer_versions=3)
