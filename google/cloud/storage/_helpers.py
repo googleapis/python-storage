@@ -22,6 +22,7 @@ from hashlib import md5
 from datetime import datetime
 import os
 
+from six.moves.urllib.parse import urlsplit
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 
 
@@ -136,6 +137,7 @@ class _PropertyMixin(object):
     def reload(
         self,
         client=None,
+        projection="noAcl",
         timeout=_DEFAULT_TIMEOUT,
         if_generation_match=None,
         if_generation_not_match=None,
@@ -150,6 +152,12 @@ class _PropertyMixin(object):
                       ``NoneType``
         :param client: the client to use. If not passed, falls back to the
                        ``client`` stored on the current object.
+
+
+        :type projection: str
+        :param projection: (Optional) If used, must be 'full' or 'noAcl'.
+                           Defaults to ``'noAcl'``. Specifies the set of
+                           properties to return.
 
         :type timeout: float or tuple
         :param timeout: (Optional) The amount of time, in seconds, to wait
@@ -183,7 +191,7 @@ class _PropertyMixin(object):
         query_params = self._query_params
         # Pass only '?projection=noAcl' here because 'acl' and related
         # are handled via custom endpoints.
-        query_params["projection"] = "noAcl"
+        query_params["projection"] = projection
         _add_generation_match_parameters(
             query_params,
             if_generation_match=if_generation_match,
@@ -345,6 +353,10 @@ class _PropertyMixin(object):
         :type if_metageneration_match: long
         :param if_metageneration_match: (Optional) Make the operation conditional on whether the
                                         blob's current metageneration matches the given value.
+
+        :type if_metageneration_not_match: long
+        :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
+                                            blob's current metageneration does not match the given value.
         """
         client = self._require_client(client)
 
@@ -352,6 +364,8 @@ class _PropertyMixin(object):
         query_params["projection"] = "full"
         _add_generation_match_parameters(
             query_params,
+            if_generation_match=if_generation_match,
+            if_generation_not_match=if_generation_not_match,
             if_metageneration_match=if_metageneration_match,
             if_metageneration_not_match=if_metageneration_not_match,
         )
@@ -479,3 +493,23 @@ def _raise_if_more_than_one_set(**kwargs):
         )
 
         raise ValueError(msg)
+
+
+def _bucket_bound_hostname_url(host, scheme=None):
+    """Helper to build bucket bound hostname URL.
+
+    :type host: str
+    :param host: Host name.
+
+    :type scheme: str
+    :param scheme: (Optional) Web scheme. If passed, use it
+                   as a scheme in the result URL.
+
+    :rtype: str
+    :returns: A bucket bound hostname URL.
+    """
+    url_parts = urlsplit(host)
+    if url_parts.scheme and url_parts.netloc:
+        return host
+
+    return "{scheme}://{host}/".format(scheme=scheme, host=host)

@@ -38,6 +38,7 @@ from google.cloud.storage._helpers import _scalar_property
 from google.cloud.storage._helpers import _validate_name
 from google.cloud.storage._signing import generate_signed_url_v2
 from google.cloud.storage._signing import generate_signed_url_v4
+from google.cloud.storage._helpers import _bucket_bound_hostname_url
 from google.cloud.storage.acl import BucketACL
 from google.cloud.storage.acl import DefaultObjectACL
 from google.cloud.storage.blob import Blob
@@ -319,7 +320,7 @@ class IAMConfiguration(dict):
     :params bucket_policy_only_enabled:
         (Optional) Whether the IAM-only policy is enabled for the bucket.
 
-    :type uniform_bucket_level_locked_time: :class:`datetime.datetime`
+    :type uniform_bucket_level_access_locked_time: :class:`datetime.datetime`
     :params uniform_bucket_level_locked_time:
         (Optional) When the bucket's IAM-only policy was enabled.
         This value should normally only be set by the back-end API.
@@ -783,6 +784,91 @@ class Bucket(_PropertyMixin):
             timeout=timeout,
         )
 
+    def update(
+        self,
+        client=None,
+        timeout=_DEFAULT_TIMEOUT,
+        if_metageneration_match=None,
+        if_metageneration_not_match=None,
+    ):
+        """Sends all properties in a PUT request.
+
+        Updates the ``_properties`` with the response from the backend.
+
+        If :attr:`user_project` is set, bills the API request to that project.
+
+        :type client: :class:`~google.cloud.storage.client.Client` or
+                      ``NoneType``
+        :param client: the client to use. If not passed, falls back to the
+                       ``client`` stored on the current object.
+
+        :type timeout: float or tuple
+        :param timeout: (Optional) The amount of time, in seconds, to wait
+            for the server response.
+
+            Can also be passed as a tuple (connect_timeout, read_timeout).
+            See :meth:`requests.Session.request` documentation for details.
+
+        :type if_metageneration_match: long
+        :param if_metageneration_match: (Optional) Make the operation conditional on whether the
+                                        blob's current metageneration matches the given value.
+
+        :type if_metageneration_not_match: long
+        :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
+                                            blob's current metageneration does not match the given value.
+        """
+        super(Bucket, self).update(
+            client=client,
+            timeout=timeout,
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
+        )
+
+    def reload(
+        self,
+        client=None,
+        projection="noAcl",
+        timeout=_DEFAULT_TIMEOUT,
+        if_metageneration_match=None,
+        if_metageneration_not_match=None,
+    ):
+        """Reload properties from Cloud Storage.
+
+        If :attr:`user_project` is set, bills the API request to that project.
+
+        :type client: :class:`~google.cloud.storage.client.Client` or
+                      ``NoneType``
+        :param client: the client to use. If not passed, falls back to the
+                       ``client`` stored on the current object.
+
+        :type projection: str
+        :param projection: (Optional) If used, must be 'full' or 'noAcl'.
+                           Defaults to ``'noAcl'``. Specifies the set of
+                           properties to return.
+
+        :type timeout: float or tuple
+        :param timeout: (Optional) The amount of time, in seconds, to wait
+            for the server response.
+
+            Can also be passed as a tuple (connect_timeout, read_timeout).
+            See :meth:`requests.Session.request` documentation for details.
+
+        :type if_metageneration_match: long
+        :param if_metageneration_match: (Optional) Make the operation conditional on whether the
+                                        blob's current metageneration matches the given value.
+
+        :type if_metageneration_not_match: long
+        :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
+                                            blob's current metageneration does not match the given value.
+        """
+        super(Bucket, self).reload(
+            client=client,
+            projection=projection,
+            timeout=timeout,
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
+        )
+
     def patch(
         self,
         client=None,
@@ -1054,6 +1140,15 @@ class Bucket(_PropertyMixin):
         :rtype: :class:`~google.api_core.page_iterator.Iterator`
         :returns: Iterator of all :class:`~google.cloud.storage.blob.Blob`
                   in this bucket matching the arguments.
+
+        Example:
+            List blobs in the bucket with user_project.
+
+            >>> from google.cloud import storage
+            >>> client = storage.Client()
+
+            >>> bucket = storage.Bucket("my-bucket-name", user_project='my-project')
+            >>> all_blobs = list(bucket.list_blobs())
         """
         extra_params = {"projection": projection}
 
@@ -1918,8 +2013,8 @@ class Bucket(_PropertyMixin):
         See https://cloud.google.com/storage/docs/lifecycle and
              https://cloud.google.com/storage/docs/json_api/v1/buckets
 
-        :type entries: list of dictionaries
-        :param entries: A sequence of mappings describing each lifecycle rule.
+        :type rules: list of dictionaries
+        :param rules: A sequence of mappings describing each lifecycle rule.
         """
         rules = [dict(rule) for rule in rules]  # Convert helpers if needed
         self._patch_property("lifecycle", {"rule": rules})
@@ -2858,12 +2953,9 @@ class Bucket(_PropertyMixin):
                 bucket_name=self.name
             )
         elif bucket_bound_hostname:
-            if ":" in bucket_bound_hostname:
-                api_access_endpoint = bucket_bound_hostname
-            else:
-                api_access_endpoint = "{scheme}://{bucket_bound_hostname}".format(
-                    scheme=scheme, bucket_bound_hostname=bucket_bound_hostname
-                )
+            api_access_endpoint = _bucket_bound_hostname_url(
+                bucket_bound_hostname, scheme
+            )
         else:
             resource = "/{bucket_name}".format(bucket_name=self.name)
 
