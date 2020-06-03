@@ -968,6 +968,7 @@ class Bucket(_PropertyMixin):
         .. literalinclude:: snippets.py
           :start-after: [START get_blob]
           :end-before: [END get_blob]
+          :dedent: 4
 
         If :attr:`user_project` is set, bills the API request to that project.
 
@@ -1381,6 +1382,7 @@ class Bucket(_PropertyMixin):
         .. literalinclude:: snippets.py
           :start-after: [START delete_blob]
           :end-before: [END delete_blob]
+          :dedent: 4
 
         If :attr:`user_project` is set, bills the API request to that project.
 
@@ -1431,6 +1433,7 @@ class Bucket(_PropertyMixin):
         .. literalinclude:: snippets.py
             :start-after: [START delete_blobs]
             :end-before: [END delete_blobs]
+            :dedent: 4
 
         """
         client = self._require_client(client)
@@ -1945,6 +1948,7 @@ class Bucket(_PropertyMixin):
         .. literalinclude:: snippets.py
           :start-after: [START add_lifecycle_delete_rule]
           :end-before: [END add_lifecycle_delete_rule]
+          :dedent: 4
 
         :type kw: dict
         :params kw: arguments passed to :class:`LifecycleRuleConditions`.
@@ -1962,6 +1966,7 @@ class Bucket(_PropertyMixin):
         .. literalinclude:: snippets.py
           :start-after: [START add_lifecycle_set_storage_class_rule]
           :end-before: [END add_lifecycle_set_storage_class_rule]
+          :dedent: 4
 
         :type storage_class: str, one of :attr:`STORAGE_CLASSES`.
         :param storage_class: new storage class to assign to matching items.
@@ -2305,12 +2310,14 @@ class Bucket(_PropertyMixin):
         .. literalinclude:: snippets.py
           :start-after: [START configure_website]
           :end-before: [END configure_website]
+          :dedent: 4
 
         You probably should also make the whole bucket public:
 
         .. literalinclude:: snippets.py
             :start-after: [START make_public]
             :end-before: [END make_public]
+            :dedent: 4
 
         This says: "Make the bucket public, and all the stuff already in
         the bucket, and anything else I add to the bucket.  Just make it
@@ -2644,6 +2651,7 @@ class Bucket(_PropertyMixin):
         .. literalinclude:: snippets.py
             :start-after: [START policy_document]
             :end-before: [END policy_document]
+            :dedent: 4
 
         .. _policy documents:
             https://cloud.google.com/storage/docs/xml-api\
