@@ -1448,7 +1448,7 @@ class Bucket(_PropertyMixin):
             >>> if_generation_match = [None] * len(blobs)
             >>> if_generation_match[0] = "123"  # precondition for "blob-name-1"
 
-            >>> bucket.delete_blobs(blobs, if_generation_match)
+            >>> bucket.delete_blobs(blobs, if_generation_match=if_generation_match)
         """
         _raise_if_len_differs(
             len(blobs),
