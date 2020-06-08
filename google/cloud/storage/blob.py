@@ -882,6 +882,10 @@ class Blob(_PropertyMixin):
         The ``encryption_key`` should be a str or bytes with a length of at
         least 32.
 
+        If the :attr:`chunk_size` of a current blob is `None`, will download data
+        in single download request otherwise it will download the :attr:`chunk_size`
+        of data in each request.
+
         For more fine-grained control over the download process, check out
         `google-resumable-media`_. For example, this library allows
         downloading **parts** of a blob rather than the whole thing.
@@ -1373,7 +1377,9 @@ class Blob(_PropertyMixin):
             (Optional) Chunk size to use when creating a
             :class:`~google.resumable_media.requests.ResumableUpload`.
             If not passed, will fall back to the chunk size on the
-            current blob.
+            current blob, if the chunk size of a current blob is also
+            `None`, will set the default value.
+            The default value of ``chunk_size`` is 100 MB.
 
         :type if_generation_match: long
         :param if_generation_match: (Optional) Make the operation conditional on whether
@@ -1486,6 +1492,7 @@ class Blob(_PropertyMixin):
         """Perform a resumable upload.
 
         Assumes ``chunk_size`` is not :data:`None` on the current blob.
+        The default value of ``chunk_size`` is 100 MB.
 
         The content type of the upload will be determined in order
         of precedence:
@@ -1574,7 +1581,7 @@ class Blob(_PropertyMixin):
     ):
         """Determine an upload strategy and then perform the upload.
 
-        If the size of the data to be uploaded exceeds 5 MB a resumable media
+        If the size of the data to be uploaded exceeds 8 MB a resumable media
         request will be used, otherwise the content and the metadata will be
         uploaded in a single multipart upload request.
 
@@ -1703,6 +1710,10 @@ class Blob(_PropertyMixin):
 
         The ``encryption_key`` should be a str or bytes with a length of at
         least 32.
+
+        If the size of the data to be uploaded exceeds 8 MB a resumable media
+        request will be used, otherwise the content and the metadata will be
+        uploaded in a single multipart upload request.
 
         For more fine-grained over the upload process, check out
         `google-resumable-media`_.
