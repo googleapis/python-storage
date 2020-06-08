@@ -427,6 +427,66 @@ class TestStorageBuckets(unittest.TestCase):
             for blob in to_delete:
                 retry_429_harder(blob.delete)()
 
+    def test_copy_file_with_generation_match(self):
+        new_bucket_name = "generation-match" + unique_resource_id("-")
+        created = retry_429_503(Config.CLIENT.create_bucket)(
+            new_bucket_name, requester_pays=True
+        )
+        self.case_buckets_to_delete.append(new_bucket_name)
+        self.assertEqual(created.name, new_bucket_name)
+
+        to_delete = []
+        blob = storage.Blob("simple", bucket=created)
+        blob.upload_from_string(b"DEADBEEF")
+        to_delete.append(blob)
+        try:
+            dest_bucket = Config.CLIENT.bucket(new_bucket_name)
+
+            new_blob = dest_bucket.copy_blob(
+                blob,
+                dest_bucket,
+                "simple-copy",
+                if_source_generation_match=blob.generation,
+            )
+            to_delete.append(new_blob)
+
+            base_contents = blob.download_as_string()
+            copied_contents = new_blob.download_as_string()
+            self.assertEqual(base_contents, copied_contents)
+        finally:
+            for blob in to_delete:
+                retry_429_harder(blob.delete)()
+
+    def test_copy_file_with_metageneration_match(self):
+        new_bucket_name = "generation-match" + unique_resource_id("-")
+        created = retry_429_503(Config.CLIENT.create_bucket)(
+            new_bucket_name, requester_pays=True
+        )
+        self.case_buckets_to_delete.append(new_bucket_name)
+        self.assertEqual(created.name, new_bucket_name)
+
+        to_delete = []
+        blob = storage.Blob("simple", bucket=created)
+        blob.upload_from_string(b"DEADBEEF")
+        to_delete.append(blob)
+        try:
+            dest_bucket = Config.CLIENT.bucket(new_bucket_name)
+
+            new_blob = dest_bucket.copy_blob(
+                blob,
+                dest_bucket,
+                "simple-copy",
+                if_source_metageneration_match=blob.metageneration,
+            )
+            to_delete.append(new_blob)
+
+            base_contents = blob.download_as_string()
+            copied_contents = new_blob.download_as_string()
+            self.assertEqual(base_contents, copied_contents)
+        finally:
+            for blob in to_delete:
+                retry_429_harder(blob.delete)()
+
     @unittest.skipUnless(USER_PROJECT, "USER_PROJECT not set in environment.")
     def test_bucket_get_blob_with_user_project(self):
         new_bucket_name = "w-requester-pays" + unique_resource_id("-")
@@ -588,6 +648,69 @@ class TestStorageWriteFiles(TestStorageFiles):
 
             blob1.delete()
 
+    def test_crud_blob_w_generation_match(self):
+        WRONG_GENERATION_NUMBER = 6
+        WRONG_METAGENERATION_NUMBER = 9
+
+        bucket = Config.CLIENT.bucket(self.bucket.name)
+        blob = bucket.blob("SmallFile")
+
+        file_data = self.FILES["simple"]
+        with open(file_data["path"], mode="rb") as to_read:
+            file_contents = to_read.read()
+
+        blob.upload_from_filename(file_data["path"])
+        gen0 = blob.generation
+
+        # Upload a second generation of the blob
+        blob.upload_from_string(b"gen1")
+        gen1 = blob.generation
+
+        blob0 = bucket.blob("SmallFile", generation=gen0)
+        blob1 = bucket.blob("SmallFile", generation=gen1)
+
+        try:
+            # Exercise 'objects.get' (metadata) w/ generation match.
+            with self.assertRaises(google.api_core.exceptions.PreconditionFailed):
+                blob.exists(if_generation_match=WRONG_GENERATION_NUMBER)
+
+            self.assertTrue(blob.exists(if_generation_match=gen1))
+
+            with self.assertRaises(google.api_core.exceptions.PreconditionFailed):
+                blob.reload(if_metageneration_match=WRONG_METAGENERATION_NUMBER)
+
+            blob.reload(if_generation_match=gen1)
+
+            # Exercise 'objects.get' (media) w/ generation match.
+            self.assertEqual(
+                blob0.download_as_string(if_generation_match=gen0), file_contents
+            )
+            self.assertEqual(
+                blob1.download_as_string(if_generation_not_match=gen0), b"gen1"
+            )
+
+            # Exercise 'objects.patch' w/ generation match.
+            blob0.content_language = "en"
+            blob0.patch(if_generation_match=gen0)
+
+            self.assertEqual(blob0.content_language, "en")
+            self.assertIsNone(blob1.content_language)
+
+            # Exercise 'objects.update' w/ generation match.
+            metadata = {"foo": "Foo", "bar": "Bar"}
+            blob0.metadata = metadata
+            blob0.update(if_generation_match=gen0)
+
+            self.assertEqual(blob0.metadata, metadata)
+            self.assertIsNone(blob1.metadata)
+        finally:
+            # Exercise 'objects.delete' (metadata) w/ generation match.
+            with self.assertRaises(google.api_core.exceptions.PreconditionFailed):
+                blob0.delete(if_metageneration_match=WRONG_METAGENERATION_NUMBER)
+
+            blob0.delete(if_generation_match=gen0)
+            blob1.delete(if_metageneration_not_match=WRONG_METAGENERATION_NUMBER)
+
     @unittest.skipUnless(USER_PROJECT, "USER_PROJECT not set in environment.")
     def test_blob_acl_w_user_project(self):
         with_user_project = Config.CLIENT.bucket(
@@ -656,6 +779,34 @@ class TestStorageWriteFiles(TestStorageFiles):
         temp_filename = tempfile.mktemp()
         with open(temp_filename, "wb") as file_obj:
             same_blob.download_to_file(file_obj)
+
+        with open(temp_filename, "rb") as file_obj:
+            stored_contents = file_obj.read()
+
+        self.assertEqual(file_contents, stored_contents)
+
+    def test_download_w_generation_match(self):
+        WRONG_GENERATION_NUMBER = 6
+
+        blob = self.bucket.blob("MyBuffer")
+        file_contents = b"Hello World"
+        blob.upload_from_string(file_contents)
+        self.case_blobs_to_delete.append(blob)
+
+        same_blob = self.bucket.blob("MyBuffer")
+        same_blob.reload()  # Initialize properties.
+        temp_filename = tempfile.mktemp()
+        with open(temp_filename, "wb") as file_obj:
+            with self.assertRaises(google.api_core.exceptions.PreconditionFailed):
+                same_blob.download_to_file(
+                    file_obj, if_generation_match=WRONG_GENERATION_NUMBER
+                )
+
+            same_blob.download_to_file(
+                file_obj,
+                if_generation_match=blob.generation,
+                if_metageneration_match=blob.metageneration,
+            )
 
         with open(temp_filename, "rb") as file_obj:
             stored_contents = file_obj.read()
@@ -737,6 +888,18 @@ class TestStorageWriteFiles(TestStorageFiles):
             with open(file_data["path"], "rb") as file_obj:
                 blob.upload_from_file(file_obj, if_metageneration_match=3)
 
+    def test_upload_blob_owner(self):
+        blob = self.bucket.blob("MyBuffer")
+        file_contents = b"Hello World"
+        blob.upload_from_string(file_contents)
+        self.case_blobs_to_delete.append(blob)
+
+        same_blob = self.bucket.blob("MyBuffer")
+        same_blob.reload(projection="full")  # Initialize properties.
+        user_email = Config.CLIENT._credentials.service_account_email
+        owner = same_blob.owner
+        self.assertIn(user_email, owner["entity"])
+
 
 class TestUnicode(unittest.TestCase):
     @vpcsc_config.skip_if_inside_vpcsc
@@ -761,7 +924,7 @@ class TestUnicode(unittest.TestCase):
 
 class TestStorageListFiles(TestStorageFiles):
 
-    FILENAMES = ("CloudLogo1", "CloudLogo2", "CloudLogo3")
+    FILENAMES = ("CloudLogo1", "CloudLogo2", "CloudLogo3", "CloudLogo4")
 
     @classmethod
     def setUpClass(cls):
@@ -818,18 +981,49 @@ class TestStorageListFiles(TestStorageFiles):
         # Technically the iterator is exhausted.
         self.assertEqual(iterator.num_results, iterator.max_results)
         # But we modify the iterator to continue paging after
-        # articially stopping after ``count`` items.
+        # artificially stopping after ``count`` items.
         iterator.max_results = None
 
         page2 = six.next(page_iter)
         last_blobs = list(page2)
         self.assertEqual(len(last_blobs), truncation_size)
 
+    @RetryErrors(unittest.TestCase.failureException)
+    def test_paginate_files_with_offset(self):
+        truncation_size = 1
+        inclusive_start_offset = self.FILENAMES[1]
+        exclusive_end_offset = self.FILENAMES[-1]
+        desired_files = self.FILENAMES[1:-1]
+        count = len(desired_files) - truncation_size
+        iterator = self.bucket.list_blobs(
+            max_results=count,
+            start_offset=inclusive_start_offset,
+            end_offset=exclusive_end_offset,
+        )
+        page_iter = iterator.pages
+
+        page1 = six.next(page_iter)
+        blobs = list(page1)
+        self.assertEqual(len(blobs), count)
+        self.assertEqual(blobs[0].name, desired_files[0])
+        self.assertIsNotNone(iterator.next_page_token)
+        # Technically the iterator is exhausted.
+        self.assertEqual(iterator.num_results, iterator.max_results)
+        # But we modify the iterator to continue paging after
+        # artificially stopping after ``count`` items.
+        iterator.max_results = None
+
+        page2 = six.next(page_iter)
+        last_blobs = list(page2)
+        self.assertEqual(len(last_blobs), truncation_size)
+        self.assertEqual(last_blobs[-1].name, desired_files[-1])
+
 
 class TestStoragePseudoHierarchy(TestStorageFiles):
 
     FILENAMES = (
         "file01.txt",
+        "parent/",
         "parent/file11.txt",
         "parent/child/file21.txt",
         "parent/child/file22.txt",
@@ -877,7 +1071,9 @@ class TestStoragePseudoHierarchy(TestStorageFiles):
         iterator = self.bucket.list_blobs(delimiter="/", prefix="parent/")
         page = six.next(iterator.pages)
         blobs = list(page)
-        self.assertEqual([blob.name for blob in blobs], ["parent/file11.txt"])
+        self.assertEqual(
+            [blob.name for blob in blobs], ["parent/", "parent/file11.txt"]
+        )
         self.assertIsNone(iterator.next_page_token)
         self.assertEqual(iterator.prefixes, set(["parent/child/"]))
 
@@ -908,6 +1104,17 @@ class TestStoragePseudoHierarchy(TestStorageFiles):
         )
         self.assertIsNone(iterator.next_page_token)
         self.assertEqual(iterator.prefixes, set())
+
+    @RetryErrors(unittest.TestCase.failureException)
+    def test_include_trailing_delimiter(self):
+        iterator = self.bucket.list_blobs(
+            delimiter="/", include_trailing_delimiter=True
+        )
+        page = six.next(iterator.pages)
+        blobs = list(page)
+        self.assertEqual([blob.name for blob in blobs], ["file01.txt", "parent/"])
+        self.assertIsNone(iterator.next_page_token)
+        self.assertEqual(iterator.prefixes, set(["parent/"]))
 
 
 class TestStorageSignURLs(unittest.TestCase):
@@ -1366,6 +1573,40 @@ class TestStorageRewrite(TestStorageFiles):
         finally:
             retry_429_harder(created.delete)(force=True)
 
+    def test_rewrite_with_generation_match(self):
+        WRONG_GENERATION_NUMBER = 6
+        BLOB_NAME = "generation-match"
+
+        file_data = self.FILES["simple"]
+        new_bucket_name = "rewrite-generation-match" + unique_resource_id("-")
+        created = retry_429_503(Config.CLIENT.create_bucket)(new_bucket_name)
+        try:
+            bucket = Config.CLIENT.bucket(new_bucket_name)
+
+            source = bucket.blob(BLOB_NAME)
+            source.upload_from_filename(file_data["path"])
+            source_data = source.download_as_string()
+
+            dest = bucket.blob(BLOB_NAME)
+
+            with self.assertRaises(google.api_core.exceptions.PreconditionFailed):
+                token, rewritten, total = dest.rewrite(
+                    source, if_generation_match=WRONG_GENERATION_NUMBER
+                )
+
+            token, rewritten, total = dest.rewrite(
+                source,
+                if_generation_match=dest.generation,
+                if_source_generation_match=source.generation,
+                if_source_metageneration_match=source.metageneration,
+            )
+            self.assertEqual(token, None)
+            self.assertEqual(rewritten, len(source_data))
+            self.assertEqual(total, len(source_data))
+            self.assertEqual(dest.download_as_string(), source_data)
+        finally:
+            retry_429_harder(created.delete)(force=True)
+
 
 class TestStorageUpdateStorageClass(TestStorageFiles):
     def test_update_storage_class_small_file(self):
@@ -1724,6 +1965,30 @@ class TestKMSIntegration(TestStorageFiles):
         self.assertEqual(total, len(source_data))
 
         self.assertEqual(dest.download_as_string(), source_data)
+
+    def test_upload_new_blob_w_bucket_cmek_enabled(self):
+        blob_name = "test-blob"
+        payload = b"DEADBEEF"
+        alt_payload = b"NEWDEADBEEF"
+
+        kms_key_name = self._kms_key_name()
+        self.bucket.default_kms_key_name = kms_key_name
+        self.bucket.patch()
+        self.assertEqual(self.bucket.default_kms_key_name, kms_key_name)
+
+        blob = self.bucket.blob(blob_name)
+        blob.upload_from_string(payload)
+        # We don't know the current version of the key.
+        self.assertTrue(blob.kms_key_name.startswith(kms_key_name))
+
+        blob.upload_from_string(alt_payload, if_generation_match=blob.generation)
+        self.case_blobs_to_delete.append(blob)
+
+        self.assertEqual(blob.download_as_string(), alt_payload)
+
+        self.bucket.default_kms_key_name = None
+        self.bucket.patch()
+        self.assertIsNone(self.bucket.default_kms_key_name)
 
 
 class TestRetentionPolicy(unittest.TestCase):
