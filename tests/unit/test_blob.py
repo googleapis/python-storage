@@ -405,6 +405,7 @@ class Test_Blob(unittest.TestCase):
     ):
         from six.moves.urllib import parse
         from google.cloud._helpers import UTC
+        from google.cloud.storage._helpers import _bucket_bound_hostname_url
         from google.cloud.storage.blob import _API_ACCESS_ENDPOINT
         from google.cloud.storage.blob import _get_encryption_headers
 
@@ -464,12 +465,9 @@ class Test_Blob(unittest.TestCase):
                 bucket.name
             )
         elif bucket_bound_hostname:
-            if ":" in bucket_bound_hostname:
-                expected_api_access_endpoint = bucket_bound_hostname
-            else:
-                expected_api_access_endpoint = "{scheme}://{bucket_bound_hostname}".format(
-                    scheme=scheme, bucket_bound_hostname=bucket_bound_hostname
-                )
+            expected_api_access_endpoint = _bucket_bound_hostname_url(
+                bucket_bound_hostname, scheme
+            )
         else:
             expected_api_access_endpoint = api_access_endpoint
             expected_resource = "/{}/{}".format(bucket.name, quoted_name)
@@ -1525,7 +1523,7 @@ class Test_Blob(unittest.TestCase):
         if predefined_acl is not None:
             qs_params.append(("predefinedAcl", predefined_acl))
 
-        if kms_key_name is not None:
+        if kms_key_name is not None and "cryptoKeyVersions" not in kms_key_name:
             qs_params.append(("kmsKeyName", kms_key_name))
 
         if if_generation_match is not None:
@@ -1576,6 +1574,17 @@ class Test_Blob(unittest.TestCase):
             "locations/us/"
             "keyRings/test-ring/"
             "cryptoKeys/test-key"
+        )
+        self._do_multipart_success(mock_get_boundary, kms_key_name=kms_resource)
+
+    @mock.patch(u"google.resumable_media._upload.get_boundary", return_value=b"==0==")
+    def test__do_multipart_upload_with_kms_with_version(self, mock_get_boundary):
+        kms_resource = (
+            "projects/test-project-123/"
+            "locations/us/"
+            "keyRings/test-ring/"
+            "cryptoKeys/test-key"
+            "cryptoKeyVersions/1"
         )
         self._do_multipart_success(mock_get_boundary, kms_key_name=kms_resource)
 
@@ -1685,7 +1694,7 @@ class Test_Blob(unittest.TestCase):
         if predefined_acl is not None:
             qs_params.append(("predefinedAcl", predefined_acl))
 
-        if kms_key_name is not None:
+        if kms_key_name is not None and "cryptoKeyVersions" not in kms_key_name:
             qs_params.append(("kmsKeyName", kms_key_name))
 
         if if_generation_match is not None:
@@ -1767,6 +1776,16 @@ class Test_Blob(unittest.TestCase):
             "locations/us/"
             "keyRings/test-ring/"
             "cryptoKeys/test-key"
+        )
+        self._initiate_resumable_helper(kms_key_name=kms_resource)
+
+    def test__initiate_resumable_upload_with_kms_with_version(self):
+        kms_resource = (
+            "projects/test-project-123/"
+            "locations/us/"
+            "keyRings/test-ring/"
+            "cryptoKeys/test-key"
+            "cryptoKeyVersions/1"
         )
         self._initiate_resumable_helper(kms_key_name=kms_resource)
 
@@ -2657,7 +2676,7 @@ class Test_Blob(unittest.TestCase):
     def test_compose_wo_content_type_set(self):
         SOURCE_1 = "source-1"
         SOURCE_2 = "source-2"
-        DESTINATION = "destinaton"
+        DESTINATION = "destination"
         RESOURCE = {}
         after = ({"status": http_client.OK}, RESOURCE)
         connection = _Connection(after)
@@ -2692,7 +2711,7 @@ class Test_Blob(unittest.TestCase):
     def test_compose_minimal_w_user_project(self):
         SOURCE_1 = "source-1"
         SOURCE_2 = "source-2"
-        DESTINATION = "destinaton"
+        DESTINATION = "destination"
         RESOURCE = {"etag": "DEADBEEF"}
         USER_PROJECT = "user-project-123"
         after = ({"status": http_client.OK}, RESOURCE)
@@ -2728,7 +2747,7 @@ class Test_Blob(unittest.TestCase):
     def test_compose_w_additional_property_changes(self):
         SOURCE_1 = "source-1"
         SOURCE_2 = "source-2"
-        DESTINATION = "destinaton"
+        DESTINATION = "destination"
         RESOURCE = {"etag": "DEADBEEF"}
         after = ({"status": http_client.OK}, RESOURCE)
         connection = _Connection(after)
@@ -2760,6 +2779,129 @@ class Test_Blob(unittest.TestCase):
                         "contentLanguage": "en-US",
                         "metadata": {"my-key": "my-value"},
                     },
+                },
+                "_target_object": destination,
+                "timeout": self._get_default_timeout(),
+            },
+        )
+
+    def test_compose_w_generation_match(self):
+        SOURCE_1 = "source-1"
+        SOURCE_2 = "source-2"
+        DESTINATION = "destination"
+        RESOURCE = {}
+        GENERATION_NUMBERS = [6, 9]
+        METAGENERATION_NUMBERS = [7, 1]
+
+        after = ({"status": http_client.OK}, RESOURCE)
+        connection = _Connection(after)
+        client = _Client(connection)
+        bucket = _Bucket(client=client)
+        source_1 = self._make_one(SOURCE_1, bucket=bucket)
+        source_2 = self._make_one(SOURCE_2, bucket=bucket)
+
+        destination = self._make_one(DESTINATION, bucket=bucket)
+        destination.compose(
+            sources=[source_1, source_2],
+            if_generation_match=GENERATION_NUMBERS,
+            if_metageneration_match=METAGENERATION_NUMBERS,
+        )
+
+        kw = connection._requested
+        self.assertEqual(len(kw), 1)
+        self.assertEqual(
+            kw[0],
+            {
+                "method": "POST",
+                "path": "/b/name/o/%s/compose" % DESTINATION,
+                "query_params": {},
+                "data": {
+                    "sourceObjects": [
+                        {
+                            "name": source_1.name,
+                            "objectPreconditions": {
+                                "ifGenerationMatch": GENERATION_NUMBERS[0],
+                                "ifMetagenerationMatch": METAGENERATION_NUMBERS[0],
+                            },
+                        },
+                        {
+                            "name": source_2.name,
+                            "objectPreconditions": {
+                                "ifGenerationMatch": GENERATION_NUMBERS[1],
+                                "ifMetagenerationMatch": METAGENERATION_NUMBERS[1],
+                            },
+                        },
+                    ],
+                    "destination": {},
+                },
+                "_target_object": destination,
+                "timeout": self._get_default_timeout(),
+            },
+        )
+
+    def test_compose_w_generation_match_bad_length(self):
+        SOURCE_1 = "source-1"
+        SOURCE_2 = "source-2"
+        DESTINATION = "destination"
+        GENERATION_NUMBERS = [6]
+        METAGENERATION_NUMBERS = [7]
+
+        after = ({"status": http_client.OK}, {})
+        connection = _Connection(after)
+        client = _Client(connection)
+        bucket = _Bucket(client=client)
+        source_1 = self._make_one(SOURCE_1, bucket=bucket)
+        source_2 = self._make_one(SOURCE_2, bucket=bucket)
+
+        destination = self._make_one(DESTINATION, bucket=bucket)
+
+        with self.assertRaises(ValueError):
+            destination.compose(
+                sources=[source_1, source_2], if_generation_match=GENERATION_NUMBERS,
+            )
+        with self.assertRaises(ValueError):
+            destination.compose(
+                sources=[source_1, source_2],
+                if_metageneration_match=METAGENERATION_NUMBERS,
+            )
+
+    def test_compose_w_generation_match_nones(self):
+        SOURCE_1 = "source-1"
+        SOURCE_2 = "source-2"
+        DESTINATION = "destination"
+        GENERATION_NUMBERS = [6, None]
+
+        after = ({"status": http_client.OK}, {})
+        connection = _Connection(after)
+        client = _Client(connection)
+        bucket = _Bucket(client=client)
+        source_1 = self._make_one(SOURCE_1, bucket=bucket)
+        source_2 = self._make_one(SOURCE_2, bucket=bucket)
+
+        destination = self._make_one(DESTINATION, bucket=bucket)
+        destination.compose(
+            sources=[source_1, source_2], if_generation_match=GENERATION_NUMBERS,
+        )
+
+        kw = connection._requested
+        self.assertEqual(len(kw), 1)
+        self.assertEqual(
+            kw[0],
+            {
+                "method": "POST",
+                "path": "/b/name/o/%s/compose" % DESTINATION,
+                "query_params": {},
+                "data": {
+                    "sourceObjects": [
+                        {
+                            "name": source_1.name,
+                            "objectPreconditions": {
+                                "ifGenerationMatch": GENERATION_NUMBERS[0],
+                            },
+                        },
+                        {"name": source_2.name},
+                    ],
+                    "destination": {},
                 },
                 "_target_object": destination,
                 "timeout": self._get_default_timeout(),

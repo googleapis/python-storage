@@ -1260,6 +1260,62 @@ class Test_Bucket(unittest.TestCase):
         self.assertEqual(kw[1]["path"], "/b/%s/o/%s" % (NAME, NONESUCH))
         self.assertEqual(kw[1]["timeout"], self._get_default_timeout())
 
+    def test_reload_bucket_w_metageneration_match(self):
+        NAME = "name"
+        METAGENERATION_NUMBER = 9
+
+        connection = _Connection({})
+        client = _Client(connection)
+        bucket = self._make_one(client=client, name=NAME)
+
+        bucket.reload(if_metageneration_match=METAGENERATION_NUMBER)
+
+        self.assertEqual(len(connection._requested), 1)
+        req = connection._requested[0]
+        self.assertEqual(req["method"], "GET")
+        self.assertEqual(req["path"], "/b/%s" % NAME)
+        self.assertEqual(req["timeout"], self._get_default_timeout())
+        self.assertEqual(
+            req["query_params"],
+            {"projection": "noAcl", "ifMetagenerationMatch": METAGENERATION_NUMBER},
+        )
+
+    def test_reload_bucket_w_generation_match(self):
+        connection = _Connection({})
+        client = _Client(connection)
+        bucket = self._make_one(client=client, name="name")
+
+        with self.assertRaises(TypeError):
+            bucket.reload(if_generation_match=6)
+
+    def test_update_bucket_w_metageneration_match(self):
+        NAME = "name"
+        METAGENERATION_NUMBER = 9
+
+        connection = _Connection({})
+        client = _Client(connection)
+        bucket = self._make_one(client=client, name=NAME)
+
+        bucket.update(if_metageneration_match=METAGENERATION_NUMBER)
+
+        self.assertEqual(len(connection._requested), 1)
+        req = connection._requested[0]
+        self.assertEqual(req["method"], "PUT")
+        self.assertEqual(req["path"], "/b/%s" % NAME)
+        self.assertEqual(req["timeout"], self._get_default_timeout())
+        self.assertEqual(
+            req["query_params"],
+            {"projection": "full", "ifMetagenerationMatch": METAGENERATION_NUMBER},
+        )
+
+    def test_update_bucket_w_generation_match(self):
+        connection = _Connection({})
+        client = _Client(connection)
+        bucket = self._make_one(client=client, name="name")
+
+        with self.assertRaises(TypeError):
+            bucket.update(if_generation_match=6)
+
     @staticmethod
     def _make_blob(bucket_name, blob_name):
         from google.cloud.storage.blob import Blob
@@ -1446,7 +1502,63 @@ class Test_Bucket(unittest.TestCase):
         self.assertEqual(kw["query_params"], {})
         self.assertEqual(kw["timeout"], 42)
 
-        blob.delete.assert_called_once_with(client=client, timeout=42)
+        blob.delete.assert_called_once_with(
+            client=client,
+            timeout=42,
+            if_generation_match=None,
+            if_generation_not_match=None,
+            if_metageneration_match=None,
+            if_metageneration_not_match=None,
+        )
+
+    def test_rename_blob_with_generation_match(self):
+        BUCKET_NAME = "BUCKET_NAME"
+        BLOB_NAME = "blob-name"
+        NEW_BLOB_NAME = "new-blob-name"
+        DATA = {"name": NEW_BLOB_NAME}
+        GENERATION_NUMBER = 6
+        METAGENERATION_NUMBER = 9
+
+        connection = _Connection(DATA)
+        client = _Client(connection)
+        bucket = self._make_one(client=client, name=BUCKET_NAME)
+        blob = self._make_blob(BUCKET_NAME, BLOB_NAME)
+
+        renamed_blob = bucket.rename_blob(
+            blob,
+            NEW_BLOB_NAME,
+            client=client,
+            timeout=42,
+            if_generation_match=GENERATION_NUMBER,
+            if_source_metageneration_not_match=METAGENERATION_NUMBER,
+        )
+
+        self.assertIs(renamed_blob.bucket, bucket)
+        self.assertEqual(renamed_blob.name, NEW_BLOB_NAME)
+
+        COPY_PATH = "/b/{}/o/{}/copyTo/b/{}/o/{}".format(
+            BUCKET_NAME, BLOB_NAME, BUCKET_NAME, NEW_BLOB_NAME
+        )
+        (kw,) = connection._requested
+        self.assertEqual(kw["method"], "POST")
+        self.assertEqual(kw["path"], COPY_PATH)
+        self.assertEqual(
+            kw["query_params"],
+            {
+                "ifGenerationMatch": GENERATION_NUMBER,
+                "ifSourceMetagenerationNotMatch": METAGENERATION_NUMBER,
+            },
+        )
+        self.assertEqual(kw["timeout"], 42)
+
+        blob.delete.assert_called_once_with(
+            client=client,
+            timeout=42,
+            if_generation_match=GENERATION_NUMBER,
+            if_generation_not_match=None,
+            if_metageneration_match=None,
+            if_metageneration_not_match=None,
+        )
 
     def test_rename_blob_to_itself(self):
         BUCKET_NAME = "BUCKET_NAME"
@@ -3010,6 +3122,7 @@ class Test_Bucket(unittest.TestCase):
     ):
         from six.moves.urllib import parse
         from google.cloud._helpers import UTC
+        from google.cloud.storage._helpers import _bucket_bound_hostname_url
         from google.cloud.storage.blob import _API_ACCESS_ENDPOINT
 
         api_access_endpoint = api_access_endpoint or _API_ACCESS_ENDPOINT
@@ -3057,12 +3170,9 @@ class Test_Bucket(unittest.TestCase):
                 bucket_name
             )
         elif bucket_bound_hostname:
-            if ":" in bucket_bound_hostname:
-                expected_api_access_endpoint = bucket_bound_hostname
-            else:
-                expected_api_access_endpoint = "{scheme}://{bucket_bound_hostname}".format(
-                    scheme=scheme, bucket_bound_hostname=bucket_bound_hostname
-                )
+            expected_api_access_endpoint = _bucket_bound_hostname_url(
+                bucket_bound_hostname, scheme
+            )
         else:
             expected_api_access_endpoint = api_access_endpoint
             expected_resource = "/{}".format(parse.quote(bucket_name))

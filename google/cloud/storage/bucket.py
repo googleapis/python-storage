@@ -38,6 +38,7 @@ from google.cloud.storage._helpers import _scalar_property
 from google.cloud.storage._helpers import _validate_name
 from google.cloud.storage._signing import generate_signed_url_v2
 from google.cloud.storage._signing import generate_signed_url_v4
+from google.cloud.storage._helpers import _bucket_bound_hostname_url
 from google.cloud.storage.acl import BucketACL
 from google.cloud.storage.acl import DefaultObjectACL
 from google.cloud.storage.blob import Blob
@@ -781,6 +782,91 @@ class Bucket(_PropertyMixin):
             predefined_acl=predefined_acl,
             predefined_default_object_acl=predefined_default_object_acl,
             timeout=timeout,
+        )
+
+    def update(
+        self,
+        client=None,
+        timeout=_DEFAULT_TIMEOUT,
+        if_metageneration_match=None,
+        if_metageneration_not_match=None,
+    ):
+        """Sends all properties in a PUT request.
+
+        Updates the ``_properties`` with the response from the backend.
+
+        If :attr:`user_project` is set, bills the API request to that project.
+
+        :type client: :class:`~google.cloud.storage.client.Client` or
+                      ``NoneType``
+        :param client: the client to use. If not passed, falls back to the
+                       ``client`` stored on the current object.
+
+        :type timeout: float or tuple
+        :param timeout: (Optional) The amount of time, in seconds, to wait
+            for the server response.
+
+            Can also be passed as a tuple (connect_timeout, read_timeout).
+            See :meth:`requests.Session.request` documentation for details.
+
+        :type if_metageneration_match: long
+        :param if_metageneration_match: (Optional) Make the operation conditional on whether the
+                                        blob's current metageneration matches the given value.
+
+        :type if_metageneration_not_match: long
+        :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
+                                            blob's current metageneration does not match the given value.
+        """
+        super(Bucket, self).update(
+            client=client,
+            timeout=timeout,
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
+        )
+
+    def reload(
+        self,
+        client=None,
+        projection="noAcl",
+        timeout=_DEFAULT_TIMEOUT,
+        if_metageneration_match=None,
+        if_metageneration_not_match=None,
+    ):
+        """Reload properties from Cloud Storage.
+
+        If :attr:`user_project` is set, bills the API request to that project.
+
+        :type client: :class:`~google.cloud.storage.client.Client` or
+                      ``NoneType``
+        :param client: the client to use. If not passed, falls back to the
+                       ``client`` stored on the current object.
+
+        :type projection: str
+        :param projection: (Optional) If used, must be 'full' or 'noAcl'.
+                           Defaults to ``'noAcl'``. Specifies the set of
+                           properties to return.
+
+        :type timeout: float or tuple
+        :param timeout: (Optional) The amount of time, in seconds, to wait
+            for the server response.
+
+            Can also be passed as a tuple (connect_timeout, read_timeout).
+            See :meth:`requests.Session.request` documentation for details.
+
+        :type if_metageneration_match: long
+        :param if_metageneration_match: (Optional) Make the operation conditional on whether the
+                                        blob's current metageneration matches the given value.
+
+        :type if_metageneration_not_match: long
+        :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
+                                            blob's current metageneration does not match the given value.
+        """
+        super(Bucket, self).reload(
+            client=client,
+            projection=projection,
+            timeout=timeout,
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
         )
 
     def patch(
@@ -1649,7 +1735,21 @@ class Bucket(_PropertyMixin):
         new_blob._set_properties(copy_result)
         return new_blob
 
-    def rename_blob(self, blob, new_name, client=None, timeout=_DEFAULT_TIMEOUT):
+    def rename_blob(
+        self,
+        blob,
+        new_name,
+        client=None,
+        timeout=_DEFAULT_TIMEOUT,
+        if_generation_match=None,
+        if_generation_not_match=None,
+        if_metageneration_match=None,
+        if_metageneration_not_match=None,
+        if_source_generation_match=None,
+        if_source_generation_not_match=None,
+        if_source_metageneration_match=None,
+        if_source_metageneration_not_match=None,
+    ):
         """Rename the given blob using copy and delete operations.
 
         If :attr:`user_project` is set, bills the API request to that project.
@@ -1682,16 +1782,93 @@ class Bucket(_PropertyMixin):
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
 
+        :type if_generation_match: long
+        :param if_generation_match: (Optional) Makes the operation
+                                    conditional on whether the destination
+                                    object's current generation matches the
+                                    given value. Setting to 0 makes the
+                                    operation succeed only if there are no
+                                    live versions of the object.
+
+        :type if_generation_not_match: long
+        :param if_generation_not_match: (Optional) Makes the operation
+                                        conditional on whether the
+                                        destination object's current
+                                        generation does not match the given
+                                        value. If no live object exists,
+                                        the precondition fails. Setting to
+                                        0 makes the operation succeed only
+                                        if there is a live version
+                                        of the object.
+
+        :type if_metageneration_match: long
+        :param if_metageneration_match: (Optional) Makes the operation
+                                        conditional on whether the
+                                        destination object's current
+                                        metageneration matches the given
+                                        value.
+
+        :type if_metageneration_not_match: long
+        :param if_metageneration_not_match: (Optional) Makes the operation
+                                            conditional on whether the
+                                            destination object's current
+                                            metageneration does not match
+                                            the given value.
+
+        :type if_source_generation_match: long
+        :param if_source_generation_match: (Optional) Makes the operation
+                                           conditional on whether the source
+                                           object's generation matches the
+                                           given value.
+
+        :type if_source_generation_not_match: long
+        :param if_source_generation_not_match: (Optional) Makes the operation
+                                               conditional on whether the source
+                                               object's generation does not match
+                                               the given value.
+
+        :type if_source_metageneration_match: long
+        :param if_source_metageneration_match: (Optional) Makes the operation
+                                               conditional on whether the source
+                                               object's current metageneration
+                                               matches the given value.
+
+        :type if_source_metageneration_not_match: long
+        :param if_source_metageneration_not_match: (Optional) Makes the operation
+                                                   conditional on whether the source
+                                                   object's current metageneration
+                                                   does not match the given value.
+
         :rtype: :class:`Blob`
         :returns: The newly-renamed blob.
         """
         same_name = blob.name == new_name
 
-        new_blob = self.copy_blob(blob, self, new_name, client=client, timeout=timeout)
+        new_blob = self.copy_blob(
+            blob,
+            self,
+            new_name,
+            client=client,
+            timeout=timeout,
+            if_generation_match=if_generation_match,
+            if_generation_not_match=if_generation_not_match,
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
+            if_source_generation_match=if_source_generation_match,
+            if_source_generation_not_match=if_source_generation_not_match,
+            if_source_metageneration_match=if_source_metageneration_match,
+            if_source_metageneration_not_match=if_source_metageneration_not_match,
+        )
 
         if not same_name:
-            blob.delete(client=client, timeout=timeout)
-
+            blob.delete(
+                client=client,
+                timeout=timeout,
+                if_generation_match=if_generation_match,
+                if_generation_not_match=if_generation_not_match,
+                if_metageneration_match=if_metageneration_match,
+                if_metageneration_not_match=if_metageneration_not_match,
+            )
         return new_blob
 
     @property
@@ -2845,12 +3022,9 @@ class Bucket(_PropertyMixin):
                 bucket_name=self.name
             )
         elif bucket_bound_hostname:
-            if ":" in bucket_bound_hostname:
-                api_access_endpoint = bucket_bound_hostname
-            else:
-                api_access_endpoint = "{scheme}://{bucket_bound_hostname}".format(
-                    scheme=scheme, bucket_bound_hostname=bucket_bound_hostname
-                )
+            api_access_endpoint = _bucket_bound_hostname_url(
+                bucket_bound_hostname, scheme
+            )
         else:
             resource = "/{bucket_name}".format(bucket_name=self.name)
 
