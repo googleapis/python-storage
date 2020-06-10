@@ -943,14 +943,14 @@ class Blob(_PropertyMixin):
         client = self._require_client(client)
         client.download_blob_to_file(
             self,
-            file_obj,
-            start,
-            end,
-            raw_download,
-            if_generation_match,
-            if_generation_not_match,
-            if_metageneration_match,
-            if_metageneration_not_match,
+            file_obj=file_obj,
+            start=start,
+            end=end,
+            raw_download=raw_download,
+            if_generation_match=if_generation_match,
+            if_generation_not_match=if_generation_not_match,
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
         )
 
     def download_to_filename(
