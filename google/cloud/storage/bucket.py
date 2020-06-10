@@ -1157,33 +1157,6 @@ class Bucket(_PropertyMixin):
             stacklevel=1,
         )
 
-        extra_params = {"projection": projection}
-
-        if prefix is not None:
-            extra_params["prefix"] = prefix
-
-        if delimiter is not None:
-            extra_params["delimiter"] = delimiter
-
-        if start_offset is not None:
-            extra_params["startOffset"] = start_offset
-
-        if end_offset is not None:
-            extra_params["endOffset"] = end_offset
-
-        if include_trailing_delimiter is not None:
-            extra_params[
-                "includeTrailingDelimiter"] = include_trailing_delimiter
-
-        if versions is not None:
-            extra_params["versions"] = versions
-
-        if fields is not None:
-            extra_params["fields"] = fields
-
-        if self.user_project is not None:
-            extra_params["userProject"] = self.user_project
-
         client = self._require_client(client)
         return client.list_blobs(
             self,
@@ -1191,6 +1164,9 @@ class Bucket(_PropertyMixin):
             page_token,
             prefix,
             delimiter,
+            start_offset,
+            end_offset,
+            include_trailing_delimiter,
             versions,
             projection,
             fields,

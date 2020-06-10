@@ -1132,7 +1132,8 @@ class Test_Blob(unittest.TestCase):
             )
         )
 
-        client = mock.Mock(_connection=_Connection, spec=[u"_http"])
+        client = self._make_one_client()
+        client._base_connection = _Connection()
         client._connection.API_BASE_URL = "https://storage.googleapis.com"
         blob = self._make_one("blob-name", bucket=_Bucket(client))
         blob._do_download = mock.Mock()
@@ -1221,7 +1222,7 @@ class Test_Blob(unittest.TestCase):
         EXPECTED_LINK = MEDIA_LINK + "?ifGenerationMatch={}".format(GENERATION_NUMBER)
         HEADERS = {"accept-encoding": "gzip"}
 
-        client = mock.Mock(spec=["_http"])
+        client = self._make_one_client()
 
         blob = self._make_one(
             "blob-name", bucket=_Bucket(client), properties={"mediaLink": MEDIA_LINK}

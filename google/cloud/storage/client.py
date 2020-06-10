@@ -541,7 +541,11 @@ class Client(ClientWithProject):
         file_obj,
         start=None,
         end=None,
-        raw_download=False
+        raw_download=False,
+        if_generation_match=None,
+        if_generation_not_match=None,
+        if_metageneration_match=None,
+        if_metageneration_not_match=None,
     ):
         """Download the contents of a blob object or blob URI into a file-like object.
 
@@ -559,6 +563,23 @@ class Client(ClientWithProject):
                 (Optional) The last byte in a range to be downloaded.
             raw_download (bool):
                 (Optional) If true, download the object without any expansion.
+            if_generation_match:
+                (Optional) Make the operation conditional on whether
+                the blob's current generation matches the given value.
+                Setting to 0 makes the operation succeed only if there
+                are no live versions of the blob.
+            if_generation_not_match:
+                (Optional) Make the operation conditional on whether
+                the blob's current generation does not match the given
+                value. If no live blob exists, the precondition fails.
+                Setting to 0 makes the operation succeed only if there
+                is a live version of the blob.
+            if_metageneration_match:
+                (Optional) Make the operation conditional on whether the
+                blob's current metageneration matches the given value.
+            if_metageneration_not_match:
+                (Optional) Make the operation conditional on whether the
+                blob's current metageneration does not match the given value.
 
         Examples:
             Download a blob using using a blob resource.
@@ -587,7 +608,13 @@ class Client(ClientWithProject):
         if not isinstance(blob_or_uri, Blob):
             blob_or_uri = Blob.from_string(blob_or_uri)
 
-        download_url = blob_or_uri._get_download_url(self)
+        download_url = blob_or_uri._get_download_url(
+            self,
+            if_generation_match=if_generation_match,
+            if_generation_not_match=if_generation_not_match,
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
+        )
         headers = _get_encryption_headers(blob_or_uri._encryption_key)
         headers["accept-encoding"] = "gzip"
 
@@ -707,6 +734,16 @@ class Client(ClientWithProject):
         if delimiter is not None:
             extra_params["delimiter"] = delimiter
 
+        if start_offset is not None:
+            extra_params["startOffset"] = start_offset
+
+        if end_offset is not None:
+            extra_params["endOffset"] = end_offset
+
+        if include_trailing_delimiter is not None:
+            extra_params[
+                "includeTrailingDelimiter"] = include_trailing_delimiter
+
         if versions is not None:
             extra_params["versions"] = versions
 
@@ -732,21 +769,6 @@ class Client(ClientWithProject):
         iterator.bucket = bucket
         iterator.prefixes = set()
         return iterator
-
-        return bucket.list_blobs(
-            max_results=max_results,
-            page_token=page_token,
-            prefix=prefix,
-            delimiter=delimiter,
-            start_offset=start_offset,
-            end_offset=end_offset,
-            include_trailing_delimiter=include_trailing_delimiter,
-            versions=versions,
-            projection=projection,
-            fields=fields,
-            client=self,
-            timeout=timeout,
-        )
 
     def list_buckets(
         self,

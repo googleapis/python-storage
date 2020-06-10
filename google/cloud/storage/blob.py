@@ -937,25 +937,17 @@ class Blob(_PropertyMixin):
         )
 
         client = self._require_client(client)
-        client.download_blob_to_file(self, file_obj, start, end, raw_download)
-        download_url = self._get_download_url(
-            client,
-            if_generation_match=if_generation_match,
-            if_generation_not_match=if_generation_not_match,
-            if_metageneration_match=if_metageneration_match,
-            if_metageneration_not_match=if_metageneration_not_match,
+        client.download_blob_to_file(
+            self,
+            file_obj,
+            start,
+            end,
+            raw_download,
+            if_generation_match,
+            if_generation_not_match,
+            if_metageneration_match,
+            if_metageneration_not_match,
         )
-        headers = _get_encryption_headers(self._encryption_key)
-        headers["accept-encoding"] = "gzip"
-
-        transport = self._get_transport(client)
-        try:
-            self._do_download(
-                transport, file_obj, download_url, headers, start, end,
-                raw_download
-            )
-        except resumable_media.InvalidResponse as exc:
-            _raise_from_invalid_response(exc)
 
     def download_to_filename(
         self,
