@@ -1160,17 +1160,17 @@ class Bucket(_PropertyMixin):
         client = self._require_client(client)
         return client.list_blobs(
             self,
-            max_results,
-            page_token,
-            prefix,
-            delimiter,
-            start_offset,
-            end_offset,
-            include_trailing_delimiter,
-            versions,
-            projection,
-            fields,
-            timeout
+            max_results=max_results,
+            page_token=page_token,
+            prefix=prefix,
+            delimiter=delimiter,
+            start_offset=start_offset,
+            end_offset=end_offset,
+            include_trailing_delimiter=include_trailing_delimiter,
+            versions=versions,
+            projection=projection,
+            fields=fields,
+            timeout=timeout,
         )
 
     def list_notifications(self, client=None, timeout=_DEFAULT_TIMEOUT):
