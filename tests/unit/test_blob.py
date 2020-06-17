@@ -1305,6 +1305,56 @@ class Test_Blob(unittest.TestCase):
         stream = blob._do_download.mock_calls[0].args[1]
         self.assertEqual(stream.name, temp.name)
 
+    def _download_as_bytes_helper(self, raw_download):
+        blob_name = "blob-name"
+        client = mock.Mock(spec=["_http"])
+        bucket = _Bucket(client)
+        media_link = "http://example.com/media/"
+        properties = {"mediaLink": media_link}
+        blob = self._make_one(blob_name, bucket=bucket, properties=properties)
+        blob._do_download = mock.Mock()
+
+        fetched = blob.download_as_bytes(raw_download=raw_download)
+        self.assertEqual(fetched, b"")
+
+        headers = {"accept-encoding": "gzip"}
+        blob._do_download.assert_called_once_with(
+            client._http, mock.ANY, media_link, headers, None, None, raw_download
+        )
+        stream = blob._do_download.mock_calls[0].args[1]
+        self.assertIsInstance(stream, io.BytesIO)
+
+    def test_download_as_bytes_w_generation_match(self):
+        GENERATION_NUMBER = 6
+        MEDIA_LINK = "http://example.com/media/"
+
+        client = mock.Mock(spec=["_http"])
+        blob = self._make_one(
+            "blob-name", bucket=_Bucket(client), properties={"mediaLink": MEDIA_LINK}
+        )
+        blob.download_to_file = mock.Mock()
+
+        fetched = blob.download_as_bytes(if_generation_match=GENERATION_NUMBER)
+        self.assertEqual(fetched, b"")
+
+        blob.download_to_file.assert_called_once_with(
+            mock.ANY,
+            client=None,
+            start=None,
+            end=None,
+            raw_download=False,
+            if_generation_match=GENERATION_NUMBER,
+            if_generation_not_match=None,
+            if_metageneration_match=None,
+            if_metageneration_not_match=None,
+        )
+
+    def test_download_as_bytes_wo_raw(self):
+        self._download_as_bytes_helper(raw_download=False)
+
+    def test_download_as_bytes_w_raw(self):
+        self._download_as_bytes_helper(raw_download=True)
+
     def _download_as_string_helper(self, raw_download):
         blob_name = "blob-name"
         client = mock.Mock(spec=["_http"])
@@ -1315,7 +1365,7 @@ class Test_Blob(unittest.TestCase):
         blob._do_download = mock.Mock()
 
         fetched = blob.download_as_string(raw_download=raw_download)
-        self.assertEqual(fetched, b"")
+        self.assertEqual(fetched, "")
 
         headers = {"accept-encoding": "gzip"}
         blob._do_download.assert_called_once_with(
@@ -1335,7 +1385,7 @@ class Test_Blob(unittest.TestCase):
         blob.download_to_file = mock.Mock()
 
         fetched = blob.download_as_string(if_generation_match=GENERATION_NUMBER)
-        self.assertEqual(fetched, b"")
+        self.assertEqual(fetched, "")
 
         blob.download_to_file.assert_called_once_with(
             mock.ANY,

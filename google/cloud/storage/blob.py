@@ -1036,7 +1036,7 @@ class Blob(_PropertyMixin):
                 mtime = updated.timestamp()
             os.utime(file_obj.name, (mtime, mtime))
 
-    def download_as_string(
+    def download_as_bytes(
         self,
         client=None,
         start=None,
@@ -1048,6 +1048,10 @@ class Blob(_PropertyMixin):
         if_metageneration_not_match=None,
     ):
         """Download the contents of this blob as a bytes object.
+
+        .. note::
+           The method only supports `python3`, for python2 it returns data
+           as a string.
 
         If :attr:`user_project` is set on the bucket, bills the API request
         to that project.
@@ -1105,6 +1109,77 @@ class Blob(_PropertyMixin):
             if_metageneration_not_match=if_metageneration_not_match,
         )
         return string_buffer.getvalue()
+
+    def download_as_string(
+        self,
+        client=None,
+        start=None,
+        end=None,
+        raw_download=False,
+        if_generation_match=None,
+        if_generation_not_match=None,
+        if_metageneration_match=None,
+        if_metageneration_not_match=None,
+    ):
+        """Download the contents of this blob as a string.
+
+        If :attr:`user_project` is set on the bucket, bills the API request
+        to that project.
+
+        :type client: :class:`~google.cloud.storage.client.Client` or
+                      ``NoneType``
+        :param client: (Optional) The client to use. If not passed, falls back
+                       to the ``client`` stored on the blob's bucket.
+
+        :type start: int
+        :param start: (Optional) The first byte in a range to be downloaded.
+
+        :type end: int
+        :param end: (Optional) The last byte in a range to be downloaded.
+
+        :type raw_download: bool
+        :param raw_download:
+            (Optional) If true, download the object without any expansion.
+
+        :type if_generation_match: long
+        :param if_generation_match: (Optional) Make the operation conditional on whether
+                                    the blob's current generation matches the given value.
+                                    Setting to 0 makes the operation succeed only if there
+                                    are no live versions of the blob.
+
+        :type if_generation_not_match: long
+        :param if_generation_not_match: (Optional) Make the operation conditional on whether
+                                        the blob's current generation does not match the given
+                                        value. If no live blob exists, the precondition fails.
+                                        Setting to 0 makes the operation succeed only if there
+                                        is a live version of the blob.
+
+        :param if_metageneration_match: (Optional) Make the operation conditional on whether the
+                                        blob's current metageneration matches the given value.
+
+        :type if_metageneration_not_match: long
+        :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
+                                            blob's current metageneration does not match the given value.
+
+        :rtype: str
+        :returns: The data stored in this blob.
+
+        :raises: :class:`google.cloud.exceptions.NotFound`
+        """
+        data = self.download_as_bytes(
+            client=client,
+            start=start,
+            end=end,
+            raw_download=raw_download,
+            if_generation_match=if_generation_match,
+            if_generation_not_match=if_generation_not_match,
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
+        )
+        if six.PY2:
+            return data
+        else:
+            return data.decode()
 
     def _get_content_type(self, content_type, filename=None):
         """Determine the content type from the current object.

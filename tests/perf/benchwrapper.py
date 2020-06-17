@@ -35,7 +35,7 @@ class StorageBenchWrapperServicer(storage_pb2_grpc.StorageBenchWrapperServicer):
     def Read(self, request, context):
         bucket = client.bucket(request.bucketName)
         blob = storage.Blob(request.objectName, bucket)
-        blob.download_as_string()
+        blob.download_as_bytes()
         return storage_pb2.EmptyResponse()
 
 
