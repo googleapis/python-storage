@@ -380,6 +380,16 @@ class Test_Bucket(unittest.TestCase):
         bucket._properties = properties or {}
         return bucket
 
+    @staticmethod
+    def _make_one_client(connection=None, *args, **kw):
+        from google.cloud.storage.client import Client
+
+        client = Client(*args, **kw)
+        if connection is not None:
+            client._base_connection = connection
+
+        return client
+
     def test_ctor_w_invalid_name(self):
         NAME = "#invalid"
         with self.assertRaises(ValueError):
@@ -769,7 +779,8 @@ class Test_Bucket(unittest.TestCase):
     def test_list_blobs_defaults(self):
         NAME = "name"
         connection = _Connection({"items": []})
-        client = _Client(connection)
+        client = self._make_one_client(connection=connection)
+        client._base_connection = connection
         bucket = self._make_one(client=client, name=NAME)
         iterator = bucket.list_blobs()
         blobs = list(iterator)
@@ -807,7 +818,7 @@ class Test_Bucket(unittest.TestCase):
             "userProject": USER_PROJECT,
         }
         connection = _Connection({"items": []})
-        client = _Client(connection)
+        client = self._make_one_client(connection=connection)
         bucket = self._make_one(name=NAME, user_project=USER_PROJECT)
         iterator = bucket.list_blobs(
             max_results=MAX_RESULTS,
@@ -953,7 +964,7 @@ class Test_Bucket(unittest.TestCase):
         GET_BLOBS_RESP = {"items": []}
         connection = _Connection(GET_BLOBS_RESP)
         connection._delete_bucket = True
-        client = _Client(connection)
+        client = self._make_one_client(connection=connection)
         bucket = self._make_one(client=client, name=NAME, user_project=USER_PROJECT)
         result = bucket.delete(force=True, timeout=42)
         self.assertIsNone(result)
@@ -976,7 +987,7 @@ class Test_Bucket(unittest.TestCase):
         DELETE_BLOB1_RESP = DELETE_BLOB2_RESP = {}
         connection = _Connection(GET_BLOBS_RESP, DELETE_BLOB1_RESP, DELETE_BLOB2_RESP)
         connection._delete_bucket = True
-        client = _Client(connection)
+        client = self._make_one_client(connection=connection)
         bucket = self._make_one(client=client, name=NAME)
         result = bucket.delete(force=True)
         self.assertIsNone(result)
@@ -1023,7 +1034,7 @@ class Test_Bucket(unittest.TestCase):
         # Note the connection does not have a response for the blob.
         connection = _Connection(GET_BLOBS_RESP)
         connection._delete_bucket = True
-        client = _Client(connection)
+        client = self._make_one_client(connection=connection)
         bucket = self._make_one(client=client, name=NAME)
         result = bucket.delete(force=True)
         self.assertIsNone(result)
@@ -1045,7 +1056,7 @@ class Test_Bucket(unittest.TestCase):
         GET_BLOBS_RESP = {"items": [{"name": BLOB_NAME1}, {"name": BLOB_NAME2}]}
         connection = _Connection(GET_BLOBS_RESP)
         connection._delete_bucket = True
-        client = _Client(connection)
+        client = self._make_one_client(connection=connection)
         bucket = self._make_one(client=client, name=NAME)
 
         # Make the Bucket refuse to delete with 2 objects.
@@ -2175,15 +2186,11 @@ class Test_Bucket(unittest.TestCase):
 
     @mock.patch("warnings.warn")
     def test_create_deprecated(self, mock_warn):
-        from google.cloud.storage.client import Client
-
         PROJECT = "PROJECT"
         BUCKET_NAME = "bucket-name"
         DATA = {"name": BUCKET_NAME}
         connection = _make_connection(DATA)
-        client = Client(project=PROJECT)
-        client._base_connection = connection
-
+        client = self._make_one_client(connection=connection, project=PROJECT)
         bucket = self._make_one(client=client, name=BUCKET_NAME)
         bucket.create()
 
@@ -2204,15 +2211,11 @@ class Test_Bucket(unittest.TestCase):
         )
 
     def test_create_w_user_project(self):
-        from google.cloud.storage.client import Client
-
         PROJECT = "PROJECT"
         BUCKET_NAME = "bucket-name"
         DATA = {"name": BUCKET_NAME}
         connection = _make_connection(DATA)
-        client = Client(project=PROJECT)
-        client._base_connection = connection
-
+        client = self._make_one_client(connection=connection, project=PROJECT)
         bucket = self._make_one(client=client, name=BUCKET_NAME)
         bucket._user_project = "USER_PROJECT"
         with self.assertRaises(ValueError):
@@ -2648,12 +2651,12 @@ class Test_Bucket(unittest.TestCase):
         permissive = [{"entity": "allUsers", "role": _ACLEntity.READER_ROLE}]
         after = {"acl": permissive, "defaultObjectAcl": []}
         connection = _Connection(after, {"items": [{"name": BLOB_NAME}]})
-        client = _Client(connection)
+        client = self._make_one_client(connection=connection)
         bucket = self._make_one(client=client, name=NAME)
         bucket.acl.loaded = True
         bucket.default_object_acl.loaded = True
 
-        with mock.patch("google.cloud.storage.bucket._item_to_blob", new=item_to_blob):
+        with mock.patch("google.cloud.storage.client._item_to_blob", new=item_to_blob):
             bucket.make_public(recursive=True, timeout=42)
         self.assertEqual(list(bucket.acl), permissive)
         self.assertEqual(list(bucket.default_object_acl), [])
@@ -2675,7 +2678,6 @@ class Test_Bucket(unittest.TestCase):
 
     def test_make_public_recursive_too_many(self):
         from google.cloud.storage.acl import _ACLEntity
-
         PERMISSIVE = [{"entity": "allUsers", "role": _ACLEntity.READER_ROLE}]
         AFTER = {"acl": PERMISSIVE, "defaultObjectAcl": []}
 
@@ -2684,7 +2686,7 @@ class Test_Bucket(unittest.TestCase):
         BLOB_NAME2 = "blob-name2"
         GET_BLOBS_RESP = {"items": [{"name": BLOB_NAME1}, {"name": BLOB_NAME2}]}
         connection = _Connection(AFTER, GET_BLOBS_RESP)
-        client = _Client(connection)
+        client = self._make_one_client(connection=connection)
         bucket = self._make_one(client=client, name=NAME)
         bucket.acl.loaded = True
         bucket.default_object_acl.loaded = True
@@ -2790,12 +2792,12 @@ class Test_Bucket(unittest.TestCase):
         no_permissions = []
         after = {"acl": no_permissions, "defaultObjectAcl": []}
         connection = _Connection(after, {"items": [{"name": BLOB_NAME}]})
-        client = _Client(connection)
+        client = self._make_one_client(connection=connection)
         bucket = self._make_one(client=client, name=NAME)
         bucket.acl.loaded = True
         bucket.default_object_acl.loaded = True
 
-        with mock.patch("google.cloud.storage.bucket._item_to_blob", new=item_to_blob):
+        with mock.patch("google.cloud.storage.client._item_to_blob", new=item_to_blob):
             bucket.make_private(recursive=True, timeout=42)
         self.assertEqual(list(bucket.acl), no_permissions)
         self.assertEqual(list(bucket.default_object_acl), [])
@@ -2824,7 +2826,7 @@ class Test_Bucket(unittest.TestCase):
         BLOB_NAME2 = "blob-name2"
         GET_BLOBS_RESP = {"items": [{"name": BLOB_NAME1}, {"name": BLOB_NAME2}]}
         connection = _Connection(AFTER, GET_BLOBS_RESP)
-        client = _Client(connection)
+        client = self._make_one_client(connection=connection)
         bucket = self._make_one(client=client, name=NAME)
         bucket.acl.loaded = True
         bucket.default_object_acl.loaded = True
@@ -2837,7 +2839,7 @@ class Test_Bucket(unittest.TestCase):
         from google.api_core import page_iterator
 
         connection = _Connection()
-        client = _Client(connection)
+        client = self._make_one_client(connection=connection)
         name = "name"
         bucket = self._make_one(client=client, name=name)
         iterator = bucket.list_blobs()
@@ -2854,7 +2856,7 @@ class Test_Bucket(unittest.TestCase):
         blob_name = "blob-name"
         response = {"items": [{"name": blob_name}], "prefixes": ["foo"]}
         connection = _Connection()
-        client = _Client(connection)
+        client = self._make_one_client(connection=connection)
         name = "name"
         bucket = self._make_one(client=client, name=name)
 
@@ -2885,7 +2887,7 @@ class Test_Bucket(unittest.TestCase):
         }
         response2 = {"items": [], "prefixes": ["bar"]}
         connection = _Connection()
-        client = _Client(connection)
+        client = self._make_one_client(connection=connection)
         name = "name"
         bucket = self._make_one(client=client, name=name)
         responses = [response1, response2]

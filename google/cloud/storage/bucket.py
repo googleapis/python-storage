@@ -1063,7 +1063,7 @@ class Bucket(_PropertyMixin):
         client=None,
         timeout=_DEFAULT_TIMEOUT,
     ):
-        """Return an iterator used to find blobs in the bucket.
+        """DEPRECATED. Return an iterator used to find blobs in the bucket.
 
         .. note::
           Direct use of this method is deprecated. Use ``Client.list_blobs`` instead.
@@ -1151,48 +1151,28 @@ class Bucket(_PropertyMixin):
             >>> bucket = storage.Bucket("my-bucket-name", user_project='my-project')
             >>> all_blobs = list(bucket.list_blobs())
         """
-        extra_params = {"projection": projection}
-
-        if prefix is not None:
-            extra_params["prefix"] = prefix
-
-        if delimiter is not None:
-            extra_params["delimiter"] = delimiter
-
-        if start_offset is not None:
-            extra_params["startOffset"] = start_offset
-
-        if end_offset is not None:
-            extra_params["endOffset"] = end_offset
-
-        if include_trailing_delimiter is not None:
-            extra_params["includeTrailingDelimiter"] = include_trailing_delimiter
-
-        if versions is not None:
-            extra_params["versions"] = versions
-
-        if fields is not None:
-            extra_params["fields"] = fields
-
-        if self.user_project is not None:
-            extra_params["userProject"] = self.user_project
+        warnings.warn(
+            "Bucket.list_blobs() is deprecated and will be removed in future."
+            "Use Client.list_blobs() instead.",
+            PendingDeprecationWarning,
+            stacklevel=1,
+        )
 
         client = self._require_client(client)
-        path = self.path + "/o"
-        api_request = functools.partial(client._connection.api_request, timeout=timeout)
-        iterator = page_iterator.HTTPIterator(
-            client=client,
-            api_request=api_request,
-            path=path,
-            item_to_value=_item_to_blob,
-            page_token=page_token,
+        return client.list_blobs(
+            self,
             max_results=max_results,
-            extra_params=extra_params,
-            page_start=_blobs_page_start,
+            page_token=page_token,
+            prefix=prefix,
+            delimiter=delimiter,
+            start_offset=start_offset,
+            end_offset=end_offset,
+            include_trailing_delimiter=include_trailing_delimiter,
+            versions=versions,
+            projection=projection,
+            fields=fields,
+            timeout=timeout,
         )
-        iterator.bucket = self
-        iterator.prefixes = set()
-        return iterator
 
     def list_notifications(self, client=None, timeout=_DEFAULT_TIMEOUT):
         """List Pub / Sub notifications for this bucket.

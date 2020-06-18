@@ -25,6 +25,8 @@ import google.api_core.client_options
 
 from google.auth.credentials import AnonymousCredentials
 
+from google import resumable_media
+
 from google.api_core import page_iterator
 from google.cloud._helpers import _LocalStack, _NOW
 from google.cloud.client import ClientWithProject
@@ -39,8 +41,16 @@ from google.cloud.storage._signing import (
     _sign_message,
 )
 from google.cloud.storage.batch import Batch
-from google.cloud.storage.bucket import Bucket
-from google.cloud.storage.blob import Blob
+from google.cloud.storage.bucket import (
+    Bucket,
+    _item_to_blob,
+    _blobs_page_start
+)
+from google.cloud.storage.blob import (
+    Blob,
+    _get_encryption_headers,
+    _raise_from_invalid_response
+)
 from google.cloud.storage.hmac_key import HMACKeyMetadata
 from google.cloud.storage.acl import BucketACL
 from google.cloud.storage.acl import DefaultObjectACL
@@ -528,7 +538,18 @@ class Client(ClientWithProject):
         bucket._set_properties(api_response)
         return bucket
 
-    def download_blob_to_file(self, blob_or_uri, file_obj, start=None, end=None):
+    def download_blob_to_file(
+        self,
+        blob_or_uri,
+        file_obj,
+        start=None,
+        end=None,
+        raw_download=False,
+        if_generation_match=None,
+        if_generation_not_match=None,
+        if_metageneration_match=None,
+        if_metageneration_not_match=None,
+    ):
         """Download the contents of a blob object or blob URI into a file-like object.
 
         Args:
@@ -543,6 +564,25 @@ class Client(ClientWithProject):
                 (Optional) The first byte in a range to be downloaded.
             end (int):
                 (Optional) The last byte in a range to be downloaded.
+            raw_download (bool):
+                (Optional) If true, download the object without any expansion.
+            if_generation_match:
+                (Optional) Make the operation conditional on whether
+                the blob's current generation matches the given value.
+                Setting to 0 makes the operation succeed only if there
+                are no live versions of the blob.
+            if_generation_not_match:
+                (Optional) Make the operation conditional on whether
+                the blob's current generation does not match the given
+                value. If no live blob exists, the precondition fails.
+                Setting to 0 makes the operation succeed only if there
+                is a live version of the blob.
+            if_metageneration_match:
+                (Optional) Make the operation conditional on whether the
+                blob's current metageneration matches the given value.
+            if_metageneration_not_match:
+                (Optional) Make the operation conditional on whether the
+                blob's current metageneration does not match the given value.
 
         Examples:
             Download a blob using using a blob resource.
@@ -568,11 +608,27 @@ class Client(ClientWithProject):
 
 
         """
+        if not isinstance(blob_or_uri, Blob):
+            blob_or_uri = Blob.from_string(blob_or_uri)
+
+        download_url = blob_or_uri._get_download_url(
+            self,
+            if_generation_match=if_generation_match,
+            if_generation_not_match=if_generation_not_match,
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
+        )
+        headers = _get_encryption_headers(blob_or_uri._encryption_key)
+        headers["accept-encoding"] = "gzip"
+
+        transport = self._http
         try:
-            blob_or_uri.download_to_file(file_obj, client=self, start=start, end=end)
-        except AttributeError:
-            blob = Blob.from_string(blob_or_uri)
-            blob.download_to_file(file_obj, client=self, start=start, end=end)
+            blob_or_uri._do_download(
+                transport, file_obj, download_url, headers, start, end,
+                raw_download
+            )
+        except resumable_media.InvalidResponse as exc:
+            _raise_from_invalid_response(exc)
 
     def list_blobs(
         self,
@@ -672,20 +728,50 @@ class Client(ClientWithProject):
             >>> all_blobs = list(client.list_blobs(bucket))
         """
         bucket = self._bucket_arg_to_bucket(bucket_or_name)
-        return bucket.list_blobs(
-            max_results=max_results,
-            page_token=page_token,
-            prefix=prefix,
-            delimiter=delimiter,
-            start_offset=start_offset,
-            end_offset=end_offset,
-            include_trailing_delimiter=include_trailing_delimiter,
-            versions=versions,
-            projection=projection,
-            fields=fields,
+
+        extra_params = {"projection": projection}
+
+        if prefix is not None:
+            extra_params["prefix"] = prefix
+
+        if delimiter is not None:
+            extra_params["delimiter"] = delimiter
+
+        if start_offset is not None:
+            extra_params["startOffset"] = start_offset
+
+        if end_offset is not None:
+            extra_params["endOffset"] = end_offset
+
+        if include_trailing_delimiter is not None:
+            extra_params[
+                "includeTrailingDelimiter"] = include_trailing_delimiter
+
+        if versions is not None:
+            extra_params["versions"] = versions
+
+        if fields is not None:
+            extra_params["fields"] = fields
+
+        if bucket.user_project is not None:
+            extra_params["userProject"] = bucket.user_project
+
+        path = bucket.path + "/o"
+        api_request = functools.partial(self._connection.api_request,
+                                        timeout=timeout)
+        iterator = page_iterator.HTTPIterator(
             client=self,
-            timeout=timeout,
+            api_request=api_request,
+            path=path,
+            item_to_value=_item_to_blob,
+            page_token=page_token,
+            max_results=max_results,
+            extra_params=extra_params,
+            page_start=_blobs_page_start,
         )
+        iterator.bucket = bucket
+        iterator.prefixes = set()
+        return iterator
 
     def list_buckets(
         self,
@@ -1125,3 +1211,4 @@ def _item_to_hmac_key_metadata(iterator, item):
     metadata = HMACKeyMetadata(iterator.client)
     metadata._properties = item
     return metadata
+
