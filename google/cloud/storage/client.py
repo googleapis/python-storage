@@ -41,15 +41,11 @@ from google.cloud.storage._signing import (
     _sign_message,
 )
 from google.cloud.storage.batch import Batch
-from google.cloud.storage.bucket import (
-    Bucket,
-    _item_to_blob,
-    _blobs_page_start
-)
+from google.cloud.storage.bucket import Bucket, _item_to_blob, _blobs_page_start
 from google.cloud.storage.blob import (
     Blob,
     _get_encryption_headers,
-    _raise_from_invalid_response
+    _raise_from_invalid_response,
 )
 from google.cloud.storage.hmac_key import HMACKeyMetadata
 from google.cloud.storage.acl import BucketACL
@@ -624,8 +620,7 @@ class Client(ClientWithProject):
         transport = self._http
         try:
             blob_or_uri._do_download(
-                transport, file_obj, download_url, headers, start, end,
-                raw_download
+                transport, file_obj, download_url, headers, start, end, raw_download
             )
         except resumable_media.InvalidResponse as exc:
             _raise_from_invalid_response(exc)
@@ -744,8 +739,7 @@ class Client(ClientWithProject):
             extra_params["endOffset"] = end_offset
 
         if include_trailing_delimiter is not None:
-            extra_params[
-                "includeTrailingDelimiter"] = include_trailing_delimiter
+            extra_params["includeTrailingDelimiter"] = include_trailing_delimiter
 
         if versions is not None:
             extra_params["versions"] = versions
@@ -757,8 +751,7 @@ class Client(ClientWithProject):
             extra_params["userProject"] = bucket.user_project
 
         path = bucket.path + "/o"
-        api_request = functools.partial(self._connection.api_request,
-                                        timeout=timeout)
+        api_request = functools.partial(self._connection.api_request, timeout=timeout)
         iterator = page_iterator.HTTPIterator(
             client=self,
             api_request=api_request,
@@ -1211,4 +1204,3 @@ def _item_to_hmac_key_metadata(iterator, item):
     metadata = HMACKeyMetadata(iterator.client)
     metadata._properties = item
     return metadata
-

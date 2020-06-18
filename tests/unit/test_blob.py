@@ -1184,6 +1184,7 @@ class Test_Blob(unittest.TestCase):
         import os
         from google.cloud.storage._helpers import _convert_to_timestamp
         from google.cloud._testing import _NamedTemporaryFile
+
         blob_name = "blob-name"
         client = self._make_one_client()
         bucket = _Bucket(client)
@@ -1305,6 +1306,7 @@ class Test_Blob(unittest.TestCase):
     def test_download_to_filename_w_key(self):
         from google.cloud._testing import _NamedTemporaryFile
         from google.cloud.storage.blob import _get_encryption_headers
+
         blob_name = "blob-name"
         # Create a fake client/bucket and use them in the Blob() constructor.
         client = self._make_one_client()

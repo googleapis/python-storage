@@ -2684,6 +2684,7 @@ class Test_Bucket(unittest.TestCase):
 
     def test_make_public_recursive_too_many(self):
         from google.cloud.storage.acl import _ACLEntity
+
         PERMISSIVE = [{"entity": "allUsers", "role": _ACLEntity.READER_ROLE}]
         AFTER = {"acl": PERMISSIVE, "defaultObjectAcl": []}
 
