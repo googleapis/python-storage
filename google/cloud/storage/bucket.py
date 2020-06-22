@@ -968,6 +968,7 @@ class Bucket(_PropertyMixin):
         .. literalinclude:: snippets.py
           :start-after: [START get_blob]
           :end-before: [END get_blob]
+          :dedent: 4
 
         If :attr:`user_project` is set, bills the API request to that project.
 
@@ -1381,6 +1382,7 @@ class Bucket(_PropertyMixin):
         .. literalinclude:: snippets.py
           :start-after: [START delete_blob]
           :end-before: [END delete_blob]
+          :dedent: 4
 
         If :attr:`user_project` is set, bills the API request to that project.
 
@@ -1431,6 +1433,7 @@ class Bucket(_PropertyMixin):
         .. literalinclude:: snippets.py
             :start-after: [START delete_blobs]
             :end-before: [END delete_blobs]
+            :dedent: 4
 
         """
         client = self._require_client(client)
@@ -1455,7 +1458,17 @@ class Bucket(_PropertyMixin):
             timeout=timeout,
         )
 
-    def delete_blobs(self, blobs, on_error=None, client=None, timeout=_DEFAULT_TIMEOUT):
+    def delete_blobs(
+        self,
+        blobs,
+        on_error=None,
+        client=None,
+        timeout=_DEFAULT_TIMEOUT,
+        if_generation_match=None,
+        if_generation_not_match=None,
+        if_metageneration_match=None,
+        if_metageneration_not_match=None,
+    ):
         """Deletes a list of blobs from the current bucket.
 
         Uses :meth:`delete_blob` to delete each individual blob.
@@ -1484,15 +1497,74 @@ class Bucket(_PropertyMixin):
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
 
+        :type if_generation_match: list of long
+        :param if_generation_match: (Optional) Make the operation conditional on whether
+                                    the blob's current generation matches the given value.
+                                    Setting to 0 makes the operation succeed only if there
+                                    are no live versions of the blob. The list must match
+                                    ``blobs`` item-to-item.
+
+        :type if_generation_not_match: list of long
+        :param if_generation_not_match: (Optional) Make the operation conditional on whether
+                                        the blob's current generation does not match the given
+                                        value. If no live blob exists, the precondition fails.
+                                        Setting to 0 makes the operation succeed only if there
+                                        is a live version of the blob. The list must match
+                                        ``blobs`` item-to-item.
+
+        :type if_metageneration_match: list of long
+        :param if_metageneration_match: (Optional) Make the operation conditional on whether the
+                                        blob's current metageneration matches the given value.
+                                        The list must match ``blobs`` item-to-item.
+
+        :type if_metageneration_not_match: list of long
+        :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
+                                            blob's current metageneration does not match the given value.
+                                            The list must match ``blobs`` item-to-item.
+
         :raises: :class:`~google.cloud.exceptions.NotFound` (if
                  `on_error` is not passed).
+
+        Example:
+            Delete blobs using generation match preconditions.
+
+            >>> from google.cloud import storage
+
+            >>> client = storage.Client()
+            >>> bucket = client.bucket("bucket-name")
+
+            >>> blobs = [bucket.blob("blob-name-1"), bucket.blob("blob-name-2")]
+            >>> if_generation_match = [None] * len(blobs)
+            >>> if_generation_match[0] = "123"  # precondition for "blob-name-1"
+
+            >>> bucket.delete_blobs(blobs, if_generation_match=if_generation_match)
         """
+        _raise_if_len_differs(
+            len(blobs),
+            if_generation_match=if_generation_match,
+            if_generation_not_match=if_generation_not_match,
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
+        )
+        if_generation_match = iter(if_generation_match or [])
+        if_generation_not_match = iter(if_generation_not_match or [])
+        if_metageneration_match = iter(if_metageneration_match or [])
+        if_metageneration_not_match = iter(if_metageneration_not_match or [])
+
         for blob in blobs:
             try:
                 blob_name = blob
                 if not isinstance(blob_name, six.string_types):
                     blob_name = blob.name
-                self.delete_blob(blob_name, client=client, timeout=timeout)
+                self.delete_blob(
+                    blob_name,
+                    client=client,
+                    timeout=timeout,
+                    if_generation_match=next(if_generation_match, None),
+                    if_generation_not_match=next(if_generation_not_match, None),
+                    if_metageneration_match=next(if_metageneration_match, None),
+                    if_metageneration_not_match=next(if_metageneration_not_match, None),
+                )
             except NotFound:
                 if on_error is not None:
                     on_error(blob)
@@ -1666,7 +1738,21 @@ class Bucket(_PropertyMixin):
         new_blob._set_properties(copy_result)
         return new_blob
 
-    def rename_blob(self, blob, new_name, client=None, timeout=_DEFAULT_TIMEOUT):
+    def rename_blob(
+        self,
+        blob,
+        new_name,
+        client=None,
+        timeout=_DEFAULT_TIMEOUT,
+        if_generation_match=None,
+        if_generation_not_match=None,
+        if_metageneration_match=None,
+        if_metageneration_not_match=None,
+        if_source_generation_match=None,
+        if_source_generation_not_match=None,
+        if_source_metageneration_match=None,
+        if_source_metageneration_not_match=None,
+    ):
         """Rename the given blob using copy and delete operations.
 
         If :attr:`user_project` is set, bills the API request to that project.
@@ -1699,16 +1785,93 @@ class Bucket(_PropertyMixin):
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
 
+        :type if_generation_match: long
+        :param if_generation_match: (Optional) Makes the operation
+                                    conditional on whether the destination
+                                    object's current generation matches the
+                                    given value. Setting to 0 makes the
+                                    operation succeed only if there are no
+                                    live versions of the object.
+
+        :type if_generation_not_match: long
+        :param if_generation_not_match: (Optional) Makes the operation
+                                        conditional on whether the
+                                        destination object's current
+                                        generation does not match the given
+                                        value. If no live object exists,
+                                        the precondition fails. Setting to
+                                        0 makes the operation succeed only
+                                        if there is a live version
+                                        of the object.
+
+        :type if_metageneration_match: long
+        :param if_metageneration_match: (Optional) Makes the operation
+                                        conditional on whether the
+                                        destination object's current
+                                        metageneration matches the given
+                                        value.
+
+        :type if_metageneration_not_match: long
+        :param if_metageneration_not_match: (Optional) Makes the operation
+                                            conditional on whether the
+                                            destination object's current
+                                            metageneration does not match
+                                            the given value.
+
+        :type if_source_generation_match: long
+        :param if_source_generation_match: (Optional) Makes the operation
+                                           conditional on whether the source
+                                           object's generation matches the
+                                           given value.
+
+        :type if_source_generation_not_match: long
+        :param if_source_generation_not_match: (Optional) Makes the operation
+                                               conditional on whether the source
+                                               object's generation does not match
+                                               the given value.
+
+        :type if_source_metageneration_match: long
+        :param if_source_metageneration_match: (Optional) Makes the operation
+                                               conditional on whether the source
+                                               object's current metageneration
+                                               matches the given value.
+
+        :type if_source_metageneration_not_match: long
+        :param if_source_metageneration_not_match: (Optional) Makes the operation
+                                                   conditional on whether the source
+                                                   object's current metageneration
+                                                   does not match the given value.
+
         :rtype: :class:`Blob`
         :returns: The newly-renamed blob.
         """
         same_name = blob.name == new_name
 
-        new_blob = self.copy_blob(blob, self, new_name, client=client, timeout=timeout)
+        new_blob = self.copy_blob(
+            blob,
+            self,
+            new_name,
+            client=client,
+            timeout=timeout,
+            if_generation_match=if_generation_match,
+            if_generation_not_match=if_generation_not_match,
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
+            if_source_generation_match=if_source_generation_match,
+            if_source_generation_not_match=if_source_generation_not_match,
+            if_source_metageneration_match=if_source_metageneration_match,
+            if_source_metageneration_not_match=if_source_metageneration_not_match,
+        )
 
         if not same_name:
-            blob.delete(client=client, timeout=timeout)
-
+            blob.delete(
+                client=client,
+                timeout=timeout,
+                if_generation_match=if_generation_match,
+                if_generation_not_match=if_generation_not_match,
+                if_metageneration_match=if_metageneration_match,
+                if_metageneration_not_match=if_metageneration_not_match,
+            )
         return new_blob
 
     @property
@@ -1945,6 +2108,7 @@ class Bucket(_PropertyMixin):
         .. literalinclude:: snippets.py
           :start-after: [START add_lifecycle_delete_rule]
           :end-before: [END add_lifecycle_delete_rule]
+          :dedent: 4
 
         :type kw: dict
         :params kw: arguments passed to :class:`LifecycleRuleConditions`.
@@ -1962,6 +2126,7 @@ class Bucket(_PropertyMixin):
         .. literalinclude:: snippets.py
           :start-after: [START add_lifecycle_set_storage_class_rule]
           :end-before: [END add_lifecycle_set_storage_class_rule]
+          :dedent: 4
 
         :type storage_class: str, one of :attr:`STORAGE_CLASSES`.
         :param storage_class: new storage class to assign to matching items.
@@ -2305,12 +2470,14 @@ class Bucket(_PropertyMixin):
         .. literalinclude:: snippets.py
           :start-after: [START configure_website]
           :end-before: [END configure_website]
+          :dedent: 4
 
         You probably should also make the whole bucket public:
 
         .. literalinclude:: snippets.py
             :start-after: [START make_public]
             :end-before: [END make_public]
+            :dedent: 4
 
         This says: "Make the bucket public, and all the stuff already in
         the bucket, and anything else I add to the bucket.  Just make it
@@ -2644,6 +2811,7 @@ class Bucket(_PropertyMixin):
         .. literalinclude:: snippets.py
             :start-after: [START policy_document]
             :end-before: [END policy_document]
+            :dedent: 4
 
         .. _policy documents:
             https://cloud.google.com/storage/docs/xml-api\
@@ -2889,3 +3057,23 @@ class Bucket(_PropertyMixin):
             headers=headers,
             query_parameters=query_parameters,
         )
+
+
+def _raise_if_len_differs(expected_len, **generation_match_args):
+    """
+    Raise an error if any generation match argument
+    is set and its len differs from the given value.
+
+    :type expected_len: int
+    :param expected_len: Expected argument length in case it's set.
+
+    :type generation_match_args: dict
+    :param generation_match_args: Lists, which length must be checked.
+
+    :raises: :exc:`ValueError` if any argument set, but has an unexpected length.
+    """
+    for name, value in generation_match_args.items():
+        if value is not None and len(value) != expected_len:
+            raise ValueError(
+                "'{}' length must be the same as 'blobs' length".format(name)
+            )
