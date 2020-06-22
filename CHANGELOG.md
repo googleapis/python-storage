@@ -4,6 +4,18 @@
 
 [1]: https://pypi.org/project/google-cloud-storage/#history
 
+### [1.29.1](https://www.github.com/googleapis/python-storage/compare/v1.29.0...v1.29.1) (2020-06-22)
+
+
+### Bug Fixes
+
+* add multiprocessing.rst to synthool excludes ([#186](https://www.github.com/googleapis/python-storage/issues/186)) ([4d76e38](https://www.github.com/googleapis/python-storage/commit/4d76e3882210ed2818a43256265f6df31348d410))
+
+
+### Documentation
+
+* **storage:** fix indent in code blocks ([#171](https://www.github.com/googleapis/python-storage/issues/171)) ([62d1543](https://www.github.com/googleapis/python-storage/commit/62d1543e18040b286b23464562aa6eb998074c54)), closes [#170](https://www.github.com/googleapis/python-storage/issues/170)
+
 ## [1.29.0](https://www.github.com/googleapis/python-storage/compare/v1.28.1...v1.29.0) (2020-06-09)
 
 
