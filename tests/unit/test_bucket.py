@@ -103,7 +103,7 @@ class Test_LifecycleRuleConditions(unittest.TestCase):
 
     def test_ctor_w_noncurrent_time_before(self):
         import datetime
-        from google.cloud.storage._helpers import _datetime_to_string
+        from google.cloud._helpers import _datetime_to_rfc3339
 
         noncurrent_before = datetime.datetime.now() + datetime.timedelta(days=10)
         conditions = self._make_one(
@@ -112,7 +112,7 @@ class Test_LifecycleRuleConditions(unittest.TestCase):
 
         expected = {
             "numNewerVersions": 3,
-            "noncurrentTimeBefore": _datetime_to_string(noncurrent_before),
+            "noncurrentTimeBefore": _datetime_to_rfc3339(noncurrent_before),
         }
         self.assertEqual(dict(conditions), expected)
         self.assertIsNone(conditions.age)
@@ -121,12 +121,12 @@ class Test_LifecycleRuleConditions(unittest.TestCase):
         self.assertIsNone(conditions.matches_storage_class)
         self.assertEqual(conditions.number_of_newer_versions, 3)
         self.assertEqual(
-            conditions.noncurrent_time_before, _datetime_to_string(noncurrent_before)
+            conditions.noncurrent_time_before, _datetime_to_rfc3339(noncurrent_before)
         )
 
     def test_from_api_repr(self):
         import datetime
-        from google.cloud.storage._helpers import _datetime_to_string
+        from google.cloud._helpers import _datetime_to_rfc3339
 
         noncurrent_before = datetime.datetime.now() + datetime.timedelta(days=10)
         before = datetime.date(2018, 8, 1)
@@ -139,7 +139,7 @@ class Test_LifecycleRuleConditions(unittest.TestCase):
             "matchesStorageClass": ["COLDLINE"],
             "numNewerVersions": 3,
             "daysSinceNoncurrentTime": 2,
-            "noncurrentTimeBefore": _datetime_to_string(noncurrent_before),
+            "noncurrentTimeBefore": _datetime_to_rfc3339(noncurrent_before),
         }
         conditions = klass.from_api_repr(resource)
         self.assertEqual(conditions.age, 10)
@@ -149,7 +149,7 @@ class Test_LifecycleRuleConditions(unittest.TestCase):
         self.assertEqual(conditions.number_of_newer_versions, 3)
         self.assertEqual(conditions.days_since_noncurrent_time, 2)
         self.assertEqual(
-            conditions.noncurrent_time_before, _datetime_to_string(noncurrent_before)
+            conditions.noncurrent_time_before, _datetime_to_rfc3339(noncurrent_before)
         )
 
 
