@@ -26,7 +26,7 @@ import functools
 from six.moves.urllib.parse import urlsplit
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 # This needs to be updated when retry is reviewed more.
-from google.cloud.storage.constants import _DEFAULT_RETRY
+from google.cloud.storage.retry import _DEFAULT_RETRY
 
 STORAGE_EMULATOR_ENV_VAR = "STORAGE_EMULATOR_HOST"
 """Environment variable defining host for Storage emulator."""
