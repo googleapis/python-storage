@@ -137,9 +137,6 @@ def _should_retry(exc):
             if isinstance(exc.args[0], urllib3.exceptions.ProtocolError):
                 if isinstance(exc.args[0].args[1], ConnectionResetError):
                     return True
-        elif isinstance(exc, socket.error):
-            if socket.errno.errorcode.get(exc.errno) in {"WSAETIMEDOUT", "ECONNABORTED", "EPIPE", "ETIMEDOUT"}:
-                return True
     return False
 
 _DEFAULT_RETRY = retry.Retry(predicate=_should_retry)
