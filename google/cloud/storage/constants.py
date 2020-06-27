@@ -96,3 +96,50 @@ Provides high availability and low latency across two regions.
 _DEFAULT_TIMEOUT = 60  # in seconds
 """The default request timeout in seconds if a timeout is not explicitly given.
 """
+
+
+# Should not be in here and only for prototyping
+_RETRYABLE_REASONS = frozenset(
+    ["rateLimitExceeded", "backendError", "internalError", "badGateway", "serviceUnavailable"]
+)
+
+
+_UNSTRUCTURED_RETRYABLE_TYPES = (
+    exceptions.TooManyRequests,
+    exceptions.InternalServerError,
+    exceptions.BadGateway,
+    exceptions.ServiceUnavailable,
+)
+
+
+import six
+import socket
+import requests
+import urllib3
+
+from google.api_core import exceptions
+from google.api_core import retry
+
+
+def _should_retry(exc):
+    """Predicate for determining when to retry."""
+
+    if hasattr(exc, "errors"):
+        if len(exc.errors) == 0:
+            # Check for unstructured error returns, e.g. from GFE
+            return isinstance(exc, _UNSTRUCTURED_RETRYABLE_TYPES)
+        reason = exc.errors[0]["reason"]
+
+        return reason in _RETRYABLE_REASONS
+    else:
+        # Connection Reset
+        if isinstance(exc, requests.exceptions.ConnectionError):
+            if isinstance(exc.args[0], urllib3.exceptions.ProtocolError):
+                if isinstance(exc.args[0].args[1], ConnectionResetError):
+                    return True
+        elif isinstance(exc, socket.error):
+            if socket.errno.errorcode.get(exc.errno) in {"WSAETIMEDOUT", "ECONNABORTED", "EPIPE", "ETIMEDOUT"}:
+                return True
+    return False
+
+_DEFAULT_RETRY = retry.Retry(predicate=_should_retry)

@@ -21,10 +21,12 @@ import base64
 from hashlib import md5
 from datetime import datetime
 import os
+import functools
 
 from six.moves.urllib.parse import urlsplit
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
-
+# This needs to be updated when retry is reviewed more.
+from google.cloud.storage.constants import _DEFAULT_RETRY
 
 STORAGE_EMULATOR_ENV_VAR = "STORAGE_EMULATOR_HOST"
 """Environment variable defining host for Storage emulator."""
@@ -134,6 +136,14 @@ class _PropertyMixin(object):
             params["userProject"] = self.user_project
         return params
 
+
+    def _call_api(self, client, retry, **kwargs):
+        call = functools.partial(client._connection.api_request, **kwargs)
+        if retry:
+            call = retry(call)
+        return call()
+
+
     def reload(
         self,
         client=None,
@@ -198,13 +208,15 @@ class _PropertyMixin(object):
             if_metageneration_match=if_metageneration_match,
             if_metageneration_not_match=if_metageneration_not_match,
         )
-        api_response = client._connection.api_request(
-            method="GET",
-            path=self.path,
-            query_params=query_params,
-            headers=self._encryption_headers(),
-            _target_object=self,
-            timeout=timeout,
+        api_response = self._call_api(
+          client,
+          _DEFAULT_RETRY,
+          method="GET",
+          path=self.path,
+          query_params=query_params,
+          headers=self._encryption_headers(),
+          _target_object=self,
+          timeout=timeout,
         )
         self._set_properties(api_response)
 
