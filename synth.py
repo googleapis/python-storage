@@ -26,11 +26,10 @@ common = gcp.CommonTemplates()
 # ----------------------------------------------------------------------------
 templated_files = common.py_library(
     cov_level=99,
-    system_test_dependencies=[
+    system_test_external_dependencies=[
         "google-cloud-iam",
         "google-cloud-pubsub",
         "google-cloud-kms",
-        "google-cloud-testutils",
     ],
 )
 s.move(
