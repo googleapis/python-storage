@@ -3003,6 +3003,21 @@ class Blob(_PropertyMixin):
         if value is not None:
             return _rfc3339_to_datetime(value)
 
+    @property
+    def custom_time(self):
+        """Retrieve the custom time for the object.
+
+        See https://cloud.google.com/storage/docs/json_api/v1/objects
+
+        :rtype: :class:`datetime.datetime` or ``NoneType``
+        :returns: Datetime object parsed from RFC3339 valid timestamp, or
+                  ``None`` if the blob's resource has not been loaded from
+                  the server (see :meth:`reload`).
+        """
+        value = self._properties.get("customTime")
+        if value is not None:
+            return _rfc3339_to_datetime(value)
+
 
 def _get_encryption_headers(key, source=False):
     """Builds customer encryption key headers

@@ -88,8 +88,47 @@ class Test_LifecycleRuleConditions(unittest.TestCase):
         self.assertIsNone(conditions.matches_storage_class)
         self.assertEqual(conditions.number_of_newer_versions, 3)
 
+    def test_ctor_w_days_since_custom_time(self):
+        conditions = self._make_one(
+            number_of_newer_versions=3, days_since_custom_time=2
+        )
+        expected = {"numNewerVersions": 3, "daysSinceCustomTime": 2}
+        self.assertEqual(dict(conditions), expected)
+        self.assertIsNone(conditions.age)
+        self.assertIsNone(conditions.created_before)
+        self.assertIsNone(conditions.is_live)
+        self.assertIsNone(conditions.matches_storage_class)
+        self.assertEqual(conditions.number_of_newer_versions, 3)
+        self.assertEqual(conditions.days_since_custom_time, 2)
+
+    def test_ctor_w_custom_time_before(self):
+        import datetime
+        from google.cloud._helpers import _datetime_to_rfc3339
+
+        custom_time_before = datetime.datetime.now() + datetime.timedelta(days=10)
+        conditions = self._make_one(
+            number_of_newer_versions=3, custom_time_before=custom_time_before
+        )
+        expected = {
+            "numNewerVersions": 3,
+            "customTimeBefore": _datetime_to_rfc3339(custom_time_before),
+        }
+
+        self.assertEqual(dict(conditions), expected)
+        self.assertIsNone(conditions.age)
+        self.assertIsNone(conditions.created_before)
+        self.assertIsNone(conditions.is_live)
+        self.assertIsNone(conditions.matches_storage_class)
+        self.assertEqual(conditions.number_of_newer_versions, 3)
+        self.assertEqual(
+            conditions.custom_time_before, _datetime_to_rfc3339(custom_time_before)
+        )
+
     def test_from_api_repr(self):
         import datetime
+        from google.cloud._helpers import _datetime_to_rfc3339
+
+        custom_time_before = datetime.datetime.now() + datetime.timedelta(days=10)
 
         before = datetime.date(2018, 8, 1)
         klass = self._get_target_class()
@@ -99,6 +138,8 @@ class Test_LifecycleRuleConditions(unittest.TestCase):
             "isLive": True,
             "matchesStorageClass": ["COLDLINE"],
             "numNewerVersions": 3,
+            "daysSinceCustomTime": 2,
+            "customTimeBefore": _datetime_to_rfc3339(custom_time_before),
         }
         conditions = klass.from_api_repr(resource)
         self.assertEqual(conditions.age, 10)
@@ -106,6 +147,10 @@ class Test_LifecycleRuleConditions(unittest.TestCase):
         self.assertEqual(conditions.is_live, True)
         self.assertEqual(conditions.matches_storage_class, ["COLDLINE"])
         self.assertEqual(conditions.number_of_newer_versions, 3)
+        self.assertEqual(conditions.days_since_custom_time, 2)
+        self.assertEqual(
+            conditions.custom_time_before, _datetime_to_rfc3339(custom_time_before)
+        )
 
 
 class Test_LifecycleRuleDelete(unittest.TestCase):

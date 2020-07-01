@@ -191,14 +191,21 @@ class TestStorageBuckets(unittest.TestCase):
         self.assertEqual(created.storage_class, constants.ARCHIVE_STORAGE_CLASS)
 
     def test_lifecycle_rules(self):
+        import datetime
         from google.cloud.storage import constants
 
         new_bucket_name = "w-lifcycle-rules" + unique_resource_id("-")
+        custom_time_before = datetime.datetime.now() + datetime.timedelta(days=10)
         self.assertRaises(
             exceptions.NotFound, Config.CLIENT.get_bucket, new_bucket_name
         )
         bucket = Config.CLIENT.bucket(new_bucket_name)
-        bucket.add_lifecycle_delete_rule(age=42)
+        bucket.add_lifecycle_delete_rule(
+            age=42,
+            number_of_newer_versions=3,
+            days_since_custom_time=2,
+            custom_time_before=custom_time_before,
+        )
         bucket.add_lifecycle_set_storage_class_rule(
             constants.COLDLINE_STORAGE_CLASS,
             is_live=False,
@@ -206,7 +213,12 @@ class TestStorageBuckets(unittest.TestCase):
         )
 
         expected_rules = [
-            LifecycleRuleDelete(age=42),
+            LifecycleRuleDelete(
+                age=42,
+                number_of_newer_versions=3,
+                days_since_custom_time=2,
+                custom_time_before=custom_time_before,
+            ),
             LifecycleRuleSetStorageClass(
                 constants.COLDLINE_STORAGE_CLASS,
                 is_live=False,
