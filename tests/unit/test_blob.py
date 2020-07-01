@@ -2859,7 +2859,7 @@ class Test_Blob(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             destination.compose(
-                sources=[source_1, source_2], if_generation_match=GENERATION_NUMBERS,
+                sources=[source_1, source_2], if_generation_match=GENERATION_NUMBERS
             )
         with self.assertRaises(ValueError):
             destination.compose(
@@ -2882,7 +2882,7 @@ class Test_Blob(unittest.TestCase):
 
         destination = self._make_one(DESTINATION, bucket=bucket)
         destination.compose(
-            sources=[source_1, source_2], if_generation_match=GENERATION_NUMBERS,
+            sources=[source_1, source_2], if_generation_match=GENERATION_NUMBERS
         )
 
         kw = connection._requested
@@ -2898,7 +2898,7 @@ class Test_Blob(unittest.TestCase):
                         {
                             "name": source_1.name,
                             "objectPreconditions": {
-                                "ifGenerationMatch": GENERATION_NUMBERS[0],
+                                "ifGenerationMatch": GENERATION_NUMBERS[0]
                             },
                         },
                         {"name": source_2.name},
