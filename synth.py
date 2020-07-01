@@ -19,15 +19,22 @@ import re
 import synthtool as s
 from synthtool import gcp
 
-AUTOSYNTH_MULTIPLE_PRS = True
-AUTOSYNTH_MULTIPLE_COMMITS = True
-
 common = gcp.CommonTemplates()
 
 # ----------------------------------------------------------------------------
 # Add templated files
 # ----------------------------------------------------------------------------
-templated_files = common.py_library(cov_level=99)
-s.move(templated_files, excludes=["noxfile.py, docs/multiprocessing.rst"])
+templated_files = common.py_library(
+    cov_level=99,
+    system_test_dependencies=[
+        "google-cloud-iam",
+        "google-cloud-pubsub",
+        "google-cloud-kms",
+        "google-cloud-testutils",
+    ],
+)
+s.move(
+    templated_files, excludes=["docs/multiprocessing.rst"],
+)
 
 s.shell.run(["nox", "-s", "blacken"], hide_output=False)
