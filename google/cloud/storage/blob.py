@@ -792,15 +792,12 @@ class Blob(_PropertyMixin):
             self.storage_class = response.raw.headers.get("X-Goog-Storage-Class", None)
             self.content_language = response.raw.headers.get("Content-Language", None)
             #  'X-Goog-Hash': 'crc32c=4gcgLQ==,md5=CS9tHYTtyFntzj7B9nkkJQ==',
-            hash_string = response.raw.headers.get("X-Goog-Hash", None)
+            x_goog_hash = response.raw.headers.get("X-Goog-Hash", '')
         except AttributeError:
             pass
 
-        if hash_string is None:
-            return
-
         digests = {}
-        for encoded_digest in hash_string.split(","):
+        for encoded_digest in x_goog_hash.split(","):
             match = re.match(r"(crc32c|md5)=([\w\d]+)==", encoded_digest)
             if match:
                 method, digest = match.groups()
