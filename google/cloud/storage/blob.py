@@ -831,8 +831,17 @@ class Blob(_PropertyMixin):
             download = klass(
                 download_url, stream=file_obj, headers=headers, start=start, end=end
             )
-            download.consume(transport)
+            response = download.consume(transport)
 
+            self.content_encoding = response.raw.headers.get('Content-Encoding', None)
+            self.content_type = response.raw.headers.get('Content-Type', None)
+            self.cache_control = response.raw.headers.get('Cache-Control', None)
+            self.storage_class = response.raw.headers.get('X-Goog-Storage-Class', None)
+            self.content_language = response.raw.headers.get('Content-Language', None)
+
+            #  'X-Goog-Hash': 'crc32c=4gcgLQ==,md5=CS9tHYTtyFntzj7B9nkkJQ==',
+            # self.crc32c = 
+            # self.md5_hash = 
         else:
 
             if raw_download:
