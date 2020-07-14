@@ -833,11 +833,14 @@ class Blob(_PropertyMixin):
             )
             response = download.consume(transport)
 
-            self.content_encoding = response.raw.headers.get('Content-Encoding', None)
-            self.content_type = response.raw.headers.get('Content-Type', None)
-            self.cache_control = response.raw.headers.get('Cache-Control', None)
-            self.storage_class = response.raw.headers.get('X-Goog-Storage-Class', None)
-            self.content_language = response.raw.headers.get('Content-Language', None)
+            try:
+                self.content_encoding = response.raw.headers.get('Content-Encoding', None)
+                self.content_type = response.raw.headers.get('Content-Type', None)
+                self.cache_control = response.raw.headers.get('Cache-Control', None)
+                self.storage_class = response.raw.headers.get('X-Goog-Storage-Class', None)
+                self.content_language = response.raw.headers.get('Content-Language', None)
+            except AttributeError:
+                pass
 
             #  'X-Goog-Hash': 'crc32c=4gcgLQ==,md5=CS9tHYTtyFntzj7B9nkkJQ==',
             # self.crc32c = 
