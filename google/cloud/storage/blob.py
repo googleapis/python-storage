@@ -786,13 +786,13 @@ class Blob(_PropertyMixin):
 
     def _extract_headers_from_download(self, response):
         try:
-            self.content_encoding = response.raw.headers.get('Content-Encoding', None)
-            self.content_type = response.raw.headers.get('Content-Type', None)
-            self.cache_control = response.raw.headers.get('Cache-Control', None)
-            self.storage_class = response.raw.headers.get('X-Goog-Storage-Class', None)
-            self.content_language = response.raw.headers.get('Content-Language', None)
+            self.content_encoding = response.raw.headers.get("Content-Encoding", None)
+            self.content_type = response.raw.headers.get("Content-Type", None)
+            self.cache_control = response.raw.headers.get("Cache-Control", None)
+            self.storage_class = response.raw.headers.get("X-Goog-Storage-Class", None)
+            self.content_language = response.raw.headers.get("Content-Language", None)
             #  'X-Goog-Hash': 'crc32c=4gcgLQ==,md5=CS9tHYTtyFntzj7B9nkkJQ==',
-            hash_string = response.raw.headers.get('X-Goog-Hash', None) 
+            hash_string = response.raw.headers.get("X-Goog-Hash", None)
         except AttributeError:
             pass
 
@@ -800,14 +800,14 @@ class Blob(_PropertyMixin):
             return
 
         digests = {}
-        for encoded_digest in hash_string.split(','):
-            match = re.match(r'(crc32c|md5)=([\w\d]+)==', encoded_digest)
+        for encoded_digest in hash_string.split(","):
+            match = re.match(r"(crc32c|md5)=([\w\d]+)==", encoded_digest)
             if match:
                 method, digest = match.groups()
                 digests[method] = digest
 
-        self.crc32c = digests.get('crc32c', None)
-        self.md5_hash = digests.get('md5', None)
+        self.crc32c = digests.get("crc32c", None)
+        self.md5_hash = digests.get("md5", None)
 
     def _do_download(
         self,
