@@ -785,6 +785,15 @@ class Blob(_PropertyMixin):
         return _add_query_parameters(base_url, name_value_pairs)
 
     def _extract_headers_from_download(self, response):
+        """Extract headers from a non-chunked request's http object.
+
+        This avoids the need to make a second request for commonly used
+        headers.
+
+        :type response:
+            :class requests.models.Response
+        :param response: The server response from downloading a non-chunked file
+        """
         try:
             self.content_encoding = response.raw.headers.get("Content-Encoding", None)
             self.content_type = response.raw.headers.get("Content-Type", None)
