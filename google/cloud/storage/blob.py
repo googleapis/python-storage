@@ -31,6 +31,7 @@ import hashlib
 from io import BytesIO
 import mimetypes
 import os
+import re
 import warnings
 import six
 
@@ -783,6 +784,31 @@ class Blob(_PropertyMixin):
         )
         return _add_query_parameters(base_url, name_value_pairs)
 
+    def _extract_headers_from_download(self, response):
+        try:
+            self.content_encoding = response.raw.headers.get('Content-Encoding', None)
+            self.content_type = response.raw.headers.get('Content-Type', None)
+            self.cache_control = response.raw.headers.get('Cache-Control', None)
+            self.storage_class = response.raw.headers.get('X-Goog-Storage-Class', None)
+            self.content_language = response.raw.headers.get('Content-Language', None)
+            #  'X-Goog-Hash': 'crc32c=4gcgLQ==,md5=CS9tHYTtyFntzj7B9nkkJQ==',
+            hash_string = response.raw.headers.get('X-Goog-Hash', None) 
+        except AttributeError:
+            pass
+
+        if hash_string is None:
+            return
+
+        digests = {}
+        for encoded_digest in hash_string.split(','):
+            match = re.match(r'(crc32c|md5)=([\w\d]+)==', encoded_digest)
+            if match:
+                method, digest = match.groups()
+            digests[method] = digest
+
+        self.crc32c = digests.get('crc32c', None)
+        self.md5_hash = digests.get('md5', None)
+
     def _do_download(
         self,
         transport,
@@ -832,18 +858,7 @@ class Blob(_PropertyMixin):
                 download_url, stream=file_obj, headers=headers, start=start, end=end
             )
             response = download.consume(transport)
-
-            try:
-                self.content_encoding = response.raw.headers.get('Content-Encoding', None)
-                self.content_type = response.raw.headers.get('Content-Type', None)
-                self.cache_control = response.raw.headers.get('Cache-Control', None)
-                self.storage_class = response.raw.headers.get('X-Goog-Storage-Class', None)
-                self.content_language = response.raw.headers.get('Content-Language', None)
-                #  'X-Goog-Hash': 'crc32c=4gcgLQ==,md5=CS9tHYTtyFntzj7B9nkkJQ==',
-                # self.crc32c = 
-                # self.md5_hash = 
-            except AttributeError:
-                pass
+            self._extract_headers_from_download(response)
         else:
 
             if raw_download:
