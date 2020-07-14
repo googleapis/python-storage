@@ -804,7 +804,7 @@ class Blob(_PropertyMixin):
             match = re.match(r'(crc32c|md5)=([\w\d]+)==', encoded_digest)
             if match:
                 method, digest = match.groups()
-            digests[method] = digest
+                digests[method] = digest
 
         self.crc32c = digests.get('crc32c', None)
         self.md5_hash = digests.get('md5', None)
