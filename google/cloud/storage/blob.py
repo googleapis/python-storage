@@ -803,7 +803,7 @@ class Blob(_PropertyMixin):
             #  'X-Goog-Hash': 'crc32c=4gcgLQ==,md5=CS9tHYTtyFntzj7B9nkkJQ==',
             x_goog_hash = response.raw.headers.get("X-Goog-Hash", '')
         except AttributeError:
-            pass
+            x_goog_hash = ''
 
         digests = {}
         for encoded_digest in x_goog_hash.split(","):
