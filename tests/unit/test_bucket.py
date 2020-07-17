@@ -77,6 +77,7 @@ class Test_LifecycleRuleConditions(unittest.TestCase):
         self.assertEqual(conditions.is_live, False)
         self.assertIsNone(conditions.matches_storage_class)
         self.assertIsNone(conditions.number_of_newer_versions)
+        self.assertIsNone(conditions.noncurrent_time_before)
 
     def test_ctor_w_number_of_newer_versions(self):
         conditions = self._make_one(number_of_newer_versions=3)
@@ -103,9 +104,12 @@ class Test_LifecycleRuleConditions(unittest.TestCase):
 
     def test_ctor_w_noncurrent_time_before(self):
         import datetime
+        import pytz
         from google.cloud._helpers import _datetime_to_rfc3339
 
-        noncurrent_before = datetime.datetime.now() + datetime.timedelta(days=10)
+        noncurrent_before = datetime.datetime.utcnow().replace(
+            tzinfo=pytz.UTC
+        ) + datetime.timedelta(days=10)
         conditions = self._make_one(
             number_of_newer_versions=3, noncurrent_time_before=noncurrent_before
         )
@@ -120,15 +124,16 @@ class Test_LifecycleRuleConditions(unittest.TestCase):
         self.assertIsNone(conditions.is_live)
         self.assertIsNone(conditions.matches_storage_class)
         self.assertEqual(conditions.number_of_newer_versions, 3)
-        self.assertEqual(
-            conditions.noncurrent_time_before, _datetime_to_rfc3339(noncurrent_before)
-        )
+        self.assertEqual(conditions.noncurrent_time_before, noncurrent_before)
 
     def test_from_api_repr(self):
         import datetime
+        import pytz
         from google.cloud._helpers import _datetime_to_rfc3339
 
-        noncurrent_before = datetime.datetime.now() + datetime.timedelta(days=10)
+        noncurrent_before = datetime.datetime.utcnow().replace(
+            tzinfo=pytz.UTC
+        ) + datetime.timedelta(days=10)
         before = datetime.date(2018, 8, 1)
         klass = self._get_target_class()
 
@@ -148,9 +153,7 @@ class Test_LifecycleRuleConditions(unittest.TestCase):
         self.assertEqual(conditions.matches_storage_class, ["COLDLINE"])
         self.assertEqual(conditions.number_of_newer_versions, 3)
         self.assertEqual(conditions.days_since_noncurrent_time, 2)
-        self.assertEqual(
-            conditions.noncurrent_time_before, _datetime_to_rfc3339(noncurrent_before)
-        )
+        self.assertEqual(conditions.noncurrent_time_before, noncurrent_before)
 
 
 class Test_LifecycleRuleDelete(unittest.TestCase):

@@ -276,7 +276,9 @@ class LifecycleRuleConditions(dict):
     @property
     def noncurrent_time_before(self):
         """Conditon's 'noncurrent_time_before' value."""
-        return self.get("noncurrentTimeBefore")
+        timestamp = self.get("noncurrentTimeBefore")
+        if timestamp is not None:
+            return _rfc3339_to_datetime(timestamp)
 
 
 class LifecycleRuleDelete(dict):
