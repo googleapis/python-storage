@@ -273,7 +273,9 @@ class LifecycleRuleConditions(dict):
     @property
     def custom_time_before(self):
         """Conditon's 'custom_time_before' value."""
-        return self.get("customTimeBefore")
+        timestamp = self.get("customTimeBefore")
+        if timestamp is not None:
+            return _rfc3339_to_datetime(timestamp)
 
 
 class LifecycleRuleDelete(dict):
