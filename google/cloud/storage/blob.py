@@ -794,16 +794,13 @@ class Blob(_PropertyMixin):
             :class requests.models.Response
         :param response: The server response from downloading a non-chunked file
         """
-        try:
-            self.content_encoding = response.raw.headers.get("Content-Encoding", None)
-            self.content_type = response.raw.headers.get("Content-Type", None)
-            self.cache_control = response.raw.headers.get("Cache-Control", None)
-            self.storage_class = response.raw.headers.get("X-Goog-Storage-Class", None)
-            self.content_language = response.raw.headers.get("Content-Language", None)
-            #  'X-Goog-Hash': 'crc32c=4gcgLQ==,md5=CS9tHYTtyFntzj7B9nkkJQ==',
-            x_goog_hash = response.raw.headers.get("X-Goog-Hash", '')
-        except AttributeError:
-            x_goog_hash = ''
+        self.content_encoding = response.headers.get("Content-Encoding", None)
+        self.content_type = response.headers.get("Content-Type", None)
+        self.cache_control = response.headers.get("Cache-Control", None)
+        self.storage_class = response.headers.get("X-Goog-Storage-Class", None)
+        self.content_language = response.headers.get("Content-Language", None)
+        #  'X-Goog-Hash': 'crc32c=4gcgLQ==,md5=CS9tHYTtyFntzj7B9nkkJQ==',
+        x_goog_hash = response.headers.get("X-Goog-Hash", '')
 
         digests = {}
         for encoded_digest in x_goog_hash.split(","):
