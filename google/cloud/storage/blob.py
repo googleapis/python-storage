@@ -800,7 +800,7 @@ class Blob(_PropertyMixin):
         self.storage_class = response.headers.get("X-Goog-Storage-Class", None)
         self.content_language = response.headers.get("Content-Language", None)
         #  'X-Goog-Hash': 'crc32c=4gcgLQ==,md5=CS9tHYTtyFntzj7B9nkkJQ==',
-        x_goog_hash = response.headers.get("X-Goog-Hash", '')
+        x_goog_hash = response.headers.get("X-Goog-Hash", "")
 
         digests = {}
         for encoded_digest in x_goog_hash.split(","):

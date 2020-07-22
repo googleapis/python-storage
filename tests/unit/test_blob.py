@@ -1460,7 +1460,7 @@ class Test_Blob(unittest.TestCase):
         blob = self._make_one(blob_name, bucket=bucket, properties=properties)
 
         response = self._mock_requests_response(
-            http_client.OK, 
+            http_client.OK,
             headers={
                 "Content-Type": "application/json",
                 "Content-Language": "ko-kr",
@@ -1468,9 +1468,9 @@ class Test_Blob(unittest.TestCase):
                 "Content-Encoding": "gzip",
                 "X-Goog-Storage-Class": "STANDARD",
                 "X-Goog-Hash": "crc32c=4gcgLQ==,md5=CS9tHYTtyFntzj7B9nkkJQ==",
-            }, 
+            },
             # { "x": 5 } gzipped
-            content=b"\x1f\x8b\x08\x00\xcfo\x17_\x02\xff\xabVP\xaaP\xb2R0U\xa8\x05\x00\xa1\xcaQ\x93\n\x00\x00\x00"
+            content=b"\x1f\x8b\x08\x00\xcfo\x17_\x02\xff\xabVP\xaaP\xb2R0U\xa8\x05\x00\xa1\xcaQ\x93\n\x00\x00\x00",
         )
         blob._extract_headers_from_download(response)
 
