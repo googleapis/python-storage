@@ -1154,7 +1154,7 @@ class Bucket(_PropertyMixin):
         warnings.warn(
             "Bucket.list_blobs() is deprecated and will be removed in future."
             "Use Client.list_blobs() instead.",
-            PendingDeprecationWarning,
+            DeprecationWarning,
             stacklevel=1,
         )
 

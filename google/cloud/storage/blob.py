@@ -936,7 +936,7 @@ class Blob(_PropertyMixin):
         warnings.warn(
             "Blob.download_to_file() is deprecated and will be removed in future."
             "Use Client.download_blob_to_file() instead.",
-            PendingDeprecationWarning,
+            DeprecationWarning,
             stacklevel=1,
         )
 
