@@ -545,6 +545,7 @@ class Client(ClientWithProject):
         if_generation_not_match=None,
         if_metageneration_match=None,
         if_metageneration_not_match=None,
+        timeout=_DEFAULT_TIMEOUT,
     ):
         """Download the contents of a blob object or blob URI into a file-like object.
 
@@ -579,6 +580,12 @@ class Client(ClientWithProject):
             if_metageneration_not_match:
                 (Optional) Make the operation conditional on whether the
                 blob's current metageneration does not match the given value.
+            timeout:
+                (Optional) The number of seconds the transport should wait for the
+                server response. Depending on the retry strategy, a request may be
+                repeated several times using the same timeout each time.
+                Can also be passed as a tuple (connect_timeout, read_timeout).
+                See :meth:`requests.Session.request` documentation for details.
 
         Examples:
             Download a blob using a blob resource.
@@ -620,7 +627,14 @@ class Client(ClientWithProject):
         transport = self._http
         try:
             blob_or_uri._do_download(
-                transport, file_obj, download_url, headers, start, end, raw_download
+                transport,
+                file_obj,
+                download_url,
+                headers,
+                start,
+                end,
+                raw_download,
+                timeout=timeout,
             )
         except resumable_media.InvalidResponse as exc:
             _raise_from_invalid_response(exc)

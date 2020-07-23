@@ -998,6 +998,7 @@ class TestClient(unittest.TestCase):
         from google.resumable_media import InvalidResponse
         from google.cloud import exceptions
         from google.cloud.storage.blob import Blob
+        from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 
         raw_response = requests.Response()
         raw_response.status_code = http_client.NOT_FOUND
@@ -1023,11 +1024,19 @@ class TestClient(unittest.TestCase):
 
         headers = {"accept-encoding": "gzip"}
         blob._do_download.assert_called_once_with(
-            client._http, file_obj, media_link, headers, None, None, False
+            client._http,
+            file_obj,
+            media_link,
+            headers,
+            None,
+            None,
+            False,
+            timeout=_DEFAULT_TIMEOUT,
         )
 
     def test_download_blob_to_file_wo_media_link(self):
         from google.cloud.storage.blob import Blob
+        from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 
         blob_name = "blob-name"
         credentials = _make_credentials()
@@ -1048,11 +1057,19 @@ class TestClient(unittest.TestCase):
         )
         headers = {"accept-encoding": "gzip"}
         blob._do_download.assert_called_once_with(
-            client._http, file_obj, expected_url, headers, None, None, False
+            client._http,
+            file_obj,
+            expected_url,
+            headers,
+            None,
+            None,
+            False,
+            timeout=_DEFAULT_TIMEOUT,
         )
 
     def _download_blob_to_file_helper(self, use_chunks, raw_download):
         from google.cloud.storage.blob import Blob
+        from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 
         blob_name = "blob-name"
         credentials = _make_credentials()
@@ -1075,7 +1092,14 @@ class TestClient(unittest.TestCase):
 
         headers = {"accept-encoding": "gzip"}
         blob._do_download.assert_called_once_with(
-            client._http, file_obj, media_link, headers, None, None, raw_download
+            client._http,
+            file_obj,
+            media_link,
+            headers,
+            None,
+            None,
+            raw_download,
+            timeout=_DEFAULT_TIMEOUT,
         )
 
     def test_download_blob_to_file_wo_chunks_wo_raw(self):

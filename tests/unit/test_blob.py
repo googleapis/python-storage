@@ -26,6 +26,8 @@ import pytest
 import six
 from six.moves import http_client
 
+from google.cloud.storage.constants import _DEFAULT_TIMEOUT
+
 
 def _make_credentials():
     import google.auth.credentials
@@ -1318,6 +1320,7 @@ class Test_Blob(unittest.TestCase):
             if_generation_not_match=None,
             if_metageneration_match=None,
             if_metageneration_not_match=None,
+            timeout=_DEFAULT_TIMEOUT,
         )
 
     def test_download_to_filename_w_generation_match(self):

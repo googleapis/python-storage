@@ -969,6 +969,7 @@ class Blob(_PropertyMixin):
             if_generation_not_match=if_generation_not_match,
             if_metageneration_match=if_metageneration_match,
             if_metageneration_not_match=if_metageneration_not_match,
+            timeout=timeout
         )
 
     def download_to_filename(
