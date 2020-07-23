@@ -581,7 +581,7 @@ class Client(ClientWithProject):
                 blob's current metageneration does not match the given value.
 
         Examples:
-            Download a blob using using a blob resource.
+            Download a blob using a blob resource.
 
             >>> from google.cloud import storage
             >>> client = storage.Client()
