@@ -845,13 +845,13 @@ class TestStorageWriteFiles(TestStorageFiles):
 
         self.assertEqual(file_contents, stored_contents)
 
-    def test_download_blob_as_string(self):
+    def test_download_blob_as_text(self):
         blob = self.bucket.blob("MyBuffer")
         file_contents = "Hello World"
         blob.upload_from_string(file_contents)
         self.case_blobs_to_delete.append(blob)
 
-        stored_contents = blob.download_as_string()
+        stored_contents = blob.download_as_text()
         self.assertEqual(file_contents, stored_contents)
 
     def test_upload_gzip_encoded_download_raw(self):
@@ -1914,6 +1914,7 @@ class TestKMSIntegration(TestStorageFiles):
         (listed,) = list(self.bucket.list_blobs())
         self.assertTrue(listed.kms_key_name.startswith(kms_key_name))
 
+    @RetryErrors(unittest.TestCase.failureException)
     def test_bucket_w_default_kms_key_name(self):
         BLOB_NAME = "default-kms-key-name"
         OVERRIDE_BLOB_NAME = "override-default-kms-key-name"
