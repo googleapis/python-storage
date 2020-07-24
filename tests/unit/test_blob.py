@@ -1555,7 +1555,8 @@ class Test_Blob(unittest.TestCase):
     def test_download_as_text_w_encoding(self):
         self._download_as_text_helper(raw_download=False, encoding="utf-8")
 
-    def test_download_as_string(self):
+    @mock.patch("warnings.warn")
+    def test_download_as_string(self, mock_warn):
         MEDIA_LINK = "http://example.com/media/"
 
         client = mock.Mock(spec=["_http"])
@@ -1578,6 +1579,13 @@ class Test_Blob(unittest.TestCase):
             if_metageneration_match=None,
             if_metageneration_not_match=None,
             timeout=self._get_default_timeout(),
+        )
+
+        mock_warn.assert_called_with(
+            "Blob.download_as_string() is deprecated and will be removed in future."
+            "Use Blob.download_as_bytes() instead.",
+            PendingDeprecationWarning,
+            stacklevel=1,
         )
 
     def test__get_content_type_explicit(self):

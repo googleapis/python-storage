@@ -1163,10 +1163,13 @@ class Blob(_PropertyMixin):
         if_metageneration_not_match=None,
         timeout=_DEFAULT_TIMEOUT,
     ):
-        """Download the contents of this blob as a bytes object.
+        """(Deprecated) Download the contents of this blob as a bytes object.
 
         If :attr:`user_project` is set on the bucket, bills the API request
         to that project.
+
+        .. note::
+           Deprecated alias for :meth:`download_as_bytes`.
 
         :type client: :class:`~google.cloud.storage.client.Client` or
                       ``NoneType``
@@ -1216,6 +1219,12 @@ class Blob(_PropertyMixin):
 
         :raises: :class:`google.cloud.exceptions.NotFound`
         """
+        warnings.warn(
+            "Blob.download_as_string() is deprecated and will be removed in future."
+            "Use Blob.download_as_bytes() instead.",
+            PendingDeprecationWarning,
+            stacklevel=1,
+        )
         return self.download_as_bytes(
             client=client,
             start=start,
@@ -1311,7 +1320,10 @@ class Blob(_PropertyMixin):
             timeout=timeout,
         )
         if six.PY2:
-            return data
+            if self.content_encoding:
+                return data.decode(self.content_encoding)
+            else:
+                return data.decode(encoding)
         else:
             if self.content_encoding:
                 return data.decode(self.content_encoding)
