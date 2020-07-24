@@ -24,6 +24,18 @@
 * fix indent in code blocks ([#171](https://www.github.com/googleapis/python-storage/issues/171)) ([62d1543](https://www.github.com/googleapis/python-storage/commit/62d1543e18040b286b23464562aa6eb998074c54)), closes [#170](https://www.github.com/googleapis/python-storage/issues/170)
 * remove doubled word in docstring ([#209](https://www.github.com/googleapis/python-storage/issues/209)) ([7a4e7a5](https://www.github.com/googleapis/python-storage/commit/7a4e7a5974abedb0b7b2e110cacbfcd0a40346b6))
 
+
+### Documentation
+
+* fix indent in code blocks ([#171](https://www.github.com/googleapis/python-storage/issues/171)) ([62d1543](https://www.github.com/googleapis/python-storage/commit/62d1543e18040b286b23464562aa6eb998074c54)), closes [#170](https://www.github.com/googleapis/python-storage/issues/170)
+* remove doubled word in docstring ([#209](https://www.github.com/googleapis/python-storage/issues/209)) ([7a4e7a5](https://www.github.com/googleapis/python-storage/commit/7a4e7a5974abedb0b7b2e110cacbfcd0a40346b6))
+
+
+### Dependencies
+
+* prep for grmp-1.0.0 release ([#211](https://www.github.com/googleapis/python-storage/issues/211)) ([55bae9a](https://www.github.com/googleapis/python-storage/commit/55bae9a0e7c0db512c10c6b3b621cd2ef05c9729))
+
+
 ## [1.29.0](https://www.github.com/googleapis/python-storage/compare/v1.28.1...v1.29.0) (2020-06-09)
 
 
