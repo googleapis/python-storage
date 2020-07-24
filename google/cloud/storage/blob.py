@@ -51,6 +51,7 @@ from google.resumable_media.requests import ResumableUpload
 from google.api_core.iam import Policy
 from google.cloud import exceptions
 from google.cloud._helpers import _bytes_to_unicode
+from google.cloud._helpers import _datetime_to_rfc3339
 from google.cloud._helpers import _rfc3339_to_datetime
 from google.cloud._helpers import _to_bytes
 from google.cloud.exceptions import NotFound
@@ -3017,6 +3018,18 @@ class Blob(_PropertyMixin):
         value = self._properties.get("customTime")
         if value is not None:
             return _rfc3339_to_datetime(value)
+
+    @custom_time.setter
+    def custom_time(self, value):
+        """Set the custom time for the object.
+
+        See https://cloud.google.com/storage/docs/json_api/v1/objects
+
+        :type value: :class:`datetime.datetime`
+        :param value: (Optional) Set the custom time of blob. Datetime object parsed
+                                 from RFC3339 valid timestamp.
+        """
+        self._properties["customTime"] = _datetime_to_rfc3339(value)
 
 
 def _get_encryption_headers(key, source=False):

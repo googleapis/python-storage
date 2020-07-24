@@ -3792,7 +3792,7 @@ class Test_Blob(unittest.TestCase):
         blob = self._make_one("blob-name", bucket=BUCKET)
         self.assertIsNone(blob.updated)
 
-    def test_custom_time(self):
+    def test_custom_time_getter(self):
         from google.cloud._helpers import _RFC3339_MICROS
         from google.cloud._helpers import UTC
 
@@ -3802,6 +3802,17 @@ class Test_Blob(unittest.TestCase):
         TIME_CREATED = TIMESTAMP.strftime(_RFC3339_MICROS)
         properties = {"customTime": TIME_CREATED}
         blob = self._make_one(BLOB_NAME, bucket=bucket, properties=properties)
+        self.assertEqual(blob.custom_time, TIMESTAMP)
+
+    def test_custom_time_setter(self):
+        from google.cloud._helpers import UTC
+
+        BLOB_NAME = "blob-name"
+        bucket = _Bucket()
+        TIMESTAMP = datetime.datetime(2014, 11, 5, 20, 34, 37, tzinfo=UTC)
+        blob = self._make_one(BLOB_NAME, bucket=bucket)
+        self.assertIsNone(blob.custom_time)
+        blob.custom_time = TIMESTAMP
         self.assertEqual(blob.custom_time, TIMESTAMP)
 
     def test_custom_time_unset(self):
