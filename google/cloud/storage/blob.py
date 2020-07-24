@@ -31,6 +31,7 @@ import hashlib
 from io import BytesIO
 import mimetypes
 import os
+import re
 import warnings
 import six
 
@@ -784,6 +785,34 @@ class Blob(_PropertyMixin):
         )
         return _add_query_parameters(base_url, name_value_pairs)
 
+    def _extract_headers_from_download(self, response):
+        """Extract headers from a non-chunked request's http object.
+
+        This avoids the need to make a second request for commonly used
+        headers.
+
+        :type response:
+            :class requests.models.Response
+        :param response: The server response from downloading a non-chunked file
+        """
+        self.content_encoding = response.headers.get("Content-Encoding", None)
+        self.content_type = response.headers.get("Content-Type", None)
+        self.cache_control = response.headers.get("Cache-Control", None)
+        self.storage_class = response.headers.get("X-Goog-Storage-Class", None)
+        self.content_language = response.headers.get("Content-Language", None)
+        #  'X-Goog-Hash': 'crc32c=4gcgLQ==,md5=CS9tHYTtyFntzj7B9nkkJQ==',
+        x_goog_hash = response.headers.get("X-Goog-Hash", "")
+
+        digests = {}
+        for encoded_digest in x_goog_hash.split(","):
+            match = re.match(r"(crc32c|md5)=([\w\d]+)==", encoded_digest)
+            if match:
+                method, digest = match.groups()
+                digests[method] = digest
+
+        self.crc32c = digests.get("crc32c", None)
+        self.md5_hash = digests.get("md5", None)
+
     def _do_download(
         self,
         transport,
@@ -793,6 +822,7 @@ class Blob(_PropertyMixin):
         start=None,
         end=None,
         raw_download=False,
+        timeout=_DEFAULT_TIMEOUT,
     ):
         """Perform a download without any error handling.
 
@@ -822,6 +852,14 @@ class Blob(_PropertyMixin):
         :type raw_download: bool
         :param raw_download:
             (Optional) If true, download the object without any expansion.
+
+        :type timeout: float or tuple
+        :param timeout:
+            (Optional) The number of seconds the transport should wait for the
+            server response. Depending on the retry strategy, a request may be
+            repeated several times using the same timeout each time.
+            Can also be passed as a tuple (connect_timeout, read_timeout).
+            See :meth:`requests.Session.request` documentation for details.
         """
         if self.chunk_size is None:
             if raw_download:
@@ -832,8 +870,8 @@ class Blob(_PropertyMixin):
             download = klass(
                 download_url, stream=file_obj, headers=headers, start=start, end=end
             )
-            download.consume(transport)
-
+            response = download.consume(transport, timeout=timeout)
+            self._extract_headers_from_download(response)
         else:
 
             if raw_download:
@@ -851,7 +889,7 @@ class Blob(_PropertyMixin):
             )
 
             while not download.finished:
-                download.consume_next_chunk(transport)
+                download.consume_next_chunk(transport, timeout=timeout)
 
     def download_to_file(
         self,
@@ -864,6 +902,7 @@ class Blob(_PropertyMixin):
         if_generation_not_match=None,
         if_metageneration_match=None,
         if_metageneration_not_match=None,
+        timeout=_DEFAULT_TIMEOUT,
     ):
         """Download the contents of this blob into a file-like object.
 
@@ -932,6 +971,14 @@ class Blob(_PropertyMixin):
         :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
                                             blob's current metageneration does not match the given value.
 
+        :type timeout: float or tuple
+        :param timeout:
+            (Optional) The number of seconds the transport should wait for the
+            server response. Depending on the retry strategy, a request may be
+            repeated several times using the same timeout each time.
+            Can also be passed as a tuple (connect_timeout, read_timeout).
+            See :meth:`requests.Session.request` documentation for details.
+
         :raises: :class:`google.cloud.exceptions.NotFound`
         """
         client = self._require_client(client)
@@ -949,7 +996,14 @@ class Blob(_PropertyMixin):
         transport = self._get_transport(client)
         try:
             self._do_download(
-                transport, file_obj, download_url, headers, start, end, raw_download
+                transport,
+                file_obj,
+                download_url,
+                headers,
+                start,
+                end,
+                raw_download,
+                timeout=timeout,
             )
         except resumable_media.InvalidResponse as exc:
             _raise_from_invalid_response(exc)
@@ -965,6 +1019,7 @@ class Blob(_PropertyMixin):
         if_generation_not_match=None,
         if_metageneration_match=None,
         if_metageneration_not_match=None,
+        timeout=_DEFAULT_TIMEOUT,
     ):
         """Download the contents of this blob into a named file.
 
@@ -1009,6 +1064,14 @@ class Blob(_PropertyMixin):
         :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
                                             blob's current metageneration does not match the given value.
 
+        :type timeout: float or tuple
+        :param timeout:
+            (Optional) The number of seconds the transport should wait for the
+            server response. Depending on the retry strategy, a request may be
+            repeated several times using the same timeout each time.
+            Can also be passed as a tuple (connect_timeout, read_timeout).
+            See :meth:`requests.Session.request` documentation for details.
+
         :raises: :class:`google.cloud.exceptions.NotFound`
         """
         try:
@@ -1023,6 +1086,7 @@ class Blob(_PropertyMixin):
                     if_generation_not_match=if_generation_not_match,
                     if_metageneration_match=if_metageneration_match,
                     if_metageneration_not_match=if_metageneration_not_match,
+                    timeout=timeout,
                 )
         except resumable_media.DataCorruption:
             # Delete the corrupt downloaded file.
@@ -1047,6 +1111,7 @@ class Blob(_PropertyMixin):
         if_generation_not_match=None,
         if_metageneration_match=None,
         if_metageneration_not_match=None,
+        timeout=_DEFAULT_TIMEOUT,
     ):
         """Download the contents of this blob as a bytes object.
 
@@ -1088,6 +1153,14 @@ class Blob(_PropertyMixin):
         :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
                                             blob's current metageneration does not match the given value.
 
+        :type timeout: float or tuple
+        :param timeout:
+            (Optional) The number of seconds the transport should wait for the
+            server response. Depending on the retry strategy, a request may be
+            repeated several times using the same timeout each time.
+            Can also be passed as a tuple (connect_timeout, read_timeout).
+            See :meth:`requests.Session.request` documentation for details.
+
         :rtype: bytes
         :returns: The data stored in this blob.
 
@@ -1104,6 +1177,7 @@ class Blob(_PropertyMixin):
             if_generation_not_match=if_generation_not_match,
             if_metageneration_match=if_metageneration_match,
             if_metageneration_not_match=if_metageneration_not_match,
+            timeout=timeout,
         )
         return string_buffer.getvalue()
 
@@ -1204,6 +1278,7 @@ class Blob(_PropertyMixin):
         if_generation_not_match,
         if_metageneration_match,
         if_metageneration_not_match,
+        timeout=_DEFAULT_TIMEOUT,
     ):
         """Perform a multipart upload.
 
@@ -1256,6 +1331,14 @@ class Blob(_PropertyMixin):
         :type if_metageneration_not_match: long
         :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
                                             blob's current metageneration does not match the given value.
+
+        :type timeout: float or tuple
+        :param timeout:
+            (Optional) The number of seconds the transport should wait for the
+            server response. Depending on the retry strategy, a request may be
+            repeated several times using the same timeout each time.
+            Can also be passed as a tuple (connect_timeout, read_timeout).
+            See :meth:`requests.Session.request` documentation for details.
 
         :rtype: :class:`~requests.Response`
         :returns: The "200 OK" response object returned after the multipart
@@ -1319,7 +1402,9 @@ class Blob(_PropertyMixin):
                 max_retries=num_retries
             )
 
-        response = upload.transmit(transport, data, object_metadata, content_type)
+        response = upload.transmit(
+            transport, data, object_metadata, content_type, timeout=timeout
+        )
 
         return response
 
@@ -1337,6 +1422,7 @@ class Blob(_PropertyMixin):
         if_generation_not_match=None,
         if_metageneration_match=None,
         if_metageneration_not_match=None,
+        timeout=_DEFAULT_TIMEOUT,
     ):
         """Initiate a resumable upload.
 
@@ -1402,6 +1488,14 @@ class Blob(_PropertyMixin):
         :type if_metageneration_not_match: long
         :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
                                             blob's current metageneration does not match the given value.
+
+        :type timeout: float or tuple
+        :param timeout:
+            (Optional) The number of seconds the transport should wait for the
+            server response. Depending on the retry strategy, a request may be
+            repeated several times using the same timeout each time.
+            Can also be passed as a tuple (connect_timeout, read_timeout).
+            See :meth:`requests.Session.request` documentation for details.
 
         :rtype: tuple
         :returns:
@@ -1473,6 +1567,7 @@ class Blob(_PropertyMixin):
             content_type,
             total_bytes=size,
             stream_final=False,
+            timeout=timeout,
         )
 
         return upload, transport
@@ -1489,6 +1584,7 @@ class Blob(_PropertyMixin):
         if_generation_not_match,
         if_metageneration_match,
         if_metageneration_not_match,
+        timeout=_DEFAULT_TIMEOUT,
     ):
         """Perform a resumable upload.
 
@@ -1545,6 +1641,14 @@ class Blob(_PropertyMixin):
         :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
                                             blob's current metageneration does not match the given value.
 
+        :type timeout: float or tuple
+        :param timeout:
+            (Optional) The number of seconds the transport should wait for the
+            server response. Depending on the retry strategy, a request may be
+            repeated several times using the same timeout each time.
+            Can also be passed as a tuple (connect_timeout, read_timeout).
+            See :meth:`requests.Session.request` documentation for details.
+
         :rtype: :class:`~requests.Response`
         :returns: The "200 OK" response object returned after the final chunk
                   is uploaded.
@@ -1560,10 +1664,11 @@ class Blob(_PropertyMixin):
             if_generation_not_match=if_generation_not_match,
             if_metageneration_match=if_metageneration_match,
             if_metageneration_not_match=if_metageneration_not_match,
+            timeout=timeout,
         )
 
         while not upload.finished:
-            response = upload.transmit_next_chunk(transport)
+            response = upload.transmit_next_chunk(transport, timeout=timeout)
 
         return response
 
@@ -1579,6 +1684,7 @@ class Blob(_PropertyMixin):
         if_generation_not_match,
         if_metageneration_match,
         if_metageneration_not_match,
+        timeout=_DEFAULT_TIMEOUT,
     ):
         """Determine an upload strategy and then perform the upload.
 
@@ -1636,6 +1742,14 @@ class Blob(_PropertyMixin):
         :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
                                             blob's current metageneration does not match the given value.
 
+        :type timeout: float or tuple
+        :param timeout:
+            (Optional) The number of seconds the transport should wait for the
+            server response. Depending on the retry strategy, a request may be
+            repeated several times using the same timeout each time.
+            Can also be passed as a tuple (connect_timeout, read_timeout).
+            See :meth:`requests.Session.request` documentation for details.
+
         :rtype: dict
         :returns: The parsed JSON from the "200 OK" response. This will be the
                   **only** response in the multipart case and it will be the
@@ -1653,6 +1767,7 @@ class Blob(_PropertyMixin):
                 if_generation_not_match,
                 if_metageneration_match,
                 if_metageneration_not_match,
+                timeout=timeout,
             )
         else:
             response = self._do_resumable_upload(
@@ -1666,6 +1781,7 @@ class Blob(_PropertyMixin):
                 if_generation_not_match,
                 if_metageneration_match,
                 if_metageneration_not_match,
+                timeout=timeout,
             )
 
         return response.json()
@@ -1683,6 +1799,7 @@ class Blob(_PropertyMixin):
         if_generation_not_match=None,
         if_metageneration_match=None,
         if_metageneration_not_match=None,
+        timeout=_DEFAULT_TIMEOUT,
     ):
         """Upload the contents of this blob from a file-like object.
 
@@ -1769,6 +1886,14 @@ class Blob(_PropertyMixin):
         :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
                                             blob's current metageneration does not match the given value.
 
+        :type timeout: float or tuple
+        :param timeout:
+            (Optional) The number of seconds the transport should wait for the
+            server response. Depending on the retry strategy, a request may be
+            repeated several times using the same timeout each time.
+            Can also be passed as a tuple (connect_timeout, read_timeout).
+            See :meth:`requests.Session.request` documentation for details.
+
         :raises: :class:`~google.cloud.exceptions.GoogleCloudError`
                  if the upload response returns an error status.
 
@@ -1794,6 +1919,7 @@ class Blob(_PropertyMixin):
                 if_generation_not_match,
                 if_metageneration_match,
                 if_metageneration_not_match,
+                timeout=timeout,
             )
             self._set_properties(created_json)
         except resumable_media.InvalidResponse as exc:
@@ -1809,6 +1935,7 @@ class Blob(_PropertyMixin):
         if_generation_not_match=None,
         if_metageneration_match=None,
         if_metageneration_not_match=None,
+        timeout=_DEFAULT_TIMEOUT,
     ):
         """Upload this blob's contents from the content of a named file.
 
@@ -1867,6 +1994,14 @@ class Blob(_PropertyMixin):
         :type if_metageneration_not_match: long
         :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
                                             blob's current metageneration does not match the given value.
+
+        :type timeout: float or tuple
+        :param timeout:
+            (Optional) The number of seconds the transport should wait for the
+            server response. Depending on the retry strategy, a request may be
+            repeated several times using the same timeout each time.
+            Can also be passed as a tuple (connect_timeout, read_timeout).
+            See :meth:`requests.Session.request` documentation for details.
         """
         content_type = self._get_content_type(content_type, filename=filename)
 
@@ -1882,6 +2017,7 @@ class Blob(_PropertyMixin):
                 if_generation_not_match=if_generation_not_match,
                 if_metageneration_match=if_metageneration_match,
                 if_metageneration_not_match=if_metageneration_not_match,
+                timeout=timeout,
             )
 
     def upload_from_string(
@@ -1894,6 +2030,7 @@ class Blob(_PropertyMixin):
         if_generation_not_match=None,
         if_metageneration_match=None,
         if_metageneration_not_match=None,
+        timeout=_DEFAULT_TIMEOUT,
     ):
         """Upload contents of this blob from the provided string.
 
@@ -1947,6 +2084,14 @@ class Blob(_PropertyMixin):
         :type if_metageneration_not_match: long
         :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
                                             blob's current metageneration does not match the given value.
+
+        :type timeout: float or tuple
+        :param timeout:
+            (Optional) The number of seconds the transport should wait for the
+            server response. Depending on the retry strategy, a request may be
+            repeated several times using the same timeout each time.
+            Can also be passed as a tuple (connect_timeout, read_timeout).
+            See :meth:`requests.Session.request` documentation for details.
         """
         data = _to_bytes(data, encoding="utf-8")
         string_buffer = BytesIO(data)
@@ -1960,10 +2105,16 @@ class Blob(_PropertyMixin):
             if_generation_not_match=if_generation_not_match,
             if_metageneration_match=if_metageneration_match,
             if_metageneration_not_match=if_metageneration_not_match,
+            timeout=timeout,
         )
 
     def create_resumable_upload_session(
-        self, content_type=None, size=None, origin=None, client=None
+        self,
+        content_type=None,
+        size=None,
+        origin=None,
+        client=None,
+        timeout=_DEFAULT_TIMEOUT,
     ):
         """Create a resumable upload session.
 
@@ -2021,6 +2172,14 @@ class Blob(_PropertyMixin):
         :param client: (Optional) The client to use.  If not passed, falls back
                        to the ``client`` stored on the blob's bucket.
 
+        :type timeout: float or tuple
+        :param timeout:
+            (Optional) The number of seconds the transport should wait for the
+            server response. Depending on the retry strategy, a request may be
+            repeated several times using the same timeout each time.
+            Can also be passed as a tuple (connect_timeout, read_timeout).
+            See :meth:`requests.Session.request` documentation for details.
+
         :rtype: str
         :returns: The resumable upload session URL. The upload can be
                   completed by making an HTTP PUT request with the
@@ -2049,6 +2208,7 @@ class Blob(_PropertyMixin):
                 predefined_acl=None,
                 extra_headers=extra_headers,
                 chunk_size=self._CHUNK_SIZE_MULTIPLE,
+                timeout=timeout,
             )
 
             return upload.resumable_url
@@ -2511,6 +2671,7 @@ class Blob(_PropertyMixin):
         if_source_generation_not_match=None,
         if_source_metageneration_match=None,
         if_source_metageneration_not_match=None,
+        timeout=_DEFAULT_TIMEOUT,
     ):
         """Update blob's storage class via a rewrite-in-place. This helper will
         wait for the rewrite to complete before returning, so it may take some
@@ -2593,6 +2754,14 @@ class Blob(_PropertyMixin):
                                                    conditional on whether the source
                                                    object's current metageneration
                                                    does not match the given value.
+
+        :type timeout: float or tuple
+        :param timeout:
+            (Optional) The number of seconds the transport should wait for the
+            server response. Depending on the retry strategy, a request may be
+            repeated several times using the same timeout each time.
+            Can also be passed as a tuple (connect_timeout, read_timeout).
+            See :meth:`requests.Session.request` documentation for details.
         """
         if new_class not in self.STORAGE_CLASSES:
             raise ValueError("Invalid storage class: %s" % (new_class,))
@@ -2611,6 +2780,7 @@ class Blob(_PropertyMixin):
             if_source_generation_not_match=if_source_generation_not_match,
             if_source_metageneration_match=if_source_metageneration_match,
             if_source_metageneration_not_match=if_source_metageneration_not_match,
+            timeout=timeout,
         )
         while token is not None:
             token, _, _ = self.rewrite(
@@ -2624,6 +2794,7 @@ class Blob(_PropertyMixin):
                 if_source_generation_not_match=if_source_generation_not_match,
                 if_source_metageneration_match=if_source_metageneration_match,
                 if_source_metageneration_not_match=if_source_metageneration_not_match,
+                timeout=timeout,
             )
 
     cache_control = _scalar_property("cacheControl")
