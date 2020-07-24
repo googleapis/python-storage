@@ -4,6 +4,26 @@
 
 [1]: https://pypi.org/project/google-cloud-storage/#history
 
+## [1.30.0](https://www.github.com/googleapis/python-storage/compare/v1.29.0...v1.30.0) (2020-07-24)
+
+
+### Features
+
+* add timeouts to Blob methods where missing ([#185](https://www.github.com/googleapis/python-storage/issues/185)) ([6eeb855](https://www.github.com/googleapis/python-storage/commit/6eeb855aa0e6a7835d1d4f6e72951e43af22ab57))
+* **blob.py:** auto-populate standard headers for non-chunked downloads ([#204](https://www.github.com/googleapis/python-storage/issues/204)) ([d8432cd](https://www.github.com/googleapis/python-storage/commit/d8432cd65a4e9b38eebd1ade2ff00f2f44bb0ef6)), closes [#24](https://www.github.com/googleapis/python-storage/issues/24)
+* **storage:** migrate to Service Account Credentials API ([#189](https://www.github.com/googleapis/python-storage/issues/189)) ([e4990d0](https://www.github.com/googleapis/python-storage/commit/e4990d06043dbd8d1a417f3a1a67fe8746071f1c))
+
+
+### Bug Fixes
+
+* add multiprocessing.rst to synthool excludes ([#186](https://www.github.com/googleapis/python-storage/issues/186)) ([4d76e38](https://www.github.com/googleapis/python-storage/commit/4d76e3882210ed2818a43256265f6df31348d410))
+
+
+### Documentation
+
+* **storage:** fix indent in code blocks ([#171](https://www.github.com/googleapis/python-storage/issues/171)) ([62d1543](https://www.github.com/googleapis/python-storage/commit/62d1543e18040b286b23464562aa6eb998074c54)), closes [#170](https://www.github.com/googleapis/python-storage/issues/170)
+* remove doubled word in docstring ([#209](https://www.github.com/googleapis/python-storage/issues/209)) ([7a4e7a5](https://www.github.com/googleapis/python-storage/commit/7a4e7a5974abedb0b7b2e110cacbfcd0a40346b6))
+
 ## [1.29.0](https://www.github.com/googleapis/python-storage/compare/v1.28.1...v1.29.0) (2020-06-09)
 
 
