@@ -4152,6 +4152,14 @@ class Test_Blob(unittest.TestCase):
         blob.custom_time = TIMESTAMP
         self.assertEqual(blob.custom_time, TIMESTAMP)
 
+    def test_custom_time_setter_none_value(self):
+        BLOB_NAME = "blob-name"
+        bucket = _Bucket()
+        TIMESTAMP = None
+        blob = self._make_one(BLOB_NAME, bucket=bucket)
+        blob.custom_time = TIMESTAMP
+        self.assertIsNone(blob.custom_time)
+
     def test_custom_time_unset(self):
         BUCKET = object()
         blob = self._make_one("blob-name", bucket=BUCKET)

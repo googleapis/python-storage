@@ -3196,11 +3196,14 @@ class Blob(_PropertyMixin):
 
         See https://cloud.google.com/storage/docs/json_api/v1/objects
 
-        :type value: :class:`datetime.datetime`
+        :type value: :class:`datetime.datetime` or ``NoneType``
         :param value: (Optional) Set the custom time of blob. Datetime object parsed
                                  from RFC3339 valid timestamp.
         """
-        self._properties["customTime"] = _datetime_to_rfc3339(value)
+        if value is not None:
+            value = _datetime_to_rfc3339(value)
+
+        self._properties["customTime"] = value
 
 
 def _get_encryption_headers(key, source=False):
