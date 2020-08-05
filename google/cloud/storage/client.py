@@ -45,6 +45,7 @@ from google.cloud.storage.hmac_key import HMACKeyMetadata
 from google.cloud.storage.acl import BucketACL
 from google.cloud.storage.acl import DefaultObjectACL
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
+from google.cloud.storage._opentelemetry_meter import telemetry_wrapped_api_request
 
 
 _marker = object()
@@ -254,7 +255,7 @@ class Client(ClientWithProject):
         if project is None:
             project = self.project
         path = "/projects/%s/serviceAccount" % (project,)
-        api_response = self._base_connection.api_request(
+        api_response = telemetry_wrapped_api_request(self._base_connection.api_request,
             method="GET", path=path, timeout=timeout
         )
         return api_response["email_address"]
@@ -524,7 +525,7 @@ class Client(ClientWithProject):
         if location is not None:
             properties["location"] = location
 
-        api_response = self._connection.api_request(
+        api_response = telemetry_wrapped_api_request(self._connection.api_request,
             method="POST",
             path="/b",
             query_params=query_params,
@@ -777,7 +778,7 @@ class Client(ClientWithProject):
         if fields is not None:
             extra_params["fields"] = fields
 
-        api_request = functools.partial(self._connection.api_request, timeout=timeout)
+        api_request = functools.partial(telemetry_wrapped_api_request, self._connection.api_request, timeout=timeout)
 
         return page_iterator.HTTPIterator(
             client=self,
@@ -828,7 +829,7 @@ class Client(ClientWithProject):
         if user_project is not None:
             qs_params["userProject"] = user_project
 
-        api_response = self._connection.api_request(
+        api_response = telemetry_wrapped_api_request(self._connection.api_request,
             method="POST", path=path, query_params=qs_params, timeout=timeout
         )
         metadata = HMACKeyMetadata(self)
@@ -893,7 +894,7 @@ class Client(ClientWithProject):
         if user_project is not None:
             extra_params["userProject"] = user_project
 
-        api_request = functools.partial(self._connection.api_request, timeout=timeout)
+        api_request = functools.partial(telemetry_wrapped_api_request, self._connection.api_request, timeout=timeout)
 
         return page_iterator.HTTPIterator(
             client=self,
