@@ -4,6 +4,13 @@
 
 [1]: https://pypi.org/project/google-cloud-storage/#history
 
+### [1.30.1](https://www.github.com/googleapis/python-storage/compare/v1.30.0...v1.30.1) (2020-08-05)
+
+
+### Documentation
+
+* update docs build (via synth) ([#222](https://www.github.com/googleapis/python-storage/issues/222)) ([4c5adfa](https://www.github.com/googleapis/python-storage/commit/4c5adfa6e05bf018d72ee1a7e99679fd55f2c662))
+
 ## [1.30.0](https://www.github.com/googleapis/python-storage/compare/v1.29.0...v1.30.0) (2020-07-24)
 
 
