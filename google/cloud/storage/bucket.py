@@ -177,10 +177,9 @@ class LifecycleRuleConditions(dict):
                                    negative integer. If it's zero, the object version will become
                                    eligible for lifecycle action as soon as it becomes custom.
 
-    :type custom_time_before: :class:`datetime.datetime`
-    :param custom_time_before:  (Optional) Datetime object parsed from RFC3339 valid timestamp, apply
-                                rule action to items whose custom time is before this timestamp.
-                                This condition is relevant only for versioned objects.
+    :type custom_time_before: :class:`datetime.date`
+    :param custom_time_before: (Optional) Apply rule action to items whose custom time is before this
+                                date. This condition is relevant only for versioned objects.
 
     :raises ValueError: if no arguments are passed.
     """
@@ -217,7 +216,7 @@ class LifecycleRuleConditions(dict):
             conditions["daysSinceCustomTime"] = days_since_custom_time
 
         if custom_time_before is not None:
-            conditions["customTimeBefore"] = _datetime_to_rfc3339(custom_time_before)
+            conditions["customTimeBefore"] = custom_time_before.isoformat()
 
         if not _factory and not conditions:
             raise ValueError("Supply at least one condition")
@@ -273,9 +272,9 @@ class LifecycleRuleConditions(dict):
     @property
     def custom_time_before(self):
         """Conditon's 'custom_time_before' value."""
-        timestamp = self.get("customTimeBefore")
-        if timestamp is not None:
-            return _rfc3339_to_datetime(timestamp)
+        before = self.get("customTimeBefore")
+        if before is not None:
+            return datetime_helpers.from_iso8601_date(before)
 
 
 class LifecycleRuleDelete(dict):

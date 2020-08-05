@@ -134,6 +134,8 @@ class Test_Blob(unittest.TestCase):
         CRC32C = "FACE0DAC"
         COMPONENT_COUNT = 2
         ETAG = "ETAG"
+        custom_time = datetime.date(2018, 8, 1)
+        CUSTOM_TIME = custom_time.isoformat()
         resource = {
             "id": BLOB_ID,
             "selfLink": SELF_LINK,
@@ -157,7 +159,7 @@ class Test_Blob(unittest.TestCase):
             "crc32c": CRC32C,
             "componentCount": COMPONENT_COUNT,
             "etag": ETAG,
-            "customTime": NOW,
+            "customTime": CUSTOM_TIME,
         }
 
         if kms_key_name is not None:
@@ -189,7 +191,7 @@ class Test_Blob(unittest.TestCase):
         self.assertEqual(blob.crc32c, CRC32C)
         self.assertEqual(blob.component_count, COMPONENT_COUNT)
         self.assertEqual(blob.etag, ETAG)
-        self.assertEqual(blob.custom_time, now)
+        self.assertEqual(blob.custom_time, custom_time)
 
         if kms_key_name is not None:
             self.assertEqual(blob.kms_key_name, kms_key_name)
@@ -4149,39 +4151,31 @@ class Test_Blob(unittest.TestCase):
         self.assertIsNone(blob.updated)
 
     def test_custom_time_getter(self):
-        from google.cloud._helpers import _RFC3339_MICROS
-        from google.cloud._helpers import UTC
-
         BLOB_NAME = "blob-name"
         bucket = _Bucket()
-        TIMESTAMP = datetime.datetime(2014, 11, 5, 20, 34, 37, tzinfo=UTC)
-        TIME_CREATED = TIMESTAMP.strftime(_RFC3339_MICROS)
-        properties = {"customTime": TIME_CREATED}
+        custom_time = datetime.date(2018, 8, 1)
+        CUSTOM_TIME = custom_time.isoformat()
+        properties = {"customTime": CUSTOM_TIME}
         blob = self._make_one(BLOB_NAME, bucket=bucket, properties=properties)
-        self.assertEqual(blob.custom_time, TIMESTAMP)
+        self.assertEqual(blob.custom_time, custom_time)
 
     def test_custom_time_setter(self):
-        from google.cloud._helpers import UTC
-
         BLOB_NAME = "blob-name"
         bucket = _Bucket()
-        TIMESTAMP = datetime.datetime(2014, 11, 5, 20, 34, 37, tzinfo=UTC)
+        custom_time = datetime.date(2018, 8, 1)
         blob = self._make_one(BLOB_NAME, bucket=bucket)
         self.assertIsNone(blob.custom_time)
-        blob.custom_time = TIMESTAMP
-        self.assertEqual(blob.custom_time, TIMESTAMP)
+        blob.custom_time = custom_time
+        self.assertEqual(blob.custom_time, custom_time)
 
     def test_custom_time_setter_none_value(self):
-        from google.cloud._helpers import _RFC3339_MICROS
-        from google.cloud._helpers import UTC
-
         BLOB_NAME = "blob-name"
         bucket = _Bucket()
-        TIMESTAMP = datetime.datetime(2014, 11, 5, 20, 34, 37, tzinfo=UTC)
-        TIME_CREATED = TIMESTAMP.strftime(_RFC3339_MICROS)
-        properties = {"customTime": TIME_CREATED}
+        custom_time = datetime.date(2018, 8, 1)
+        CUSTOM_TIME = custom_time.isoformat()
+        properties = {"customTime": CUSTOM_TIME}
         blob = self._make_one(BLOB_NAME, bucket=bucket, properties=properties)
-        self.assertEqual(blob.custom_time, TIMESTAMP)
+        self.assertEqual(blob.custom_time, custom_time)
         blob.custom_time = None
         self.assertIsNone(blob.custom_time)
 

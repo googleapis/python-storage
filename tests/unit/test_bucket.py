@@ -105,18 +105,14 @@ class Test_LifecycleRuleConditions(unittest.TestCase):
 
     def test_ctor_w_custom_time_before(self):
         import datetime
-        import pytz
-        from google.cloud._helpers import _datetime_to_rfc3339
 
-        custom_time_before = datetime.datetime.utcnow().replace(
-            tzinfo=pytz.UTC
-        ) + datetime.timedelta(days=10)
+        custom_time_before = datetime.date(2018, 8, 1)
         conditions = self._make_one(
             number_of_newer_versions=3, custom_time_before=custom_time_before
         )
         expected = {
             "numNewerVersions": 3,
-            "customTimeBefore": _datetime_to_rfc3339(custom_time_before),
+            "customTimeBefore": custom_time_before.isoformat(),
         }
 
         self.assertEqual(dict(conditions), expected)
@@ -129,13 +125,8 @@ class Test_LifecycleRuleConditions(unittest.TestCase):
 
     def test_from_api_repr(self):
         import datetime
-        import pytz
-        from google.cloud._helpers import _datetime_to_rfc3339
 
-        custom_time_before = datetime.datetime.utcnow().replace(
-            tzinfo=pytz.UTC
-        ) + datetime.timedelta(days=10)
-
+        custom_time_before = datetime.date(2018, 8, 1)
         before = datetime.date(2018, 8, 1)
         klass = self._get_target_class()
         resource = {
@@ -145,7 +136,7 @@ class Test_LifecycleRuleConditions(unittest.TestCase):
             "matchesStorageClass": ["COLDLINE"],
             "numNewerVersions": 3,
             "daysSinceCustomTime": 2,
-            "customTimeBefore": _datetime_to_rfc3339(custom_time_before),
+            "customTimeBefore": custom_time_before.isoformat(),
         }
         conditions = klass.from_api_repr(resource)
         self.assertEqual(conditions.age, 10)
