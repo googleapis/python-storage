@@ -1348,16 +1348,11 @@ class Blob(_PropertyMixin):
             if_metageneration_not_match=if_metageneration_not_match,
             timeout=timeout,
         )
-        if six.PY2:
-            if self.content_encoding:
-                return data.decode(self.content_encoding)
-            else:
-                return data.decode(encoding)
+
+        if self.content_encoding:
+            return data.decode(self.content_encoding)
         else:
-            if self.content_encoding:
-                return data.decode(self.content_encoding)
-            else:
-                return data.decode(encoding)
+            return data.decode(encoding)
 
     def _get_content_type(self, content_type, filename=None):
         """Determine the content type from the current object.
