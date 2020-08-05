@@ -112,7 +112,10 @@ class Client(ClientWithProject):
             project = None
 
         super(Client, self).__init__(
-            project=project, credentials=credentials, client_options=client_options, _http=_http
+            project=project,
+            credentials=credentials,
+            client_options=client_options,
+            _http=_http,
         )
 
         kw_args = {"client_info": client_info}
