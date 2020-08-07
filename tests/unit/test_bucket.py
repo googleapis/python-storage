@@ -104,19 +104,15 @@ class Test_LifecycleRuleConditions(unittest.TestCase):
 
     def test_ctor_w_noncurrent_time_before(self):
         import datetime
-        import pytz
-        from google.cloud._helpers import _datetime_to_rfc3339
 
-        noncurrent_before = datetime.datetime.utcnow().replace(
-            tzinfo=pytz.UTC
-        ) + datetime.timedelta(days=10)
+        noncurrent_before = datetime.date(2018, 8, 1)
         conditions = self._make_one(
             number_of_newer_versions=3, noncurrent_time_before=noncurrent_before
         )
 
         expected = {
             "numNewerVersions": 3,
-            "noncurrentTimeBefore": _datetime_to_rfc3339(noncurrent_before),
+            "noncurrentTimeBefore": noncurrent_before.isoformat(),
         }
         self.assertEqual(dict(conditions), expected)
         self.assertIsNone(conditions.age)
@@ -128,12 +124,8 @@ class Test_LifecycleRuleConditions(unittest.TestCase):
 
     def test_from_api_repr(self):
         import datetime
-        import pytz
-        from google.cloud._helpers import _datetime_to_rfc3339
 
-        noncurrent_before = datetime.datetime.utcnow().replace(
-            tzinfo=pytz.UTC
-        ) + datetime.timedelta(days=10)
+        noncurrent_before = datetime.date(2018, 8, 1)
         before = datetime.date(2018, 8, 1)
         klass = self._get_target_class()
 
@@ -144,7 +136,7 @@ class Test_LifecycleRuleConditions(unittest.TestCase):
             "matchesStorageClass": ["COLDLINE"],
             "numNewerVersions": 3,
             "daysSinceNoncurrentTime": 2,
-            "noncurrentTimeBefore": _datetime_to_rfc3339(noncurrent_before),
+            "noncurrentTimeBefore": noncurrent_before.isoformat(),
         }
         conditions = klass.from_api_repr(resource)
         self.assertEqual(conditions.age, 10)

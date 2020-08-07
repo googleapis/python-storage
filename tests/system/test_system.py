@@ -195,7 +195,7 @@ class TestStorageBuckets(unittest.TestCase):
         from google.cloud.storage import constants
 
         new_bucket_name = "w-lifcycle-rules" + unique_resource_id("-")
-        noncurrent_before = datetime.datetime.now() + datetime.timedelta(days=10)
+        noncurrent_before = datetime.date(2018, 8, 1)
         self.assertRaises(
             exceptions.NotFound, Config.CLIENT.get_bucket, new_bucket_name
         )

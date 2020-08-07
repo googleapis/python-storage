@@ -178,9 +178,9 @@ class LifecycleRuleConditions(dict):
                                         will become eligible for lifecycle action as soon as it becomes
                                         non current.
 
-    :type noncurrent_time_before: :class:`datetime.datetime`
-    :param noncurrent_time_before: (Optional) Datetime object parsed from RFC3339 valid timestamp, apply
-                                   rule action to items whose non current time is before this timestamp.
+    :type noncurrent_time_before: :class:`datetime.date`
+    :param noncurrent_time_before: (Optional) Date object parsed from iso8601 valid date, apply
+                                   rule action to items whose non current time is before this date.
                                    This condition is relevant only for versioned objects.
 
     :raises ValueError: if no arguments are passed.
@@ -221,9 +221,7 @@ class LifecycleRuleConditions(dict):
             conditions["daysSinceNoncurrentTime"] = days_since_noncurrent_time
 
         if noncurrent_time_before is not None:
-            conditions["noncurrentTimeBefore"] = _datetime_to_rfc3339(
-                noncurrent_time_before
-            )
+            conditions["noncurrentTimeBefore"] = noncurrent_time_before.isoformat()
 
         super(LifecycleRuleConditions, self).__init__(conditions)
 
@@ -276,9 +274,9 @@ class LifecycleRuleConditions(dict):
     @property
     def noncurrent_time_before(self):
         """Conditon's 'noncurrent_time_before' value."""
-        timestamp = self.get("noncurrentTimeBefore")
-        if timestamp is not None:
-            return _rfc3339_to_datetime(timestamp)
+        before = self.get("noncurrentTimeBefore")
+        if before is not None:
+            return datetime_helpers.from_iso8601_date(before)
 
 
 class LifecycleRuleDelete(dict):
