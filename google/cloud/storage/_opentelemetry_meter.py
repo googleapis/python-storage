@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Manages OpenTelemetry trace creation and handling"""
+"""Manages OpenTelemetry metrics creation and handling"""
 
 try:
     from opentelemetry import metrics
@@ -25,11 +25,8 @@ try:
 except ImportError:
     HAS_OPENTELEMETRY_INSTALLED = False
 
-instruments_setup = False
-requests_counter = None
 
-def setup_instruments():
-    global requests_counter, instruments_setup
+if HAS_OPENTELEMETRY_INSTALLED:
     meter = metrics.get_meter(__name__)
     metrics.get_meter_provider().start_pipeline(
         meter, CloudMonitoringMetricsExporter(), 10
@@ -40,14 +37,12 @@ def setup_instruments():
         unit="1",
         value_type=int,
         metric_type=Counter,
-        label_keys=("path"),
     )
-    instruments_setup = True
 
-
-def telemetry_wrapped_api_request(api_request, **kwargs):
-    if HAS_OPENTELEMETRY_INSTALLED:
-        if not instruments_setup:
-            setup_instruments()
-        requests_counter.add(1, {'path': kwargs['path']})
-    return api_request(**kwargs)
+    def telemetry_wrapped_api_request(api_request, *args, **kwargs):
+        print(api_request)
+        requests_counter.add(1, {})
+        return api_request(*args, **kwargs)
+else:
+    def telemetry_wrapped_api_request(api_request, *args, **kwargs):
+        return api_request(*args, **kwargs)

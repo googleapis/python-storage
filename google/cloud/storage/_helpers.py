@@ -198,7 +198,7 @@ class _PropertyMixin(object):
             if_metageneration_match=if_metageneration_match,
             if_metageneration_not_match=if_metageneration_not_match,
         )
-        api_response = telemetry_wrapped_api_request(client._connection.api_request,
+        api_response = client._connection.api_request(
             method="GET",
             path=self.path,
             query_params=query_params,

@@ -48,6 +48,7 @@ from google.resumable_media.requests import RawDownload
 from google.resumable_media.requests import RawChunkedDownload
 from google.resumable_media.requests import MultipartUpload
 from google.resumable_media.requests import ResumableUpload
+from google.cloud.storage._opentelemetry_meter import telemetry_wrapped_api_request
 
 from google.api_core.iam import Policy
 from google.cloud import exceptions
@@ -631,7 +632,7 @@ class Blob(_PropertyMixin):
         try:
             # We intentionally pass `_target_object=None` since fields=name
             # would limit the local properties.
-            client._connection.api_request(
+            telemetry_wrapped_api_request(client._connection.api_request,
                 method="GET",
                 path=self.path,
                 query_params=query_params,
@@ -869,7 +870,7 @@ class Blob(_PropertyMixin):
             download = klass(
                 download_url, stream=file_obj, headers=headers, start=start, end=end
             )
-            response = download.consume(transport, timeout=timeout)
+            response = telemetry_wrapped_api_request(download.consume, transport, timeout=timeout)
             self._extract_headers_from_download(response)
         else:
 
@@ -888,7 +889,7 @@ class Blob(_PropertyMixin):
             )
 
             while not download.finished:
-                download.consume_next_chunk(transport, timeout=timeout)
+                telemetry_wrapped_api_request(download.consume_next_chunk, transport, timeout=timeout)
 
     def download_to_file(
         self,
@@ -1401,7 +1402,7 @@ class Blob(_PropertyMixin):
                 max_retries=num_retries
             )
 
-        response = upload.transmit(
+        response = telemetry_wrapped_api_request(upload.transmit,
             transport, data, object_metadata, content_type, timeout=timeout
         )
 
@@ -1667,7 +1668,7 @@ class Blob(_PropertyMixin):
         )
 
         while not upload.finished:
-            response = upload.transmit_next_chunk(transport, timeout=timeout)
+            response = telemetry_wrapped_api_request(upload.transmit_next_chunk, transport, timeout=timeout)
 
         return response
 
@@ -2267,7 +2268,7 @@ class Blob(_PropertyMixin):
         if requested_policy_version is not None:
             query_params["optionsRequestedPolicyVersion"] = requested_policy_version
 
-        info = client._connection.api_request(
+        info = telemetry_wrapped_api_request(client._connection.api_request,
             method="GET",
             path="%s/iam" % (self.path,),
             query_params=query_params,
@@ -2317,7 +2318,7 @@ class Blob(_PropertyMixin):
 
         resource = policy.to_api_repr()
         resource["resourceId"] = self.path
-        info = client._connection.api_request(
+        info = telemetry_wrapped_api_request(client._connection.api_request,
             method="PUT",
             path="%s/iam" % (self.path,),
             query_params=query_params,
@@ -2366,7 +2367,7 @@ class Blob(_PropertyMixin):
             query_params["userProject"] = self.user_project
 
         path = "%s/iam/testPermissions" % (self.path,)
-        resp = client._connection.api_request(
+        resp = telemetry_wrapped_api_request(client._connection.api_request,
             method="GET", path=path, query_params=query_params, timeout=timeout
         )
 
@@ -2494,7 +2495,7 @@ class Blob(_PropertyMixin):
             "sourceObjects": source_objects,
             "destination": self._properties.copy(),
         }
-        api_response = client._connection.api_request(
+        api_response = telemetry_wrapped_api_request(client._connection.api_request,
             method="POST",
             path=self.path + "/compose",
             query_params=query_params,
@@ -2637,7 +2638,7 @@ class Blob(_PropertyMixin):
             if_source_metageneration_not_match=if_source_metageneration_not_match,
         )
 
-        api_response = client._connection.api_request(
+        api_response = telemetry_wrapped_api_request(client._connection.api_request,
             method="POST",
             path=source.path + "/rewriteTo" + self.path,
             query_params=query_params,

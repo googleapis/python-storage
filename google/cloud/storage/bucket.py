@@ -57,6 +57,7 @@ from google.cloud.storage.constants import REGION_LOCATION_TYPE
 from google.cloud.storage.constants import STANDARD_STORAGE_CLASS
 from google.cloud.storage.notification import BucketNotification
 from google.cloud.storage.notification import NONE_PAYLOAD_FORMAT
+from google.cloud.storage._opentelemetry_meter import telemetry_wrapped_api_request
 
 
 _UBLA_BPO_ENABLED_MESSAGE = (
@@ -698,7 +699,7 @@ class Bucket(_PropertyMixin):
         try:
             # We intentionally pass `_target_object=None` since fields=name
             # would limit the local properties.
-            client._connection.api_request(
+            telemetry_wrapped_api_request(client._connection.api_request,
                 method="GET",
                 path=self.path,
                 query_params=query_params,
@@ -775,7 +776,7 @@ class Bucket(_PropertyMixin):
             raise ValueError("Cannot create bucket with 'user_project' set.")
 
         client = self._require_client(client)
-        client.create_bucket(
+        telemetry_wrapped_api_request(client.create_bucket,
             bucket_or_name=self,
             project=project,
             location=location,
@@ -817,7 +818,7 @@ class Bucket(_PropertyMixin):
         :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
                                             blob's current metageneration does not match the given value.
         """
-        super(Bucket, self).update(
+        telemetry_wrapped_api_request(super(Bucket, self).update,
             client=client,
             timeout=timeout,
             if_metageneration_match=if_metageneration_match,
@@ -911,7 +912,7 @@ class Bucket(_PropertyMixin):
                 self._properties["labels"][removed_label] = None
 
         # Call the superclass method.
-        super(Bucket, self).patch(
+        telemetry_wrapped_api_request(super(Bucket, self).patch,
             client=client,
             timeout=timeout,
             if_metageneration_match=if_metageneration_match,
@@ -1450,7 +1451,7 @@ class Bucket(_PropertyMixin):
         # We intentionally pass `_target_object=None` since a DELETE
         # request has no response value (whether in a standard request or
         # in a batch request).
-        client._connection.api_request(
+        telemetry_wrapped_api_request(client._connection.api_request,
             method="DELETE",
             path=blob.path,
             query_params=query_params,
