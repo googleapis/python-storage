@@ -818,7 +818,7 @@ class Bucket(_PropertyMixin):
         :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
                                             blob's current metageneration does not match the given value.
         """
-        telemetry_wrapped_api_request(super(Bucket, self).update,
+        super(Bucket, self).update(
             client=client,
             timeout=timeout,
             if_metageneration_match=if_metageneration_match,
@@ -912,7 +912,7 @@ class Bucket(_PropertyMixin):
                 self._properties["labels"][removed_label] = None
 
         # Call the superclass method.
-        telemetry_wrapped_api_request(super(Bucket, self).patch,
+        super(Bucket, self).patch(
             client=client,
             timeout=timeout,
             if_metageneration_match=if_metageneration_match,
@@ -1180,7 +1180,7 @@ class Bucket(_PropertyMixin):
 
         client = self._require_client(client)
         path = self.path + "/o"
-        api_request = functools.partial(client._connection.api_request, timeout=timeout)
+        api_request = functools.partial(telemetry_wrapped_api_request, client._connection.api_request, timeout=timeout)
         iterator = page_iterator.HTTPIterator(
             client=client,
             api_request=api_request,
@@ -1219,7 +1219,7 @@ class Bucket(_PropertyMixin):
         """
         client = self._require_client(client)
         path = self.path + "/notificationConfigs"
-        api_request = functools.partial(client._connection.api_request, timeout=timeout)
+        api_request = functools.partial(telemetry_wrapped_api_request, client._connection.api_request, timeout=timeout)
         iterator = page_iterator.HTTPIterator(
             client=client,
             api_request=api_request,
@@ -1354,7 +1354,7 @@ class Bucket(_PropertyMixin):
         # We intentionally pass `_target_object=None` since a DELETE
         # request has no response value (whether in a standard request or
         # in a batch request).
-        client._connection.api_request(
+        telemetry_wrapped_api_request(client._connection.api_request,
             method="DELETE",
             path=self.path,
             query_params=query_params,
@@ -1725,7 +1725,7 @@ class Bucket(_PropertyMixin):
 
         new_blob = Blob(bucket=destination_bucket, name=new_name)
         api_path = blob.path + "/copyTo" + new_blob.path
-        copy_result = client._connection.api_request(
+        copy_result = telemetry_wrapped_api_request(client._connection.api_request,
             method="POST",
             path=api_path,
             query_params=query_params,
@@ -2574,7 +2574,7 @@ class Bucket(_PropertyMixin):
         if requested_policy_version is not None:
             query_params["optionsRequestedPolicyVersion"] = requested_policy_version
 
-        info = client._connection.api_request(
+        info = telemetry_wrapped_api_request(client._connection.api_request,
             method="GET",
             path="%s/iam" % (self.path,),
             query_params=query_params,
@@ -2618,7 +2618,7 @@ class Bucket(_PropertyMixin):
 
         resource = policy.to_api_repr()
         resource["resourceId"] = self.path
-        info = client._connection.api_request(
+        info = telemetry_wrapped_api_request(client._connection.api_request,
             method="PUT",
             path="%s/iam" % (self.path,),
             query_params=query_params,
@@ -2662,7 +2662,7 @@ class Bucket(_PropertyMixin):
             query_params["userProject"] = self.user_project
 
         path = "%s/iam/testPermissions" % (self.path,)
-        resp = client._connection.api_request(
+        resp = telemetry_wrapped_api_request(client._connection.api_request,
             method="GET", path=path, query_params=query_params, timeout=timeout
         )
         return resp.get("permissions", [])
@@ -2897,7 +2897,7 @@ class Bucket(_PropertyMixin):
             query_params["userProject"] = self.user_project
 
         path = "/b/{}/lockRetentionPolicy".format(self.name)
-        api_response = client._connection.api_request(
+        api_response = telemetry_wrapped_api_request(client._connection.api_request,
             method="POST",
             path=path,
             query_params=query_params,
