@@ -384,7 +384,7 @@ class Test_Bucket(unittest.TestCase):
     def _make_client(*args, **kw):
         from google.cloud.storage.client import Client
 
-        client = Client(*args, **kw)
+        return mock.create_autospec(Client, instance=True, **kw)
 
         return client
 

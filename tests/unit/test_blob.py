@@ -49,7 +49,7 @@ class Test_Blob(unittest.TestCase):
     def _make_client(*args, **kw):
         from google.cloud.storage.client import Client
 
-        return Client(*args, **kw)
+        return mock.create_autospec(Client, instance=True, **kw)
 
     @staticmethod
     def _get_default_timeout():
