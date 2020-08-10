@@ -29,6 +29,7 @@ import base64
 import copy
 import hashlib
 from io import BytesIO
+import logging
 import mimetypes
 import os
 import re
@@ -107,6 +108,11 @@ _NUM_RETRIES_MESSAGE = (
 _READ_LESS_THAN_SIZE = (
     "Size {:d} was specified but the file-like object only had " "{:d} bytes remaining."
 )
+_CHUNKED_DOWNLOAD_CHECKSUM_MESSAGE = (
+    "A checksum of type `{}` was requested, but checksumming is not available "
+    "for downloads when chunk_size is set."
+)
+
 
 _DEFAULT_CHUNKSIZE = 104857600  # 1024 * 1024 B * 100 = 100 MB
 _MAX_MULTIPART_SIZE = 8388608  # 8 MB
@@ -822,6 +828,7 @@ class Blob(_PropertyMixin):
         end=None,
         raw_download=False,
         timeout=_DEFAULT_TIMEOUT,
+        checksum="md5",
     ):
         """Perform a download without any error handling.
 
@@ -859,6 +866,17 @@ class Blob(_PropertyMixin):
             repeated several times using the same timeout each time.
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
+
+        :type checksum str
+        :param checksum:
+            (Optional) The type of checksum to compute to verify the integrity
+            of the object. The response headers must contain a checksum of the
+            requested type. If the headers lack an appropriate checksum (for
+            instance in the case of transcoded or ranged downloads where the
+            remote service does not know the correct checksum, including
+            downloads where chunk_size is set) an INFO-level log will be
+            emitted. Supported values are "md5", "crc32c" and None. The default
+            is "md5".
         """
         if self.chunk_size is None:
             if raw_download:
@@ -867,11 +885,15 @@ class Blob(_PropertyMixin):
                 klass = Download
 
             download = klass(
-                download_url, stream=file_obj, headers=headers, start=start, end=end
+                download_url, stream=file_obj, headers=headers, start=start, end=end, checksum=checksum
             )
             response = download.consume(transport, timeout=timeout)
             self._extract_headers_from_download(response)
         else:
+
+            if checksum:
+                msg = _CHUNKED_DOWNLOAD_CHECKSUM_MESSAGE.format(checksum)
+                logging.info(msg)
 
             if raw_download:
                 klass = RawChunkedDownload
@@ -978,6 +1000,17 @@ class Blob(_PropertyMixin):
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
 
+        :type checksum str
+        :param checksum:
+            (Optional) The type of checksum to compute to verify the integrity
+            of the object. The response headers must contain a checksum of the
+            requested type. If the headers lack an appropriate checksum (for
+            instance in the case of transcoded or ranged downloads where the
+            remote service does not know the correct checksum, including
+            downloads where chunk_size is set) an INFO-level log will be
+            emitted. Supported values are "md5", "crc32c" and None. The default
+            is "md5".
+
         :raises: :class:`google.cloud.exceptions.NotFound`
         """
         client = self._require_client(client)
@@ -1003,6 +1036,7 @@ class Blob(_PropertyMixin):
                 end,
                 raw_download,
                 timeout=timeout,
+                checksum=checksum,
             )
         except resumable_media.InvalidResponse as exc:
             _raise_from_invalid_response(exc)
@@ -1019,6 +1053,7 @@ class Blob(_PropertyMixin):
         if_metageneration_match=None,
         if_metageneration_not_match=None,
         timeout=_DEFAULT_TIMEOUT,
+        checksum="md5"
     ):
         """Download the contents of this blob into a named file.
 
@@ -1071,6 +1106,17 @@ class Blob(_PropertyMixin):
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
 
+        :type checksum str
+        :param checksum:
+            (Optional) The type of checksum to compute to verify the integrity
+            of the object. The response headers must contain a checksum of the
+            requested type. If the headers lack an appropriate checksum (for
+            instance in the case of transcoded or ranged downloads where the
+            remote service does not know the correct checksum, including
+            downloads where chunk_size is set) an INFO-level log will be
+            emitted. Supported values are "md5", "crc32c" and None. The default
+            is "md5".
+
         :raises: :class:`google.cloud.exceptions.NotFound`
         """
         try:
@@ -1086,6 +1132,7 @@ class Blob(_PropertyMixin):
                     if_metageneration_match=if_metageneration_match,
                     if_metageneration_not_match=if_metageneration_not_match,
                     timeout=timeout,
+                    checksum=checksum,
                 )
         except resumable_media.DataCorruption:
             # Delete the corrupt downloaded file.
@@ -1111,6 +1158,7 @@ class Blob(_PropertyMixin):
         if_metageneration_match=None,
         if_metageneration_not_match=None,
         timeout=_DEFAULT_TIMEOUT,
+        checksum="md5"
     ):
         """Download the contents of this blob as a bytes object.
 
@@ -1160,6 +1208,17 @@ class Blob(_PropertyMixin):
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
 
+        :type checksum str
+        :param checksum:
+            (Optional) The type of checksum to compute to verify the integrity
+            of the object. The response headers must contain a checksum of the
+            requested type. If the headers lack an appropriate checksum (for
+            instance in the case of transcoded or ranged downloads where the
+            remote service does not know the correct checksum, including
+            downloads where chunk_size is set) an INFO-level log will be
+            emitted. Supported values are "md5", "crc32c" and None. The default
+            is "md5".
+
         :rtype: bytes
         :returns: The data stored in this blob.
 
@@ -1177,6 +1236,7 @@ class Blob(_PropertyMixin):
             if_metageneration_match=if_metageneration_match,
             if_metageneration_not_match=if_metageneration_not_match,
             timeout=timeout,
+            checksum=checksum,
         )
         return string_buffer.getvalue()
 
@@ -1278,6 +1338,7 @@ class Blob(_PropertyMixin):
         if_metageneration_match,
         if_metageneration_not_match,
         timeout=_DEFAULT_TIMEOUT,
+        checksum=None,
     ):
         """Perform a multipart upload.
 
@@ -1339,6 +1400,14 @@ class Blob(_PropertyMixin):
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
 
+        :type checksum: str
+        :param checksum:
+            (Optional) The type of checksum to compute to verify
+            the integrity of the object. The request metadata will be amended
+            to include the computed value. Using this option will override a
+            manually-set checksum value. Supported values are "md5",
+            "crc32c" and None. The default is None.
+
         :rtype: :class:`~requests.Response`
         :returns: The "200 OK" response object returned after the multipart
                   upload request.
@@ -1394,7 +1463,7 @@ class Blob(_PropertyMixin):
             )
 
         upload_url = _add_query_parameters(base_url, name_value_pairs)
-        upload = MultipartUpload(upload_url, headers=headers)
+        upload = MultipartUpload(upload_url, headers=headers, checksum=checksum)
 
         if num_retries is not None:
             upload._retry_strategy = resumable_media.RetryStrategy(
@@ -1496,6 +1565,16 @@ class Blob(_PropertyMixin):
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
 
+        :type checksum: str
+        :param checksum:
+            (Optional) The type of checksum to compute to verify
+            the integrity of the object. After the upload is complete, the
+            server-computed checksum of the resulting object will be checked
+            and google.resumable_media.common.DataCorruption will be raised on
+            a mismatch. On a failure, the client will attempt to delete the
+            corrupted file from the remote host automatically. Supported values
+            are "md5", "crc32c" and None. The default is None.
+
         :rtype: tuple
         :returns:
             Pair of
@@ -1584,6 +1663,7 @@ class Blob(_PropertyMixin):
         if_metageneration_match,
         if_metageneration_not_match,
         timeout=_DEFAULT_TIMEOUT,
+        checksum=None,
     ):
         """Perform a resumable upload.
 
@@ -1648,6 +1728,16 @@ class Blob(_PropertyMixin):
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
 
+        :type checksum: str
+        :param checksum:
+            (Optional) The type of checksum to compute to verify
+            the integrity of the object. After the upload is complete, the
+            server-computed checksum of the resulting object will be checked
+            and google.resumable_media.common.DataCorruption will be raised on
+            a mismatch. On a failure, the client will attempt to delete the
+            corrupted file from the remote host automatically. Supported values
+            are "md5", "crc32c" and None. The default is None.
+
         :rtype: :class:`~requests.Response`
         :returns: The "200 OK" response object returned after the final chunk
                   is uploaded.
@@ -1664,10 +1754,16 @@ class Blob(_PropertyMixin):
             if_metageneration_match=if_metageneration_match,
             if_metageneration_not_match=if_metageneration_not_match,
             timeout=timeout,
+            checksum=checksum
         )
 
         while not upload.finished:
-            response = upload.transmit_next_chunk(transport, timeout=timeout)
+            try:
+                response = upload.transmit_next_chunk(transport, timeout=timeout)
+            except google.resumable_media.common.DataCorruption:
+                # Attempt to delete the remote object.
+                # FIXME
+                raise
 
         return response
 
@@ -1684,6 +1780,7 @@ class Blob(_PropertyMixin):
         if_metageneration_match,
         if_metageneration_not_match,
         timeout=_DEFAULT_TIMEOUT,
+        checksum=None,
     ):
         """Determine an upload strategy and then perform the upload.
 
@@ -1749,6 +1846,19 @@ class Blob(_PropertyMixin):
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
 
+        :type checksum: str
+        :param checksum:
+            (Optional) The type of checksum to compute to verify
+            the integrity of the object. If the upload is completed in a single
+            request, the checksum will be entirely precomputed and the remote
+            server will handle verification and error handling. If the upload
+            is too large and must be transmitted in multiple requests, the
+            checksum will be incrementally computed and the client will handle
+            verification and error handling, raising
+            google.resumable_media.common.DataCorruption on a mismatch and 
+            attempting to delete the corrupted file. Supported values are
+            "md5", "crc32c" and None. The default is None.
+
         :rtype: dict
         :returns: The parsed JSON from the "200 OK" response. This will be the
                   **only** response in the multipart case and it will be the
@@ -1767,6 +1877,7 @@ class Blob(_PropertyMixin):
                 if_metageneration_match,
                 if_metageneration_not_match,
                 timeout=timeout,
+                checksum=checksum,
             )
         else:
             response = self._do_resumable_upload(
@@ -1781,6 +1892,7 @@ class Blob(_PropertyMixin):
                 if_metageneration_match,
                 if_metageneration_not_match,
                 timeout=timeout,
+                checksum=checksum,
             )
 
         return response.json()
@@ -1799,6 +1911,7 @@ class Blob(_PropertyMixin):
         if_metageneration_match=None,
         if_metageneration_not_match=None,
         timeout=_DEFAULT_TIMEOUT,
+        checksum=None,
     ):
         """Upload the contents of this blob from a file-like object.
 
@@ -1893,6 +2006,19 @@ class Blob(_PropertyMixin):
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
 
+        :type checksum: str
+        :param checksum:
+            (Optional) The type of checksum to compute to verify
+            the integrity of the object. If the upload is completed in a single
+            request, the checksum will be entirely precomputed and the remote
+            server will handle verification and error handling. If the upload
+            is too large and must be transmitted in multiple requests, the
+            checksum will be incrementally computed and the client will handle
+            verification and error handling, raising
+            google.resumable_media.common.DataCorruption on a mismatch and 
+            attempting to delete the corrupted file. Supported values are
+            "md5", "crc32c" and None. The default is None.
+
         :raises: :class:`~google.cloud.exceptions.GoogleCloudError`
                  if the upload response returns an error status.
 
@@ -1919,6 +2045,7 @@ class Blob(_PropertyMixin):
                 if_metageneration_match,
                 if_metageneration_not_match,
                 timeout=timeout,
+                checksum=checksum,
             )
             self._set_properties(created_json)
         except resumable_media.InvalidResponse as exc:
@@ -1935,6 +2062,7 @@ class Blob(_PropertyMixin):
         if_metageneration_match=None,
         if_metageneration_not_match=None,
         timeout=_DEFAULT_TIMEOUT,
+        checksum=None,
     ):
         """Upload this blob's contents from the content of a named file.
 
@@ -2001,6 +2129,19 @@ class Blob(_PropertyMixin):
             repeated several times using the same timeout each time.
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
+
+        :type checksum: str
+        :param checksum:
+            (Optional) The type of checksum to compute to verify
+            the integrity of the object. If the upload is completed in a single
+            request, the checksum will be entirely precomputed and the remote
+            server will handle verification and error handling. If the upload
+            is too large and must be transmitted in multiple requests, the
+            checksum will be incrementally computed and the client will handle
+            verification and error handling, raising
+            google.resumable_media.common.DataCorruption on a mismatch and 
+            attempting to delete the corrupted file. Supported values are
+            "md5", "crc32c" and None. The default is None.
         """
         content_type = self._get_content_type(content_type, filename=filename)
 
@@ -2017,6 +2158,7 @@ class Blob(_PropertyMixin):
                 if_metageneration_match=if_metageneration_match,
                 if_metageneration_not_match=if_metageneration_not_match,
                 timeout=timeout,
+                checksum=checksum
             )
 
     def upload_from_string(
@@ -2030,6 +2172,7 @@ class Blob(_PropertyMixin):
         if_metageneration_match=None,
         if_metageneration_not_match=None,
         timeout=_DEFAULT_TIMEOUT,
+        checksum=None,
     ):
         """Upload contents of this blob from the provided string.
 
@@ -2091,6 +2234,19 @@ class Blob(_PropertyMixin):
             repeated several times using the same timeout each time.
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
+
+        :type checksum: str
+        :param checksum:
+            (Optional) The type of checksum to compute to verify
+            the integrity of the object. If the upload is completed in a single
+            request, the checksum will be entirely precomputed and the remote
+            server will handle verification and error handling. If the upload
+            is too large and must be transmitted in multiple requests, the
+            checksum will be incrementally computed and the client will handle
+            verification and error handling, raising
+            google.resumable_media.common.DataCorruption on a mismatch and 
+            attempting to delete the corrupted file. Supported values are
+            "md5", "crc32c" and None. The default is None.
         """
         data = _to_bytes(data, encoding="utf-8")
         string_buffer = BytesIO(data)
@@ -2114,6 +2270,7 @@ class Blob(_PropertyMixin):
         origin=None,
         client=None,
         timeout=_DEFAULT_TIMEOUT,
+        checksum=None,
     ):
         """Create a resumable upload session.
 
@@ -2179,6 +2336,16 @@ class Blob(_PropertyMixin):
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
 
+        :type checksum: str
+        :param checksum:
+            (Optional) The type of checksum to compute to verify
+            the integrity of the object. After the upload is complete, the
+            server-computed checksum of the resulting object will be checked
+            and google.resumable_media.common.DataCorruption will be raised on
+            a mismatch. On a failure, the client will attempt to delete the
+            corrupted file from the remote host automatically. Supported values
+            are "md5", "crc32c" and None. The default is None.
+
         :rtype: str
         :returns: The resumable upload session URL. The upload can be
                   completed by making an HTTP PUT request with the
@@ -2208,6 +2375,7 @@ class Blob(_PropertyMixin):
                 extra_headers=extra_headers,
                 chunk_size=self._CHUNK_SIZE_MULTIPLE,
                 timeout=timeout,
+                checksum=checksum
             )
 
             return upload.resumable_url
