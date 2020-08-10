@@ -386,8 +386,6 @@ class Test_Bucket(unittest.TestCase):
 
         return mock.create_autospec(Client, instance=True, **kw)
 
-        return client
-
     def test_ctor_w_invalid_name(self):
         NAME = "#invalid"
         with self.assertRaises(ValueError):
