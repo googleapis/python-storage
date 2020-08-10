@@ -2268,7 +2268,7 @@ class Blob(_PropertyMixin):
         if requested_policy_version is not None:
             query_params["optionsRequestedPolicyVersion"] = requested_policy_version
 
-        info = telemetry_wrapped_api_request(client._connection.api_request,
+        info = client._connection.api_request(
             method="GET",
             path="%s/iam" % (self.path,),
             query_params=query_params,
@@ -2318,7 +2318,7 @@ class Blob(_PropertyMixin):
 
         resource = policy.to_api_repr()
         resource["resourceId"] = self.path
-        info = telemetry_wrapped_api_request(client._connection.api_request,
+        info = client._connection.api_request(
             method="PUT",
             path="%s/iam" % (self.path,),
             query_params=query_params,
@@ -2367,7 +2367,7 @@ class Blob(_PropertyMixin):
             query_params["userProject"] = self.user_project
 
         path = "%s/iam/testPermissions" % (self.path,)
-        resp = telemetry_wrapped_api_request(client._connection.api_request,
+        resp = client._connection.api_request(
             method="GET", path=path, query_params=query_params, timeout=timeout
         )
 
