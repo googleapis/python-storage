@@ -924,6 +924,7 @@ class Blob(_PropertyMixin):
         if_metageneration_match=None,
         if_metageneration_not_match=None,
         timeout=_DEFAULT_TIMEOUT,
+        checksum="md5",
     ):
         """Download the contents of this blob into a file-like object.
 
@@ -1761,8 +1762,8 @@ class Blob(_PropertyMixin):
             try:
                 response = upload.transmit_next_chunk(transport, timeout=timeout)
             except google.resumable_media.common.DataCorruption:
-                # Attempt to delete the remote object.
-                # FIXME
+                # Attempt to delete the corrupted object.
+                self.delete()
                 raise
 
         return response
