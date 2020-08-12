@@ -1666,6 +1666,7 @@ class Blob(_PropertyMixin):
         if_metageneration_match=None,
         if_metageneration_not_match=None,
         timeout=_DEFAULT_TIMEOUT,
+        checksum=None,
     ):
         """Initiate a resumable upload.
 
@@ -1806,7 +1807,7 @@ class Blob(_PropertyMixin):
             )
 
         upload_url = _add_query_parameters(base_url, name_value_pairs)
-        upload = ResumableUpload(upload_url, chunk_size, headers=headers)
+        upload = ResumableUpload(upload_url, chunk_size, headers=headers, checksum=checksum)
 
         if num_retries is not None:
             upload._retry_strategy = resumable_media.RetryStrategy(
@@ -1935,7 +1936,7 @@ class Blob(_PropertyMixin):
         while not upload.finished:
             try:
                 response = upload.transmit_next_chunk(transport, timeout=timeout)
-            except google.resumable_media.common.DataCorruption:
+            except resumable_media.DataCorruption:
                 # Attempt to delete the corrupted object.
                 self.delete()
                 raise

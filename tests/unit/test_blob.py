@@ -984,11 +984,11 @@ class Test_Blob(unittest.TestCase):
 
         if w_range:
             patched.assert_called_once_with(
-                download_url, stream=file_obj, headers=headers, start=1, end=3
+                download_url, stream=file_obj, headers=headers, start=1, end=3, checksum="md5"
             )
         else:
             patched.assert_called_once_with(
-                download_url, stream=file_obj, headers=headers, start=None, end=None
+                download_url, stream=file_obj, headers=headers, start=None, end=None, checksum="md5"
             )
 
         patched.return_value.consume.assert_called_once_with(
@@ -1130,6 +1130,7 @@ class Test_Blob(unittest.TestCase):
             None,
             False,
             timeout=self._get_default_timeout(),
+            checksum="md5"
         )
 
     def test_download_to_file_wo_media_link(self):
@@ -1160,6 +1161,7 @@ class Test_Blob(unittest.TestCase):
             None,
             False,
             timeout=self._get_default_timeout(),
+            checksum="md5",
         )
 
     def test_download_to_file_w_generation_match(self):
@@ -1189,6 +1191,7 @@ class Test_Blob(unittest.TestCase):
             None,
             False,
             timeout=self._get_default_timeout(),
+            checksum="md5",
         )
 
     def _download_to_file_helper(self, use_chunks, raw_download, timeout=None):
@@ -1226,6 +1229,7 @@ class Test_Blob(unittest.TestCase):
             None,
             raw_download,
             timeout=expected_timeout,
+            checksum="md5",
         )
 
     def test_download_to_file_wo_chunks_wo_raw(self):
@@ -1291,6 +1295,7 @@ class Test_Blob(unittest.TestCase):
             None,
             raw_download,
             timeout=expected_timeout,
+            checksum="md5",
         )
         stream = blob._do_download.mock_calls[0].args[1]
         self.assertEqual(stream.name, temp.name)
@@ -1322,6 +1327,7 @@ class Test_Blob(unittest.TestCase):
             None,
             False,
             timeout=self._get_default_timeout(),
+            checksum="md5",
         )
 
     def test_download_to_filename_w_updated_wo_raw(self):
@@ -1379,6 +1385,7 @@ class Test_Blob(unittest.TestCase):
             None,
             False,
             timeout=self._get_default_timeout(),
+            checksum="md5"
         )
         stream = blob._do_download.mock_calls[0].args[1]
         self.assertEqual(stream.name, filename)
@@ -1413,6 +1420,7 @@ class Test_Blob(unittest.TestCase):
             None,
             False,
             timeout=self._get_default_timeout(),
+            checksum="md5",
         )
         stream = blob._do_download.mock_calls[0].args[1]
         self.assertEqual(stream.name, temp.name)
@@ -1444,6 +1452,7 @@ class Test_Blob(unittest.TestCase):
             None,
             raw_download,
             timeout=expected_timeout,
+            checksum="md5",
         )
         stream = blob._do_download.mock_calls[0].args[1]
         self.assertIsInstance(stream, io.BytesIO)
@@ -1522,6 +1531,7 @@ class Test_Blob(unittest.TestCase):
             if_metageneration_match=None,
             if_metageneration_not_match=None,
             timeout=self._get_default_timeout(),
+            checksum="md5",
         )
 
     def test_download_as_bytes_wo_raw(self):
@@ -1563,6 +1573,7 @@ class Test_Blob(unittest.TestCase):
             None,
             raw_download,
             timeout=expected_timeout,
+            checksum="md5",
         )
         stream = blob._do_download.mock_calls[0].args[1]
         self.assertIsInstance(stream, io.BytesIO)
@@ -1591,6 +1602,7 @@ class Test_Blob(unittest.TestCase):
             if_metageneration_match=None,
             if_metageneration_not_match=None,
             timeout=self._get_default_timeout(),
+            checksum="md5",
         )
 
     def test_download_as_text_wo_raw(self):
@@ -1629,6 +1641,7 @@ class Test_Blob(unittest.TestCase):
             if_metageneration_match=None,
             if_metageneration_not_match=None,
             timeout=self._get_default_timeout(),
+            checksum="md5",
         )
 
         mock_warn.assert_called_with(
@@ -2432,6 +2445,7 @@ class Test_Blob(unittest.TestCase):
                 if_metageneration_match,
                 if_metageneration_not_match,
                 timeout=expected_timeout,
+                checksum=None,
             )
             blob._do_resumable_upload.assert_not_called()
         else:
@@ -2448,6 +2462,7 @@ class Test_Blob(unittest.TestCase):
                 if_metageneration_match,
                 if_metageneration_not_match,
                 timeout=expected_timeout,
+                checksum=None,
             )
 
     def test__do_upload_uses_multipart(self):
@@ -2524,6 +2539,7 @@ class Test_Blob(unittest.TestCase):
             if_metageneration_match,
             if_metageneration_not_match,
             timeout=expected_timeout,
+            checksum=None,
         )
         return stream
 
@@ -2584,7 +2600,7 @@ class Test_Blob(unittest.TestCase):
         self.assertIsNone(pos_args[9])  # if_metageneration_not_match
 
         expected_timeout = self._get_default_timeout() if timeout is None else timeout
-        self.assertEqual(kwargs, {"timeout": expected_timeout})
+        self.assertEqual(kwargs, {"timeout": expected_timeout, "checksum": None})
 
         return pos_args[1]
 
