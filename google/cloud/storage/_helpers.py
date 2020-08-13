@@ -25,6 +25,7 @@ import os
 from six.moves.urllib.parse import urlsplit
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 
+
 STORAGE_EMULATOR_ENV_VAR = "STORAGE_EMULATOR_HOST"
 """Environment variable defining host for Storage emulator."""
 
