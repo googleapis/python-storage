@@ -433,8 +433,8 @@ class TestStorageBuckets(unittest.TestCase):
             )
             to_delete.append(new_blob)
 
-            base_contents = blob.download_as_string()
-            copied_contents = new_blob.download_as_string()
+            base_contents = blob.download_as_bytes()
+            copied_contents = new_blob.download_as_bytes()
             self.assertEqual(base_contents, copied_contents)
         finally:
             for blob in to_delete:
@@ -463,8 +463,8 @@ class TestStorageBuckets(unittest.TestCase):
             )
             to_delete.append(new_blob)
 
-            base_contents = blob.download_as_string()
-            copied_contents = new_blob.download_as_string()
+            base_contents = blob.download_as_bytes()
+            copied_contents = new_blob.download_as_bytes()
             self.assertEqual(base_contents, copied_contents)
         finally:
             for blob in to_delete:
@@ -493,8 +493,8 @@ class TestStorageBuckets(unittest.TestCase):
             )
             to_delete.append(new_blob)
 
-            base_contents = blob.download_as_string()
-            copied_contents = new_blob.download_as_string()
+            base_contents = blob.download_as_bytes()
+            copied_contents = new_blob.download_as_bytes()
             self.assertEqual(base_contents, copied_contents)
         finally:
             for blob in to_delete:
@@ -520,7 +520,7 @@ class TestStorageBuckets(unittest.TestCase):
         to_add.upload_from_string(data)
         try:
             found = with_user_project.get_blob("blob-name")
-            self.assertEqual(found.download_as_string(), data)
+            self.assertEqual(found.download_as_bytes(), data)
         finally:
             to_add.delete()
 
@@ -635,8 +635,8 @@ class TestStorageWriteFiles(TestStorageFiles):
             blob.reload()
 
             # Exercise 'objects.get' (media) w/ userProject.
-            self.assertEqual(blob0.download_as_string(), file_contents)
-            self.assertEqual(blob1.download_as_string(), b"gen1")
+            self.assertEqual(blob0.download_as_bytes(), file_contents)
+            self.assertEqual(blob1.download_as_bytes(), b"gen1")
 
             # Exercise 'objects.patch' w/ userProject.
             blob0.content_language = "en"
@@ -696,10 +696,10 @@ class TestStorageWriteFiles(TestStorageFiles):
 
             # Exercise 'objects.get' (media) w/ generation match.
             self.assertEqual(
-                blob0.download_as_string(if_generation_match=gen0), file_contents
+                blob0.download_as_bytes(if_generation_match=gen0), file_contents
             )
             self.assertEqual(
-                blob1.download_as_string(if_generation_not_match=gen0), b"gen1"
+                blob1.download_as_bytes(if_generation_not_match=gen0), b"gen1"
             )
 
             # Exercise 'objects.patch' w/ generation match.
@@ -837,8 +837,8 @@ class TestStorageWriteFiles(TestStorageFiles):
         )
         self.case_blobs_to_delete.append(new_blob)
 
-        base_contents = blob.download_as_string()
-        copied_contents = new_blob.download_as_string()
+        base_contents = blob.download_as_bytes()
+        copied_contents = new_blob.download_as_bytes()
         self.assertEqual(base_contents, copied_contents)
 
     def test_download_blob_w_uri(self):
@@ -858,6 +858,15 @@ class TestStorageWriteFiles(TestStorageFiles):
 
         self.assertEqual(file_contents, stored_contents)
 
+    def test_download_blob_as_text(self):
+        blob = self.bucket.blob("MyBuffer")
+        file_contents = "Hello World"
+        blob.upload_from_string(file_contents)
+        self.case_blobs_to_delete.append(blob)
+
+        stored_contents = blob.download_as_text()
+        self.assertEqual(file_contents, stored_contents)
+
     def test_upload_gzip_encoded_download_raw(self):
         payload = b"DEADBEEF" * 1000
         raw_stream = io.BytesIO()
@@ -869,10 +878,10 @@ class TestStorageWriteFiles(TestStorageFiles):
         blob.content_encoding = "gzip"
         blob.upload_from_file(raw_stream, rewind=True)
 
-        expanded = blob.download_as_string()
+        expanded = blob.download_as_bytes()
         self.assertEqual(expanded, payload)
 
-        raw = blob.download_as_string(raw_download=True)
+        raw = blob.download_as_bytes(raw_download=True)
         self.assertEqual(raw, zipped)
 
     def test_resumable_upload_with_generation_match(self):
@@ -932,7 +941,7 @@ class TestUnicode(unittest.TestCase):
         for blob_name, file_contents in test_data.items():
             blob = bucket.blob(blob_name)
             self.assertEqual(blob.name, blob_name)
-            self.assertEqual(blob.download_as_string(), file_contents)
+            self.assertEqual(blob.download_as_bytes(), file_contents)
 
 
 class TestStorageListFiles(TestStorageFiles):
@@ -1422,7 +1431,7 @@ class TestStorageCompose(TestStorageFiles):
         destination.compose([source_1, source_2])
         self.case_blobs_to_delete.append(destination)
 
-        composed = destination.download_as_string()
+        composed = destination.download_as_bytes()
         self.assertEqual(composed, SOURCE_1 + SOURCE_2)
 
     def test_compose_create_new_blob_wo_content_type(self):
@@ -1442,7 +1451,7 @@ class TestStorageCompose(TestStorageFiles):
         self.case_blobs_to_delete.append(destination)
 
         self.assertIsNone(destination.content_type)
-        composed = destination.download_as_string()
+        composed = destination.download_as_bytes()
         self.assertEqual(composed, SOURCE_1 + SOURCE_2)
 
     def test_compose_replace_existing_blob(self):
@@ -1459,7 +1468,7 @@ class TestStorageCompose(TestStorageFiles):
 
         original.compose([original, to_append])
 
-        composed = original.download_as_string()
+        composed = original.download_as_bytes()
         self.assertEqual(composed, BEFORE + TO_APPEND)
 
     def test_compose_with_generation_match(self):
@@ -1487,7 +1496,7 @@ class TestStorageCompose(TestStorageFiles):
             if_metageneration_match=[original.metageneration, to_append.metageneration],
         )
 
-        composed = original.download_as_string()
+        composed = original.download_as_bytes()
         self.assertEqual(composed, BEFORE + TO_APPEND)
 
     @unittest.skipUnless(USER_PROJECT, "USER_PROJECT not set in environment.")
@@ -1513,7 +1522,7 @@ class TestStorageCompose(TestStorageFiles):
             destination.content_type = "text/plain"
             destination.compose([source_1, source_2])
 
-            composed = destination.download_as_string()
+            composed = destination.download_as_bytes()
             self.assertEqual(composed, SOURCE_1 + SOURCE_2)
         finally:
             retry_429_harder(created.delete)(force=True)
@@ -1529,7 +1538,7 @@ class TestStorageRewrite(TestStorageFiles):
         source = self.bucket.blob("source")
         source.upload_from_filename(file_data["path"])
         self.case_blobs_to_delete.append(source)
-        source_data = source.download_as_string()
+        source_data = source.download_as_bytes()
 
         KEY = os.urandom(32)
         dest = self.bucket.blob("dest", encryption_key=KEY)
@@ -1540,7 +1549,7 @@ class TestStorageRewrite(TestStorageFiles):
         self.assertEqual(rewritten, len(source_data))
         self.assertEqual(total, len(source_data))
 
-        self.assertEqual(source.download_as_string(), dest.download_as_string())
+        self.assertEqual(source.download_as_bytes(), dest.download_as_bytes())
 
     def test_rewrite_rotate_encryption_key(self):
         BLOB_NAME = "rotating-keys"
@@ -1550,7 +1559,7 @@ class TestStorageRewrite(TestStorageFiles):
         source = self.bucket.blob(BLOB_NAME, encryption_key=SOURCE_KEY)
         source.upload_from_filename(file_data["path"])
         self.case_blobs_to_delete.append(source)
-        source_data = source.download_as_string()
+        source_data = source.download_as_bytes()
 
         DEST_KEY = os.urandom(32)
         dest = self.bucket.blob(BLOB_NAME, encryption_key=DEST_KEY)
@@ -1562,7 +1571,7 @@ class TestStorageRewrite(TestStorageFiles):
         self.assertEqual(rewritten, len(source_data))
         self.assertEqual(total, len(source_data))
 
-        self.assertEqual(dest.download_as_string(), source_data)
+        self.assertEqual(dest.download_as_bytes(), source_data)
 
     @unittest.skipUnless(USER_PROJECT, "USER_PROJECT not set in environment.")
     def test_rewrite_add_key_with_user_project(self):
@@ -1578,7 +1587,7 @@ class TestStorageRewrite(TestStorageFiles):
 
             source = with_user_project.blob("source")
             source.upload_from_filename(file_data["path"])
-            source_data = source.download_as_string()
+            source_data = source.download_as_bytes()
 
             KEY = os.urandom(32)
             dest = with_user_project.blob("dest", encryption_key=KEY)
@@ -1588,7 +1597,7 @@ class TestStorageRewrite(TestStorageFiles):
             self.assertEqual(rewritten, len(source_data))
             self.assertEqual(total, len(source_data))
 
-            self.assertEqual(source.download_as_string(), dest.download_as_string())
+            self.assertEqual(source.download_as_bytes(), dest.download_as_bytes())
         finally:
             retry_429_harder(created.delete)(force=True)
 
@@ -1608,7 +1617,7 @@ class TestStorageRewrite(TestStorageFiles):
             SOURCE_KEY = os.urandom(32)
             source = with_user_project.blob(BLOB_NAME, encryption_key=SOURCE_KEY)
             source.upload_from_filename(file_data["path"])
-            source_data = source.download_as_string()
+            source_data = source.download_as_bytes()
 
             DEST_KEY = os.urandom(32)
             dest = with_user_project.blob(BLOB_NAME, encryption_key=DEST_KEY)
@@ -1618,7 +1627,7 @@ class TestStorageRewrite(TestStorageFiles):
             self.assertEqual(rewritten, len(source_data))
             self.assertEqual(total, len(source_data))
 
-            self.assertEqual(dest.download_as_string(), source_data)
+            self.assertEqual(dest.download_as_bytes(), source_data)
         finally:
             retry_429_harder(created.delete)(force=True)
 
@@ -1634,7 +1643,7 @@ class TestStorageRewrite(TestStorageFiles):
 
             source = bucket.blob(BLOB_NAME)
             source.upload_from_filename(file_data["path"])
-            source_data = source.download_as_string()
+            source_data = source.download_as_bytes()
 
             dest = bucket.blob(BLOB_NAME)
 
@@ -1652,7 +1661,7 @@ class TestStorageRewrite(TestStorageFiles):
             self.assertEqual(token, None)
             self.assertEqual(rewritten, len(source_data))
             self.assertEqual(total, len(source_data))
-            self.assertEqual(dest.download_as_string(), source_data)
+            self.assertEqual(dest.download_as_bytes(), source_data)
         finally:
             retry_429_harder(created.delete)(force=True)
 
@@ -1841,14 +1850,6 @@ class TestAnonymousClient(unittest.TestCase):
             retry_429_503(blob.download_to_file)(stream)
 
 
-_KMS_2_0_BREAKAGE_MESSAGE = """\
-KMS 2.0.0 incompatible with our test setup.
-
-See https://github.com/googleapis/python-storage/issues/226
-"""
-
-
-@unittest.skipIf(six.PY3, reason=_KMS_2_0_BREAKAGE_MESSAGE)
 class TestKMSIntegration(TestStorageFiles):
 
     FILENAMES = ("file01.txt",)
@@ -1927,7 +1928,7 @@ class TestKMSIntegration(TestStorageFiles):
         blob.upload_from_filename(file_data["path"])
         self.case_blobs_to_delete.append(blob)
         with open(file_data["path"], "rb") as _file_data:
-            self.assertEqual(blob.download_as_string(), _file_data.read())
+            self.assertEqual(blob.download_as_bytes(), _file_data.read())
         # We don't know the current version of the key.
         self.assertTrue(blob.kms_key_name.startswith(kms_key_name))
 
@@ -1955,7 +1956,7 @@ class TestKMSIntegration(TestStorageFiles):
         defaulted_blob.upload_from_filename(file_data["path"])
         self.case_blobs_to_delete.append(defaulted_blob)
 
-        self.assertEqual(defaulted_blob.download_as_string(), contents)
+        self.assertEqual(defaulted_blob.download_as_bytes(), contents)
         # We don't know the current version of the key.
         self.assertTrue(defaulted_blob.kms_key_name.startswith(kms_key_name))
 
@@ -1967,7 +1968,7 @@ class TestKMSIntegration(TestStorageFiles):
         override_blob.upload_from_filename(file_data["path"])
         self.case_blobs_to_delete.append(override_blob)
 
-        self.assertEqual(override_blob.download_as_string(), contents)
+        self.assertEqual(override_blob.download_as_bytes(), contents)
         # We don't know the current version of the key.
         self.assertTrue(override_blob.kms_key_name.startswith(alt_kms_key_name))
 
@@ -1978,7 +1979,7 @@ class TestKMSIntegration(TestStorageFiles):
         alt_blob.upload_from_filename(file_data["path"])
         self.case_blobs_to_delete.append(alt_blob)
 
-        self.assertEqual(alt_blob.download_as_string(), contents)
+        self.assertEqual(alt_blob.download_as_bytes(), contents)
         # We don't know the current version of the key.
         self.assertTrue(alt_blob.kms_key_name.startswith(alt_kms_key_name))
 
@@ -1989,7 +1990,7 @@ class TestKMSIntegration(TestStorageFiles):
         cleartext_blob.upload_from_filename(file_data["path"])
         self.case_blobs_to_delete.append(cleartext_blob)
 
-        self.assertEqual(cleartext_blob.download_as_string(), contents)
+        self.assertEqual(cleartext_blob.download_as_bytes(), contents)
         self.assertIsNone(cleartext_blob.kms_key_name)
 
     def test_rewrite_rotate_csek_to_cmek(self):
@@ -2000,7 +2001,7 @@ class TestKMSIntegration(TestStorageFiles):
         source = self.bucket.blob(BLOB_NAME, encryption_key=SOURCE_KEY)
         source.upload_from_filename(file_data["path"])
         self.case_blobs_to_delete.append(source)
-        source_data = source.download_as_string()
+        source_data = source.download_as_bytes()
 
         kms_key_name = self._kms_key_name()
 
@@ -2022,7 +2023,7 @@ class TestKMSIntegration(TestStorageFiles):
         self.assertEqual(rewritten, len(source_data))
         self.assertEqual(total, len(source_data))
 
-        self.assertEqual(dest.download_as_string(), source_data)
+        self.assertEqual(dest.download_as_bytes(), source_data)
 
     def test_upload_new_blob_w_bucket_cmek_enabled(self):
         blob_name = "test-blob"
@@ -2042,7 +2043,7 @@ class TestKMSIntegration(TestStorageFiles):
         blob.upload_from_string(alt_payload, if_generation_match=blob.generation)
         self.case_blobs_to_delete.append(blob)
 
-        self.assertEqual(blob.download_as_string(), alt_payload)
+        self.assertEqual(blob.download_as_bytes(), alt_payload)
 
         self.bucket.default_kms_key_name = None
         self.bucket.patch()
@@ -2270,7 +2271,7 @@ class TestIAMConfiguration(unittest.TestCase):
         blob.upload_from_string(payload)
 
         found = bucket.get_blob(blob_name)
-        self.assertEqual(found.download_as_string(), payload)
+        self.assertEqual(found.download_as_bytes(), payload)
 
         blob_acl = blob.acl
         with self.assertRaises(exceptions.BadRequest):
