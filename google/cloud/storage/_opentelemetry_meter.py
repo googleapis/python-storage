@@ -21,20 +21,24 @@ try:
         CloudMonitoringMetricsExporter,
     )
 
-    HAS_OPENTELEMETRY_INSTALLED = True
+    meter_provider = metrics.get_meter_provider()
+
+    # If opentelemetry packages have been installed and a MeterProvider setup
+    #   we are ready to use opentelemetry
+    OPENTELEMETRY_READY = not isinstance(meter_provider, metrics.DefaultMeterProvider)
 except ImportError:
-    HAS_OPENTELEMETRY_INSTALLED = False
+    OPENTELEMETRY_READY = False
 
 FUNCTION_NAME_KEY = 'instrumented_function_name'
 
-if HAS_OPENTELEMETRY_INSTALLED:
-    metrics.set_meter_provider(MeterProvider(stateful=False))
+if OPENTELEMETRY_READY:
+
     meter = metrics.get_meter(__name__)
-    metrics.get_meter_provider().start_pipeline(
+    meter_provider.start_pipeline(
         meter, CloudMonitoringMetricsExporter(), 15
     )
     requests_counter = meter.create_metric(
-        name="GCS_request_counter",
+        name="other_demo",
         description="number of requests",
         unit="1",
         value_type=int,
@@ -50,6 +54,7 @@ if HAS_OPENTELEMETRY_INSTALLED:
             instrumented_labels['function_name'] = '{} {}'.format(kwargs['method'], kwargs['path'])
 
         requests_counter.add(1, instrumented_labels)
+        print(instrumented_labels)
         return api_request(*args, **kwargs)
 else:
     def telemetry_wrapped_api_request(api_request, *args, **kwargs):

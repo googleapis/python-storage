@@ -72,6 +72,7 @@ from google.cloud.storage.constants import MULTI_REGIONAL_LEGACY_STORAGE_CLASS
 from google.cloud.storage.constants import NEARLINE_STORAGE_CLASS
 from google.cloud.storage.constants import REGIONAL_LEGACY_STORAGE_CLASS
 from google.cloud.storage.constants import STANDARD_STORAGE_CLASS
+from google.cloud.storage._opentelemetry_meter import telemetry_wrapped_api_request
 
 
 _API_ACCESS_ENDPOINT = "https://storage.googleapis.com"
@@ -869,7 +870,7 @@ class Blob(_PropertyMixin):
             download = klass(
                 download_url, stream=file_obj, headers=headers, start=start, end=end
             )
-            response = download.consume(transport, timeout=timeout,
+            response = telemetry_wrapped_api_request(download.consume, transport, timeout=timeout,
                                                      instrumented_function_name='GET /b/{}/o/{}'.format(self.bucket.name, self.name))
             self._extract_headers_from_download(response)
         else:
@@ -889,7 +890,7 @@ class Blob(_PropertyMixin):
             )
 
             while not download.finished:
-                download.consume_next_chunk(transport, timeout=timeout, instrumented_function_name='GET /b/{}/o/{}'.format(self.bucket.name, self.name))
+                telemetry_wrapped_api_request(download.consume_next_chunk, transport, timeout=timeout, instrumented_function_name='GET /b/{}/o/{}'.format(self.bucket.name, self.name))
 
     def download_to_file(
         self,
@@ -1402,7 +1403,7 @@ class Blob(_PropertyMixin):
                 max_retries=num_retries
             )
 
-        response = upload.transmit(
+        response = telemetry_wrapped_api_request(upload.transmit,
             transport, data, object_metadata, content_type, timeout=timeout, instrumented_function_name='POST ' + upload_url
         )
 
@@ -1668,7 +1669,7 @@ class Blob(_PropertyMixin):
         )
 
         while not upload.finished:
-            response = upload.transmit_next_chunk(transport, timeout=timeout, instrumented_function_name='upload')
+            response = telemetry_wrapped_api_request(upload.transmit_next_chunk, transport, timeout=timeout, instrumented_function_name='upload')
 
         return response
 
