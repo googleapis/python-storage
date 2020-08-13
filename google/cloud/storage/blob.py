@@ -871,7 +871,7 @@ class Blob(_PropertyMixin):
                 download_url, stream=file_obj, headers=headers, start=start, end=end
             )
             response = telemetry_wrapped_api_request(download.consume, transport, timeout=timeout,
-                                                     instrumented_function_name='download')
+                                                     instrumented_function_name='GET /b/{}/o/{}'.format(self.bucket.name, self.name))
             self._extract_headers_from_download(response)
         else:
 
@@ -890,7 +890,7 @@ class Blob(_PropertyMixin):
             )
 
             while not download.finished:
-                telemetry_wrapped_api_request(download.consume_next_chunk, transport, timeout=timeout)
+                telemetry_wrapped_api_request(download.consume_next_chunk, transport, timeout=timeout, instrumented_function_name='GET /b/{}/o/{}'.format(self.bucket.name, self.name))
 
     def download_to_file(
         self,
@@ -1404,7 +1404,7 @@ class Blob(_PropertyMixin):
             )
 
         response = telemetry_wrapped_api_request(upload.transmit,
-            transport, data, object_metadata, content_type, timeout=timeout, instrumented_function_name='upload'
+            transport, data, object_metadata, content_type, timeout=timeout, instrumented_function_name='POST ' + upload_url
         )
 
         return response

@@ -29,6 +29,7 @@ FUNCTION_NAME_KEY = 'instrumented_function_name'
 
 if HAS_OPENTELEMETRY_INSTALLED:
     meter = metrics.get_meter(__name__)
+    metrics.set_meter_provider(MeterProvider(stateful=False))
     metrics.get_meter_provider().start_pipeline(
         meter, CloudMonitoringMetricsExporter(), 15
     )
@@ -41,11 +42,14 @@ if HAS_OPENTELEMETRY_INSTALLED:
     )
 
     def telemetry_wrapped_api_request(api_request, *args, **kwargs):
-        print(api_request)
         instrumented_labels = {}
         if FUNCTION_NAME_KEY in kwargs:
             instrumented_labels['function_name'] = kwargs[FUNCTION_NAME_KEY]
             kwargs.pop(FUNCTION_NAME_KEY)
+        elif 'path' in kwargs:
+            instrumented_labels['function_name'] = '{} {}'.format(kwargs['method'], kwargs['path'])
+
+        print(instrumented_labels)
         requests_counter.add(1, instrumented_labels)
         return api_request(*args, **kwargs)
 else:
