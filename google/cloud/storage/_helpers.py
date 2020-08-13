@@ -24,7 +24,6 @@ import os
 
 from six.moves.urllib.parse import urlsplit
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
-from google.cloud.storage._opentelemetry_meter import telemetry_wrapped_api_request
 
 STORAGE_EMULATOR_ENV_VAR = "STORAGE_EMULATOR_HOST"
 """Environment variable defining host for Storage emulator."""
@@ -198,7 +197,7 @@ class _PropertyMixin(object):
             if_metageneration_match=if_metageneration_match,
             if_metageneration_not_match=if_metageneration_not_match,
         )
-        api_response = telemetry_wrapped_api_request(client._connection.api_request,
+        api_response = client._connection.api_request(
             method="GET",
             path=self.path,
             query_params=query_params,
@@ -299,7 +298,7 @@ class _PropertyMixin(object):
         update_properties = {key: self._properties[key] for key in self._changes}
 
         # Make the API call.
-        api_response = telemetry_wrapped_api_request(client._connection.api_request,
+        api_response = client._connection.api_request(
             method="PATCH",
             path=self.path,
             data=update_properties,
@@ -368,7 +367,7 @@ class _PropertyMixin(object):
             if_metageneration_match=if_metageneration_match,
             if_metageneration_not_match=if_metageneration_not_match,
         )
-        api_response = telemetry_wrapped_api_request(client._connection.api_request,
+        api_response = client._connection.api_request(
             method="PUT",
             path=self.path,
             data=self._properties,

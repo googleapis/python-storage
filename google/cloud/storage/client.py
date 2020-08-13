@@ -22,6 +22,7 @@ import functools
 import json
 import warnings
 import google.api_core.client_options
+from functools import partial
 
 from google.auth.credentials import AnonymousCredentials
 
@@ -167,6 +168,7 @@ class Client(ClientWithProject):
         else:
             return self._base_connection
 
+
     @_connection.setter
     def _connection(self, value):
         """Set connection on the client.
@@ -182,7 +184,9 @@ class Client(ClientWithProject):
         """
         if self._base_connection is not None:
             raise ValueError("Connection already set on client")
+        value.api_request = functools.partial(telemetry_wrapped_api_request, value.api_request)
         self._base_connection = value
+
 
     def _push_batch(self, batch):
         """Push a batch onto our stack.
@@ -192,6 +196,8 @@ class Client(ClientWithProject):
         :type batch: :class:`google.cloud.storage.batch.Batch`
         :param batch: newly-active batch
         """
+        batch.api_request = functools.partial(telemetry_wrapped_api_request,
+                                              batch.api_request)
         self._batch_stack.push(batch)
 
     def _pop_batch(self):
@@ -255,7 +261,7 @@ class Client(ClientWithProject):
         if project is None:
             project = self.project
         path = "/projects/%s/serviceAccount" % (project,)
-        api_response = telemetry_wrapped_api_request(self._base_connection.api_request,
+        api_response = self._base_connection.api_request(
             method="GET", path=path, timeout=timeout
         )
         return api_response["email_address"]
@@ -525,7 +531,7 @@ class Client(ClientWithProject):
         if location is not None:
             properties["location"] = location
 
-        api_response = telemetry_wrapped_api_request(self._connection.api_request,
+        api_response = self._connection.api_request(
             method="POST",
             path="/b",
             query_params=query_params,
@@ -778,7 +784,7 @@ class Client(ClientWithProject):
         if fields is not None:
             extra_params["fields"] = fields
 
-        api_request = functools.partial(telemetry_wrapped_api_request, self._connection.api_request, timeout=timeout)
+        api_request = functools.partial(self._connection.api_request, timeout=timeout)
 
         return page_iterator.HTTPIterator(
             client=self,
@@ -829,7 +835,7 @@ class Client(ClientWithProject):
         if user_project is not None:
             qs_params["userProject"] = user_project
 
-        api_response = telemetry_wrapped_api_request(self._connection.api_request,
+        api_response = self._connection.api_request(
             method="POST", path=path, query_params=qs_params, timeout=timeout
         )
         metadata = HMACKeyMetadata(self)
@@ -894,7 +900,7 @@ class Client(ClientWithProject):
         if user_project is not None:
             extra_params["userProject"] = user_project
 
-        api_request = functools.partial(telemetry_wrapped_api_request, self._connection.api_request, timeout=timeout)
+        api_request = functools.partial(self._connection.api_request, timeout=timeout)
 
         return page_iterator.HTTPIterator(
             client=self,

@@ -85,7 +85,6 @@ when sending metadata for ACLs to the API.
 """
 
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
-from google.cloud.storage._opentelemetry_meter import telemetry_wrapped_api_request
 
 
 class _ACLEntity(object):
@@ -456,7 +455,7 @@ class ACL(object):
 
         self.entities.clear()
 
-        found = telemetry_wrapped_api_request(client._connection.api_request,
+        found = client._connection.api_request(
             method="GET", path=path, query_params=query_params, timeout=timeout
         )
         self.loaded = True
@@ -496,7 +495,7 @@ class ACL(object):
         path = self.save_path
         client = self._require_client(client)
 
-        result = telemetry_wrapped_api_request(client._connection.api_request,
+        result = client._connection.api_request(
             method="PATCH",
             path=path,
             data={self._URL_PATH_ELEM: list(acl)},

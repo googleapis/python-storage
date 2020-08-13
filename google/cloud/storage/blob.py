@@ -48,7 +48,6 @@ from google.resumable_media.requests import RawDownload
 from google.resumable_media.requests import RawChunkedDownload
 from google.resumable_media.requests import MultipartUpload
 from google.resumable_media.requests import ResumableUpload
-from google.cloud.storage._opentelemetry_meter import telemetry_wrapped_api_request
 
 from google.api_core.iam import Policy
 from google.cloud import exceptions
@@ -632,7 +631,7 @@ class Blob(_PropertyMixin):
         try:
             # We intentionally pass `_target_object=None` since fields=name
             # would limit the local properties.
-            telemetry_wrapped_api_request(client._connection.api_request,
+            client._connection.api_request(
                 method="GET",
                 path=self.path,
                 query_params=query_params,
@@ -870,7 +869,7 @@ class Blob(_PropertyMixin):
             download = klass(
                 download_url, stream=file_obj, headers=headers, start=start, end=end
             )
-            response = telemetry_wrapped_api_request(download.consume, transport, timeout=timeout,
+            response = download.consume(transport, timeout=timeout,
                                                      instrumented_function_name='GET /b/{}/o/{}'.format(self.bucket.name, self.name))
             self._extract_headers_from_download(response)
         else:
@@ -890,7 +889,7 @@ class Blob(_PropertyMixin):
             )
 
             while not download.finished:
-                telemetry_wrapped_api_request(download.consume_next_chunk, transport, timeout=timeout, instrumented_function_name='GET /b/{}/o/{}'.format(self.bucket.name, self.name))
+                download.consume_next_chunk(transport, timeout=timeout, instrumented_function_name='GET /b/{}/o/{}'.format(self.bucket.name, self.name))
 
     def download_to_file(
         self,
@@ -1403,7 +1402,7 @@ class Blob(_PropertyMixin):
                 max_retries=num_retries
             )
 
-        response = telemetry_wrapped_api_request(upload.transmit,
+        response = upload.transmit(
             transport, data, object_metadata, content_type, timeout=timeout, instrumented_function_name='POST ' + upload_url
         )
 
@@ -1669,7 +1668,7 @@ class Blob(_PropertyMixin):
         )
 
         while not upload.finished:
-            response = telemetry_wrapped_api_request(upload.transmit_next_chunk, transport, timeout=timeout, instrumented_function_name='upload')
+            response = upload.transmit_next_chunk(transport, timeout=timeout, instrumented_function_name='upload')
 
         return response
 
@@ -2496,7 +2495,7 @@ class Blob(_PropertyMixin):
             "sourceObjects": source_objects,
             "destination": self._properties.copy(),
         }
-        api_response = telemetry_wrapped_api_request(client._connection.api_request,
+        api_response = client._connection.api_request(
             method="POST",
             path=self.path + "/compose",
             query_params=query_params,
@@ -2639,7 +2638,7 @@ class Blob(_PropertyMixin):
             if_source_metageneration_not_match=if_source_metageneration_not_match,
         )
 
-        api_response = telemetry_wrapped_api_request(client._connection.api_request,
+        api_response = client._connection.api_request(
             method="POST",
             path=source.path + "/rewriteTo" + self.path,
             query_params=query_params,

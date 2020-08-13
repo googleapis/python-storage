@@ -57,7 +57,6 @@ from google.cloud.storage.constants import REGION_LOCATION_TYPE
 from google.cloud.storage.constants import STANDARD_STORAGE_CLASS
 from google.cloud.storage.notification import BucketNotification
 from google.cloud.storage.notification import NONE_PAYLOAD_FORMAT
-from google.cloud.storage._opentelemetry_meter import telemetry_wrapped_api_request
 
 
 _UBLA_BPO_ENABLED_MESSAGE = (
@@ -699,7 +698,7 @@ class Bucket(_PropertyMixin):
         try:
             # We intentionally pass `_target_object=None` since fields=name
             # would limit the local properties.
-            telemetry_wrapped_api_request(client._connection.api_request,
+            client._connection.api_request(
                 method="GET",
                 path=self.path,
                 query_params=query_params,
@@ -776,7 +775,7 @@ class Bucket(_PropertyMixin):
             raise ValueError("Cannot create bucket with 'user_project' set.")
 
         client = self._require_client(client)
-        telemetry_wrapped_api_request(client.create_bucket,
+        client.create_bucket(
             bucket_or_name=self,
             project=project,
             location=location,
@@ -1180,7 +1179,7 @@ class Bucket(_PropertyMixin):
 
         client = self._require_client(client)
         path = self.path + "/o"
-        api_request = functools.partial(telemetry_wrapped_api_request, client._connection.api_request, timeout=timeout)
+        api_request = functools.partial(client._connection.api_request, timeout=timeout)
         iterator = page_iterator.HTTPIterator(
             client=client,
             api_request=api_request,
@@ -1219,7 +1218,7 @@ class Bucket(_PropertyMixin):
         """
         client = self._require_client(client)
         path = self.path + "/notificationConfigs"
-        api_request = functools.partial(telemetry_wrapped_api_request, client._connection.api_request, timeout=timeout)
+        api_request = functools.partial(client._connection.api_request, timeout=timeout)
         iterator = page_iterator.HTTPIterator(
             client=client,
             api_request=api_request,
@@ -1354,7 +1353,7 @@ class Bucket(_PropertyMixin):
         # We intentionally pass `_target_object=None` since a DELETE
         # request has no response value (whether in a standard request or
         # in a batch request).
-        telemetry_wrapped_api_request(client._connection.api_request,
+        client._connection.api_request(
             method="DELETE",
             path=self.path,
             query_params=query_params,
@@ -1451,7 +1450,7 @@ class Bucket(_PropertyMixin):
         # We intentionally pass `_target_object=None` since a DELETE
         # request has no response value (whether in a standard request or
         # in a batch request).
-        telemetry_wrapped_api_request(client._connection.api_request,
+        client._connection.api_request(
             method="DELETE",
             path=blob.path,
             query_params=query_params,
@@ -1725,7 +1724,7 @@ class Bucket(_PropertyMixin):
 
         new_blob = Blob(bucket=destination_bucket, name=new_name)
         api_path = blob.path + "/copyTo" + new_blob.path
-        copy_result = telemetry_wrapped_api_request(client._connection.api_request,
+        copy_result = client._connection.api_request(
             method="POST",
             path=api_path,
             query_params=query_params,
@@ -2574,7 +2573,7 @@ class Bucket(_PropertyMixin):
         if requested_policy_version is not None:
             query_params["optionsRequestedPolicyVersion"] = requested_policy_version
 
-        info = telemetry_wrapped_api_request(client._connection.api_request,
+        info = client._connection.api_request(
             method="GET",
             path="%s/iam" % (self.path,),
             query_params=query_params,
@@ -2618,7 +2617,7 @@ class Bucket(_PropertyMixin):
 
         resource = policy.to_api_repr()
         resource["resourceId"] = self.path
-        info = telemetry_wrapped_api_request(client._connection.api_request,
+        info = client._connection.api_request(
             method="PUT",
             path="%s/iam" % (self.path,),
             query_params=query_params,
@@ -2662,7 +2661,7 @@ class Bucket(_PropertyMixin):
             query_params["userProject"] = self.user_project
 
         path = "%s/iam/testPermissions" % (self.path,)
-        resp = telemetry_wrapped_api_request(client._connection.api_request,
+        resp = client._connection.api_request(
             method="GET", path=path, query_params=query_params, timeout=timeout
         )
         return resp.get("permissions", [])
@@ -2897,7 +2896,7 @@ class Bucket(_PropertyMixin):
             query_params["userProject"] = self.user_project
 
         path = "/b/{}/lockRetentionPolicy".format(self.name)
-        api_response = telemetry_wrapped_api_request(client._connection.api_request,
+        api_response = client._connection.api_request(
             method="POST",
             path=path,
             query_params=query_params,

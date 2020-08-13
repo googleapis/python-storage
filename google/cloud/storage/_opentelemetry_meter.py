@@ -28,8 +28,8 @@ except ImportError:
 FUNCTION_NAME_KEY = 'instrumented_function_name'
 
 if HAS_OPENTELEMETRY_INSTALLED:
-    meter = metrics.get_meter(__name__)
     metrics.set_meter_provider(MeterProvider(stateful=False))
+    meter = metrics.get_meter(__name__)
     metrics.get_meter_provider().start_pipeline(
         meter, CloudMonitoringMetricsExporter(), 15
     )
