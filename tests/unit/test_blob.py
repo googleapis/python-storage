@@ -1012,7 +1012,7 @@ class Test_Blob(unittest.TestCase):
             w_range=False, raw_download=False, timeout=9.58
         )
 
-    def _do_download_helper_w_chunks(self, w_range, raw_download, timeout=None):
+    def _do_download_helper_w_chunks(self, w_range, raw_download, timeout=None, checksum="md5"):
         blob_name = "blob-name"
         client = mock.Mock(_credentials=_make_credentials(), spec=["_credentials"])
         bucket = _Bucket(client)
@@ -1055,6 +1055,7 @@ class Test_Blob(unittest.TestCase):
                     start=1,
                     end=3,
                     raw_download=raw_download,
+                    checksum=checksum,
                     **timeout_kwarg
                 )
             else:
@@ -1064,6 +1065,7 @@ class Test_Blob(unittest.TestCase):
                     download_url,
                     headers,
                     raw_download=raw_download,
+                    checksum=checksum,
                     **timeout_kwarg
                 )
 
@@ -1093,6 +1095,18 @@ class Test_Blob(unittest.TestCase):
 
     def test__do_download_w_chunks_w_custom_timeout(self):
         self._do_download_helper_w_chunks(w_range=True, raw_download=True, timeout=9.58)
+
+    def test__do_download_w_chunks_w_checksum(self):
+        from google.cloud.storage import blob as blob_module
+
+        with mock.patch("logging.info") as patch:
+            self._do_download_helper_w_chunks(w_range=False, raw_download=False, checksum="md5")
+        patch.assert_called_once_with(blob_module._CHUNKED_DOWNLOAD_CHECKSUM_MESSAGE.format("md5"))
+
+    def test__do_download_w_chunks_wo_checksum(self):
+        with mock.patch("logging.info") as patch:
+            self._do_download_helper_w_chunks(w_range=False, raw_download=False, checksum=None)
+        patch.assert_not_called()
 
     def test_download_to_file_with_failure(self):
         import requests
@@ -2143,7 +2157,7 @@ class Test_Blob(unittest.TestCase):
     def test__initiate_resumable_upload_with_predefined_acl(self):
         self._initiate_resumable_helper(predefined_acl="private")
 
-    def _make_resumable_transport(self, headers1, headers2, headers3, total_bytes):
+    def _make_resumable_transport(self, headers1, headers2, headers3, total_bytes, data_corruption=False):
         from google import resumable_media
 
         fake_transport = mock.Mock(spec=["request"])
@@ -2153,9 +2167,12 @@ class Test_Blob(unittest.TestCase):
             resumable_media.PERMANENT_REDIRECT, headers2
         )
         json_body = '{{"size": "{:d}"}}'.format(total_bytes)
-        fake_response3 = self._mock_requests_response(
-            http_client.OK, headers3, content=json_body.encode("utf-8")
-        )
+        if data_corruption:
+            fake_response3 = resumable_media.DataCorruption(None)
+        else:
+            fake_response3 = self._mock_requests_response(
+                http_client.OK, headers3, content=json_body.encode("utf-8")
+            )
 
         responses = [fake_response1, fake_response2, fake_response3]
         fake_transport.request.side_effect = responses
@@ -2266,6 +2283,7 @@ class Test_Blob(unittest.TestCase):
         if_metageneration_match=None,
         if_metageneration_not_match=None,
         timeout=None,
+        data_corruption=False
     ):
         bucket = _Bucket(name="yesterday")
         blob = self._make_one(u"blob-name", bucket=bucket)
@@ -2285,7 +2303,7 @@ class Test_Blob(unittest.TestCase):
         headers1 = {"location": resumable_url}
         headers2 = {"range": "bytes=0-{:d}".format(blob.chunk_size - 1)}
         transport, responses = self._make_resumable_transport(
-            headers1, headers2, {}, total_bytes
+            headers1, headers2, {}, total_bytes, data_corruption=data_corruption
         )
 
         # Create some mock arguments and call the method under test.
@@ -2359,6 +2377,7 @@ class Test_Blob(unittest.TestCase):
         )
         self.assertEqual(transport.request.mock_calls, [call0, call1, call2])
 
+
     def test__do_resumable_upload_with_custom_timeout(self):
         self._do_resumable_helper(timeout=9.58)
 
@@ -2373,6 +2392,16 @@ class Test_Blob(unittest.TestCase):
 
     def test__do_resumable_upload_with_predefined_acl(self):
         self._do_resumable_helper(predefined_acl="private")
+
+    def test__do_resumable_upload_with_data_corruption(self):
+        from google.resumable_media import DataCorruption
+
+        with mock.patch("google.cloud.storage.blob.Blob.delete") as patch:
+            try:
+                self._do_resumable_helper(data_corruption=True)
+            except Exception as e:
+                self.assertTrue(patch.called)
+                self.assertIsInstance(e, DataCorruption)
 
     def _do_upload_helper(
         self,
