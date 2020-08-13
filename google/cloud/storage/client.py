@@ -22,7 +22,6 @@ import functools
 import json
 import warnings
 import google.api_core.client_options
-from functools import partial
 
 from google.auth.credentials import AnonymousCredentials
 
@@ -168,7 +167,6 @@ class Client(ClientWithProject):
         else:
             return self._base_connection
 
-
     @_connection.setter
     def _connection(self, value):
         """Set connection on the client.
@@ -186,7 +184,6 @@ class Client(ClientWithProject):
             raise ValueError("Connection already set on client")
         value.api_request = functools.partial(telemetry_wrapped_api_request, value.api_request)
         self._base_connection = value
-
 
     def _push_batch(self, batch):
         """Push a batch onto our stack.

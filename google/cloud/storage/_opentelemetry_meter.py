@@ -49,7 +49,6 @@ if HAS_OPENTELEMETRY_INSTALLED:
         elif 'path' in kwargs:
             instrumented_labels['function_name'] = '{} {}'.format(kwargs['method'], kwargs['path'])
 
-        print(instrumented_labels)
         requests_counter.add(1, instrumented_labels)
         return api_request(*args, **kwargs)
 else:

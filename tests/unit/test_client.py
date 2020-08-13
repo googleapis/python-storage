@@ -21,9 +21,11 @@ import re
 import requests
 import unittest
 from six.moves import http_client
-
 from google.oauth2.service_account import Credentials
 from . import _read_local_json
+import functools
+
+from google.cloud.storage._opentelemetry_meter import telemetry_wrapped_api_request
 
 _SERVICE_ACCOUNT_JSON = _read_local_json("url_signer_v4_test_account.json")
 _CONFORMANCE_TESTS = _read_local_json("url_signer_v4_test_data.json")[
@@ -250,7 +252,8 @@ class TestClient(unittest.TestCase):
         CREDENTIALS = _make_credentials()
         client = self._make_one(project=PROJECT, credentials=CREDENTIALS)
         client._base_connection = None  # Unset the value from the constructor
-        client._connection = connection = object()
+        client._connection = connection = _make_connection()
+        connection.api_request = functools.partial(telemetry_wrapped_api_request, connection.api_request)
         self.assertIs(client._base_connection, connection)
 
     def test__connection_setter_when_set(self):
