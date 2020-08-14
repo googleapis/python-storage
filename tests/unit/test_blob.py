@@ -984,11 +984,21 @@ class Test_Blob(unittest.TestCase):
 
         if w_range:
             patched.assert_called_once_with(
-                download_url, stream=file_obj, headers=headers, start=1, end=3, checksum="md5"
+                download_url,
+                stream=file_obj,
+                headers=headers,
+                start=1,
+                end=3,
+                checksum="md5",
             )
         else:
             patched.assert_called_once_with(
-                download_url, stream=file_obj, headers=headers, start=None, end=None, checksum="md5"
+                download_url,
+                stream=file_obj,
+                headers=headers,
+                start=None,
+                end=None,
+                checksum="md5",
             )
 
         patched.return_value.consume.assert_called_once_with(
@@ -1012,7 +1022,9 @@ class Test_Blob(unittest.TestCase):
             w_range=False, raw_download=False, timeout=9.58
         )
 
-    def _do_download_helper_w_chunks(self, w_range, raw_download, timeout=None, checksum="md5"):
+    def _do_download_helper_w_chunks(
+        self, w_range, raw_download, timeout=None, checksum="md5"
+    ):
         blob_name = "blob-name"
         client = mock.Mock(_credentials=_make_credentials(), spec=["_credentials"])
         bucket = _Bucket(client)
@@ -1100,12 +1112,18 @@ class Test_Blob(unittest.TestCase):
         from google.cloud.storage import blob as blob_module
 
         with mock.patch("logging.info") as patch:
-            self._do_download_helper_w_chunks(w_range=False, raw_download=False, checksum="md5")
-        patch.assert_called_once_with(blob_module._CHUNKED_DOWNLOAD_CHECKSUM_MESSAGE.format("md5"))
+            self._do_download_helper_w_chunks(
+                w_range=False, raw_download=False, checksum="md5"
+            )
+        patch.assert_called_once_with(
+            blob_module._CHUNKED_DOWNLOAD_CHECKSUM_MESSAGE.format("md5")
+        )
 
     def test__do_download_w_chunks_wo_checksum(self):
         with mock.patch("logging.info") as patch:
-            self._do_download_helper_w_chunks(w_range=False, raw_download=False, checksum=None)
+            self._do_download_helper_w_chunks(
+                w_range=False, raw_download=False, checksum=None
+            )
         patch.assert_not_called()
 
     def test_download_to_file_with_failure(self):
@@ -1144,7 +1162,7 @@ class Test_Blob(unittest.TestCase):
             None,
             False,
             timeout=self._get_default_timeout(),
-            checksum="md5"
+            checksum="md5",
         )
 
     def test_download_to_file_wo_media_link(self):
@@ -1399,7 +1417,7 @@ class Test_Blob(unittest.TestCase):
             None,
             False,
             timeout=self._get_default_timeout(),
-            checksum="md5"
+            checksum="md5",
         )
         stream = blob._do_download.mock_calls[0].args[1]
         self.assertEqual(stream.name, filename)
@@ -2157,7 +2175,9 @@ class Test_Blob(unittest.TestCase):
     def test__initiate_resumable_upload_with_predefined_acl(self):
         self._initiate_resumable_helper(predefined_acl="private")
 
-    def _make_resumable_transport(self, headers1, headers2, headers3, total_bytes, data_corruption=False):
+    def _make_resumable_transport(
+        self, headers1, headers2, headers3, total_bytes, data_corruption=False
+    ):
         from google import resumable_media
 
         fake_transport = mock.Mock(spec=["request"])
@@ -2283,7 +2303,7 @@ class Test_Blob(unittest.TestCase):
         if_metageneration_match=None,
         if_metageneration_not_match=None,
         timeout=None,
-        data_corruption=False
+        data_corruption=False,
     ):
         bucket = _Bucket(name="yesterday")
         blob = self._make_one(u"blob-name", bucket=bucket)
@@ -2376,7 +2396,6 @@ class Test_Blob(unittest.TestCase):
             timeout=expected_timeout,
         )
         self.assertEqual(transport.request.mock_calls, [call0, call1, call2])
-
 
     def test__do_resumable_upload_with_custom_timeout(self):
         self._do_resumable_helper(timeout=9.58)

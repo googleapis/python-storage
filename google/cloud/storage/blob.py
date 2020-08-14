@@ -885,7 +885,12 @@ class Blob(_PropertyMixin):
                 klass = Download
 
             download = klass(
-                download_url, stream=file_obj, headers=headers, start=start, end=end, checksum=checksum
+                download_url,
+                stream=file_obj,
+                headers=headers,
+                start=start,
+                end=end,
+                checksum=checksum,
             )
             response = download.consume(transport, timeout=timeout)
             self._extract_headers_from_download(response)
@@ -1054,7 +1059,7 @@ class Blob(_PropertyMixin):
         if_metageneration_match=None,
         if_metageneration_not_match=None,
         timeout=_DEFAULT_TIMEOUT,
-        checksum="md5"
+        checksum="md5",
     ):
         """Download the contents of this blob into a named file.
 
@@ -1159,7 +1164,7 @@ class Blob(_PropertyMixin):
         if_metageneration_match=None,
         if_metageneration_not_match=None,
         timeout=_DEFAULT_TIMEOUT,
-        checksum="md5"
+        checksum="md5",
     ):
         """Download the contents of this blob as a bytes object.
 
@@ -1807,7 +1812,9 @@ class Blob(_PropertyMixin):
             )
 
         upload_url = _add_query_parameters(base_url, name_value_pairs)
-        upload = ResumableUpload(upload_url, chunk_size, headers=headers, checksum=checksum)
+        upload = ResumableUpload(
+            upload_url, chunk_size, headers=headers, checksum=checksum
+        )
 
         if num_retries is not None:
             upload._retry_strategy = resumable_media.RetryStrategy(
@@ -1930,7 +1937,7 @@ class Blob(_PropertyMixin):
             if_metageneration_match=if_metageneration_match,
             if_metageneration_not_match=if_metageneration_not_match,
             timeout=timeout,
-            checksum=checksum
+            checksum=checksum,
         )
 
         while not upload.finished:
@@ -2031,7 +2038,7 @@ class Blob(_PropertyMixin):
             is too large and must be transmitted in multiple requests, the
             checksum will be incrementally computed and the client will handle
             verification and error handling, raising
-            google.resumable_media.common.DataCorruption on a mismatch and 
+            google.resumable_media.common.DataCorruption on a mismatch and
             attempting to delete the corrupted file. Supported values are
             "md5", "crc32c" and None. The default is None.
 
@@ -2191,7 +2198,7 @@ class Blob(_PropertyMixin):
             is too large and must be transmitted in multiple requests, the
             checksum will be incrementally computed and the client will handle
             verification and error handling, raising
-            google.resumable_media.common.DataCorruption on a mismatch and 
+            google.resumable_media.common.DataCorruption on a mismatch and
             attempting to delete the corrupted file. Supported values are
             "md5", "crc32c" and None. The default is None.
 
@@ -2315,7 +2322,7 @@ class Blob(_PropertyMixin):
             is too large and must be transmitted in multiple requests, the
             checksum will be incrementally computed and the client will handle
             verification and error handling, raising
-            google.resumable_media.common.DataCorruption on a mismatch and 
+            google.resumable_media.common.DataCorruption on a mismatch and
             attempting to delete the corrupted file. Supported values are
             "md5", "crc32c" and None. The default is None.
         """
@@ -2334,7 +2341,7 @@ class Blob(_PropertyMixin):
                 if_metageneration_match=if_metageneration_match,
                 if_metageneration_not_match=if_metageneration_not_match,
                 timeout=timeout,
-                checksum=checksum
+                checksum=checksum,
             )
 
     def upload_from_string(
@@ -2420,7 +2427,7 @@ class Blob(_PropertyMixin):
             is too large and must be transmitted in multiple requests, the
             checksum will be incrementally computed and the client will handle
             verification and error handling, raising
-            google.resumable_media.common.DataCorruption on a mismatch and 
+            google.resumable_media.common.DataCorruption on a mismatch and
             attempting to delete the corrupted file. Supported values are
             "md5", "crc32c" and None. The default is None.
         """
@@ -2551,7 +2558,7 @@ class Blob(_PropertyMixin):
                 extra_headers=extra_headers,
                 chunk_size=self._CHUNK_SIZE_MULTIPLE,
                 timeout=timeout,
-                checksum=checksum
+                checksum=checksum,
             )
 
             return upload.resumable_url
