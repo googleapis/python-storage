@@ -2013,6 +2013,7 @@ class TestKMSIntegration(TestStorageFiles):
 
         self.assertEqual(dest.download_as_bytes(), source_data)
 
+    @RetryErrors(unittest.TestCase.failureException)
     def test_upload_new_blob_w_bucket_cmek_enabled(self):
         blob_name = "test-blob"
         payload = b"DEADBEEF"
