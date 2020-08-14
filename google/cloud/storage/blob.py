@@ -870,7 +870,6 @@ class Blob(_PropertyMixin):
                 download_url, stream=file_obj, headers=headers, start=start, end=end
             )
             response = download.consume(transport, timeout=timeout)
-            import pdb;pdb.set_trace()
             self._extract_headers_from_download(response)
         else:
 
