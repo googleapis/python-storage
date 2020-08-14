@@ -804,7 +804,7 @@ class Blob(_PropertyMixin):
 
         digests = {}
         for encoded_digest in x_goog_hash.split(","):
-            match = re.match(r"(crc32c|md5)=([\w\d]+={0,3})", encoded_digest)
+            match = re.match(r"(crc32c|md5)=([\w\d/]+={0,3})", encoded_digest)
             if match:
                 method, digest = match.groups()
                 digests[method] = digest
@@ -870,6 +870,7 @@ class Blob(_PropertyMixin):
                 download_url, stream=file_obj, headers=headers, start=start, end=end
             )
             response = download.consume(transport, timeout=timeout)
+            import pdb;pdb.set_trace()
             self._extract_headers_from_download(response)
         else:
 
