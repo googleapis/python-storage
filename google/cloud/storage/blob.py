@@ -867,7 +867,7 @@ class Blob(_PropertyMixin):
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
 
-        :type checksum str
+        :type checksum: str
         :param checksum:
             (Optional) The type of checksum to compute to verify the integrity
             of the object. The response headers must contain a checksum of the
@@ -1006,7 +1006,7 @@ class Blob(_PropertyMixin):
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
 
-        :type checksum str
+        :type checksum: str
         :param checksum:
             (Optional) The type of checksum to compute to verify the integrity
             of the object. The response headers must contain a checksum of the
@@ -1112,7 +1112,7 @@ class Blob(_PropertyMixin):
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
 
-        :type checksum str
+        :type checksum: str
         :param checksum:
             (Optional) The type of checksum to compute to verify the integrity
             of the object. The response headers must contain a checksum of the
@@ -1214,7 +1214,7 @@ class Blob(_PropertyMixin):
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
 
-        :type checksum str
+        :type checksum: str
         :param checksum:
             (Optional) The type of checksum to compute to verify the integrity
             of the object. The response headers must contain a checksum of the
