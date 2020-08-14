@@ -35,7 +35,7 @@ if OPENTELEMETRY_READY:
 
     meter = metrics.get_meter(__name__)
     meter_provider.start_pipeline(
-        meter, CloudMonitoringMetricsExporter(), 15
+        meter, CloudMonitoringMetricsExporter(), interval=15
     )
     requests_counter = meter.create_metric(
         name="other_demo",
