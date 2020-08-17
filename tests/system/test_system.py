@@ -576,6 +576,7 @@ class TestStorageWriteFiles(TestStorageFiles):
 
         file_data = self.FILES["big"]
 
+        # Intercept the digest processing at the last stage and replace it with garbage
         with open(file_data["path"], "rb") as file_obj:
             with mock.patch(
                 "google.resumable_media._helpers.prepare_checksum_digest",
@@ -635,6 +636,7 @@ class TestStorageWriteFiles(TestStorageFiles):
         blob = self.bucket.blob("SmallFile")
 
         file_data = self.FILES["simple"]
+        # Intercept the digest processing at the last stage and replace it with garbage
         with mock.patch(
             "google.resumable_media._helpers.prepare_checksum_digest",
             return_value="FFFFFF==",
@@ -877,7 +879,7 @@ class TestStorageWriteFiles(TestStorageFiles):
 
         temp_filename = tempfile.mktemp()
 
-        # Intercept the digest processing a the last stage and replace it with garbage
+        # Intercept the digest processing at the last stage and replace it with garbage
         with mock.patch(
             "google.resumable_media._helpers.prepare_checksum_digest",
             return_value="FFFFFF==",
