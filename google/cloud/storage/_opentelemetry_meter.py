@@ -38,7 +38,7 @@ if OPENTELEMETRY_READY:
         meter, CloudMonitoringMetricsExporter(), interval=15
     )
     requests_counter = meter.create_metric(
-        name="other_demo",
+        name="GCS_request_counter",
         description="number of requests",
         unit="1",
         value_type=int,
@@ -54,7 +54,6 @@ if OPENTELEMETRY_READY:
             instrumented_labels['function_name'] = '{} {}'.format(kwargs['method'], kwargs['path'])
 
         requests_counter.add(1, instrumented_labels)
-        print(instrumented_labels)
         return api_request(*args, **kwargs)
 else:
     def telemetry_wrapped_api_request(api_request, *args, **kwargs):

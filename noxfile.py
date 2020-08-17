@@ -65,12 +65,14 @@ def blacken(session):
 def lint_setup_py(session):
     """Verify that setup.py is valid (including RST check)."""
     session.install("docutils", "pygments")
+    session.install("opentelemetry-api", "opentelemetry-sdk", "opentelemetry-exporter-google-cloud")
     session.run("python", "setup.py", "check", "--restructuredtext", "--strict")
 
 
 def default(session):
     # Install all test dependencies, then install this package in-place.
     session.install("mock", "pytest", "pytest-cov")
+    session.install("opentelemetry-api", "opentelemetry-sdk", "opentelemetry-exporter-google-cloud")
     session.install("-e", ".")
 
     # Run py.test against the unit tests.
