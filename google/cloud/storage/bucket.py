@@ -2955,7 +2955,9 @@ class Bucket(_PropertyMixin):
         log in.
 
         :type expiration: Union[Integer, datetime.datetime, datetime.timedelta]
-        :param expiration: Point in time when the signed URL should expire.
+        :param expiration: Point in time when the signed URL should expire. If
+                           expiration in datetime, then need to pass timezone
+                           with it. Default value of ``tzinfo`` is ``UTC``.
 
         :type api_access_endpoint: str
         :param api_access_endpoint: (Optional) URI base.
