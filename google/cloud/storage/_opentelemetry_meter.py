@@ -1,4 +1,4 @@
-# Copyright 2014 Google LLC
+# Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,10 +16,8 @@
 
 try:
     from opentelemetry import metrics
-    from opentelemetry.sdk.metrics import Counter, MeterProvider
-    from opentelemetry.exporter.cloud_monitoring import (
-        CloudMonitoringMetricsExporter,
-    )
+    from opentelemetry.sdk.metrics import Counter
+    from opentelemetry.exporter.cloud_monitoring import CloudMonitoringMetricsExporter
 
     meter_provider = metrics.get_meter_provider()
 
@@ -29,16 +27,14 @@ try:
 except ImportError:
     OPENTELEMETRY_READY = False
 
-FUNCTION_NAME_KEY = 'instrumented_function_name'
+FUNCTION_NAME_KEY = "instrumented_function_name"
 
 if OPENTELEMETRY_READY:
 
     meter = metrics.get_meter(__name__)
-    meter_provider.start_pipeline(
-        meter, CloudMonitoringMetricsExporter(), interval=15
-    )
+    meter_provider.start_pipeline(meter, CloudMonitoringMetricsExporter(), interval=15)
     requests_counter = meter.create_metric(
-        name="GCS_request_counter",
+        name="other_demo",
         description="number of requests",
         unit="1",
         value_type=int,
@@ -48,14 +44,19 @@ if OPENTELEMETRY_READY:
     def telemetry_wrapped_api_request(api_request, *args, **kwargs):
         instrumented_labels = {}
         if FUNCTION_NAME_KEY in kwargs:
-            instrumented_labels['function_name'] = kwargs[FUNCTION_NAME_KEY]
+            instrumented_labels["function_name"] = kwargs[FUNCTION_NAME_KEY]
             kwargs.pop(FUNCTION_NAME_KEY)
-        elif 'path' in kwargs:
-            instrumented_labels['function_name'] = '{} {}'.format(kwargs['method'], kwargs['path'])
+        elif "path" in kwargs:
+            instrumented_labels["function_name"] = "{} {}".format(
+                kwargs["method"], kwargs["path"]
+            )
 
         requests_counter.add(1, instrumented_labels)
         return api_request(*args, **kwargs)
+
+
 else:
+
     def telemetry_wrapped_api_request(api_request, *args, **kwargs):
         if FUNCTION_NAME_KEY in kwargs:
             kwargs.pop(FUNCTION_NAME_KEY)

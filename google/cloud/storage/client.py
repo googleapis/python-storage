@@ -182,7 +182,9 @@ class Client(ClientWithProject):
         """
         if self._base_connection is not None:
             raise ValueError("Connection already set on client")
-        value.api_request = functools.partial(telemetry_wrapped_api_request, value.api_request)
+        value.api_request = functools.partial(
+            telemetry_wrapped_api_request, value.api_request
+        )
         self._base_connection = value
 
     def _push_batch(self, batch):
@@ -193,8 +195,9 @@ class Client(ClientWithProject):
         :type batch: :class:`google.cloud.storage.batch.Batch`
         :param batch: newly-active batch
         """
-        batch.api_request = functools.partial(telemetry_wrapped_api_request,
-                                              batch.api_request)
+        batch.api_request = functools.partial(
+            telemetry_wrapped_api_request, batch.api_request
+        )
         self._batch_stack.push(batch)
 
     def _pop_batch(self):

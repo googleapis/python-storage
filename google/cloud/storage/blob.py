@@ -870,8 +870,12 @@ class Blob(_PropertyMixin):
             download = klass(
                 download_url, stream=file_obj, headers=headers, start=start, end=end
             )
-            response = telemetry_wrapped_api_request(download.consume, transport, timeout=timeout,
-                                                     instrumented_function_name='GET /b/{}/o/{}'.format(self.bucket.name, self.name))
+            response = telemetry_wrapped_api_request(
+                download.consume,
+                transport,
+                timeout=timeout,
+                instrumented_function_name="download",
+            )
             self._extract_headers_from_download(response)
         else:
 
@@ -890,7 +894,12 @@ class Blob(_PropertyMixin):
             )
 
             while not download.finished:
-                telemetry_wrapped_api_request(download.consume_next_chunk, transport, timeout=timeout, instrumented_function_name='GET /b/{}/o/{}'.format(self.bucket.name, self.name))
+                telemetry_wrapped_api_request(
+                    download.consume_next_chunk,
+                    transport,
+                    timeout=timeout,
+                    instrumented_function_name="download",
+                )
 
     def download_to_file(
         self,
@@ -1403,8 +1412,14 @@ class Blob(_PropertyMixin):
                 max_retries=num_retries
             )
 
-        response = telemetry_wrapped_api_request(upload.transmit,
-            transport, data, object_metadata, content_type, timeout=timeout, instrumented_function_name='POST ' + upload_url
+        response = telemetry_wrapped_api_request(
+            upload.transmit,
+            transport,
+            data,
+            object_metadata,
+            content_type,
+            timeout=timeout,
+            instrumented_function_name="upload",
         )
 
         return response
@@ -1669,7 +1684,12 @@ class Blob(_PropertyMixin):
         )
 
         while not upload.finished:
-            response = telemetry_wrapped_api_request(upload.transmit_next_chunk, transport, timeout=timeout, instrumented_function_name='upload')
+            response = telemetry_wrapped_api_request(
+                upload.transmit_next_chunk,
+                transport,
+                timeout=timeout,
+                instrumented_function_name="upload",
+            )
 
         return response
 

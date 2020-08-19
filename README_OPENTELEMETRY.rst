@@ -10,6 +10,11 @@ We first need to install opentelemetry:
     pip install opentelemetry-api
     pip install opentelemetry-sdk
     pip install opentelemetry-exporter-google-cloud
+
+(Optionally) You can install this package to augment your metrics with resource info.
+
+.. code-block:: sh
+
     pip install opentelemetry-tools-google-cloud
 
 Then, at the beginning of your application create a MeterProvider. Example:
@@ -28,13 +33,13 @@ Then, at the beginning of your application create a MeterProvider. Example:
     resources = GoogleCloudResourceDetector().detect()
 
     # Note that this will NOT work if you are on a cloudtop, as you are on a
-    # VM instacne that belongs to the project "cloudtop:prod" which you likely
-    # don't have read access for
+    # VM instance that belongs to the project "cloudtop:prod" which you likely
+    # don't have Cloud Monitoring write access to
     #==============================================================================
 
-    # If you don't use resources, remove resource=resources
+    # If you don't want to capture resources, remove resource=resources
     metrics.set_meter_provider(MeterProvider(stateful=False, resource=resources))
 
     # Normal code below. This is your application / script
 
-Check out captured metrics at `Cloud Monitoring <https://pantheon.corp.google.com/monitoring/metrics-explorer>`_.
+Check out captured metrics at `Cloud Monitoring <https://console.cloud.google.com/monitoring/metrics-explorer>`_.

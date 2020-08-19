@@ -253,7 +253,9 @@ class TestClient(unittest.TestCase):
         client = self._make_one(project=PROJECT, credentials=CREDENTIALS)
         client._base_connection = None  # Unset the value from the constructor
         client._connection = connection = _make_connection()
-        connection.api_request = functools.partial(telemetry_wrapped_api_request, connection.api_request)
+        connection.api_request = functools.partial(
+            telemetry_wrapped_api_request, connection.api_request
+        )
         self.assertIs(client._base_connection, connection)
 
     def test__connection_setter_when_set(self):
@@ -1050,7 +1052,8 @@ class TestClient(unittest.TestCase):
         client = self._make_one(project="PROJECT", credentials=credentials)
         connection = _make_connection({"items": []})
         connection.api_request = functools.partial(
-            telemetry_wrapped_api_request, connection.api_request)
+            telemetry_wrapped_api_request, connection.api_request
+        )
 
         with mock.patch(
             "google.cloud.storage.client.Client._connection",
@@ -1103,7 +1106,8 @@ class TestClient(unittest.TestCase):
         client = self._make_one(project=USER_PROJECT, credentials=credentials)
         connection = _make_connection({"items": []})
         connection.api_request = functools.partial(
-            telemetry_wrapped_api_request, connection.api_request)
+            telemetry_wrapped_api_request, connection.api_request
+        )
 
         with mock.patch(
             "google.cloud.storage.client.Client._connection",

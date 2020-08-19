@@ -108,9 +108,8 @@ class TestOpenTelemetryMetrics(unittest.TestCase):
         self.assertTrue(_opentelemetry_meter.OPENTELEMETRY_READY)
         self.assertIsNotNone(_opentelemetry_meter.requests_counter)
 
-    @patch.object(Counter, 'add')
+    @patch.object(Counter, "add")
     def test_wrapped_api_request(self, request_counter):
-        from google.cloud.storage._opentelemetry_meter import requests_counter
         self.assertEqual(
             ot_wrapped(mock_api_request, "arg1", kwarg1="kwarg1"),
             (("arg1",), {"kwarg1": "kwarg1"}),
@@ -126,19 +125,24 @@ class TestOpenTelemetryMetrics(unittest.TestCase):
         )
         self.assertEqual(request_counter.call_count, 2)
 
-    @patch.object(Counter, 'add')
+    @patch.object(Counter, "add")
     def test_wrapped_api_request_with_function_name(self, request_counter):
         from google.cloud.storage._opentelemetry_meter import FUNCTION_NAME_KEY
+
         self.assertEqual(
             ot_wrapped(mock_api_request, "arg1", **{FUNCTION_NAME_KEY: "foo"}),
             (("arg1",), {}),
         )
-        self.assertEqual(request_counter.call_args_list[0][0], (1, {'function_name': "foo"}))
+        self.assertEqual(
+            request_counter.call_args_list[0][0], (1, {"function_name": "foo"})
+        )
 
-    @patch.object(Counter, 'add')
+    @patch.object(Counter, "add")
     def test_wrapped_api_request_with_path(self, request_counter):
         self.assertEqual(
             ot_wrapped(mock_api_request, "arg1", path="foo", method="GET"),
-            (("arg1",), {'path': 'foo', 'method': 'GET'}),
+            (("arg1",), {"path": "foo", "method": "GET"}),
         )
-        self.assertEqual(request_counter.call_args_list[0][0], (1, {'function_name': "GET foo"}))
+        self.assertEqual(
+            request_counter.call_args_list[0][0], (1, {"function_name": "GET foo"})
+        )
