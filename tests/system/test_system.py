@@ -910,6 +910,18 @@ class TestStorageWriteFiles(TestStorageFiles):
         owner = same_blob.owner
         self.assertIn(user_email, owner["entity"])
 
+    def test_blob_crc32_md5_hash(self):
+        blob = self.bucket.blob("MyBuffer")
+        file_contents = b"Hello World"
+        blob.upload_from_string(file_contents)
+        self.case_blobs_to_delete.append(blob)
+
+        download_blob = self.bucket.blob("MyBuffer")
+
+        self.assertEqual(download_blob.download_as_string(), file_contents)
+        self.assertEqual(download_blob.crc32c, blob.crc32c)
+        self.assertEqual(download_blob.md5_hash, blob.md5_hash)
+
 
 class TestUnicode(unittest.TestCase):
     @vpcsc_config.skip_if_inside_vpcsc
@@ -2025,6 +2037,7 @@ class TestKMSIntegration(TestStorageFiles):
 
         blob = self.bucket.blob(blob_name)
         blob.upload_from_string(payload)
+        retry_429_harder(blob.reload)()
         # We don't know the current version of the key.
         self.assertTrue(blob.kms_key_name.startswith(kms_key_name))
 
@@ -2034,7 +2047,7 @@ class TestKMSIntegration(TestStorageFiles):
         self.assertEqual(blob.download_as_bytes(), alt_payload)
 
         self.bucket.default_kms_key_name = None
-        self.bucket.patch()
+        retry_429_harder(self.bucket.patch)()
         self.assertIsNone(self.bucket.default_kms_key_name)
 
 
