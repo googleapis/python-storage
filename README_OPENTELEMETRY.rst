@@ -28,7 +28,7 @@ Then, at the beginning of your application create a MeterProvider. Example:
 
     #==============================================================================
     # OPTIONAL: These lines of code will detect + scrape resource info from the env/metadata.
-    # This info will then be passed down the line and added to metric info
+    # This info will then be passed down the line and added to metric info.
     from opentelemetry.tools.resource_detector import GoogleCloudResourceDetector
     resources = GoogleCloudResourceDetector().detect()
 
