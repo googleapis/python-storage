@@ -962,9 +962,9 @@ class Client(ClientWithProject):
         :param blob_name: Object name.
 
         :type expiration: Union[Integer, datetime.datetime, datetime.timedelta]
-        :param expiration: Policy expiration time. If expiration in datetime,
-                           then need to pass timezone with it. Default value of
-                           ``tzinfo`` is ``UTC``.
+        :param expiration: Policy expiration time. If a ``datetime`` instance is
+                           passed without an explicit ``tzinfo`` set,  it will be
+                           converted to ``UTC``.
 
         :type conditions: list
         :param conditions: (Optional) List of POST policy conditions, which are
