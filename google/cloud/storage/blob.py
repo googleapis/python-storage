@@ -874,7 +874,9 @@ class Blob(_PropertyMixin):
                 download.consume,
                 transport,
                 timeout=timeout,
-                instrumented_function_name="download",
+                instrumented_function_name="GET /b/{}/o/{}".format(
+                    self.bucket.name, self.name
+                ),
             )
             self._extract_headers_from_download(response)
         else:
@@ -898,7 +900,9 @@ class Blob(_PropertyMixin):
                     download.consume_next_chunk,
                     transport,
                     timeout=timeout,
-                    instrumented_function_name="download",
+                    instrumented_function_name="GET /b/{}/o/{}".format(
+                        self.bucket.name, self.name
+                    ),
                 )
 
     def download_to_file(
@@ -1419,7 +1423,7 @@ class Blob(_PropertyMixin):
             object_metadata,
             content_type,
             timeout=timeout,
-            instrumented_function_name="upload",
+            instrumented_function_name="POST " + upload_url,
         )
 
         return response
@@ -1688,7 +1692,7 @@ class Blob(_PropertyMixin):
                 upload.transmit_next_chunk,
                 transport,
                 timeout=timeout,
-                instrumented_function_name="upload",
+                instrumented_function_name="POST " + upload.resumable_url,
             )
 
         return response

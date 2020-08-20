@@ -1,7 +1,7 @@
 Metrics with OpenTelemetry
 ==================================
 This library uses `OpenTelemetry <https://opentelemetry.io/>`_ to record metric information on API requests.
-For information on the benefits and utility of tracing, see the `Cloud Monitoring docs <https://cloud.google.com/monitoring/docs>`_.
+For more information on Cloud Monitoring, see the `Cloud Monitoring docs <https://cloud.google.com/monitoring/docs>`_.
 
 We first need to install opentelemetry:
 

@@ -30,7 +30,6 @@ except ImportError:
 FUNCTION_NAME_KEY = "instrumented_function_name"
 
 if OPENTELEMETRY_READY:
-
     meter = metrics.get_meter(__name__)
     meter_provider.start_pipeline(meter, CloudMonitoringMetricsExporter(), interval=15)
     requests_counter = meter.create_metric(
@@ -41,23 +40,17 @@ if OPENTELEMETRY_READY:
         metric_type=Counter,
     )
 
-    def telemetry_wrapped_api_request(api_request, *args, **kwargs):
+
+def telemetry_wrapped_api_request(api_request, *args, **kwargs):
+    if OPENTELEMETRY_READY:
         instrumented_labels = {}
         if FUNCTION_NAME_KEY in kwargs:
             instrumented_labels["function_name"] = kwargs[FUNCTION_NAME_KEY]
-            kwargs.pop(FUNCTION_NAME_KEY)
         elif "path" in kwargs:
             instrumented_labels["function_name"] = "{} {}".format(
                 kwargs["method"], kwargs["path"]
             )
-
         requests_counter.add(1, instrumented_labels)
-        return api_request(*args, **kwargs)
-
-
-else:
-
-    def telemetry_wrapped_api_request(api_request, *args, **kwargs):
-        if FUNCTION_NAME_KEY in kwargs:
-            kwargs.pop(FUNCTION_NAME_KEY)
-        return api_request(*args, **kwargs)
+    if FUNCTION_NAME_KEY in kwargs:
+        kwargs.pop(FUNCTION_NAME_KEY)
+    return api_request(*args, **kwargs)

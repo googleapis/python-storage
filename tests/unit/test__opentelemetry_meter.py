@@ -17,11 +17,13 @@
 import importlib
 import sys
 import unittest
+
 from mock import patch
 from opentelemetry import metrics
 from opentelemetry.sdk.metrics import MeterProvider, Counter
 
 from google.cloud.storage import _opentelemetry_meter
+from tests.unit.test_blob import Test_Blob
 
 
 # Just to make things more succinct
@@ -90,7 +92,7 @@ class TestNoMeterProvider(unittest.TestCase):
         )
 
 
-class TestOpenTelemetryMetrics(unittest.TestCase):
+class TestOpenTelemetryBase(Test_Blob):
     @classmethod
     def setUpClass(self):
         meter_provider = MeterProvider(stateful=False)
@@ -104,6 +106,8 @@ class TestOpenTelemetryMetrics(unittest.TestCase):
         metrics._METER_PROVIDER = metrics.DefaultMeterProvider()
         importlib.reload(_opentelemetry_meter)
 
+
+class TestOpenTelemetryMetrics(TestOpenTelemetryBase):
     def test_initialized(self):
         self.assertTrue(_opentelemetry_meter.OPENTELEMETRY_READY)
         self.assertIsNotNone(_opentelemetry_meter.requests_counter)
@@ -143,6 +147,13 @@ class TestOpenTelemetryMetrics(unittest.TestCase):
             ot_wrapped(mock_api_request, "arg1", path="foo", method="GET"),
             (("arg1",), {"path": "foo", "method": "GET"}),
         )
+        self.assertEqual(
+            request_counter.call_args_list[0][0], (1, {"function_name": "GET foo"})
+        )
+
+    @patch.object(Counter, "add")
+    def test_download_with_chunks(self, request_counter):
+        self._do_download_helper_w_chunks(False, False)
         self.assertEqual(
             request_counter.call_args_list[0][0], (1, {"function_name": "GET foo"})
         )

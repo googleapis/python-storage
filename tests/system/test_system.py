@@ -39,6 +39,7 @@ import google.oauth2
 from test_utils.retry import RetryErrors
 from test_utils.system import unique_resource_id
 from test_utils.vpcsc_config import vpcsc_config
+from tests.unit.test__opentelemetry_meter import TestOpenTelemetryBase
 
 
 USER_PROJECT = os.environ.get("GOOGLE_CLOUD_TESTS_USER_PROJECT")
@@ -2372,3 +2373,11 @@ class TestV4POSTPolicies(unittest.TestCase):
 
         os.remove(blob_name)
         self.assertEqual(response.status_code, 400)
+
+
+class TestOpenTelemetrySystem(TestStorageFiles, TestOpenTelemetryBase):
+    @unittest.skipUnless(USER_PROJECT, "USER_PROJECT not set in environment.")
+    def test_upload_string(self):
+        created = Config.CLIENT.create_bucket("opentelemetry")
+        blob = storage.Blob("file", bucket=created)
+        blob.upload_from_string(b"DEADBEEF")
