@@ -27,19 +27,19 @@ Then, at the beginning of your application create a MeterProvider. Example:
     from opentelemetry.sdk.metrics import MeterProvider
 
     #==============================================================================
-    # OPTIONAL: These lines of code will detect + scrape resource info from the env/metadata.
+    # OPTIONAL: These lines of code will scrape resource info from the env/metadata.
     # This info will then be passed down the line and added to metric info.
     from opentelemetry.tools.resource_detector import GoogleCloudResourceDetector
     resources = GoogleCloudResourceDetector().detect()
 
     # Note that this will NOT work if you are on a cloudtop, as you are on a
     # VM instance that belongs to the project "cloudtop:prod" which you likely
-    # don't have Cloud Monitoring write access to
+    # don't have Cloud Monitoring write access to.
     #==============================================================================
 
-    # If you don't want to capture resources, remove resource=resources
+    # If you don't want to capture resources, remove 'resource=resources'.
     metrics.set_meter_provider(MeterProvider(stateful=False, resource=resources))
 
-    # Normal code below. This is your application / script
+    # Normal code below. This is your application / script.
 
 Check out captured metrics at `Cloud Monitoring <https://console.cloud.google.com/monitoring/metrics-explorer>`_.

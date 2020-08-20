@@ -22,7 +22,7 @@ try:
     meter_provider = metrics.get_meter_provider()
 
     # If opentelemetry packages have been installed and a MeterProvider setup
-    #   we are ready to use opentelemetry
+    #   then we are ready to use opentelemetry.
     OPENTELEMETRY_READY = not isinstance(meter_provider, metrics.DefaultMeterProvider)
 except ImportError:
     OPENTELEMETRY_READY = False
