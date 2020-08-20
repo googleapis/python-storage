@@ -22,7 +22,7 @@ Then, at the beginning of your application create a MeterProvider. Example:
 .. code:: python
 
     # "opt-in" for opentelemtry metrics capturing.
-    # Requires you to have installed opentelemetry packages and called set_meter_provider
+    # Requires you to have installed opentelemetry packages and called set_meter_provider.
     from opentelemetry import metrics
     from opentelemetry.sdk.metrics import MeterProvider
 
