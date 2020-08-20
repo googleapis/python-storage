@@ -11,6 +11,8 @@ We first need to install opentelemetry:
     pip install opentelemetry-sdk
     pip install opentelemetry-exporter-google-cloud
 
+Check out `our guide <https://google-cloud-opentelemetry.readthedocs.io/en/latest/examples/cloud_monitoring/README.html>`_ on installing Cloud Monitoring.
+
 (Optionally) You can install this package to augment your metrics with resource info.
 
 .. code-block:: sh
