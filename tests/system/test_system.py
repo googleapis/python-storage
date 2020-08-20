@@ -2350,7 +2350,7 @@ class TestV4POSTPolicies(unittest.TestCase):
                 {"bucket": bucket_name},
                 ["starts-with", "$Content-Type", "text/pla"],
             ],
-            expiration=datetime.datetime.now() + datetime.timedelta(hours=1),
+            expiration=datetime.datetime.utcnow() + datetime.timedelta(hours=1),
             fields={"content-type": "text/plain"},
         )
         with open(blob_name, "r") as f:
@@ -2377,7 +2377,7 @@ class TestV4POSTPolicies(unittest.TestCase):
                 {"bucket": bucket_name},
                 ["starts-with", "$Content-Type", "text/pla"],
             ],
-            expiration=datetime.datetime.now() + datetime.timedelta(hours=1),
+            expiration=datetime.datetime.utcnow() + datetime.timedelta(hours=1),
             fields={"x-goog-random": "invalid_field", "content-type": "text/plain"},
         )
         with open(blob_name, "r") as f:
