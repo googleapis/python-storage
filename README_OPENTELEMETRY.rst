@@ -1,7 +1,7 @@
 Metrics with OpenTelemetry
 ==================================
 This library uses `OpenTelemetry <https://opentelemetry.io/>`_ to record metric information on API requests.
-For more information on Cloud Monitoring, see the `Cloud Monitoring docs <https://cloud.google.com/monitoring/docs>`_.
+For more information on installing Cloud Monitoring, see the `Cloud Monitoring docs <https://google-cloud-opentelemetry.readthedocs.io/en/latest/examples/cloud_monitoring/README.html>`_.
 
 We first need to install opentelemetry:
 
@@ -10,8 +10,6 @@ We first need to install opentelemetry:
     pip install opentelemetry-api
     pip install opentelemetry-sdk
     pip install opentelemetry-exporter-google-cloud
-
-Check out `our guide <https://google-cloud-opentelemetry.readthedocs.io/en/latest/examples/cloud_monitoring/README.html>`_ on installing Cloud Monitoring.
 
 (Optionally) You can install this package to augment your metrics with resource info.
 
