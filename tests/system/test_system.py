@@ -2050,6 +2050,7 @@ class TestKMSIntegration(TestStorageFiles):
 
         blob = self.bucket.blob(blob_name)
         blob.upload_from_string(payload)
+        retry_429_harder(blob.reload)()
         # We don't know the current version of the key.
         self.assertTrue(blob.kms_key_name.startswith(kms_key_name))
 
@@ -2059,7 +2060,7 @@ class TestKMSIntegration(TestStorageFiles):
         self.assertEqual(blob.download_as_bytes(), alt_payload)
 
         self.bucket.default_kms_key_name = None
-        self.bucket.patch()
+        retry_429_harder(self.bucket.patch)()
         self.assertIsNone(self.bucket.default_kms_key_name)
 
 
