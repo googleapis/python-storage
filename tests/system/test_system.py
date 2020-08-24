@@ -576,7 +576,10 @@ class TestStorageWriteFiles(TestStorageFiles):
 
         file_data = self.FILES["big"]
 
-        # Intercept the digest processing at the last stage and replace it with garbage
+        # Intercept the digest processing at the last stage and replace it with garbage.
+        # This is done with a patch to monkey-patch the resumable media library's checksum
+        # processing; it does not mock a remote interface like a unit test would. The
+        # remote API is still exercised.
         with open(file_data["path"], "rb") as file_obj:
             with mock.patch(
                 "google.resumable_media._helpers.prepare_checksum_digest",
@@ -881,26 +884,28 @@ class TestStorageWriteFiles(TestStorageFiles):
         blob.upload_from_string(file_contents)
         self.case_blobs_to_delete.append(blob)
 
-        temp_filename = tempfile.mktemp()
+        with tempfile.NamedTemporaryFile() as temp_f:
+            # Intercept the digest processing at the last stage and replace it with garbage.
+            # This is done with a patch to monkey-patch the resumable media library's checksum
+            # processing; it does not mock a remote interface like a unit test would. The
+            # remote API is still exercised.
+            with mock.patch(
+                "google.resumable_media._helpers.prepare_checksum_digest",
+                return_value="FFFFFF==",
+            ):
+                with self.assertRaises(resumable_media.DataCorruption):
+                    blob.download_to_filename(temp_f.name, checksum="crc32c")
 
-        # Intercept the digest processing at the last stage and replace it with garbage
-        with mock.patch(
-            "google.resumable_media._helpers.prepare_checksum_digest",
-            return_value="FFFFFF==",
-        ):
-            with self.assertRaises(resumable_media.DataCorruption):
-                blob.download_to_filename(temp_filename, checksum="crc32c")
+                # Confirm the file was deleted on failure
+                self.assertFalse(os.path.isfile(temp_f.name))
 
-            # Confirm the file was deleted on failure
-            self.assertFalse(os.path.isfile(temp_filename))
+                # Now download with checksumming turned off
+                blob.download_to_filename(temp_f.name, checksum=None)
 
-            # Now download with checksumming turned off
-            blob.download_to_filename(temp_filename, checksum=None)
+            with open(temp_f.name, "rb") as file_obj:
+                stored_contents = file_obj.read()
 
-        with open(temp_filename, "rb") as file_obj:
-            stored_contents = file_obj.read()
-
-        self.assertEqual(file_contents, stored_contents)
+            self.assertEqual(file_contents, stored_contents)
 
     def test_copy_existing_file(self):
         filename = self.FILES["logo"]["path"]
