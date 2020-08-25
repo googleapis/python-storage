@@ -178,8 +178,9 @@ class LifecycleRuleConditions(dict):
                                    eligible for lifecycle action as soon as it becomes custom.
 
     :type custom_time_before: :class:`datetime.date`
-    :param custom_time_before: (Optional) Apply rule action to items whose custom time is before this
-                                date. This condition is relevant only for versioned objects.
+    :param custom_time_before: (Optional)  Date object parsed from RFC3339 valid date, apply rule action
+                               to items whose custom time is before this date. This condition is relevant
+                               only for versioned objects, e.g., 2019-03-16.
 
     :raises ValueError: if no arguments are passed.
     """
