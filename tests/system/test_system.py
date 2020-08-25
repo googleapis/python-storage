@@ -195,14 +195,22 @@ class TestStorageBuckets(unittest.TestCase):
         self.assertEqual(created.storage_class, constants.ARCHIVE_STORAGE_CLASS)
 
     def test_lifecycle_rules(self):
+        import datetime
         from google.cloud.storage import constants
 
         new_bucket_name = "w-lifcycle-rules" + unique_resource_id("-")
+        noncurrent_before = datetime.date(2018, 8, 1)
         self.assertRaises(
             exceptions.NotFound, Config.CLIENT.get_bucket, new_bucket_name
         )
         bucket = Config.CLIENT.bucket(new_bucket_name)
-        bucket.add_lifecycle_delete_rule(age=42)
+        bucket.add_lifecycle_delete_rule(
+            age=42,
+            number_of_newer_versions=3,
+            days_since_noncurrent_time=2,
+            noncurrent_time_before=noncurrent_before,
+        )
+
         bucket.add_lifecycle_set_storage_class_rule(
             constants.COLDLINE_STORAGE_CLASS,
             is_live=False,
@@ -210,7 +218,12 @@ class TestStorageBuckets(unittest.TestCase):
         )
 
         expected_rules = [
-            LifecycleRuleDelete(age=42),
+            LifecycleRuleDelete(
+                age=42,
+                number_of_newer_versions=3,
+                days_since_noncurrent_time=2,
+                noncurrent_time_before=noncurrent_before,
+            ),
             LifecycleRuleSetStorageClass(
                 constants.COLDLINE_STORAGE_CLASS,
                 is_live=False,
@@ -2444,7 +2457,7 @@ class TestV4POSTPolicies(unittest.TestCase):
                 {"bucket": bucket_name},
                 ["starts-with", "$Content-Type", "text/pla"],
             ],
-            expiration=datetime.datetime.now() + datetime.timedelta(hours=1),
+            expiration=datetime.datetime.utcnow() + datetime.timedelta(hours=1),
             fields={"content-type": "text/plain"},
         )
         with open(blob_name, "r") as f:
@@ -2471,7 +2484,7 @@ class TestV4POSTPolicies(unittest.TestCase):
                 {"bucket": bucket_name},
                 ["starts-with", "$Content-Type", "text/pla"],
             ],
-            expiration=datetime.datetime.now() + datetime.timedelta(hours=1),
+            expiration=datetime.datetime.utcnow() + datetime.timedelta(hours=1),
             fields={"x-goog-random": "invalid_field", "content-type": "text/plain"},
         )
         with open(blob_name, "r") as f:
