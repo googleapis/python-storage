@@ -179,9 +179,9 @@ class LifecycleRuleConditions(dict):
                                         non current.
 
     :type noncurrent_time_before: :class:`datetime.date`
-    :param noncurrent_time_before: (Optional) Date object parsed from iso8601 valid date, apply
+    :param noncurrent_time_before: (Optional) Date object parsed from RFC3339 valid date, apply
                                    rule action to items whose non current time is before this date.
-                                   This condition is relevant only for versioned objects.
+                                   This condition is relevant only for versioned objects, e.g, 2019-03-16.
 
     :raises ValueError: if no arguments are passed.
     """
