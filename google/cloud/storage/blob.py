@@ -1752,8 +1752,8 @@ class Blob(_PropertyMixin):
             the integrity of the object. After the upload is complete, the
             server-computed checksum of the resulting object will be checked
             and google.resumable_media.common.DataCorruption will be raised on
-            a mismatch. On a failure, the client will attempt to delete the
-            corrupted file from the remote host automatically. Supported values
+            a mismatch. On a validation failure, the client will attempt to
+            delete the uploaded object automatically. Supported values
             are "md5", "crc32c" and None. The default is None.
 
         :rtype: tuple
@@ -1917,8 +1917,8 @@ class Blob(_PropertyMixin):
             the integrity of the object. After the upload is complete, the
             server-computed checksum of the resulting object will be checked
             and google.resumable_media.common.DataCorruption will be raised on
-            a mismatch. On a failure, the client will attempt to delete the
-            corrupted file from the remote host automatically. Supported values
+            a mismatch. On a validation failure, the client will attempt to
+            delete the uploaded object automatically. Supported values
             are "md5", "crc32c" and None. The default is None.
 
         :rtype: :class:`~requests.Response`
@@ -2525,8 +2525,8 @@ class Blob(_PropertyMixin):
             the integrity of the object. After the upload is complete, the
             server-computed checksum of the resulting object will be checked
             and google.resumable_media.common.DataCorruption will be raised on
-            a mismatch. On a failure, the client will attempt to delete the
-            corrupted file from the remote host automatically. Supported values
+            a mismatch. On a validation failure, the client will attempt to
+            delete the uploaded object automatically. Supported values
             are "md5", "crc32c" and None. The default is None.
 
         :rtype: str
