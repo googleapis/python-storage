@@ -93,7 +93,7 @@ def get_expiration_seconds_v2(expiration):
     :type expiration: Union[Integer, datetime.datetime, datetime.timedelta]
     :param expiration: Point in time when the signed URL should expire. If
                        a ``datetime`` instance is passed without an explicit
-                       ``tzinfo`` set,  it will be converted to ``UTC``.
+                       ``tzinfo`` set,  it will be assumed to be ``UTC``.
 
     :raises: :exc:`TypeError` when expiration is not a valid type.
 
@@ -127,7 +127,7 @@ def get_expiration_seconds_v4(expiration):
     :type expiration: Union[Integer, datetime.datetime, datetime.timedelta]
     :param expiration: Point in time when the signed URL should expire. If
                        a ``datetime`` instance is passed without an explicit
-                       ``tzinfo`` set,  it will be converted to ``UTC``.
+                       ``tzinfo`` set,  it will be assumed to be ``UTC``.
 
     :raises: :exc:`TypeError` when expiration is not a valid type.
     :raises: :exc:`ValueError` when expiration is too large.
@@ -305,7 +305,7 @@ def generate_signed_url_v2(
     :type expiration: Union[Integer, datetime.datetime, datetime.timedelta]
     :param expiration: Point in time when the signed URL should expire. If
                        a ``datetime`` instance is passed without an explicit
-                       ``tzinfo`` set,  it will be converted to ``UTC``.
+                       ``tzinfo`` set,  it will be assumed to be ``UTC``.
 
     :type api_access_endpoint: str
     :param api_access_endpoint: (Optional) URI base. Defaults to empty string.
@@ -469,7 +469,7 @@ def generate_signed_url_v4(
     :type expiration: Union[Integer, datetime.datetime, datetime.timedelta]
     :param expiration: Point in time when the signed URL should expire. If
                        a ``datetime`` instance is passed without an explicit
-                       ``tzinfo`` set,  it will be converted to ``UTC``.
+                       ``tzinfo`` set,  it will be assumed to be ``UTC``.
 
     :type api_access_endpoint: str
     :param api_access_endpoint: (Optional) URI base. Defaults to

@@ -964,7 +964,7 @@ class Client(ClientWithProject):
         :type expiration: Union[Integer, datetime.datetime, datetime.timedelta]
         :param expiration: Policy expiration time. If a ``datetime`` instance is
                            passed without an explicit ``tzinfo`` set,  it will be
-                           converted to ``UTC``.
+                           assumed to be ``UTC``.
 
         :type conditions: list
         :param conditions: (Optional) List of POST policy conditions, which are
