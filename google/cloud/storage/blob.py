@@ -3433,7 +3433,7 @@ def _raise_from_invalid_response(error):
     if response.text:
         error_message = response.text + ": " + str(error)
     else:
-        error_message = "unknown error: " + str(error)
+        error_message = str(error)
 
     message = u"{method} {url}: {error}".format(
         method=response.request.method, url=response.request.url, error=error_message

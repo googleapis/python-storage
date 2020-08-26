@@ -4376,7 +4376,7 @@ class Test__raise_from_invalid_response(unittest.TestCase):
     def test_default(self):
         message = "Failure"
         exc_info = self._helper(message)
-        expected = "GET http://example.com/: unknown error: {}".format(message)
+        expected = "GET http://example.com/: {}".format(message)
         self.assertEqual(exc_info.exception.message, expected)
         self.assertEqual(exc_info.exception.errors, [])
 
