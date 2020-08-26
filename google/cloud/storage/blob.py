@@ -52,6 +52,7 @@ from google.resumable_media.requests import ResumableUpload
 from google.api_core.iam import Policy
 from google.cloud import exceptions
 from google.cloud._helpers import _bytes_to_unicode
+from google.cloud._helpers import _datetime_to_rfc3339
 from google.cloud._helpers import _rfc3339_to_datetime
 from google.cloud._helpers import _to_bytes
 from google.cloud.exceptions import NotFound
@@ -3350,6 +3351,39 @@ class Blob(_PropertyMixin):
         if value is not None:
             return _rfc3339_to_datetime(value)
 
+    @property
+    def custom_time(self):
+        """Retrieve the custom time for the object.
+
+        See https://cloud.google.com/storage/docs/json_api/v1/objects
+
+        :rtype: :class:`datetime.datetime` or ``NoneType``
+        :returns: Datetime object parsed from RFC3339 valid timestamp, or
+                  ``None`` if the blob's resource has not been loaded from
+                  the server (see :meth:`reload`).
+        """
+        value = self._properties.get("customTime")
+        if value is not None:
+            return _rfc3339_to_datetime(value)
+
+    @custom_time.setter
+    def custom_time(self, value):
+        """Set the custom time for the object. Once set it can't be unset
+        and only changed to a custom datetime in the future. If the
+        custom_time must be unset, you must either perform a rewrite operation
+        or upload the data again.
+
+        See https://cloud.google.com/storage/docs/json_api/v1/objects
+
+        :type value: :class:`datetime.datetime`
+        :param value: (Optional) Set the custom time of blob. Datetime object
+                      parsed from RFC3339 valid timestamp.
+        """
+        if value is not None:
+            value = _datetime_to_rfc3339(value)
+
+        self._properties["customTime"] = value
+
 
 def _get_encryption_headers(key, source=False):
     """Builds customer encryption key headers
@@ -3429,7 +3463,13 @@ def _raise_from_invalid_response(error):
              to the failed status code
     """
     response = error.response
-    error_message = str(error)
+
+    # The 'response.text' gives the actual reason of error, where 'error' gives
+    # the message of expected status code.
+    if response.text:
+        error_message = response.text + ": " + str(error)
+    else:
+        error_message = str(error)
 
     message = u"{method} {url}: {error}".format(
         method=response.request.method, url=response.request.url, error=error_message
