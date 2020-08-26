@@ -3373,7 +3373,7 @@ class Blob(_PropertyMixin):
 
         See https://cloud.google.com/storage/docs/json_api/v1/objects
 
-        :type value: :class:`datetime.datetime` or ``NoneType``
+        :type value: :class:`datetime.datetime`
         :param value: (Optional) Set the custom time of blob. Datetime object
                       parsed from RFC3339 valid timestamp.
         """

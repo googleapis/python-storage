@@ -79,6 +79,7 @@ class Test_LifecycleRuleConditions(unittest.TestCase):
         self.assertIsNone(conditions.number_of_newer_versions)
         self.assertIsNone(conditions.days_since_custom_time)
         self.assertIsNone(conditions.custom_time_before)
+        self.assertIsNone(conditions.noncurrent_time_before)
 
     def test_ctor_w_number_of_newer_versions(self):
         conditions = self._make_one(number_of_newer_versions=3)
@@ -103,6 +104,19 @@ class Test_LifecycleRuleConditions(unittest.TestCase):
         self.assertEqual(conditions.number_of_newer_versions, 3)
         self.assertEqual(conditions.days_since_custom_time, 2)
 
+    def test_ctor_w_days_since_noncurrent_time(self):
+        conditions = self._make_one(
+            number_of_newer_versions=3, days_since_noncurrent_time=2
+        )
+        expected = {"numNewerVersions": 3, "daysSinceNoncurrentTime": 2}
+        self.assertEqual(dict(conditions), expected)
+        self.assertIsNone(conditions.age)
+        self.assertIsNone(conditions.created_before)
+        self.assertIsNone(conditions.is_live)
+        self.assertIsNone(conditions.matches_storage_class)
+        self.assertEqual(conditions.number_of_newer_versions, 3)
+        self.assertEqual(conditions.days_since_noncurrent_time, 2)
+
     def test_ctor_w_custom_time_before(self):
         import datetime
 
@@ -114,7 +128,6 @@ class Test_LifecycleRuleConditions(unittest.TestCase):
             "numNewerVersions": 3,
             "customTimeBefore": custom_time_before.isoformat(),
         }
-
         self.assertEqual(dict(conditions), expected)
         self.assertIsNone(conditions.age)
         self.assertIsNone(conditions.created_before)
@@ -123,10 +136,31 @@ class Test_LifecycleRuleConditions(unittest.TestCase):
         self.assertEqual(conditions.number_of_newer_versions, 3)
         self.assertEqual(conditions.custom_time_before, custom_time_before)
 
+    def test_ctor_w_noncurrent_time_before(self):
+        import datetime
+
+        noncurrent_before = datetime.date(2018, 8, 1)
+        conditions = self._make_one(
+            number_of_newer_versions=3, noncurrent_time_before=noncurrent_before
+        )
+
+        expected = {
+            "numNewerVersions": 3,
+            "noncurrentTimeBefore": noncurrent_before.isoformat(),
+        }
+        self.assertEqual(dict(conditions), expected)
+        self.assertIsNone(conditions.age)
+        self.assertIsNone(conditions.created_before)
+        self.assertIsNone(conditions.is_live)
+        self.assertIsNone(conditions.matches_storage_class)
+        self.assertEqual(conditions.number_of_newer_versions, 3)
+        self.assertEqual(conditions.noncurrent_time_before, noncurrent_before)
+
     def test_from_api_repr(self):
         import datetime
 
         custom_time_before = datetime.date(2018, 8, 1)
+        noncurrent_before = datetime.date(2018, 8, 1)
         before = datetime.date(2018, 8, 1)
         klass = self._get_target_class()
         resource = {
@@ -137,6 +171,8 @@ class Test_LifecycleRuleConditions(unittest.TestCase):
             "numNewerVersions": 3,
             "daysSinceCustomTime": 2,
             "customTimeBefore": custom_time_before.isoformat(),
+            "daysSinceNoncurrentTime": 2,
+            "noncurrentTimeBefore": noncurrent_before.isoformat(),
         }
         conditions = klass.from_api_repr(resource)
         self.assertEqual(conditions.age, 10)
@@ -146,6 +182,8 @@ class Test_LifecycleRuleConditions(unittest.TestCase):
         self.assertEqual(conditions.number_of_newer_versions, 3)
         self.assertEqual(conditions.days_since_custom_time, 2)
         self.assertEqual(conditions.custom_time_before, custom_time_before)
+        self.assertEqual(conditions.days_since_noncurrent_time, 2)
+        self.assertEqual(conditions.noncurrent_time_before, noncurrent_before)
 
 
 class Test_LifecycleRuleDelete(unittest.TestCase):
