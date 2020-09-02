@@ -818,8 +818,8 @@ class Blob(_PropertyMixin):
                 method, digest = match.groups()
                 digests[method] = digest
 
-        self.crc32c = digests.get("crc32c", None)
-        self.md5_hash = digests.get("md5", None)
+        self.crc32c = digests.get("crc32c", self.crc32c)
+        self.md5_hash = digests.get("md5", self.md5_hash)
 
     def _do_download(
         self,
