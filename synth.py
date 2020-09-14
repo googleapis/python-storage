@@ -19,7 +19,21 @@ import re
 import synthtool as s
 from synthtool import gcp
 
+gapic = gcp.GAPICBazel()
 common = gcp.CommonTemplates()
+versions = ["v1"]
+
+# ----------------------------------------------------------------------------
+# Generate asset GAPIC layer
+# ----------------------------------------------------------------------------
+for version in versions:
+    library = gapic.py_library(
+        service="storage",
+        version=version,
+        bazel_target=f"//google/storage/{version}:storage-{version}-py",
+    )
+
+    s.move(library / f"storage-{version}-py/", ".")#, excludes=excludes)
 
 # ----------------------------------------------------------------------------
 # Add templated files
