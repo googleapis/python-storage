@@ -1522,7 +1522,7 @@ class Test_Blob(unittest.TestCase):
         self.assertEqual(blob.md5_hash, "CS9tHYTtyFntzj7B9nkkJQ==")
         self.assertEqual(blob.crc32c, "4gcgLQ==")
 
-    def test_download_as_string_w_hash_response_header_none(self):
+    def test_download_as_string_w_hash_response_header_missing(self):
         blob_name = "blob-name"
         md5_hash = "CS9tHYTtyFntzj7B9nkkJQ=="
         crc32c = "4gcgLQ=="
