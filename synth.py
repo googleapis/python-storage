@@ -32,8 +32,17 @@ for version in versions:
         version=version,
         bazel_target=f"//google/storage/{version}:storage-{version}-py",
     )
-
+    excludes = [google/cloud/storage.py"]
     s.move(library / f"storage-{version}-py/", ".")#, excludes=excludes)
+
+    # TODO: metadata is an arg used by top-level gapic. Modify method
+    # signatures accordingly.
+    # s.replace(
+    #     f"google/cloud/storage_{version}/storage_client.py",
+    #     "(),\n.*)metadata=None,(\n.*[a-z])", 
+    #     "$1api_metadata=None,$2"
+    # )
+   
 
 # ----------------------------------------------------------------------------
 # Add templated files
