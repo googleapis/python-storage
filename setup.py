@@ -32,6 +32,10 @@ dependencies = [
     "google-auth >= 1.11.0, < 2.0dev",
     "google-cloud-core >= 1.4.1, < 2.0dev",
     "google-resumable-media >= 1.0.0, < 2.0dev",
+    "google-api-core[grpc] >= 1.21.0, < 2.0.0dev",
+    "grpc-google-iam-v1 >= 0.12.3",
+    "proto-plus >= 1.3.0",
+    "pytz",
 ]
 extras = {}
 
