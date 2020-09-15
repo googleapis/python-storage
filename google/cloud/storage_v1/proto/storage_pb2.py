@@ -10562,7 +10562,8 @@ CreateHmacKeyRequest = _reflection.GeneratedProtocolMessageType(
     {
         "DESCRIPTOR": _CREATEHMACKEYREQUEST,
         "__module__": "google.cloud.storage_v1.proto.storage_pb2",
-        "__doc__": """Attributes:
+        "__doc__": """Create Hmac Key Request
+    Attributes:
       project_id:
           Required. The project that the HMAC-owning service account
           lives in.

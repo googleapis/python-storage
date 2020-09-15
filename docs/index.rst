@@ -22,6 +22,10 @@ API Reference
   hmac_key
   notification
 
+  gapic/v1/api
+  gapic/v1/types
+
+
 Changelog
 ---------
 .. toctree::

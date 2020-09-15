@@ -4347,7 +4347,8 @@ Bucket = _reflection.GeneratedProtocolMessageType(
                     {
                         "DESCRIPTOR": _BUCKET_IAMCONFIGURATION_UNIFORMBUCKETLEVELACCESS,
                         "__module__": "google.cloud.storage_v1.proto.storage_resources_pb2",
-                        "__doc__": """Attributes:
+                        "__doc__": """Uniform Bucket Level Access
+      Attributes:
           enabled:
               If set, access checks only use bucket-level IAM policies or
               above.
@@ -4840,7 +4841,8 @@ ListChannelsResponse = _reflection.GeneratedProtocolMessageType(
             {
                 "DESCRIPTOR": _LISTCHANNELSRESPONSE_ITEMS,
                 "__module__": "google.cloud.storage_v1.proto.storage_resources_pb2",
-                "__doc__": """Attributes:
+                "__doc__": """List Channels Response.
+    Attributes:
         channel_id:
             User-specified name for a channel. Needed to unsubscribe.
         resource_id:
