@@ -26,19 +26,10 @@ import google.api_core.gapic_v1.config
 import google.api_core.gapic_v1.method
 import google.api_core.grpc_helpers
 import google.api_core.protobuf_helpers
-import grpc
 
-from google.cloud.storage_v1 import enums
 from google.cloud.storage_v1 import storage_client_config
 from google.cloud.storage_v1.proto import storage_pb2
-from google.cloud.storage_v1.proto import storage_pb2_grpc
-from google.cloud.storage_v1.proto import storage_resources_pb2
 from google.cloud.storage_v1.transports import storage_grpc_transport
-from google.iam.v1 import iam_policy_pb2
-from google.iam.v1 import policy_pb2
-from google.protobuf import empty_pb2
-from google.protobuf import field_mask_pb2
-from google.protobuf import wrappers_pb2
 
 
 _GAPIC_LIBRARY_VERSION = pkg_resources.get_distribution("google-cloud-storage",).version
@@ -217,10 +208,10 @@ class StorageClient(object):
             bucket (str): Required. Name of a bucket.
             entity (str): Required. The entity holding the permission. Can be one of:
 
-                -  ``user-``\ *userId*
-                -  ``user-``\ *emailAddress*
-                -  ``group-``\ *groupId*
-                -  ``group-``\ *emailAddress*
+                -  ``user-`` *userId*
+                -  ``user-`` *emailAddress*
+                -  ``group-`` *groupId*
+                -  ``group-`` *emailAddress*
                 -  ``allUsers``
                 -  ``allAuthenticatedUsers``
             common_request_params (Union[dict, ~google.cloud.storage_v1.types.CommonRequestParams]): A set of parameters common to all Storage API requests.
@@ -292,10 +283,10 @@ class StorageClient(object):
             bucket (str): Required. Name of a bucket.
             entity (str): Required. The entity holding the permission. Can be one of:
 
-                -  ``user-``\ *userId*
-                -  ``user-``\ *emailAddress*
-                -  ``group-``\ *groupId*
-                -  ``group-``\ *emailAddress*
+                -  ``user-`` *userId*
+                -  ``user-`` *emailAddress*
+                -  ``group-`` *groupId*
+                -  ``group-`` *emailAddress*
                 -  ``allUsers``
                 -  ``allAuthenticatedUsers``
             common_request_params (Union[dict, ~google.cloud.storage_v1.types.CommonRequestParams]): A set of parameters common to all Storage API requests.
@@ -510,10 +501,10 @@ class StorageClient(object):
             bucket (str): Required. Name of a bucket.
             entity (str): Required. The entity holding the permission. Can be one of:
 
-                -  ``user-``\ *userId*
-                -  ``user-``\ *emailAddress*
-                -  ``group-``\ *groupId*
-                -  ``group-``\ *emailAddress*
+                -  ``user-`` *userId*
+                -  ``user-`` *emailAddress*
+                -  ``group-`` *groupId*
+                -  ``group-`` *emailAddress*
                 -  ``allUsers``
                 -  ``allAuthenticatedUsers``
             bucket_access_control (Union[dict, ~google.cloud.storage_v1.types.BucketAccessControl]): The BucketAccessControl for updating.
@@ -597,10 +588,10 @@ class StorageClient(object):
             bucket (str): Required. Name of a bucket.
             entity (str): Required. The entity holding the permission. Can be one of:
 
-                -  ``user-``\ *userId*
-                -  ``user-``\ *emailAddress*
-                -  ``group-``\ *groupId*
-                -  ``group-``\ *emailAddress*
+                -  ``user-`` *userId*
+                -  ``user-`` *emailAddress*
+                -  ``group-`` *groupId*
+                -  ``group-`` *emailAddress*
                 -  ``allUsers``
                 -  ``allAuthenticatedUsers``
             bucket_access_control (Union[dict, ~google.cloud.storage_v1.types.BucketAccessControl]): The BucketAccessControl for updating.
@@ -1613,10 +1604,10 @@ class StorageClient(object):
             bucket (str): Required. Name of a bucket.
             entity (str): Required. The entity holding the permission. Can be one of:
 
-                -  ``user-``\ *userId*
-                -  ``user-``\ *emailAddress*
-                -  ``group-``\ *groupId*
-                -  ``group-``\ *emailAddress*
+                -  ``user-`` *userId*
+                -  ``user-`` *emailAddress*
+                -  ``group-`` *groupId*
+                -  ``group-`` *emailAddress*
                 -  ``allUsers``
                 -  ``allAuthenticatedUsers``
             common_request_params (Union[dict, ~google.cloud.storage_v1.types.CommonRequestParams]): A set of parameters common to all Storage API requests.
@@ -1691,10 +1682,10 @@ class StorageClient(object):
             bucket (str): Required. Name of a bucket.
             entity (str): Required. The entity holding the permission. Can be one of:
 
-                -  ``user-``\ *userId*
-                -  ``user-``\ *emailAddress*
-                -  ``group-``\ *groupId*
-                -  ``group-``\ *emailAddress*
+                -  ``user-`` *userId*
+                -  ``user-`` *emailAddress*
+                -  ``group-`` *groupId*
+                -  ``group-`` *emailAddress*
                 -  ``allUsers``
                 -  ``allAuthenticatedUsers``
             common_request_params (Union[dict, ~google.cloud.storage_v1.types.CommonRequestParams]): A set of parameters common to all Storage API requests.
@@ -1931,10 +1922,10 @@ class StorageClient(object):
             bucket (str): Required. Name of a bucket.
             entity (str): Required. The entity holding the permission. Can be one of:
 
-                -  ``user-``\ *userId*
-                -  ``user-``\ *emailAddress*
-                -  ``group-``\ *groupId*
-                -  ``group-``\ *emailAddress*
+                -  ``user-`` *userId*
+                -  ``user-`` *emailAddress*
+                -  ``group-`` *groupId*
+                -  ``group-`` *emailAddress*
                 -  ``allUsers``
                 -  ``allAuthenticatedUsers``
             object_access_control (Union[dict, ~google.cloud.storage_v1.types.ObjectAccessControl]): The ObjectAccessControl for updating.
@@ -2034,10 +2025,10 @@ class StorageClient(object):
             bucket (str): Required. Name of a bucket.
             entity (str): Required. The entity holding the permission. Can be one of:
 
-                -  ``user-``\ *userId*
-                -  ``user-``\ *emailAddress*
-                -  ``group-``\ *groupId*
-                -  ``group-``\ *emailAddress*
+                -  ``user-`` *userId*
+                -  ``user-`` *emailAddress*
+                -  ``group-`` *groupId*
+                -  ``group-`` *emailAddress*
                 -  ``allUsers``
                 -  ``allAuthenticatedUsers``
             object_access_control (Union[dict, ~google.cloud.storage_v1.types.ObjectAccessControl]): The ObjectAccessControl for updating.
@@ -2407,10 +2398,10 @@ class StorageClient(object):
             bucket (str): Required. Name of a bucket.
             entity (str): Required. The entity holding the permission. Can be one of:
 
-                -  ``user-``\ *userId*
-                -  ``user-``\ *emailAddress*
-                -  ``group-``\ *groupId*
-                -  ``group-``\ *emailAddress*
+                -  ``user-`` *userId*
+                -  ``user-`` *emailAddress*
+                -  ``group-`` *groupId*
+                -  ``group-`` *emailAddress*
                 -  ``allUsers``
                 -  ``allAuthenticatedUsers``
             object_ (str): Required. Name of the object.
@@ -2494,10 +2485,10 @@ class StorageClient(object):
             bucket (str): Required. Name of a bucket.
             entity (str): Required. The entity holding the permission. Can be one of:
 
-                -  ``user-``\ *userId*
-                -  ``user-``\ *emailAddress*
-                -  ``group-``\ *groupId*
-                -  ``group-``\ *emailAddress*
+                -  ``user-`` *userId*
+                -  ``user-`` *emailAddress*
+                -  ``group-`` *groupId*
+                -  ``group-`` *emailAddress*
                 -  ``allUsers``
                 -  ``allAuthenticatedUsers``
             object_ (str): Required. Name of the object.
@@ -2746,10 +2737,10 @@ class StorageClient(object):
             bucket (str): Required. Name of a bucket.
             entity (str): Required. The entity holding the permission. Can be one of:
 
-                -  ``user-``\ *userId*
-                -  ``user-``\ *emailAddress*
-                -  ``group-``\ *groupId*
-                -  ``group-``\ *emailAddress*
+                -  ``user-`` *userId*
+                -  ``user-`` *emailAddress*
+                -  ``group-`` *groupId*
+                -  ``group-`` *emailAddress*
                 -  ``allUsers``
                 -  ``allAuthenticatedUsers``
             object_ (str): Required. Name of the object.
@@ -2857,10 +2848,10 @@ class StorageClient(object):
             bucket (str): Required. Name of a bucket.
             entity (str): Required. The entity holding the permission. Can be one of:
 
-                -  ``user-``\ *userId*
-                -  ``user-``\ *emailAddress*
-                -  ``group-``\ *groupId*
-                -  ``group-``\ *emailAddress*
+                -  ``user-`` *userId*
+                -  ``user-`` *emailAddress*
+                -  ``group-`` *groupId*
+                -  ``group-`` *emailAddress*
                 -  ``allUsers``
                 -  ``allAuthenticatedUsers``
             object_ (str): Required. Name of the object.

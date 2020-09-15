@@ -14,6 +14,8 @@
 
 """This script is used to synthesize generated parts of this library."""
 
+from io import UnsupportedOperation
+from os import uname
 import re
 
 import synthtool as s
@@ -42,7 +44,33 @@ for version in versions:
     #     "(),\n.*)metadata=None,(\n.*[a-z])", 
     #     "$1api_metadata=None,$2"
     # )
-   
+
+    # Fix bad docstrings
+    s.replace(
+        f"google/cloud/storage_{version}/storage_client.py",
+        "``\\",
+        "``"
+    )
+
+    # Remove unused imports
+    unused_imports = [
+        "import grpc",
+        "from google.cloud.storage_v1 import enums",
+        "from google.cloud.storage_v1.proto import storage_pb2_grpc",
+        "from google.cloud.storage_v1.proto import storage_resources_pb2",
+        "from google.iam.v1 import iam_policy_pb2",
+        "from google.iam.v1 import policy_pb2",
+        "from google.protobuf import empty_pb2",
+        "from google.protobuf import field_mask_pb2",
+        "from google.protobuf import wrappers_pb2",
+    ]
+    for i in unused_imports:
+        s.replace(
+            f"google/cloud/storage_{version}/storage_client.py",
+            f"{i}",
+            ""
+        )
+
 
 # ----------------------------------------------------------------------------
 # Add templated files
