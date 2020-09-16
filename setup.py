@@ -36,6 +36,7 @@ dependencies = [
     "grpc-google-iam-v1 >= 0.12.3",
     "proto-plus >= 1.3.0",
     "pytz",
+    "requests >= 2.18.0, < 3.0.0dev",
 ]
 extras = {}
 
