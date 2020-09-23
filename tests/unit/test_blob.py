@@ -1522,12 +1522,36 @@ class Test_Blob(unittest.TestCase):
         self.assertEqual(blob.md5_hash, "CS9tHYTtyFntzj7B9nkkJQ==")
         self.assertEqual(blob.crc32c, "4gcgLQ==")
 
+        response = self._mock_requests_response(
+            http_client.OK,
+            headers={
+                "Content-Type": "application/octet-stream",
+                "Content-Language": "en-US",
+                "Cache-Control": "max-age=1337;public",
+                "Content-Encoding": "gzip",
+                "X-Goog-Storage-Class": "STANDARD",
+                "X-Goog-Hash": "crc32c=4/c+LQ==,md5=CS9tHYTt/+ntzj7B9nkkJQ==",
+            },
+            content=b"",
+        )
+        blob._extract_headers_from_download(response)
+        self.assertEqual(blob.content_type, "application/octet-stream")
+        self.assertEqual(blob.content_language, "en-US")
+        self.assertEqual(blob.md5_hash, "CS9tHYTt/+ntzj7B9nkkJQ==")
+        self.assertEqual(blob.crc32c, "4/c+LQ==")
+
     def test_download_as_string_w_hash_response_header_none(self):
         blob_name = "blob-name"
+        md5_hash = "CS9tHYTtyFntzj7B9nkkJQ=="
+        crc32c = "4gcgLQ=="
         client = mock.Mock(spec=["_http"])
         bucket = _Bucket(client)
         media_link = "http://example.com/media/"
-        properties = {"mediaLink": media_link}
+        properties = {
+            "mediaLink": media_link,
+            "md5Hash": md5_hash,
+            "crc32c": crc32c,
+        }
         blob = self._make_one(blob_name, bucket=bucket, properties=properties)
 
         response = self._mock_requests_response(
@@ -1538,8 +1562,8 @@ class Test_Blob(unittest.TestCase):
         )
         blob._extract_headers_from_download(response)
 
-        self.assertIsNone(blob.md5_hash)
-        self.assertIsNone(blob.crc32c)
+        self.assertEqual(blob.md5_hash, md5_hash)
+        self.assertEqual(blob.crc32c, crc32c)
 
     def test_download_as_bytes_w_generation_match(self):
         GENERATION_NUMBER = 6
