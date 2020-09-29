@@ -4,14 +4,14 @@
       "git": {
         "name": ".",
         "remote": "https://github.com/googleapis/python-storage.git",
-        "sha": "944ab1827b3ca0bd1d3aafc2829245290e9bde59"
+        "sha": "50b43d95863a0c3ede1feeff3e09346b495a539c"
       }
     },
     {
       "git": {
         "name": "synthtool",
         "remote": "https://github.com/googleapis/synthtool.git",
-        "sha": "80f46100c047bc47efe0025ee537dc8ee413ad04"
+        "sha": "f3c04883d6c43261ff13db1f52d03a283be06871"
       }
     }
   ],
@@ -24,6 +24,7 @@
     ".github/ISSUE_TEMPLATE/support_request.md",
     ".github/PULL_REQUEST_TEMPLATE.md",
     ".github/release-please.yml",
+    ".github/snippet-bot.yml",
     ".gitignore",
     ".kokoro/build.sh",
     ".kokoro/continuous/common.cfg",
@@ -33,6 +34,7 @@
     ".kokoro/docs/common.cfg",
     ".kokoro/docs/docs-presubmit.cfg",
     ".kokoro/docs/docs.cfg",
+    ".kokoro/populate-secrets.sh",
     ".kokoro/presubmit/common.cfg",
     ".kokoro/presubmit/presubmit.cfg",
     ".kokoro/publish-docs.sh",
