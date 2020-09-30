@@ -1575,7 +1575,7 @@ class Test_Blob(unittest.TestCase):
 
         response = self._mock_requests_response(
             http_client.OK,
-            headers={"X-Goog-Hash": "crc=4gcgLQ==,",},
+            headers={"X-Goog-Hash": "crc=4gcgLQ==,"},
             # { "x": 5 } gzipped
             content=b"",
         )
