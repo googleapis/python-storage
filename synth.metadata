@@ -4,14 +4,14 @@
       "git": {
         "name": ".",
         "remote": "https://github.com/googleapis/python-storage.git",
-        "sha": "50b43d95863a0c3ede1feeff3e09346b495a539c"
+        "sha": "2f4164d209494752bd3b9ec4d6ac389282f5c604"
       }
     },
     {
       "git": {
         "name": "synthtool",
         "remote": "https://github.com/googleapis/synthtool.git",
-        "sha": "f3c04883d6c43261ff13db1f52d03a283be06871"
+        "sha": "9b0da5204ab90bcc36f8cd4e5689eff1a54cc3e4"
       }
     }
   ],
