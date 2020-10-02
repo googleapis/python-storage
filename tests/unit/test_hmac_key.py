@@ -16,6 +16,8 @@ import unittest
 
 import mock
 
+from google.cloud.storage.retry import DEFAULT_RETRY
+from google.cloud.storage.retry import DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED
 
 class TestHMACKeyMetadata(unittest.TestCase):
     @staticmethod
@@ -343,6 +345,7 @@ class TestHMACKeyMetadata(unittest.TestCase):
             "data": {"state": "INACTIVE"},
             "query_params": {},
             "timeout": 42,
+            "retry": DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
         }
         connection.api_request.assert_called_once_with(**expected_kwargs)
 
@@ -376,6 +379,7 @@ class TestHMACKeyMetadata(unittest.TestCase):
             "data": {"state": "ACTIVE"},
             "query_params": {"userProject": user_project},
             "timeout": self._get_default_timeout(),
+            "retry": DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
         }
         connection.api_request.assert_called_once_with(**expected_kwargs)
 
@@ -409,6 +413,7 @@ class TestHMACKeyMetadata(unittest.TestCase):
             "path": expected_path,
             "query_params": {},
             "timeout": 42,
+            "retry": DEFAULT_RETRY,
         }
         connection.api_request.assert_called_once_with(**expected_kwargs)
 
@@ -432,6 +437,7 @@ class TestHMACKeyMetadata(unittest.TestCase):
             "path": expected_path,
             "query_params": {"userProject": user_project},
             "timeout": self._get_default_timeout(),
+            "retry": DEFAULT_RETRY,
         }
         connection.api_request.assert_called_once_with(**expected_kwargs)
 

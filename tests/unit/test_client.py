@@ -22,8 +22,13 @@ import requests
 import unittest
 from six.moves import http_client
 
+from google.api_core import exceptions
+
 from google.oauth2.service_account import Credentials
 from . import _read_local_json
+
+from google.cloud.storage.retry import DEFAULT_RETRY
+
 
 _SERVICE_ACCOUNT_JSON = _read_local_json("url_signer_v4_test_account.json")
 _CONFORMANCE_TESTS = _read_local_json("url_signer_v4_test_data.json")[
@@ -696,6 +701,7 @@ class TestClient(unittest.TestCase):
             data=data,
             _target_object=mock.ANY,
             timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
         )
 
     @mock.patch("warnings.warn")
@@ -765,6 +771,7 @@ class TestClient(unittest.TestCase):
             data=data,
             _target_object=bucket,
             timeout=42,
+            retry=DEFAULT_RETRY,
         )
 
     def test_create_bucket_w_predefined_default_object_acl_invalid(self):
@@ -800,6 +807,7 @@ class TestClient(unittest.TestCase):
             data=data,
             _target_object=bucket,
             timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
         )
 
     def test_create_bucket_w_explicit_location(self):
@@ -825,6 +833,7 @@ class TestClient(unittest.TestCase):
             _target_object=bucket,
             query_params={"project": project},
             timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
         )
         self.assertEqual(bucket.location, location)
 
@@ -848,6 +857,7 @@ class TestClient(unittest.TestCase):
             data=DATA,
             _target_object=bucket,
             timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
         )
 
     def test_create_w_extra_properties(self):
@@ -899,6 +909,7 @@ class TestClient(unittest.TestCase):
             data=DATA,
             _target_object=bucket,
             timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
         )
 
     def test_create_hit(self):
@@ -920,6 +931,7 @@ class TestClient(unittest.TestCase):
             data=DATA,
             _target_object=bucket,
             timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
         )
 
     def test_create_bucket_w_string_success(self):
@@ -1055,6 +1067,7 @@ class TestClient(unittest.TestCase):
                 path="/b/%s/o" % BUCKET_NAME,
                 query_params={"projection": "noAcl"},
                 timeout=self._get_default_timeout(),
+                retry=DEFAULT_RETRY,
             )
 
     def test_list_blobs_w_all_arguments_and_user_project(self):
@@ -1119,6 +1132,7 @@ class TestClient(unittest.TestCase):
                 path="/b/%s/o" % BUCKET_NAME,
                 query_params=EXPECTED,
                 timeout=42,
+                retry=DEFAULT_RETRY,
             )
 
     def test_list_buckets_wo_project(self):
@@ -1835,6 +1849,30 @@ class TestClient(unittest.TestCase):
         self.assertEqual(fields["x-goog-signature"], EXPECTED_SIGN)
         self.assertEqual(fields["policy"], EXPECTED_POLICY)
 
+    def test_list_buckets_retries_error(self):
+        PROJECT = "PROJECT"
+        CREDENTIALS = _make_credentials()
+        client = self._make_one(project=PROJECT, credentials=CREDENTIALS)
+
+        BUCKET_NAME = "bucket-name"
+
+        data = {"items": [{"name": BUCKET_NAME}]}
+        http = _make_requests_session([exceptions.InternalServerError("mock error"), _make_json_response(data)])
+        client._http_internal = http
+
+        buckets = list(client.list_buckets())
+
+        self.assertEqual(len(buckets), 1)
+        self.assertEqual(buckets[0].name, BUCKET_NAME)
+
+        call = mock.call(
+            method="GET",
+            url=mock.ANY,
+            data=mock.ANY,
+            headers=mock.ANY,
+            timeout=self._get_default_timeout(),
+        )
+        http.request.assert_has_calls([call, call])
 
 @pytest.mark.parametrize("test_data", _POST_POLICY_TESTS)
 def test_conformance_post_policy(test_data):
