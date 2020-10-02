@@ -30,7 +30,7 @@ _UNSTRUCTURED_RETRYABLE_TYPES = (
 
 
 # FIXME: needs to be brought in line with doc outlining all retriable error codes
-# FIXME: add tests
+# FIXME: add tests once above is done
 def _should_retry(exc):
     """Predicate for determining when to retry."""
     if not hasattr(exc, "errors"):
