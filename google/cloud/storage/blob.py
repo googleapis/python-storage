@@ -74,9 +74,7 @@ from google.cloud.storage.constants import MULTI_REGIONAL_LEGACY_STORAGE_CLASS
 from google.cloud.storage.constants import NEARLINE_STORAGE_CLASS
 from google.cloud.storage.constants import REGIONAL_LEGACY_STORAGE_CLASS
 from google.cloud.storage.constants import STANDARD_STORAGE_CLASS
-from google.cloud.storage.retry import DEFAULT_RETRY
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_GENERATION_SPECIFIED
-from google.cloud.storage.retry import DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED
 
 
 _API_ACCESS_ENDPOINT = "https://storage.googleapis.com"

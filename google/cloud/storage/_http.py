@@ -19,7 +19,6 @@ import functools
 from google.cloud import _http
 
 from google.cloud.storage import __version__
-from google.cloud.storage import retry
 
 
 class Connection(_http.JSONConnection):

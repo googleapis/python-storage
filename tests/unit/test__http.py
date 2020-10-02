@@ -96,13 +96,17 @@ class TestConnection(unittest.TestCase):
         http.request.return_value = response
 
         req_data = "hey-yoooouuuuu-guuuuuyyssss"
-        result = conn.api_request("GET", "/rainbow", data=req_data, expect_json=False)
+        conn.api_request("GET", "/rainbow", data=req_data, expect_json=False)
         http.request.assert_called_once()
 
     def test_api_request_basic_retry(self):
         # For this test, the "retry" function will just short-circuit.
         FAKE_RESPONSE_STRING = "fake_response"
-        retry = lambda _: lambda: FAKE_RESPONSE_STRING
+
+        def retry(_):
+            def fake_response():
+                return FAKE_RESPONSE_STRING
+            return fake_response
 
         import requests
 
@@ -128,7 +132,12 @@ class TestConnection(unittest.TestCase):
     def test_api_request_conditional_retry(self):
         # For this test, the "retry" function will short-circuit.
         FAKE_RESPONSE_STRING = "fake_response"
-        retry = lambda _: lambda: FAKE_RESPONSE_STRING
+
+        def retry(_):
+            def fake_response():
+                return FAKE_RESPONSE_STRING
+            return fake_response
+
         conditional_retry_mock = mock.MagicMock()
         conditional_retry_mock.get_retry_policy_if_conditions_met.return_value = retry
 
@@ -176,7 +185,7 @@ class TestConnection(unittest.TestCase):
         http.request.return_value = response
 
         req_data = "hey-yoooouuuuu-guuuuuyyssss"
-        result = conn.api_request(
+        conn.api_request(
             "GET",
             "/rainbow",
             data=req_data,

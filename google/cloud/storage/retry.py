@@ -28,6 +28,7 @@ _UNSTRUCTURED_RETRYABLE_TYPES = (
     exceptions.BadGateway,
 )
 
+
 # FIXME: needs to be brought in line with doc outlining all retriable error codes
 # FIXME: add tests
 def _should_retry(exc):
