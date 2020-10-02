@@ -1857,7 +1857,9 @@ class TestClient(unittest.TestCase):
         BUCKET_NAME = "bucket-name"
 
         data = {"items": [{"name": BUCKET_NAME}]}
-        http = _make_requests_session([exceptions.InternalServerError("mock error"), _make_json_response(data)])
+        http = _make_requests_session(
+            [exceptions.InternalServerError("mock error"), _make_json_response(data)]
+        )
         client._http_internal = http
 
         buckets = list(client.list_buckets())
@@ -1873,6 +1875,7 @@ class TestClient(unittest.TestCase):
             timeout=self._get_default_timeout(),
         )
         http.request.assert_has_calls([call, call])
+
 
 @pytest.mark.parametrize("test_data", _POST_POLICY_TESTS)
 def test_conformance_post_policy(test_data):

@@ -61,4 +61,3 @@ class Connection(_http.JSONConnection):
             if retry:
                 call = retry(call)
         return call()
-

@@ -349,7 +349,11 @@ class BucketNotification(object):
             query_params["userProject"] = self.bucket.user_project
 
         response = client._connection.api_request(
-            method="GET", path=self.path, query_params=query_params, timeout=timeout, retry=DEFAULT_RETRY
+            method="GET",
+            path=self.path,
+            query_params=query_params,
+            timeout=timeout,
+            retry=DEFAULT_RETRY,
         )
         self._set_properties(response)
 
@@ -387,7 +391,11 @@ class BucketNotification(object):
             query_params["userProject"] = self.bucket.user_project
 
         client._connection.api_request(
-            method="DELETE", path=self.path, query_params=query_params, timeout=timeout, retry=DEFAULT_RETRY
+            method="DELETE",
+            path=self.path,
+            query_params=query_params,
+            timeout=timeout,
+            retry=DEFAULT_RETRY,
         )
 
 

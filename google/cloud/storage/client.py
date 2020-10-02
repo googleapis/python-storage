@@ -779,7 +779,9 @@ class Client(ClientWithProject):
         if fields is not None:
             extra_params["fields"] = fields
 
-        api_request = functools.partial(self._connection.api_request, retry=DEFAULT_RETRY, timeout=timeout)
+        api_request = functools.partial(
+            self._connection.api_request, retry=DEFAULT_RETRY, timeout=timeout
+        )
 
         return page_iterator.HTTPIterator(
             client=self,
@@ -831,7 +833,11 @@ class Client(ClientWithProject):
             qs_params["userProject"] = user_project
 
         api_response = self._connection.api_request(
-            method="POST", path=path, query_params=qs_params, timeout=timeout, retry=None
+            method="POST",
+            path=path,
+            query_params=qs_params,
+            timeout=timeout,
+            retry=None,
         )
         metadata = HMACKeyMetadata(self)
         metadata._properties = api_response["metadata"]
@@ -895,7 +901,9 @@ class Client(ClientWithProject):
         if user_project is not None:
             extra_params["userProject"] = user_project
 
-        api_request = functools.partial(self._connection.api_request, timeout=timeout, retry=DEFAULT_RETRY)
+        api_request = functools.partial(
+            self._connection.api_request, timeout=timeout, retry=DEFAULT_RETRY
+        )
 
         return page_iterator.HTTPIterator(
             client=self,

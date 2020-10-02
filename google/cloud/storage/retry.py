@@ -51,6 +51,7 @@ on ``DEFAULT_RETRY``. For example, to change the deadline to 30 seconds,
 pass ``retry=DEFAULT_RETRY.with_deadline(30)``.
 """
 
+
 class ConditionalRetryPolicy(object):
     def __init__(self, retry_policy, conditional_predicate, required_kwargs):
         self.retry_policy = retry_policy
@@ -62,16 +63,19 @@ class ConditionalRetryPolicy(object):
             return self.retry_policy
         return None
 
+
 def is_generation_specified(query_params):
     """Return True if generation or if_generation_match is specified."""
     generation = query_params.get("generation") is not None
     if_generation_match = query_params.get("if_generation_match") is not None
     return generation or if_generation_match
 
+
 def is_metageneration_specified(query_params):
     """Return True if if_metageneration_match is specified."""
     if_metageneration_match = query_params.get("if_metageneration_match") is not None
     return if_metageneration_match
+
 
 def is_metageneration_specified_or_etag_in_json(query_params, data):
     """Return True if if_metageneration_match is specified."""
@@ -86,6 +90,12 @@ def is_metageneration_specified_or_etag_in_json(query_params, data):
     return False
 
 
-DEFAULT_RETRY_IF_GENERATION_SPECIFIED = ConditionalRetryPolicy(DEFAULT_RETRY, is_generation_specified, ["query_params"])
-DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED = ConditionalRetryPolicy(DEFAULT_RETRY, is_metageneration_specified, ["query_params"])
-DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED_OR_ETAG_IN_JSON = ConditionalRetryPolicy(DEFAULT_RETRY, is_metageneration_specified_or_etag_in_json, ["query_params", "data"])
+DEFAULT_RETRY_IF_GENERATION_SPECIFIED = ConditionalRetryPolicy(
+    DEFAULT_RETRY, is_generation_specified, ["query_params"]
+)
+DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED = ConditionalRetryPolicy(
+    DEFAULT_RETRY, is_metageneration_specified, ["query_params"]
+)
+DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED_OR_ETAG_IN_JSON = ConditionalRetryPolicy(
+    DEFAULT_RETRY, is_metageneration_specified_or_etag_in_json, ["query_params", "data"]
+)

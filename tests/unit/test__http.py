@@ -84,6 +84,7 @@ class TestConnection(unittest.TestCase):
 
     def test_api_request_no_retry(self):
         import requests
+
         http = mock.create_autospec(requests.Session, instance=True)
         client = mock.Mock(_http=http, spec=["_http"])
 
@@ -104,6 +105,7 @@ class TestConnection(unittest.TestCase):
         retry = lambda _: lambda: FAKE_RESPONSE_STRING
 
         import requests
+
         http = mock.create_autospec(requests.Session, instance=True)
         client = mock.Mock(_http=http, spec=["_http"])
 
@@ -117,7 +119,9 @@ class TestConnection(unittest.TestCase):
         http.request.return_value = response
 
         req_data = "hey-yoooouuuuu-guuuuuyyssss"
-        result = conn.api_request("GET", "/rainbow", data=req_data, expect_json=False, retry=retry)
+        result = conn.api_request(
+            "GET", "/rainbow", data=req_data, expect_json=False, retry=retry
+        )
         http.request.assert_not_called()
         self.assertEqual(result, FAKE_RESPONSE_STRING)
 
@@ -129,6 +133,7 @@ class TestConnection(unittest.TestCase):
         conditional_retry_mock.get_retry_policy_if_conditions_met.return_value = retry
 
         import requests
+
         http = mock.create_autospec(requests.Session, instance=True)
         client = mock.Mock(_http=http, spec=["_http"])
 
@@ -142,7 +147,13 @@ class TestConnection(unittest.TestCase):
         http.request.return_value = response
 
         req_data = "hey-yoooouuuuu-guuuuuyyssss"
-        result = conn.api_request("GET", "/rainbow", data=req_data, expect_json=False, retry=conditional_retry_mock)
+        result = conn.api_request(
+            "GET",
+            "/rainbow",
+            data=req_data,
+            expect_json=False,
+            retry=conditional_retry_mock,
+        )
         http.request.assert_not_called()
         self.assertEqual(result, FAKE_RESPONSE_STRING)
 
@@ -151,6 +162,7 @@ class TestConnection(unittest.TestCase):
         conditional_retry_mock.get_retry_policy_if_conditions_met.return_value = None
 
         import requests
+
         http = mock.create_autospec(requests.Session, instance=True)
         client = mock.Mock(_http=http, spec=["_http"])
 
@@ -164,5 +176,11 @@ class TestConnection(unittest.TestCase):
         http.request.return_value = response
 
         req_data = "hey-yoooouuuuu-guuuuuyyssss"
-        result = conn.api_request("GET", "/rainbow", data=req_data, expect_json=False, retry=conditional_retry_mock)
+        result = conn.api_request(
+            "GET",
+            "/rainbow",
+            data=req_data,
+            expect_json=False,
+            retry=conditional_retry_mock,
+        )
         http.request.assert_called_once()

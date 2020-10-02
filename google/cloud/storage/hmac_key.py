@@ -286,5 +286,9 @@ class HMACKeyMetadata(object):
             qs_params["userProject"] = self.user_project
 
         self._client._connection.api_request(
-            method="DELETE", path=self.path, query_params=qs_params, timeout=timeout, retry=DEFAULT_RETRY
+            method="DELETE",
+            path=self.path,
+            query_params=qs_params,
+            timeout=timeout,
+            retry=DEFAULT_RETRY,
         )

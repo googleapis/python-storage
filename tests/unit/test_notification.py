@@ -395,7 +395,11 @@ class TestBucketNotification(unittest.TestCase):
             notification.reload(timeout=42)
 
         api_request.assert_called_once_with(
-            method="GET", path=self.NOTIFICATION_PATH, query_params={}, timeout=42, retry=DEFAULT_RETRY
+            method="GET",
+            path=self.NOTIFICATION_PATH,
+            query_params={},
+            timeout=42,
+            retry=DEFAULT_RETRY,
         )
 
     def test_reload_hit(self):
@@ -454,7 +458,11 @@ class TestBucketNotification(unittest.TestCase):
             notification.delete(timeout=42)
 
         api_request.assert_called_once_with(
-            method="DELETE", path=self.NOTIFICATION_PATH, query_params={}, timeout=42, retry=DEFAULT_RETRY
+            method="DELETE",
+            path=self.NOTIFICATION_PATH,
+            query_params={},
+            timeout=42,
+            retry=DEFAULT_RETRY,
         )
 
     def test_delete_hit(self):
@@ -473,7 +481,7 @@ class TestBucketNotification(unittest.TestCase):
             path=self.NOTIFICATION_PATH,
             query_params={"userProject": USER_PROJECT},
             timeout=self._get_default_timeout(),
-            retry=DEFAULT_RETRY
+            retry=DEFAULT_RETRY,
         )
 
 

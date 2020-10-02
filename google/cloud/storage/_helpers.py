@@ -207,7 +207,7 @@ class _PropertyMixin(object):
             headers=self._encryption_headers(),
             _target_object=self,
             timeout=timeout,
-            retry=DEFAULT_RETRY
+            retry=DEFAULT_RETRY,
         )
         self._set_properties(api_response)
 

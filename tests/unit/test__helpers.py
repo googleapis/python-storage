@@ -254,7 +254,7 @@ class Test_PropertyMixin(unittest.TestCase):
                 "data": {"bar": BAR},
                 "_target_object": derived,
                 "timeout": 42,
-                "retry": DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED
+                "retry": DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
             },
         )
         # Make sure changes get reset by patch().
@@ -295,7 +295,7 @@ class Test_PropertyMixin(unittest.TestCase):
                 "data": {"bar": BAR},
                 "_target_object": derived,
                 "timeout": 42,
-                "retry": DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED
+                "retry": DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
             },
         )
         # Make sure changes get reset by patch().
@@ -325,7 +325,7 @@ class Test_PropertyMixin(unittest.TestCase):
                 "data": {"bar": BAR},
                 "_target_object": derived,
                 "timeout": self._get_default_timeout(),
-                "retry": DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED
+                "retry": DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
             },
         )
         # Make sure changes get reset by patch().

@@ -19,6 +19,7 @@ import mock
 from google.cloud.storage.retry import DEFAULT_RETRY
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED
 
+
 class TestHMACKeyMetadata(unittest.TestCase):
     @staticmethod
     def _get_default_timeout():
