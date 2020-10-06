@@ -31,10 +31,11 @@ The main concepts with this API are:
   machine).
 """
 
-
-from pkg_resources import get_distribution
-
-__version__ = get_distribution("google-cloud-storage").version
+import pkg_resources
+try:
+    __version__ = pkg_resources.get_distribution("google-cloud-storage").version
+except pkg_resources.DistributionNotFound:
+    __version__ = None
 
 from google.cloud.storage.batch import Batch
 from google.cloud.storage.blob import Blob
