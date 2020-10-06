@@ -32,6 +32,7 @@ The main concepts with this API are:
 """
 
 import pkg_resources
+
 try:
     __version__ = pkg_resources.get_distribution("google-cloud-storage").version
 except pkg_resources.DistributionNotFound:
