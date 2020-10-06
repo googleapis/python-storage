@@ -31,13 +31,7 @@ The main concepts with this API are:
   machine).
 """
 
-import pkg_resources
-
-try:
-    __version__ = pkg_resources.get_distribution("google-cloud-storage").version
-except pkg_resources.DistributionNotFound:
-    __version__ = None
-
+from google.cloud.storage.version import __version__
 from google.cloud.storage.batch import Batch
 from google.cloud.storage.blob import Blob
 from google.cloud.storage.bucket import Bucket
