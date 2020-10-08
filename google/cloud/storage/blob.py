@@ -330,7 +330,7 @@ class Blob(_PropertyMixin):
         )
 
     @classmethod
-    def from_string(cls, uri, client=None):
+    def from_string(cls, uri, client):
         """Get a constructor for blob object by URI.
 
          :type uri: str
@@ -338,7 +338,7 @@ class Blob(_PropertyMixin):
 
          :type client: :class:`~google.cloud.storage.client.Client` or
                       ``NoneType``
-         :param client: (Optional) The client to use.
+         :param client: The client to use.
 
          :rtype: :class:`google.cloud.storage.blob.Blob`
          :returns: The blob object created.
