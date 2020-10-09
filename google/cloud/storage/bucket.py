@@ -59,9 +59,7 @@ from google.cloud.storage.notification import BucketNotification
 from google.cloud.storage.notification import NONE_PAYLOAD_FORMAT
 from google.cloud.storage.retry import DEFAULT_RETRY
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_GENERATION_SPECIFIED
-from google.cloud.storage.retry import (
-    DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED_OR_ETAG_IN_JSON,
-)
+from google.cloud.storage.retry import DEFAULT_RETRY_IF_ETAG_IN_JSON
 
 _UBLA_BPO_ENABLED_MESSAGE = (
     "Pass only one of 'uniform_bucket_level_access_enabled' / "
@@ -2701,7 +2699,7 @@ class Bucket(_PropertyMixin):
             data=resource,
             _target_object=None,
             timeout=timeout,
-            retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED_OR_ETAG_IN_JSON,
+            retry=DEFAULT_RETRY_IF_ETAG_IN_JSON,
         )
         return Policy.from_api_repr(info)
 

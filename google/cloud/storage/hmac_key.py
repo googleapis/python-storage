@@ -17,7 +17,7 @@ from google.cloud._helpers import _rfc3339_to_datetime
 
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 from google.cloud.storage.retry import DEFAULT_RETRY
-from google.cloud.storage.retry import DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED
+from google.cloud.storage.retry import DEFAULT_RETRY_IF_ETAG_IN_JSON
 
 
 class HMACKeyMetadata(object):
@@ -262,7 +262,7 @@ class HMACKeyMetadata(object):
             data=payload,
             query_params=qs_params,
             timeout=timeout,
-            retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
+            retry=DEFAULT_RETRY_IF_ETAG_IN_JSON,
         )
 
     def delete(self, timeout=_DEFAULT_TIMEOUT):

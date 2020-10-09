@@ -78,10 +78,8 @@ def is_metageneration_specified(query_params):
     return if_metageneration_match
 
 
-def is_metageneration_specified_or_etag_in_json(query_params, data):
-    """Return True if if_metageneration_match is specified."""
-    if query_params.get("if_metageneration_match") is not None:
-        return True
+def is_etag_in_json(query_params, data):
+    """Return True if an etag is contained in the JSON body."""
     try:
         content = json.loads(data)
         if content.get("etag"):
@@ -97,6 +95,6 @@ DEFAULT_RETRY_IF_GENERATION_SPECIFIED = ConditionalRetryPolicy(
 DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED = ConditionalRetryPolicy(
     DEFAULT_RETRY, is_metageneration_specified, ["query_params"]
 )
-DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED_OR_ETAG_IN_JSON = ConditionalRetryPolicy(
-    DEFAULT_RETRY, is_metageneration_specified_or_etag_in_json, ["query_params", "data"]
+DEFAULT_RETRY_IF_ETAG_IN_JSON = ConditionalRetryPolicy(
+    DEFAULT_RETRY, is_etag_in_json, ["query_params", "data"]
 )
