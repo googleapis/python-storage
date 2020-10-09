@@ -56,7 +56,7 @@ class Connection(_http.JSONConnection):
             # If this is a ConditionalRetryPolicy, check conditions.
             try:
                 retry = retry.get_retry_policy_if_conditions_met(**kwargs)
-            except AttributeError:
+            except AttributeError:  # This is not a ConditionalRetryPolicy.
                 pass
             if retry:
                 call = retry(call)
