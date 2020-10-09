@@ -612,7 +612,7 @@ class Bucket(_PropertyMixin):
         return self._user_project
 
     @classmethod
-    def from_string(cls, uri, client):
+    def from_string(cls, uri, client=None):
         """Get a constructor for bucket object by URI.
 
         :type uri: str
@@ -620,7 +620,7 @@ class Bucket(_PropertyMixin):
 
         :type client: :class:`~google.cloud.storage.client.Client` or
                       ``NoneType``
-        :param client: The client to use.
+        :param client: (Optional) The client to use.
 
         :rtype: :class:`google.cloud.storage.bucket.Bucket`
         :returns: The bucket object created.

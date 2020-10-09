@@ -1974,6 +1974,7 @@ class Test_Blob(unittest.TestCase):
 
     def test__do_multipart_upload_bad_size(self):
         blob = self._make_one(u"blob-name", bucket=None)
+        client = mock.Mock()
 
         data = b"data here hear hier"
         stream = io.BytesIO(data)
@@ -1982,7 +1983,7 @@ class Test_Blob(unittest.TestCase):
 
         with self.assertRaises(ValueError) as exc_info:
             blob._do_multipart_upload(
-                None, stream, None, size, None, None, None, None, None, None
+                client, stream, None, size, None, None, None, None, None, None
             )
 
         exc_contents = str(exc_info.exception)

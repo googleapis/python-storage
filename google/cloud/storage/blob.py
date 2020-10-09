@@ -330,7 +330,7 @@ class Blob(_PropertyMixin):
         )
 
     @classmethod
-    def from_string(cls, uri, client):
+    def from_string(cls, uri, client=None):
         """Get a constructor for blob object by URI.
 
          :type uri: str
@@ -338,7 +338,7 @@ class Blob(_PropertyMixin):
 
          :type client: :class:`~google.cloud.storage.client.Client` or
                       ``NoneType``
-         :param client: The client to use.
+         :param client: (Optional) The client to use.
 
          :rtype: :class:`google.cloud.storage.blob.Blob`
          :returns: The blob object created.
@@ -1598,6 +1598,7 @@ class Blob(_PropertyMixin):
         :raises: :exc:`ValueError` if ``size`` is not :data:`None` but the
                  ``stream`` has fewer than ``size`` bytes remaining.
         """
+        client = self._require_client(client)
         if size is None:
             data = stream.read()
         else:
@@ -1611,7 +1612,7 @@ class Blob(_PropertyMixin):
         headers, object_metadata, content_type = info
 
         base_url = _MULTIPART_URL_TEMPLATE.format(
-            hostname=self.client._connection.API_BASE_URL, bucket_path=self.bucket.path
+            hostname=client._connection.API_BASE_URL, bucket_path=self.bucket.path
         )
         name_value_pairs = []
 
@@ -1768,6 +1769,7 @@ class Blob(_PropertyMixin):
               that was created
             * The ``transport`` used to initiate the upload.
         """
+        client = self._require_client(client)
         if chunk_size is None:
             chunk_size = self.chunk_size
             if chunk_size is None:
@@ -1780,7 +1782,7 @@ class Blob(_PropertyMixin):
             headers.update(extra_headers)
 
         base_url = _RESUMABLE_URL_TEMPLATE.format(
-            hostname=self.client._connection.API_BASE_URL, bucket_path=self.bucket.path
+            hostname=client._connection.API_BASE_URL, bucket_path=self.bucket.path
         )
         name_value_pairs = []
 
