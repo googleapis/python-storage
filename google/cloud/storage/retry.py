@@ -12,36 +12,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import requests
+
 from google.api_core import exceptions
 from google.api_core import retry
 
 import json
 
 
-_RETRYABLE_REASONS = frozenset(
-    ["rateLimitExceeded", "backendError", "internalError", "badGateway"]
+_RETRYABLE_TYPES = (
+    exceptions.TooManyRequests,  # 429
+    exceptions.InternalServerError,  # 500
+    exceptions.BadGateway,  # 502
+    exceptions.ServiceUnavailable,  # 503
+    exceptions.GatewayTimeout,  # 504
+    requests.ConnectionError,
 )
 
-_UNSTRUCTURED_RETRYABLE_TYPES = (
-    exceptions.TooManyRequests,
-    exceptions.InternalServerError,
-    exceptions.BadGateway,
-)
 
-
-# FIXME: needs to be brought in line with doc outlining all retriable error codes
-# FIXME: add tests once above is done
 def _should_retry(exc):
     """Predicate for determining when to retry."""
-    if not hasattr(exc, "errors"):
-        return False
-
-    if len(exc.errors) == 0:
-        # Check for unstructured error returns, e.g. from GFE
-        return isinstance(exc, _UNSTRUCTURED_RETRYABLE_TYPES)
-
-    reason = exc.errors[0]["reason"]
-    return reason in _RETRYABLE_REASONS
+    return isinstance(exc, _RETRYABLE_TYPES)
 
 
 DEFAULT_RETRY = retry.Retry(predicate=_should_retry)
@@ -49,7 +40,8 @@ DEFAULT_RETRY = retry.Retry(predicate=_should_retry)
 
 To modify the default retry behavior, call a ``with_XXX`` method
 on ``DEFAULT_RETRY``. For example, to change the deadline to 30 seconds,
-pass ``retry=DEFAULT_RETRY.with_deadline(30)``.
+pass ``retry=DEFAULT_RETRY.with_deadline(30)``. See google-api-core reference
+(https://googleapis.dev/python/google-api-core/latest/retry.html) for details.
 """
 
 
@@ -79,7 +71,9 @@ def is_metageneration_specified(query_params):
 
 
 def is_etag_in_json(query_params, data):
-    """Return True if an etag is contained in the JSON body."""
+    """Return True if an etag is contained in the JSON body.
+
+    Indended for use on calls with relatively short JSON payloads."""
     try:
         content = json.loads(data)
         if content.get("etag"):

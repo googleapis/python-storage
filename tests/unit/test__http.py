@@ -124,6 +124,7 @@ class TestConnection(unittest.TestCase):
         def retry(_):
             def fake_response():
                 return FAKE_RESPONSE_STRING
+
             return fake_response
 
         import requests
@@ -154,6 +155,7 @@ class TestConnection(unittest.TestCase):
         def retry(_):
             def fake_response():
                 return FAKE_RESPONSE_STRING
+
             return fake_response
 
         conditional_retry_mock = mock.MagicMock()
