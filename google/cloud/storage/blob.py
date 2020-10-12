@@ -1598,7 +1598,6 @@ class Blob(_PropertyMixin):
         :raises: :exc:`ValueError` if ``size`` is not :data:`None` but the
                  ``stream`` has fewer than ``size`` bytes remaining.
         """
-        client = self._require_client(client)
         if size is None:
             data = stream.read()
         else:
@@ -1607,6 +1606,7 @@ class Blob(_PropertyMixin):
                 msg = _READ_LESS_THAN_SIZE.format(size, len(data))
                 raise ValueError(msg)
 
+        client = self._require_client(client)
         transport = self._get_transport(client)
         info = self._get_upload_arguments(content_type)
         headers, object_metadata, content_type = info
