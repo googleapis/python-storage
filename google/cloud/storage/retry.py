@@ -70,7 +70,7 @@ def is_metageneration_specified(query_params):
     return if_metageneration_match
 
 
-def is_etag_in_json(query_params, data):
+def is_etag_in_json(data):
     """Return True if an etag is contained in the JSON body.
 
     Indended for use on calls with relatively short JSON payloads."""
@@ -78,7 +78,10 @@ def is_etag_in_json(query_params, data):
         content = json.loads(data)
         if content.get("etag"):
             return True
-    except (json.decoder.JSONDecodeError, TypeError):
+    # Though this method should only be called when a JSON body is expected,
+    # the retry policy should be robust to unexpected payloads.
+    # In Python 3 a JSONDecodeError is possible, but it is a subclass of ValueError.
+    except (ValueError, TypeError):
         pass
     return False
 
@@ -90,5 +93,5 @@ DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED = ConditionalRetryPolicy(
     DEFAULT_RETRY, is_metageneration_specified, ["query_params"]
 )
 DEFAULT_RETRY_IF_ETAG_IN_JSON = ConditionalRetryPolicy(
-    DEFAULT_RETRY, is_etag_in_json, ["query_params", "data"]
+    DEFAULT_RETRY, is_etag_in_json, ["data"]
 )
