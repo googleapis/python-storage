@@ -29,10 +29,20 @@ _RETRYABLE_TYPES = (
     requests.ConnectionError,
 )
 
+# Some retriable errors don't have their own custom exception in api_core.
+_ADDITIONAL_RETRYABLE_STATUS_CODES = (
+    408,
+)
+
 
 def _should_retry(exc):
     """Predicate for determining when to retry."""
-    return isinstance(exc, _RETRYABLE_TYPES)
+    if isinstance(exc, _RETRYABLE_TYPES):
+        return True
+    elif isinstance(exc, exceptions.GoogleAPICallError):
+        return exc.code in _ADDITIONAL_RETRYABLE_STATUS_CODES
+    else:
+        return False
 
 
 DEFAULT_RETRY = retry.Retry(predicate=_should_retry)
