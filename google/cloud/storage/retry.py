@@ -30,9 +30,7 @@ _RETRYABLE_TYPES = (
 )
 
 # Some retriable errors don't have their own custom exception in api_core.
-_ADDITIONAL_RETRYABLE_STATUS_CODES = (
-    408,
-)
+_ADDITIONAL_RETRYABLE_STATUS_CODES = (408,)
 
 
 def _should_retry(exc):
