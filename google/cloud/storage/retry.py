@@ -46,14 +46,45 @@ def _should_retry(exc):
 DEFAULT_RETRY = retry.Retry(predicate=_should_retry)
 """The default retry object.
 
-To modify the default retry behavior, call a ``with_XXX`` method
-on ``DEFAULT_RETRY``. For example, to change the deadline to 30 seconds,
-pass ``retry=DEFAULT_RETRY.with_deadline(30)``. See google-api-core reference
+This retry setting will retry all _RETRYABLE_TYPES and any status codes from
+_ADDITIONAL_RETRYABLE_STATUS_CODES.
+
+To modify the default retry behavior, create a new retry object modeled after
+this one by calling it a ``with_XXX`` method. For example, to create a copy of
+DEFAULT_RETRY with a deadline of 30 seconds, pass
+``retry=DEFAULT_RETRY.with_deadline(30)``. See google-api-core reference
 (https://googleapis.dev/python/google-api-core/latest/retry.html) for details.
 """
 
 
 class ConditionalRetryPolicy(object):
+    """A class for use when an API call is only conditionally safe to retry.
+
+    This class is intended for use in inspecting the API call parameters of an
+    API call to verify that any flags necessary to make the API call idempotent
+    (such as specifying an ``if_generation_match`` or related flag) are present.
+
+    It can be used in place of a ``retry.Retry`` object, in which case
+    ``_http.Connection.api_request`` will pass the requested api call keyword
+    arguments into the ``conditional_predicate`` and return the ``retry_policy``
+    if the conditions are met.
+
+    :type retry_policy: class:`google.api_core.retry.Retry`
+    :param retry_policy: A retry object defining timeouts, persistence and which
+        exceptions to retry.
+
+    :type conditional_predicate: callable
+    :param conditional_predicate: A callable that accepts exactly the number of
+        arguments in ``required_kwargs``, in order, and returns True if the
+        arguments have sufficient data to determine that the call is safe to
+        retry (idempotent).
+
+    :type required_kwargs: list(str)
+    :param required_kwargs:
+        A list of keyword argument keys that will be extracted from the API call
+        and passed into the ``conditional predicate`` in order.
+    """
+
     def __init__(self, retry_policy, conditional_predicate, required_kwargs):
         self.retry_policy = retry_policy
         self.conditional_predicate = conditional_predicate
