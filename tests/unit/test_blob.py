@@ -26,6 +26,8 @@ import pytest
 import six
 from six.moves import http_client
 
+from google.cloud.storage.retry import DEFAULT_RETRY_IF_GENERATION_SPECIFIED
+
 
 def _make_credentials():
     import google.auth.credentials
@@ -3237,6 +3239,7 @@ class Test_Blob(unittest.TestCase):
                 },
                 "_target_object": destination,
                 "timeout": self._get_default_timeout(),
+                "retry": DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
             },
         )
 
@@ -3273,6 +3276,7 @@ class Test_Blob(unittest.TestCase):
                 },
                 "_target_object": destination,
                 "timeout": 42,
+                "retry": DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
             },
         )
 
@@ -3314,6 +3318,7 @@ class Test_Blob(unittest.TestCase):
                 },
                 "_target_object": destination,
                 "timeout": self._get_default_timeout(),
+                "retry": DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
             },
         )
 
@@ -3368,6 +3373,7 @@ class Test_Blob(unittest.TestCase):
                 },
                 "_target_object": destination,
                 "timeout": self._get_default_timeout(),
+                "retry": DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
             },
         )
 
@@ -3437,6 +3443,7 @@ class Test_Blob(unittest.TestCase):
                 },
                 "_target_object": destination,
                 "timeout": self._get_default_timeout(),
+                "retry": DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
             },
         )
 
