@@ -793,6 +793,81 @@ class Client(ClientWithProject):
             extra_params=extra_params,
         )
 
+    def list_prefixes(
+        self,
+        bucket_or_name,
+        prefix,
+        delimiter="/",
+        max_results=None,
+        page_token=None,
+        projection="noAcl",
+        fields=None,
+        timeout=_DEFAULT_TIMEOUT,
+    ):
+        """Return an iterator used to find directories(prefixes) in the bucket.
+
+        :type bucket_or_name: (Union[:class:`~google.cloud.storage.bucket.Bucket`, str]):
+        :param bucket_or_name: The bucket resource to pass or name to create.
+
+        :type prefix: str
+        :param prefix: Filter results to directories whose names begin
+                       with this prefix.
+
+        :type delimiter: str
+        :param delimiter: (Optional) Delimiter, used with ``prefix`` to
+                          emulate hierarchy. Defaults to '/'.
+
+        :type max_results: int
+        :param max_results: (Optional) The maximum number of directories to return.
+
+        :type page_token: str
+        :param page_token:
+            (Optional) If present, return the next batch of buckets, using the
+            value, which must correspond to the ``nextPageToken`` value
+            returned in the previous response.  Deprecated: use the ``pages``
+            property of the returned iterator instead of manually passing the
+            token.
+
+        :type projection: str
+        :param projection:
+            (Optional) Specifies the set of properties to return. If used, must
+            be 'full' or 'noAcl'. Defaults to 'noAcl'.
+
+        :type fields: str
+        :param fields:
+            (Optional) Selector specifying which fields to include in a partial
+            response. Must be a list of fields. For example to get a partial
+            response with just the next page token and the language of each
+            bucket returned: 'items/id,nextPageToken'.
+
+        :type projection: str
+        :param projection: (Optional) If used, must be 'full' or 'noAcl'.
+                           Defaults to ``'noAcl'``. Specifies the set of properties to return.
+
+        :type timeout: float or tuple
+        :param timeout: (Optional) The amount of time, in seconds, to wait
+            for the server response.
+
+            Can also be passed as a tuple (connect_timeout, read_timeout).
+            See :meth:`requests.Session.request` documentation for details.
+
+        :rtype: :class:`~google.api_core.page_iterator.Iterator`
+        :raises ValueError: if both ``project`` is ``None`` and the client's
+                            project is also ``None``.
+        :returns: Iterator of all prefixes(unicode) in this bucket matching the arguments.
+        """
+        bucket = self._bucket_arg_to_bucket(bucket_or_name)
+        return bucket.list_prefixes(
+            prefix=prefix,
+            delimiter=delimiter,
+            max_results=max_results,
+            page_token=page_token,
+            projection=projection,
+            fields=fields,
+            client=self,
+            timeout=timeout,
+        )
+
     def create_hmac_key(
         self,
         service_account_email,

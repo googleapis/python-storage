@@ -913,6 +913,62 @@ class Test_Bucket(unittest.TestCase):
         self.assertEqual(kw["query_params"], EXPECTED)
         self.assertEqual(kw["timeout"], 42)
 
+    def test_list_prefixes(self):
+        NAME = "name"
+        connection = _Connection({"items": []})
+        client = _Client(connection)
+        bucket = self._make_one(client=client, name=NAME)
+        iterator = bucket.list_prefixes("subfolder/")
+        prefix = list(iterator)
+        self.assertEqual(prefix, [])
+        (kw,) = connection._requested
+        self.assertEqual(kw["method"], "GET")
+        self.assertEqual(kw["path"], "/b/%s/o" % NAME)
+        self.assertEqual(
+            kw["query_params"],
+            {"projection": "noAcl", "delimiter": "/", "prefix": "subfolder/"},
+        )
+        self.assertEqual(kw["timeout"], self._get_default_timeout())
+
+    def test_list_prefixes_w_all_arguments(self):
+        NAME = "name"
+        MAX_RESULTS = 10
+        PAGE_TOKEN = "ABCD"
+        PREFIX = "subfolder/"
+        DELIMITER = "/"
+        PROJECTION = "noAcl"
+        FIELDS = "items/contentLanguage,nextPageToken"
+        USER_PROJECT = "user-project-123"
+        EXPECTED = {
+            "maxResults": 10,
+            "pageToken": PAGE_TOKEN,
+            "prefix": PREFIX,
+            "delimiter": DELIMITER,
+            "projection": PROJECTION,
+            "fields": FIELDS,
+            "userProject": USER_PROJECT,
+        }
+        connection = _Connection({"prefixes": ["subfolder/abc", "subfolder/def"]})
+        client = _Client(connection)
+        bucket = self._make_one(name=NAME, user_project=USER_PROJECT)
+        iterator = bucket.list_prefixes(
+            max_results=MAX_RESULTS,
+            page_token=PAGE_TOKEN,
+            prefix=PREFIX,
+            delimiter=DELIMITER,
+            projection=PROJECTION,
+            fields=FIELDS,
+            client=client,
+            timeout=42,
+        )
+        prefixes = list(iterator)
+        self.assertEqual(prefixes, ["subfolder/abc", "subfolder/def"])
+        (kw,) = connection._requested
+        self.assertEqual(kw["method"], "GET")
+        self.assertEqual(kw["path"], "/b/%s/o" % NAME)
+        self.assertEqual(kw["query_params"], EXPECTED)
+        self.assertEqual(kw["timeout"], 42)
+
     def test_list_notifications(self):
         from google.cloud.storage.notification import BucketNotification
         from google.cloud.storage.notification import _TOPIC_REF_FMT

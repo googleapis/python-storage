@@ -124,6 +124,28 @@ def _item_to_blob(iterator, item):
     return blob
 
 
+# pylint: disable=unused-argument
+def _item_to_value(iterator, item):
+    """Convert a JSON to the string.
+
+    .. note::
+
+        This assumes that the ``bucket`` attribute has been
+        added to the iterator after being created.
+
+    :type iterator: :class:`~google.api_core.page_iterator.Iterator`
+    :param iterator: The iterator that has retrieved the item.
+
+    :type item: str
+    :param item: An item to be returned.
+
+    :rtype: str
+    :returns: The next value in the page.
+    """
+
+    return item
+
+
 def _item_to_notification(iterator, item):
     """Convert a JSON blob to the native object.
 
@@ -1254,6 +1276,102 @@ class Bucket(_PropertyMixin):
             api_request=api_request,
             path=path,
             item_to_value=_item_to_blob,
+            page_token=page_token,
+            max_results=max_results,
+            extra_params=extra_params,
+            page_start=_blobs_page_start,
+        )
+        iterator.bucket = self
+        iterator.prefixes = set()
+        return iterator
+
+    def list_prefixes(
+        self,
+        prefix,
+        delimiter="/",
+        max_results=None,
+        page_token=None,
+        projection="noAcl",
+        fields=None,
+        client=None,
+        timeout=_DEFAULT_TIMEOUT,
+    ):
+        """Return an iterator used to find directories(prefixes) in the bucket.
+
+        :type prefix: str
+        :param prefix: Filter results to directories whose names begin
+                       with this prefix.
+
+        :type delimiter: str
+        :param delimiter: (Optional) Delimiter, used with ``prefix`` to
+                          emulate hierarchy. Defaults to '/'.
+
+        :type max_results: int
+        :param max_results: (Optional) The maximum number of directories to return.
+
+        :type page_token: str
+        :param page_token:
+            (Optional) If present, return the next batch of buckets, using the
+            value, which must correspond to the ``nextPageToken`` value
+            returned in the previous response.  Deprecated: use the ``pages``
+            property of the returned iterator instead of manually passing the
+            token.
+
+        :type projection: str
+        :param projection:
+            (Optional) Specifies the set of properties to return. If used, must
+            be 'full' or 'noAcl'. Defaults to 'noAcl'.
+
+        :type fields: str
+        :param fields:
+            (Optional) Selector specifying which fields to include in a partial
+            response. Must be a list of fields. For example to get a partial
+            response with just the next page token and the language of each
+            bucket returned: 'items/id,nextPageToken'.
+
+        :type projection: str
+        :param projection: (Optional) If used, must be 'full' or 'noAcl'.
+                           Defaults to ``'noAcl'``. Specifies the set of properties to return.
+
+        :type client: :class:`~google.cloud.storage.client.Client`
+        :param client: (Optional) The client to use.  If not passed, falls back
+                       to the ``client`` stored on the current bucket.
+
+        :type timeout: float or tuple
+        :param timeout: (Optional) The amount of time, in seconds, to wait
+            for the server response.
+
+            Can also be passed as a tuple (connect_timeout, read_timeout).
+            See :meth:`requests.Session.request` documentation for details.
+
+        :rtype: :class:`~google.api_core.page_iterator.Iterator`
+        :raises ValueError: if both ``project`` is ``None`` and the client's
+                            project is also ``None``.
+        :returns: Iterator of all prefixes(unicode) in this bucket matching the arguments.
+        """
+        extra_params = {
+            "projection": projection,
+            "prefix": prefix,
+            "delimiter": delimiter,
+        }
+
+        if fields is not None:
+            extra_params["fields"] = fields
+
+        if self.user_project is not None:
+            extra_params["userProject"] = self.user_project
+
+        client = self._require_client(client)
+        path = self.path + "/o"
+        api_request = functools.partial(
+            client._connection.api_request, timeout=timeout, retry=DEFAULT_RETRY
+        )
+        iterator = page_iterator.HTTPIterator(
+            client=client,
+            api_request=api_request,
+            path=path,
+            items_key="prefixes",
+            item_to_value=_item_to_value,
             page_token=page_token,
             max_results=max_results,
             extra_params=extra_params,

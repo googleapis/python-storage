@@ -1303,6 +1303,91 @@ class TestClient(unittest.TestCase):
         self.assertIsInstance(bucket, Bucket)
         self.assertEqual(bucket.name, blob_name)
 
+    def test_list_prefixes(self):
+        from google.cloud.storage.bucket import Bucket
+
+        BUCKET_NAME = "bucket-name"
+
+        credentials = _make_credentials()
+        client = self._make_one(project="PROJECT", credentials=credentials)
+        connection = _make_connection({"items": []})
+
+        with mock.patch(
+            "google.cloud.storage.client.Client._connection",
+            new_callable=mock.PropertyMock,
+        ) as client_mock:
+            client_mock.return_value = connection
+
+            bucket_obj = Bucket(client, BUCKET_NAME)
+            iterator = client.list_prefixes(bucket_obj, "subfolder/")
+            prefix = list(iterator)
+
+            self.assertEqual(prefix, [])
+            connection.api_request.assert_called_once_with(
+                method="GET",
+                path="/b/%s/o" % BUCKET_NAME,
+                query_params={
+                    "projection": "noAcl",
+                    "delimiter": "/",
+                    "prefix": "subfolder/",
+                },
+                timeout=self._get_default_timeout(),
+                retry=DEFAULT_RETRY,
+            )
+
+    def test_list_prefixes_w_all_arguments(self):
+        from google.cloud.storage.bucket import Bucket
+
+        BUCKET_NAME = "name"
+        USER_PROJECT = "user-project-123"
+        MAX_RESULTS = 10
+        PAGE_TOKEN = "ABCD"
+        PREFIX = "subfolder"
+        DELIMITER = "/"
+        PROJECTION = "full"
+        FIELDS = "items/contentLanguage,nextPageToken"
+        EXPECTED = {
+            "maxResults": 10,
+            "pageToken": PAGE_TOKEN,
+            "prefix": PREFIX,
+            "delimiter": DELIMITER,
+            "projection": PROJECTION,
+            "fields": FIELDS,
+            "userProject": USER_PROJECT,
+        }
+
+        credentials = _make_credentials()
+        client = self._make_one(project=USER_PROJECT, credentials=credentials)
+        connection = _make_connection({"items": []})
+
+        with mock.patch(
+            "google.cloud.storage.client.Client._connection",
+            new_callable=mock.PropertyMock,
+        ) as client_mock:
+            client_mock.return_value = connection
+
+            bucket = Bucket(client, BUCKET_NAME, user_project=USER_PROJECT)
+            iterator = client.list_prefixes(
+                bucket_or_name=bucket,
+                max_results=MAX_RESULTS,
+                page_token=PAGE_TOKEN,
+                prefix=PREFIX,
+                delimiter=DELIMITER,
+                projection=PROJECTION,
+                fields=FIELDS,
+                timeout=42,
+            )
+            prefix = list(iterator)
+
+            self.assertEqual(prefix, [])
+            connection.api_request.assert_called_once_with(
+                method="GET",
+                path="/b/%s/o" % BUCKET_NAME,
+                query_params=EXPECTED,
+                timeout=42,
+                retry=DEFAULT_RETRY,
+            )
+
     def _create_hmac_key_helper(
         self, explicit_project=None, user_project=None, timeout=None
     ):

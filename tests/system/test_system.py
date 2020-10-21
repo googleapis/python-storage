@@ -1244,6 +1244,11 @@ class TestStoragePseudoHierarchy(TestStorageFiles):
         self.assertEqual(iterator.prefixes, set())
 
     @RetryErrors(unittest.TestCase.failureException)
+    def test_list_prefix(self):
+        prefixes = self.bucket.list_prefixes(prefix="parent/", delimiter="/")
+        self.assertEqual(list(prefixes), ["parent/child/"])
+
+    @RetryErrors(unittest.TestCase.failureException)
     def test_include_trailing_delimiter(self):
         iterator = self.bucket.list_blobs(
             delimiter="/", include_trailing_delimiter=True
