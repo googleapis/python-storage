@@ -804,12 +804,13 @@ class Client(ClientWithProject):
         fields=None,
         timeout=_DEFAULT_TIMEOUT,
     ):
-        """Return an iterator used to find directories(prefixes) in the bucket.
+        """Return an iterator used to find sub-directories(prefixes) of the blob in the bucket.
 
         :type bucket_or_name: (Union[:class:`~google.cloud.storage.bucket.Bucket`, str]):
         :param bucket_or_name: The bucket resource to pass or name to create.
 
-        :type prefix: str
+        :type prefix: strh
+
         :param prefix: Filter results to directories whose names begin
                        with this prefix.
 
@@ -855,6 +856,15 @@ class Client(ClientWithProject):
         :raises ValueError: if both ``project`` is ``None`` and the client's
                             project is also ``None``.
         :returns: Iterator of all prefixes(unicode) in this bucket matching the arguments.
+
+        Example:
+            List sub-directories of the blob in the bucket with user_project.
+
+            >>> from google.cloud import storage
+            >>> client = storage.Client()
+
+            >>> bucket = storage.Bucket("my-bucket-name", user_project='my-project')
+            >>> all_sub_dir = list(client.list_prefixes(bucket, 'abc/'))
         """
         bucket = self._bucket_arg_to_bucket(bucket_or_name)
         return bucket.list_prefixes(

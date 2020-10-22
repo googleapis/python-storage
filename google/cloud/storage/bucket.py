@@ -1296,7 +1296,7 @@ class Bucket(_PropertyMixin):
         client=None,
         timeout=_DEFAULT_TIMEOUT,
     ):
-        """Return an iterator used to find directories(prefixes) in the bucket.
+        """Return an iterator used to find sub-directories(prefixes) of the blob in the bucket.
 
         :type prefix: str
         :param prefix: Filter results to directories whose names begin
@@ -1347,7 +1347,16 @@ class Bucket(_PropertyMixin):
         :rtype: :class:`~google.api_core.page_iterator.Iterator`
         :raises ValueError: if both ``project`` is ``None`` and the client's
                             project is also ``None``.
-        :returns: Iterator of all prefixes(unicode) in this bucket matching the arguments.
+        :returns: Iterator of all prefixes of the blob in this bucket matching the arguments.
+
+        Example:
+            List sub-directories of the blob in the bucket with user_project.
+
+            >>> from google.cloud import storage
+            >>> client = storage.Client()
+
+            >>> bucket = client.get_bucket("my-bucket-name")
+            >>> all_sub_dir = list(bucket.list_prefixes(bucket, 'abc/'))
         """
         extra_params = {
             "projection": projection,
