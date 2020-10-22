@@ -1913,7 +1913,11 @@ class Test_Blob(unittest.TestCase):
 
         blob_data = b'{"name": "blob-name"}\r\n'
         if metadata:
-            blob_data = b'{"name": "blob-name", "metadata": {"test": "test"}}\r\n'
+            blob_data = (
+                b'{"name": "blob-name", "metadata": '
+                + json.dumps(metadata).encode("utf-8")
+                + b"}\r\n"
+            )
             self.assertEqual(blob._changes, set(["metadata"]))
         payload = (
             b"--==0==\r\n"
