@@ -134,6 +134,34 @@ class Test_is_metageneration_specified(unittest.TestCase):
         self.assertTrue(self._call_fut(query_params))
 
 
+class Test_is_etag_in_json(unittest.TestCase):
+    def _call_fut(self, data):
+        from google.cloud.storage import retry
+
+        return retry.is_etag_in_json(data)
+
+    @staticmethod
+    def _make_json_data(**kw):
+        import json
+
+        return json.dumps(kw)
+
+    def test_w_empty(self):
+        data = self._make_json_data()
+
+        self.assertFalse(self._call_fut(data))
+
+    def test_w_etag_in_data(self):
+        data = self._make_json_data(etag="123")
+
+        self.assertTrue(self._call_fut(data))
+
+    def test_w_empty_data(self):
+        data = ""
+
+        self.assertFalse(self._call_fut(data))
+
+
 class Test_default_conditional_retry_policies(unittest.TestCase):
     def test_is_generation_specified_match_metageneration(self):
         from google.cloud.storage import retry
