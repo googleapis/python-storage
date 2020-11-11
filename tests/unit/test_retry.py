@@ -14,6 +14,8 @@
 
 import unittest
 
+import mock
+
 
 class Test_should_retry(unittest.TestCase):
     def _call_fut(self, exc):
@@ -45,6 +47,52 @@ class Test_should_retry(unittest.TestCase):
     def test_w_requests_connection_error(self):
         exc = ValueError("testing")
         self.assertFalse(self._call_fut(exc))
+
+
+class TestConditionalRetryPolicy(unittest.TestCase):
+    def _make_one(self, retry_policy, conditional_predicate, required_kwargs):
+        from google.cloud.storage import retry
+
+        return retry.ConditionalRetryPolicy(
+            retry_policy, conditional_predicate, required_kwargs
+        )
+
+    def test_ctor(self):
+        retry_policy = mock.Mock()
+        conditional_predicate = mock.Mock()
+        required_kwargs = ("kwarg",)
+
+        policy = self._make_one(retry_policy, conditional_predicate, required_kwargs)
+
+        self.assertIs(policy.retry_policy, retry_policy)
+        self.assertIs(policy.conditional_predicate, conditional_predicate)
+        self.assertEqual(policy.required_kwargs, required_kwargs)
+
+    def test_get_retry_policy_if_conditions_met_single_kwarg_hit(self):
+        retry_policy = mock.Mock()
+        conditional_predicate = mock.Mock(return_value=True)
+        required_kwargs = ("foo",)
+        policy = self._make_one(retry_policy, conditional_predicate, required_kwargs)
+
+        kwargs = {"foo": 1, "bar": 2, "baz": 3}
+        result = policy.get_retry_policy_if_conditions_met(**kwargs)
+
+        self.assertIs(result, retry_policy)
+
+        conditional_predicate.assert_called_once_with(1)
+
+    def test_get_retry_policy_if_conditions_met_multiple_kwargs_miss(self):
+        retry_policy = mock.Mock()
+        conditional_predicate = mock.Mock(return_value=False)
+        required_kwargs = ("foo", "bar")
+        policy = self._make_one(retry_policy, conditional_predicate, required_kwargs)
+
+        kwargs = {"foo": 1, "bar": 2, "baz": 3}
+        result = policy.get_retry_policy_if_conditions_met(**kwargs)
+
+        self.assertIsNone(result)
+
+        conditional_predicate.assert_called_once_with(1, 2)
 
 
 class Test_default_conditional_retry_policies(unittest.TestCase):
