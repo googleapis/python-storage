@@ -117,6 +117,23 @@ class Test_is_generation_specified(unittest.TestCase):
         self.assertTrue(self._call_fut(query_params))
 
 
+class Test_is_metageneration_specified(unittest.TestCase):
+    def _call_fut(self, query_params):
+        from google.cloud.storage import retry
+
+        return retry.is_metageneration_specified(query_params)
+
+    def test_w_empty(self):
+        query_params = {}
+
+        self.assertFalse(self._call_fut(query_params))
+
+    def test_w_if_metageneration_match(self):
+        query_params = {"if_metageneration_match": 123}
+
+        self.assertTrue(self._call_fut(query_params))
+
+
 class Test_default_conditional_retry_policies(unittest.TestCase):
     def test_is_generation_specified_match_metageneration(self):
         from google.cloud.storage import retry
