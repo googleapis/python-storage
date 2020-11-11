@@ -15,6 +15,38 @@
 import unittest
 
 
+class Test_should_retry(unittest.TestCase):
+    def _call_fut(self, exc):
+        from google.cloud.storage import retry
+
+        return retry._should_retry(exc)
+
+    def test_w_retryable_types(self):
+        from google.cloud.storage import retry
+
+        for exc_type in retry._RETRYABLE_TYPES:
+            exc = exc_type("testing")
+            self.assertTrue(self._call_fut(exc))
+
+    def test_w_google_api_call_error_hit(self):
+        from google.api_core import exceptions
+
+        exc = exceptions.GoogleAPICallError("testing")
+        exc.code = 408
+        self.assertTrue(self._call_fut(exc))
+
+    def test_w_google_api_call_error_miss(self):
+        from google.api_core import exceptions
+
+        exc = exceptions.GoogleAPICallError("testing")
+        exc.code = 999
+        self.assertFalse(self._call_fut(exc))
+
+    def test_w_requests_connection_error(self):
+        exc = ValueError("testing")
+        self.assertFalse(self._call_fut(exc))
+
+
 class Test_default_conditional_retry_policies(unittest.TestCase):
     def test_is_generation_specified_match_metageneration(self):
         from google.cloud.storage import retry
