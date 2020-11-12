@@ -1601,12 +1601,15 @@ class Blob(_PropertyMixin):
                 msg = _READ_LESS_THAN_SIZE.format(size, len(data))
                 raise ValueError(msg)
 
+        client = self._require_client(client)
         transport = self._get_transport(client)
+        if "metadata" in self._properties and "metadata" not in self._changes:
+            self._changes.add("metadata")
         info = self._get_upload_arguments(content_type)
         headers, object_metadata, content_type = info
 
         base_url = _MULTIPART_URL_TEMPLATE.format(
-            hostname=self.client._connection.API_BASE_URL, bucket_path=self.bucket.path
+            hostname=client._connection.API_BASE_URL, bucket_path=self.bucket.path
         )
         name_value_pairs = []
 
@@ -1763,19 +1766,22 @@ class Blob(_PropertyMixin):
               that was created
             * The ``transport`` used to initiate the upload.
         """
+        client = self._require_client(client)
         if chunk_size is None:
             chunk_size = self.chunk_size
             if chunk_size is None:
                 chunk_size = _DEFAULT_CHUNKSIZE
 
         transport = self._get_transport(client)
+        if "metadata" in self._properties and "metadata" not in self._changes:
+            self._changes.add("metadata")
         info = self._get_upload_arguments(content_type)
         headers, object_metadata, content_type = info
         if extra_headers is not None:
             headers.update(extra_headers)
 
         base_url = _RESUMABLE_URL_TEMPLATE.format(
-            hostname=self.client._connection.API_BASE_URL, bucket_path=self.bucket.path
+            hostname=client._connection.API_BASE_URL, bucket_path=self.bucket.path
         )
         name_value_pairs = []
 
