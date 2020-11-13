@@ -1567,6 +1567,25 @@ class Test_Blob(unittest.TestCase):
         self.assertEqual(blob.md5_hash, md5_hash)
         self.assertEqual(blob.crc32c, crc32c)
 
+    def test_download_as_string_w_response_headers_not_match(self):
+        blob_name = "blob-name"
+        client = mock.Mock(spec=["_http"])
+        bucket = _Bucket(client)
+        media_link = "http://example.com/media/"
+        properties = {"mediaLink": media_link}
+        blob = self._make_one(blob_name, bucket=bucket, properties=properties)
+
+        response = self._mock_requests_response(
+            http_client.OK,
+            headers={"X-Goog-Hash": "bogus=4gcgLQ==,"},
+            # { "x": 5 } gzipped
+            content=b"",
+        )
+        blob._extract_headers_from_download(response)
+
+        self.assertIsNone(blob.md5_hash)
+        self.assertIsNone(blob.crc32c)
+
     def test_download_as_bytes_w_generation_match(self):
         GENERATION_NUMBER = 6
         MEDIA_LINK = "http://example.com/media/"
@@ -1818,6 +1837,7 @@ class Test_Blob(unittest.TestCase):
     def _do_multipart_success(
         self,
         mock_get_boundary,
+        client=None,
         size=None,
         num_retries=None,
         user_project=None,
@@ -1828,19 +1848,25 @@ class Test_Blob(unittest.TestCase):
         if_metageneration_not_match=None,
         kms_key_name=None,
         timeout=None,
+        metadata=None,
     ):
         from six.moves.urllib.parse import urlencode
 
         bucket = _Bucket(name="w00t", user_project=user_project)
         blob = self._make_one(u"blob-name", bucket=bucket, kms_key_name=kms_key_name)
         self.assertIsNone(blob.chunk_size)
-
-        # Create mocks to be checked for doing transport.
-        transport = self._mock_transport(http_client.OK, {})
+        if metadata:
+            self.assertIsNone(blob.metadata)
+            blob._properties["metadata"] = metadata
+            self.assertEqual(len(blob._changes), 0)
 
         # Create some mock arguments.
-        client = mock.Mock(_http=transport, _connection=_Connection, spec=["_http"])
-        client._connection.API_BASE_URL = "https://storage.googleapis.com"
+        if not client:
+            # Create mocks to be checked for doing transport.
+            transport = self._mock_transport(http_client.OK, {})
+
+            client = mock.Mock(_http=transport, _connection=_Connection, spec=["_http"])
+            client._connection.API_BASE_URL = "https://storage.googleapis.com"
         data = b"data here hear hier"
         stream = io.BytesIO(data)
         content_type = u"application/xml"
@@ -1867,7 +1893,7 @@ class Test_Blob(unittest.TestCase):
         )
 
         # Check the mocks and the returned value.
-        self.assertIs(response, transport.request.return_value)
+        self.assertIs(response, client._http.request.return_value)
         if size is None:
             data_read = data
             self.assertEqual(stream.tell(), len(data))
@@ -1906,17 +1932,21 @@ class Test_Blob(unittest.TestCase):
 
         upload_url += "?" + urlencode(qs_params)
 
+        blob_data = {"name": "blob-name"}
+        if metadata:
+            blob_data["metadata"] = metadata
+            self.assertEqual(blob._changes, set(["metadata"]))
         payload = (
             b"--==0==\r\n"
             + b"content-type: application/json; charset=UTF-8\r\n\r\n"
-            + b'{"name": "blob-name"}\r\n'
-            + b"--==0==\r\n"
+            + json.dumps(blob_data).encode("utf-8")
+            + b"\r\n--==0==\r\n"
             + b"content-type: application/xml\r\n\r\n"
             + data_read
             + b"\r\n--==0==--"
         )
         headers = {"content-type": b'multipart/related; boundary="==0=="'}
-        transport.request.assert_called_once_with(
+        client._http.request.assert_called_once_with(
             "POST", upload_url, data=payload, headers=headers, timeout=expected_timeout
         )
 
@@ -1974,6 +2004,17 @@ class Test_Blob(unittest.TestCase):
             mock_get_boundary, if_generation_not_match=4, if_metageneration_not_match=4
         )
 
+    @mock.patch(u"google.resumable_media._upload.get_boundary", return_value=b"==0==")
+    def test__do_multipart_upload_with_client(self, mock_get_boundary):
+        transport = self._mock_transport(http_client.OK, {})
+        client = mock.Mock(_http=transport, _connection=_Connection, spec=["_http"])
+        client._connection.API_BASE_URL = "https://storage.googleapis.com"
+        self._do_multipart_success(mock_get_boundary, client=client)
+
+    @mock.patch(u"google.resumable_media._upload.get_boundary", return_value=b"==0==")
+    def test__do_multipart_upload_with_metadata(self, mock_get_boundary):
+        self._do_multipart_success(mock_get_boundary, metadata={"test": "test"})
+
     def test__do_multipart_upload_bad_size(self):
         blob = self._make_one(u"blob-name", bucket=None)
 
@@ -1993,6 +2034,7 @@ class Test_Blob(unittest.TestCase):
 
     def _initiate_resumable_helper(
         self,
+        client=None,
         size=None,
         extra_headers=None,
         chunk_size=None,
@@ -2006,6 +2048,7 @@ class Test_Blob(unittest.TestCase):
         blob_chunk_size=786432,
         kms_key_name=None,
         timeout=None,
+        metadata=None,
     ):
         from six.moves.urllib.parse import urlencode
         from google.resumable_media.requests import ResumableUpload
@@ -2013,7 +2056,12 @@ class Test_Blob(unittest.TestCase):
 
         bucket = _Bucket(name="whammy", user_project=user_project)
         blob = self._make_one(u"blob-name", bucket=bucket, kms_key_name=kms_key_name)
-        blob.metadata = {"rook": "takes knight"}
+        if metadata:
+            self.assertIsNone(blob.metadata)
+            blob._properties["metadata"] = metadata
+            self.assertEqual(len(blob._changes), 0)
+        else:
+            blob.metadata = {"rook": "takes knight"}
         blob.chunk_size = blob_chunk_size
         if blob_chunk_size is not None:
             self.assertIsNotNone(blob.chunk_size)
@@ -2022,17 +2070,23 @@ class Test_Blob(unittest.TestCase):
 
         # Need to make sure **same** dict is used because ``json.dumps()``
         # will depend on the hash order.
-        object_metadata = blob._get_writable_metadata()
-        blob._get_writable_metadata = mock.Mock(return_value=object_metadata, spec=[])
+        if not metadata:
+            object_metadata = blob._get_writable_metadata()
+            blob._get_writable_metadata = mock.Mock(
+                return_value=object_metadata, spec=[]
+            )
 
-        # Create mocks to be checked for doing transport.
         resumable_url = "http://test.invalid?upload_id=hey-you"
-        response_headers = {"location": resumable_url}
-        transport = self._mock_transport(http_client.OK, response_headers)
+        if not client:
+            # Create mocks to be checked for doing transport.
+            response_headers = {"location": resumable_url}
+            transport = self._mock_transport(http_client.OK, response_headers)
 
-        # Create some mock arguments and call the method under test.
-        client = mock.Mock(_http=transport, _connection=_Connection, spec=[u"_http"])
-        client._connection.API_BASE_URL = "https://storage.googleapis.com"
+            # Create some mock arguments and call the method under test.
+            client = mock.Mock(
+                _http=transport, _connection=_Connection, spec=[u"_http"]
+            )
+            client._connection.API_BASE_URL = "https://storage.googleapis.com"
         data = b"hello hallo halo hi-low"
         stream = io.BytesIO(data)
         content_type = u"text/plain"
@@ -2107,6 +2161,8 @@ class Test_Blob(unittest.TestCase):
             self.assertNotEqual(blob.chunk_size, chunk_size)
             self.assertEqual(upload._chunk_size, chunk_size)
         self.assertIs(upload._stream, stream)
+        if metadata:
+            self.assertEqual(blob._changes, set(["metadata"]))
         if size is None:
             self.assertIsNone(upload._total_bytes)
         else:
@@ -2121,12 +2177,15 @@ class Test_Blob(unittest.TestCase):
         else:
             self.assertIsNone(retry_strategy.max_cumulative_retry)
             self.assertEqual(retry_strategy.max_retries, num_retries)
-        self.assertIs(transport, transport)
+        self.assertIs(client._http, transport)
         # Make sure we never read from the stream.
         self.assertEqual(stream.tell(), 0)
 
-        # Check the mocks.
-        blob._get_writable_metadata.assert_called_once_with()
+        if metadata:
+            object_metadata = {"name": u"blob-name", "metadata": metadata}
+        else:
+            # Check the mocks.
+            blob._get_writable_metadata.assert_called_once_with()
         payload = json.dumps(object_metadata).encode("utf-8")
         expected_headers = {
             "content-type": "application/json; charset=UTF-8",
@@ -2143,6 +2202,9 @@ class Test_Blob(unittest.TestCase):
             headers=expected_headers,
             timeout=expected_timeout,
         )
+
+    def test__initiate_resumable_upload_with_metadata(self):
+        self._initiate_resumable_helper(metadata={"test": "test"})
 
     def test__initiate_resumable_upload_with_custom_timeout(self):
         self._initiate_resumable_helper(timeout=9.58)
@@ -2202,6 +2264,15 @@ class Test_Blob(unittest.TestCase):
 
     def test__initiate_resumable_upload_with_predefined_acl(self):
         self._initiate_resumable_helper(predefined_acl="private")
+
+    def test__initiate_resumable_upload_with_client(self):
+        resumable_url = "http://test.invalid?upload_id=hey-you"
+        response_headers = {"location": resumable_url}
+        transport = self._mock_transport(http_client.OK, response_headers)
+
+        client = mock.Mock(_http=transport, _connection=_Connection, spec=[u"_http"])
+        client._connection.API_BASE_URL = "https://storage.googleapis.com"
+        self._initiate_resumable_helper(client=client)
 
     def _make_resumable_transport(
         self, headers1, headers2, headers3, total_bytes, data_corruption=False
