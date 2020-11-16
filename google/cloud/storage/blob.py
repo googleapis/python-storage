@@ -103,9 +103,11 @@ _NUM_RETRIES_MESSAGE = (
     "release. The default behavior (when `num_retries` is not specified) when "
     "a transient error (e.g. 429 Too Many Requests or 500 Internal Server "
     "Error) occurs will be as follows: upload requests will be automatically "
-    "retried. Subsequent retries will be sent after waiting 1, 2, 4, 8, etc. "
-    "seconds (exponential backoff) until 10 minutes of wait time have "
-    "elapsed. At that point, there will be no more attempts to retry."
+    "retried if and only if `if_metageneration_match` is specified (thus "
+    "making the upload idempotent). Subsequent retries will be sent after "
+    "waiting 1, 2, 4, 8, etc. seconds (exponential backoff) until 10 minutes "
+    "of wait time have elapsed. At that point, there will be no more attempts "
+    "to retry."
 )
 _READ_LESS_THAN_SIZE = (
     "Size {:d} was specified but the file-like object only had " "{:d} bytes remaining."
@@ -2058,6 +2060,15 @@ class Blob(_PropertyMixin):
                   **only** response in the multipart case and it will be the
                   **final** response in the resumable case.
         """
+        if if_metageneration_match is None and num_retries is None:
+            # Uploads are only idempotent (safe to retry) if
+            # if_metageneration_match is set. If it is not set, the default
+            # num_retries should be 0. Note: Because retry logic for uploads is
+            # provided by the google-resumable-media-python package, it doesn't
+            # use the ConditionalRetryStrategy class used in other API calls in
+            # this library to solve this problem.
+            num_retries = 0
+
         if size is not None and size <= _MAX_MULTIPART_SIZE:
             response = self._do_multipart_upload(
                 client,
