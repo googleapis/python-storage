@@ -1552,8 +1552,14 @@ class Blob(_PropertyMixin):
                      concluded once ``stream`` is exhausted (or :data:`None`).
 
         :type num_retries: int
-        :param num_retries: Number of upload retries. (Deprecated: This
-                            argument will be removed in a future release.)
+        :param num_retries: Number of upload retries. By default, only uploads
+                            with if_metageneration_match set will be retried, as
+                            uploads without the argument are not guaranteed to
+                            be idempotent. Setting num_retries will override
+                            this default behavior and guarantee retries even
+                            when if_metageneration_match is not set.
+                            (Deprecated: This argument will be removed in a
+                            future release.)
 
         :type predefined_acl: str
         :param predefined_acl: (Optional) Predefined access control list
@@ -1711,8 +1717,14 @@ class Blob(_PropertyMixin):
         :param predefined_acl: (Optional) Predefined access control list
 
         :type num_retries: int
-        :param num_retries: Number of upload retries. (Deprecated: This
-                            argument will be removed in a future release.)
+        :param num_retries: Number of upload retries. By default, only uploads
+                            with if_metageneration_match set will be retried, as
+                            uploads without the argument are not guaranteed to
+                            be idempotent. Setting num_retries will override
+                            this default behavior and guarantee retries even
+                            when if_metageneration_match is not set.
+                            (Deprecated: This argument will be removed in a
+                            future release.)
 
         :type extra_headers: dict
         :param extra_headers: (Optional) Extra headers to add to standard
@@ -1889,8 +1901,14 @@ class Blob(_PropertyMixin):
                      concluded once ``stream`` is exhausted (or :data:`None`).
 
         :type num_retries: int
-        :param num_retries: Number of upload retries. (Deprecated: This
-                            argument will be removed in a future release.)
+        :param num_retries: Number of upload retries. By default, only uploads
+                            with if_metageneration_match set will be retried, as
+                            uploads without the argument are not guaranteed to
+                            be idempotent. Setting num_retries will override
+                            this default behavior and guarantee retries even
+                            when if_metageneration_match is not set.
+                            (Deprecated: This argument will be removed in a
+                            future release.)
 
         :type predefined_acl: str
         :param predefined_acl: (Optional) Predefined access control list
@@ -2007,8 +2025,14 @@ class Blob(_PropertyMixin):
                      concluded once ``stream`` is exhausted (or :data:`None`).
 
         :type num_retries: int
-        :param num_retries: Number of upload retries. (Deprecated: This
-                            argument will be removed in a future release.)
+        :param num_retries: Number of upload retries. By default, only uploads
+                            with if_metageneration_match set will be retried, as
+                            uploads without the argument are not guaranteed to
+                            be idempotent. Setting num_retries will override
+                            this default behavior and guarantee retries even
+                            when if_metageneration_match is not set.
+                            (Deprecated: This argument will be removed in a
+                            future release.)
 
         :type predefined_acl: str
         :param predefined_acl: (Optional) Predefined access control list
@@ -2172,8 +2196,14 @@ class Blob(_PropertyMixin):
         :param content_type: (Optional) Type of content being uploaded.
 
         :type num_retries: int
-        :param num_retries: Number of upload retries. (Deprecated: This
-                            argument will be removed in a future release.)
+        :param num_retries: Number of upload retries. By default, only uploads
+                            with if_metageneration_match set will be retried, as
+                            uploads without the argument are not guaranteed to
+                            be idempotent. Setting num_retries will override
+                            this default behavior and guarantee retries even
+                            when if_metageneration_match is not set.
+                            (Deprecated: This argument will be removed in a
+                            future release.)
 
         :type client: :class:`~google.cloud.storage.client.Client`
         :param client: (Optional) The client to use.  If not passed, falls back
