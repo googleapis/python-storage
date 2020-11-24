@@ -26,6 +26,7 @@
 """
 
 import base64
+import cgi
 import copy
 import hashlib
 from io import BytesIO
@@ -1345,7 +1346,7 @@ class Blob(_PropertyMixin):
         start=None,
         end=None,
         raw_download=False,
-        encoding="utf-8",
+        encoding=None,
         if_generation_match=None,
         if_generation_not_match=None,
         if_metageneration_match=None,
@@ -1374,8 +1375,8 @@ class Blob(_PropertyMixin):
 
         :type encoding: str
         :param encoding: (Optional) The data of the blob will be decoded by
-                         encoding method.  Defaults to UTF-8. Apply only
-                         if the value of ``blob.content_encoding`` is None.
+                         encoding method.  Defaults to the ``charset`` param
+                         of attr:`content_type`, or else to "utf-8".
 
         :type if_generation_match: long
         :param if_generation_match: (Optional) Make the operation conditional on whether
@@ -1422,10 +1423,15 @@ class Blob(_PropertyMixin):
             timeout=timeout,
         )
 
-        if self.content_encoding:
-            return data.decode(self.content_encoding)
-        else:
+        if encoding is not None:
             return data.decode(encoding)
+
+        if self.content_type is not None:
+            _, params = cgi.parse_header(self.content_type)
+            if "charset" in params:
+                return data.decode(params["charset"])
+
+        return data.decode("utf-8")
 
     def _get_content_type(self, content_type, filename=None):
         """Determine the content type from the current object.
