@@ -1642,8 +1642,6 @@ class Test_Blob(unittest.TestCase):
         if payload is None:
             if encoding is not None:
                 payload = expected_value.encode(encoding)
-            elif charset is not None:
-                payload = expected_value.encode(charset)
             else:
                 payload = expected_value.encode()
 
@@ -1696,8 +1694,8 @@ class Test_Blob(unittest.TestCase):
 
         blob.download_as_bytes.assert_called_once_with(
             client=client,
-            start=client,
-            end=client,
+            start=start,
+            end=end,
             raw_download=raw_download,
             timeout=expected_timeout,
             if_generation_match=if_generation_match,
@@ -1711,6 +1709,15 @@ class Test_Blob(unittest.TestCase):
 
     def test_download_as_text_w_raw(self):
         self._download_as_text_helper(raw_download=True)
+
+    def test_download_as_text_w_client(self):
+        self._download_as_text_helper(raw_download=False, client=object())
+
+    def test_download_as_text_w_start(self):
+        self._download_as_text_helper(raw_download=False, start=123)
+
+    def test_download_as_text_w_end(self):
+        self._download_as_text_helper(raw_download=False, end=456)
 
     def test_download_as_text_w_custom_timeout(self):
         self._download_as_text_helper(raw_download=False, timeout=9.58)
@@ -1726,6 +1733,17 @@ class Test_Blob(unittest.TestCase):
 
     def test_download_as_text_w_if_metageneration_not_match(self):
         self._download_as_text_helper(raw_download=False, if_metageneration_not_match=6)
+
+    def test_download_as_text_w_encoding(self):
+        encoding = "utf-16"
+        self._download_as_text_helper(
+            raw_download=False, encoding=encoding,
+        )
+
+    def test_download_as_text_w_no_charset(self):
+        self._download_as_text_helper(
+            raw_download=False, no_charset=True,
+        )
 
     def test_download_as_text_w_non_ascii_w_explicit_encoding(self):
         expected_value = u"\x0AFe"
