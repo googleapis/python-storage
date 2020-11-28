@@ -20,6 +20,7 @@ import collections
 import datetime
 import functools
 import json
+import os
 import warnings
 import google.api_core.client_options
 
@@ -31,6 +32,7 @@ from google.cloud.client import ClientWithProject
 from google.cloud.exceptions import NotFound
 from google.cloud.storage._helpers import _get_storage_host
 from google.cloud.storage._helpers import _bucket_bound_hostname_url
+from google.cloud.storage._helpers import STORAGE_EMULATOR_ENV_VAR
 from google.cloud.storage._http import Connection
 from google.cloud.storage._signing import (
     get_expiration_seconds_v4,
@@ -111,6 +113,15 @@ class Client(ClientWithProject):
 
         if project is _marker:
             project = None
+
+        if os.getenv(STORAGE_EMULATOR_ENV_VAR) is not None:
+            credentials = AnonymousCredentials()
+            if project in [_marker, None]:
+                project = os.getenv("GCLOUD_PROJECT")
+                if project is None:
+                    raise ValueError(
+                        "For emulator pass `project` as a argument or set `GCLOUD_PROJECT` via environment variable"
+                    )
 
         super(Client, self).__init__(
             project=project,

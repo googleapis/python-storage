@@ -219,6 +219,32 @@ class TestClient(unittest.TestCase):
         self.assertEqual(list(client._batch_stack), [])
         self.assertIs(client._connection._client_info, client_info)
 
+    def test_ctor_w_emulator_w_env_var_glcoud_project(self):
+        from google.cloud.storage._helpers import STORAGE_EMULATOR_ENV_VAR
+
+        HOST = "https://api.example.com"
+        PROJECT = "test"
+
+        with mock.patch("os.environ", {STORAGE_EMULATOR_ENV_VAR: HOST}):
+            with mock.patch("os.getenv", side_effect=[HOST, PROJECT]):
+                client = self._make_one()
+                self.assertEqual(client.project, PROJECT)
+                self.assertEqual(client._connection.API_BASE_URL, HOST)
+
+    def test_ctor_w_emulator_w_project_argument(self):
+        HOST = "https://api.example.com"
+        PROJECT = "test"
+
+        with mock.patch("os.getenv", side_effect=[HOST]):
+            client = self._make_one(project=PROJECT)
+            self.assertEqual(client.project, PROJECT)
+
+    def test_ctor_w_emulator_missing_project(self):
+        HOST = "https://api.example.com"
+        with mock.patch("os.getenv", side_effect=[HOST, None]):
+            with self.assertRaises(ValueError):
+                self._make_one()
+
     def test_create_anonymous_client(self):
         from google.auth.credentials import AnonymousCredentials
         from google.cloud.storage._http import Connection
