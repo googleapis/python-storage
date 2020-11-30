@@ -112,7 +112,7 @@ Coding Style
   the branch should be the main branch on that remote (``master``).
 
 - This repository contains configuration for the 
-  `precommit <https://pre-commit.com/>`__ tool, which automates checking
+  `pre-commit <https://pre-commit.com/>`__ tool, which automates checking
   our linters during a commit.  If you have it installed on your ``$PATH``,
   you can enable enforcing those checks via:
 
