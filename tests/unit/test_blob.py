@@ -1626,66 +1626,86 @@ class Test_Blob(unittest.TestCase):
     def test_download_as_byte_w_custom_timeout(self):
         self._download_as_bytes_helper(raw_download=False, timeout=9.58)
 
-    def _download_as_text_helper(self, raw_download, encoding=None, timeout=None):
+    def _download_as_text_helper(
+        self,
+        raw_download,
+        client=None,
+        start=None,
+        end=None,
+        if_generation_match=None,
+        if_generation_not_match=None,
+        if_metageneration_match=None,
+        if_metageneration_not_match=None,
+        timeout=None,
+        encoding=None,
+        charset=None,
+        no_charset=False,
+        expected_value=u"DEADBEEF",
+        payload=None,
+    ):
+        if payload is None:
+            if encoding is not None:
+                payload = expected_value.encode(encoding)
+            else:
+                payload = expected_value.encode()
+
         blob_name = "blob-name"
-        client = self._make_client()
-        bucket = _Bucket(client)
-        media_link = "http://example.com/media/"
-        properties = {"mediaLink": media_link}
-        if encoding:
-            properties["contentEncoding"] = encoding
+        bucket = _Bucket()
+
+        properties = {}
+        if charset is not None:
+            properties["contentType"] = "text/plain; charset={}".format(charset)
+        elif no_charset:
+            properties = {"contentType": "text/plain"}
+
         blob = self._make_one(blob_name, bucket=bucket, properties=properties)
-        blob._do_download = mock.Mock()
+        blob.download_as_bytes = mock.Mock(return_value=payload)
+
+        kwargs = {"raw_download": raw_download}
+
+        if client is not None:
+            kwargs["client"] = client
+
+        if start is not None:
+            kwargs["start"] = start
+
+        if end is not None:
+            kwargs["end"] = end
+
+        if encoding is not None:
+            kwargs["encoding"] = encoding
+
+        if if_generation_match is not None:
+            kwargs["if_generation_match"] = if_generation_match
+
+        if if_generation_not_match is not None:
+            kwargs["if_generation_not_match"] = if_generation_not_match
+
+        if if_metageneration_match is not None:
+            kwargs["if_metageneration_match"] = if_metageneration_match
+
+        if if_metageneration_not_match is not None:
+            kwargs["if_metageneration_not_match"] = if_metageneration_not_match
 
         if timeout is None:
             expected_timeout = self._get_default_timeout()
-            fetched = blob.download_as_text(raw_download=raw_download)
         else:
-            expected_timeout = timeout
-            fetched = blob.download_as_text(raw_download=raw_download, timeout=timeout)
+            kwargs["timeout"] = expected_timeout = timeout
 
-        self.assertEqual(fetched, "")
+        fetched = blob.download_as_text(**kwargs)
 
-        headers = {"accept-encoding": "gzip"}
-        blob._do_download.assert_called_once_with(
-            client._http,
-            mock.ANY,
-            media_link,
-            headers,
-            None,
-            None,
-            raw_download,
+        self.assertEqual(fetched, expected_value)
+
+        blob.download_as_bytes.assert_called_once_with(
+            client=client,
+            start=start,
+            end=end,
+            raw_download=raw_download,
             timeout=expected_timeout,
-            checksum="md5",
-        )
-        stream = blob._do_download.mock_calls[0].args[1]
-        self.assertIsInstance(stream, io.BytesIO)
-
-    def test_download_as_text_w_generation_match(self):
-        GENERATION_NUMBER = 6
-        MEDIA_LINK = "http://example.com/media/"
-
-        client = mock.Mock(spec=["_http"])
-        blob = self._make_one(
-            "blob-name", bucket=_Bucket(client), properties={"mediaLink": MEDIA_LINK}
-        )
-        blob.download_to_file = mock.Mock()
-
-        fetched = blob.download_as_text(if_generation_match=GENERATION_NUMBER)
-        self.assertEqual(fetched, "")
-
-        blob.download_to_file.assert_called_once_with(
-            mock.ANY,
-            client=None,
-            start=None,
-            end=None,
-            raw_download=False,
-            if_generation_match=GENERATION_NUMBER,
-            if_generation_not_match=None,
-            if_metageneration_match=None,
-            if_metageneration_not_match=None,
-            timeout=self._get_default_timeout(),
-            checksum="md5",
+            if_generation_match=if_generation_match,
+            if_generation_not_match=if_generation_not_match,
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
         )
 
     def test_download_as_text_wo_raw(self):
@@ -1694,11 +1714,64 @@ class Test_Blob(unittest.TestCase):
     def test_download_as_text_w_raw(self):
         self._download_as_text_helper(raw_download=True)
 
+    def test_download_as_text_w_client(self):
+        self._download_as_text_helper(raw_download=False, client=object())
+
+    def test_download_as_text_w_start(self):
+        self._download_as_text_helper(raw_download=False, start=123)
+
+    def test_download_as_text_w_end(self):
+        self._download_as_text_helper(raw_download=False, end=456)
+
     def test_download_as_text_w_custom_timeout(self):
         self._download_as_text_helper(raw_download=False, timeout=9.58)
 
+    def test_download_as_text_w_if_generation_match(self):
+        self._download_as_text_helper(raw_download=False, if_generation_match=6)
+
+    def test_download_as_text_w_if_generation_not_match(self):
+        self._download_as_text_helper(raw_download=False, if_generation_not_match=6)
+
+    def test_download_as_text_w_if_metageneration_match(self):
+        self._download_as_text_helper(raw_download=False, if_metageneration_match=6)
+
+    def test_download_as_text_w_if_metageneration_not_match(self):
+        self._download_as_text_helper(raw_download=False, if_metageneration_not_match=6)
+
     def test_download_as_text_w_encoding(self):
-        self._download_as_text_helper(raw_download=False, encoding="utf-8")
+        encoding = "utf-16"
+        self._download_as_text_helper(
+            raw_download=False, encoding=encoding,
+        )
+
+    def test_download_as_text_w_no_charset(self):
+        self._download_as_text_helper(
+            raw_download=False, no_charset=True,
+        )
+
+    def test_download_as_text_w_non_ascii_w_explicit_encoding(self):
+        expected_value = u"\x0AFe"
+        encoding = "utf-16"
+        charset = "latin1"
+        payload = expected_value.encode(encoding)
+        self._download_as_text_helper(
+            raw_download=False,
+            expected_value=expected_value,
+            payload=payload,
+            encoding=encoding,
+            charset=charset,
+        )
+
+    def test_download_as_text_w_non_ascii_wo_explicit_encoding_w_charset(self):
+        expected_value = u"\x0AFe"
+        charset = "utf-16"
+        payload = expected_value.encode(charset)
+        self._download_as_text_helper(
+            raw_download=False,
+            expected_value=expected_value,
+            payload=payload,
+            charset=charset,
+        )
 
     @mock.patch("warnings.warn")
     def test_download_as_string(self, mock_warn):
@@ -1936,19 +2009,15 @@ class Test_Blob(unittest.TestCase):
 
         upload_url += "?" + urlencode(qs_params)
 
-        blob_data = b'{"name": "blob-name"}\r\n'
+        blob_data = {"name": "blob-name"}
         if metadata:
-            blob_data = (
-                b'{"name": "blob-name", "metadata": '
-                + json.dumps(metadata).encode("utf-8")
-                + b"}\r\n"
-            )
+            blob_data["metadata"] = metadata
             self.assertEqual(blob._changes, set(["metadata"]))
         payload = (
             b"--==0==\r\n"
             + b"content-type: application/json; charset=UTF-8\r\n\r\n"
-            + blob_data
-            + b"--==0==\r\n"
+            + json.dumps(blob_data).encode("utf-8")
+            + b"\r\n--==0==\r\n"
             + b"content-type: application/xml\r\n\r\n"
             + data_read
             + b"\r\n--==0==--"
@@ -2585,6 +2654,12 @@ class Test_Blob(unittest.TestCase):
             if_metageneration_not_match,
             **timeout_kwarg
         )
+
+        # Adjust num_retries expectations to reflect the conditional default in
+        # _do_upload()
+        if num_retries is None and if_metageneration_match is None:
+            num_retries = 0
+
         self.assertIs(created_json, mock.sentinel.json)
         response.json.assert_called_once_with()
         if size is not None and size <= _MAX_MULTIPART_SIZE:
@@ -3989,6 +4064,7 @@ class Test_Blob(unittest.TestCase):
             if_generation_match=GENERATION_NUMBER,
             if_source_generation_match=SOURCE_GENERATION_NUMBER,
         )
+
         self.assertEqual(blob.storage_class, "NEARLINE")
 
         kw = connection._requested
@@ -4238,6 +4314,7 @@ class Test_Blob(unittest.TestCase):
         self.assertIsNone(blob.metadata)
         blob.metadata = METADATA
         self.assertEqual(blob.metadata, METADATA)
+        self.assertIn("metadata", blob._changes)
 
     def test_metadata_setter_w_nan(self):
         BLOB_NAME = "blob-name"
@@ -4248,6 +4325,7 @@ class Test_Blob(unittest.TestCase):
         blob.metadata = METADATA
         value = blob.metadata["foo"]
         self.assertIsInstance(value, str)
+        self.assertIn("metadata", blob._changes)
 
     def test_metageneration(self):
         BUCKET = object()
@@ -4446,6 +4524,7 @@ class Test_Blob(unittest.TestCase):
         self.assertIsNone(blob.custom_time)
         blob.custom_time = TIMESTAMP
         self.assertEqual(blob.custom_time, TIMESTAMP)
+        self.assertIn("customTime", blob._changes)
 
     def test_custom_time_setter_none_value(self):
         from google.cloud._helpers import _RFC3339_MICROS
