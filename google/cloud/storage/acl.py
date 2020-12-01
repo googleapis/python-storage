@@ -85,6 +85,7 @@ when sending metadata for ACLs to the API.
 """
 
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
+from google.cloud.storage.retry import DEFAULT_RETRY
 
 
 class _ACLEntity(object):
@@ -430,7 +431,7 @@ class ACL(object):
             client = self.client
         return client
 
-    def reload(self, client=None, timeout=_DEFAULT_TIMEOUT):
+    def reload(self, client=None, timeout=_DEFAULT_TIMEOUT, retry=DEFAULT_RETRY):
         """Reload the ACL data from Cloud Storage.
 
         If :attr:`user_project` is set, bills the API request to that project.
@@ -445,6 +446,9 @@ class ACL(object):
 
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
+
+        :type retry: google.api_core.retry.Retry
+        :param retry: (Optional) How to retry the RPC.
         """
         path = self.reload_path
         client = self._require_client(client)
@@ -456,13 +460,19 @@ class ACL(object):
         self.entities.clear()
 
         found = client._connection.api_request(
-            method="GET", path=path, query_params=query_params, timeout=timeout
+            method="GET",
+            path=path,
+            query_params=query_params,
+            timeout=timeout,
+            retry=retry,
         )
         self.loaded = True
         for entry in found.get("items", ()):
             self.add_entity(self.entity_from_dict(entry))
 
-    def _save(self, acl, predefined, client, timeout=_DEFAULT_TIMEOUT):
+    def _save(
+        self, acl, predefined, client, timeout=_DEFAULT_TIMEOUT, retry=DEFAULT_RETRY
+    ):
         """Helper for :meth:`save` and :meth:`save_predefined`.
 
         :type acl: :class:`google.cloud.storage.acl.ACL`, or a compatible list.
@@ -483,6 +493,9 @@ class ACL(object):
 
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
+
+        :type retry: google.api_core.retry.Retry
+        :param retry: (Optional) How to retry the RPC.
         """
         query_params = {"projection": "full"}
         if predefined is not None:
@@ -501,13 +514,16 @@ class ACL(object):
             data={self._URL_PATH_ELEM: list(acl)},
             query_params=query_params,
             timeout=timeout,
+            retry=retry,
         )
         self.entities.clear()
         for entry in result.get(self._URL_PATH_ELEM, ()):
             self.add_entity(self.entity_from_dict(entry))
         self.loaded = True
 
-    def save(self, acl=None, client=None, timeout=_DEFAULT_TIMEOUT):
+    def save(
+        self, acl=None, client=None, timeout=_DEFAULT_TIMEOUT, retry=DEFAULT_RETRY
+    ):
         """Save this ACL for the current bucket.
 
         If :attr:`user_project` is set, bills the API request to that project.
@@ -526,6 +542,9 @@ class ACL(object):
 
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
+
+        :type retry: google.api_core.retry.Retry
+        :param retry: (Optional) How to retry the RPC.
         """
         if acl is None:
             acl = self
@@ -534,9 +553,11 @@ class ACL(object):
             save_to_backend = True
 
         if save_to_backend:
-            self._save(acl, None, client, timeout=timeout)
+            self._save(acl, None, client, timeout=timeout, retry=retry)
 
-    def save_predefined(self, predefined, client=None, timeout=_DEFAULT_TIMEOUT):
+    def save_predefined(
+        self, predefined, client=None, timeout=_DEFAULT_TIMEOUT, retry=DEFAULT_RETRY
+    ):
         """Save this ACL for the current bucket using a predefined ACL.
 
         If :attr:`user_project` is set, bills the API request to that project.
@@ -558,11 +579,14 @@ class ACL(object):
 
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
+
+        :type retry: google.api_core.retry.Retry
+        :param retry: (Optional) How to retry the RPC.
         """
         predefined = self.validate_predefined(predefined)
-        self._save(None, predefined, client, timeout=timeout)
+        self._save(None, predefined, client, timeout=timeout, retry=retry)
 
-    def clear(self, client=None, timeout=_DEFAULT_TIMEOUT):
+    def clear(self, client=None, timeout=_DEFAULT_TIMEOUT, retry=DEFAULT_RETRY):
         """Remove all ACL entries.
 
         If :attr:`user_project` is set, bills the API request to that project.
@@ -582,8 +606,11 @@ class ACL(object):
 
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
+
+        :type retry: google.api_core.retry.Retry
+        :param retry: (Optional) How to retry the RPC.
         """
-        self.save([], client=client, timeout=timeout)
+        self.save([], client=client, timeout=timeout, retry=retry)
 
 
 class BucketACL(ACL):

@@ -60,6 +60,8 @@ from google.cloud.storage.notification import NONE_PAYLOAD_FORMAT
 from google.cloud.storage.retry import DEFAULT_RETRY
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_GENERATION_SPECIFIED
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_ETAG_IN_JSON
+from google.cloud.storage.retry import DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED
+
 
 _UBLA_BPO_ENABLED_MESSAGE = (
     "Pass only one of 'uniform_bucket_level_access_enabled' / "
@@ -721,6 +723,7 @@ class Bucket(_PropertyMixin):
         timeout=_DEFAULT_TIMEOUT,
         if_metageneration_match=None,
         if_metageneration_not_match=None,
+        retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
     ):
         """Determines whether or not this bucket exists.
 
@@ -745,6 +748,9 @@ class Bucket(_PropertyMixin):
         :type if_metageneration_not_match: long
         :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
                                             blob's current metageneration does not match the given value.
+
+        :type retry: google.api_core.retry.Retry
+        :param retry: (Optional) How to retry the RPC.
 
         :rtype: bool
         :returns: True if the bucket exists in Cloud Storage.
@@ -771,6 +777,7 @@ class Bucket(_PropertyMixin):
                 query_params=query_params,
                 _target_object=None,
                 timeout=timeout,
+                retry=retry,
             )
             # NOTE: This will not fail immediately in a batch. However, when
             #       Batch.finish() is called, the resulting `NotFound` will be
@@ -787,6 +794,7 @@ class Bucket(_PropertyMixin):
         predefined_acl=None,
         predefined_default_object_acl=None,
         timeout=_DEFAULT_TIMEOUT,
+        retry=DEFAULT_RETRY,
     ):
         """DEPRECATED. Creates current bucket.
 
@@ -831,6 +839,9 @@ class Bucket(_PropertyMixin):
 
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
+
+        :type retry: google.api_core.retry.Retry
+        :param retry: (Optional) How to retry the RPC.
         """
         warnings.warn(
             "Bucket.create() is deprecated and will be removed in future."
@@ -849,6 +860,7 @@ class Bucket(_PropertyMixin):
             predefined_acl=predefined_acl,
             predefined_default_object_acl=predefined_default_object_acl,
             timeout=timeout,
+            retry=retry,
         )
 
     def update(
@@ -857,6 +869,7 @@ class Bucket(_PropertyMixin):
         timeout=_DEFAULT_TIMEOUT,
         if_metageneration_match=None,
         if_metageneration_not_match=None,
+        retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
     ):
         """Sends all properties in a PUT request.
 
@@ -883,12 +896,16 @@ class Bucket(_PropertyMixin):
         :type if_metageneration_not_match: long
         :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
                                             blob's current metageneration does not match the given value.
+
+        :type retry: google.api_core.retry.Retry
+        :param retry: (Optional) How to retry the RPC.
         """
         super(Bucket, self).update(
             client=client,
             timeout=timeout,
             if_metageneration_match=if_metageneration_match,
             if_metageneration_not_match=if_metageneration_not_match,
+            retry=retry,
         )
 
     def reload(
@@ -898,6 +915,7 @@ class Bucket(_PropertyMixin):
         timeout=_DEFAULT_TIMEOUT,
         if_metageneration_match=None,
         if_metageneration_not_match=None,
+        retry=DEFAULT_RETRY,
     ):
         """Reload properties from Cloud Storage.
 
@@ -927,6 +945,9 @@ class Bucket(_PropertyMixin):
         :type if_metageneration_not_match: long
         :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
                                             blob's current metageneration does not match the given value.
+
+        :type retry: google.api_core.retry.Retry
+        :param retry: (Optional) How to retry the RPC.
         """
         super(Bucket, self).reload(
             client=client,
@@ -934,6 +955,7 @@ class Bucket(_PropertyMixin):
             timeout=timeout,
             if_metageneration_match=if_metageneration_match,
             if_metageneration_not_match=if_metageneration_not_match,
+            retry=retry,
         )
 
     def patch(
@@ -942,6 +964,7 @@ class Bucket(_PropertyMixin):
         timeout=_DEFAULT_TIMEOUT,
         if_metageneration_match=None,
         if_metageneration_not_match=None,
+        retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
     ):
         """Sends all changed properties in a PATCH request.
 
@@ -968,6 +991,9 @@ class Bucket(_PropertyMixin):
         :type if_metageneration_not_match: long
         :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
                                             blob's current metageneration does not match the given value.
+
+        :type retry: google.api_core.retry.Retry
+        :param retry: (Optional) How to retry the RPC.
         """
         # Special case: For buckets, it is possible that labels are being
         # removed; this requires special handling.
@@ -983,6 +1009,7 @@ class Bucket(_PropertyMixin):
             timeout=timeout,
             if_metageneration_match=if_metageneration_match,
             if_metageneration_not_match=if_metageneration_not_match,
+            retry=retry,
         )
 
     @property
@@ -1026,6 +1053,7 @@ class Bucket(_PropertyMixin):
         if_generation_not_match=None,
         if_metageneration_match=None,
         if_metageneration_not_match=None,
+        retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
         **kwargs
     ):
         """Get a blob object by name.
@@ -1085,6 +1113,9 @@ class Bucket(_PropertyMixin):
         :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
                                             blob's current metageneration does not match the given value.
 
+        :type retry: google.api_core.retry.Retry
+        :param retry: (Optional) How to retry the RPC.
+
         :param kwargs: Keyword arguments to pass to the
                        :class:`~google.cloud.storage.blob.Blob` constructor.
 
@@ -1109,6 +1140,7 @@ class Bucket(_PropertyMixin):
                 if_generation_not_match=if_generation_not_match,
                 if_metageneration_match=if_metageneration_match,
                 if_metageneration_not_match=if_metageneration_not_match,
+                retry=retry,
             )
         except NotFound:
             return None
@@ -1129,6 +1161,7 @@ class Bucket(_PropertyMixin):
         fields=None,
         client=None,
         timeout=_DEFAULT_TIMEOUT,
+        retry=DEFAULT_RETRY,
     ):
         """Return an iterator used to find blobs in the bucket.
 
@@ -1205,6 +1238,9 @@ class Bucket(_PropertyMixin):
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
 
+        :type retry: google.api_core.retry.Retry
+        :param retry: (Optional) How to retry the RPC.
+
         :rtype: :class:`~google.api_core.page_iterator.Iterator`
         :returns: Iterator of all :class:`~google.cloud.storage.blob.Blob`
                   in this bucket matching the arguments.
@@ -1247,7 +1283,7 @@ class Bucket(_PropertyMixin):
         client = self._require_client(client)
         path = self.path + "/o"
         api_request = functools.partial(
-            client._connection.api_request, timeout=timeout, retry=DEFAULT_RETRY
+            client._connection.api_request, timeout=timeout, retry=retry
         )
         iterator = page_iterator.HTTPIterator(
             client=client,
@@ -1263,7 +1299,9 @@ class Bucket(_PropertyMixin):
         iterator.prefixes = set()
         return iterator
 
-    def list_notifications(self, client=None, timeout=_DEFAULT_TIMEOUT):
+    def list_notifications(
+        self, client=None, timeout=_DEFAULT_TIMEOUT, retry=DEFAULT_RETRY
+    ):
         """List Pub / Sub notifications for this bucket.
 
         See:
@@ -1282,13 +1320,16 @@ class Bucket(_PropertyMixin):
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
 
+        :type retry: google.api_core.retry.Retry
+        :param retry: (Optional) How to retry the RPC.
+
         :rtype: list of :class:`.BucketNotification`
         :returns: notification instances
         """
         client = self._require_client(client)
         path = self.path + "/notificationConfigs"
         api_request = functools.partial(
-            client._connection.api_request, timeout=timeout, retry=DEFAULT_RETRY
+            client._connection.api_request, timeout=timeout, retry=retry
         )
         iterator = page_iterator.HTTPIterator(
             client=client,
@@ -1299,7 +1340,13 @@ class Bucket(_PropertyMixin):
         iterator.bucket = self
         return iterator
 
-    def get_notification(self, notification_id, client=None, timeout=_DEFAULT_TIMEOUT):
+    def get_notification(
+        self,
+        notification_id,
+        client=None,
+        timeout=_DEFAULT_TIMEOUT,
+        retry=DEFAULT_RETRY,
+    ):
         """Get Pub / Sub notification for this bucket.
 
         See:
@@ -1321,6 +1368,9 @@ class Bucket(_PropertyMixin):
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
 
+        :type retry: google.api_core.retry.Retry
+        :param retry: (Optional) How to retry the RPC.
+
         :rtype: :class:`.BucketNotification`
         :returns: notification instance.
 
@@ -1334,7 +1384,7 @@ class Bucket(_PropertyMixin):
 
         """
         notification = self.notification(notification_id=notification_id)
-        notification.reload(client=client, timeout=timeout)
+        notification.reload(client=client, timeout=timeout, retry=retry)
         return notification
 
     def delete(
@@ -1344,6 +1394,7 @@ class Bucket(_PropertyMixin):
         timeout=_DEFAULT_TIMEOUT,
         if_metageneration_match=None,
         if_metageneration_not_match=None,
+        retry=DEFAULT_RETRY,
     ):
         """Delete this bucket.
 
@@ -1384,6 +1435,9 @@ class Bucket(_PropertyMixin):
         :type if_metageneration_not_match: long
         :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
                                             blob's current metageneration does not match the given value.
+
+        :type retry: google.api_core.retry.Retry
+        :param retry: (Optional) How to retry the RPC.
 
         :raises: :class:`ValueError` if ``force`` is ``True`` and the bucket
                  contains more than 256 objects / blobs.
@@ -1430,7 +1484,7 @@ class Bucket(_PropertyMixin):
             query_params=query_params,
             _target_object=None,
             timeout=timeout,
-            retry=DEFAULT_RETRY,
+            retry=retry,
         )
 
     def delete_blob(
@@ -1443,6 +1497,7 @@ class Bucket(_PropertyMixin):
         if_generation_not_match=None,
         if_metageneration_match=None,
         if_metageneration_not_match=None,
+        retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
     ):
         """Deletes a blob from the current bucket.
 
@@ -1498,6 +1553,9 @@ class Bucket(_PropertyMixin):
         :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
                                             blob's current metageneration does not match the given value.
 
+        :type retry: google.api_core.retry.Retry
+        :param retry: (Optional) How to retry the RPC.
+
         :raises: :class:`google.cloud.exceptions.NotFound` (to suppress
                  the exception, call ``delete_blobs``, passing a no-op
                  ``on_error`` callback, e.g.:
@@ -1528,7 +1586,7 @@ class Bucket(_PropertyMixin):
             query_params=query_params,
             _target_object=None,
             timeout=timeout,
-            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+            retry=retry,
         )
 
     def delete_blobs(
@@ -1541,6 +1599,7 @@ class Bucket(_PropertyMixin):
         if_generation_not_match=None,
         if_metageneration_match=None,
         if_metageneration_not_match=None,
+        retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
     ):
         """Deletes a list of blobs from the current bucket.
 
@@ -1595,6 +1654,9 @@ class Bucket(_PropertyMixin):
                                             blob's current metageneration does not match the given value.
                                             The list must match ``blobs`` item-to-item.
 
+        :type retry: google.api_core.retry.Retry
+        :param retry: (Optional) How to retry the RPC.
+
         :raises: :class:`~google.cloud.exceptions.NotFound` (if
                  `on_error` is not passed).
 
@@ -1637,6 +1699,7 @@ class Bucket(_PropertyMixin):
                     if_generation_not_match=next(if_generation_not_match, None),
                     if_metageneration_match=next(if_metageneration_match, None),
                     if_metageneration_not_match=next(if_metageneration_not_match, None),
+                    retry=retry,
                 )
             except NotFound:
                 if on_error is not None:
@@ -1661,6 +1724,7 @@ class Bucket(_PropertyMixin):
         if_source_generation_not_match=None,
         if_source_metageneration_match=None,
         if_source_metageneration_not_match=None,
+        retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
     ):
         """Copy the given blob to the given bucket, optionally with a new name.
 
@@ -1754,6 +1818,9 @@ class Bucket(_PropertyMixin):
                                                    object's current metageneration
                                                    does not match the given value.
 
+        :type retry: google.api_core.retry.Retry
+        :param retry: (Optional) How to retry the RPC.
+
         :rtype: :class:`google.cloud.storage.blob.Blob`
         :returns: The new Blob.
 
@@ -1803,7 +1870,7 @@ class Bucket(_PropertyMixin):
             query_params=query_params,
             _target_object=new_blob,
             timeout=timeout,
-            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+            retry=retry,
         )
 
         if not preserve_acl:
@@ -1826,6 +1893,7 @@ class Bucket(_PropertyMixin):
         if_source_generation_not_match=None,
         if_source_metageneration_match=None,
         if_source_metageneration_not_match=None,
+        retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
     ):
         """Rename the given blob using copy and delete operations.
 
@@ -1916,6 +1984,9 @@ class Bucket(_PropertyMixin):
                                                    object's current metageneration
                                                    does not match the given value.
 
+        :type retry: google.api_core.retry.Retry
+        :param retry: (Optional) How to retry the RPC.
+
         :rtype: :class:`Blob`
         :returns: The newly-renamed blob.
         """
@@ -1935,6 +2006,7 @@ class Bucket(_PropertyMixin):
             if_source_generation_not_match=if_source_generation_not_match,
             if_source_metageneration_match=if_source_metageneration_match,
             if_source_metageneration_not_match=if_source_metageneration_not_match,
+            retry=retry,
         )
 
         if not same_name:
@@ -1945,6 +2017,7 @@ class Bucket(_PropertyMixin):
                 if_generation_not_match=if_generation_not_match,
                 if_metageneration_match=if_metageneration_match,
                 if_metageneration_not_match=if_metageneration_not_match,
+                retry=retry,
             )
         return new_blob
 
@@ -2577,7 +2650,11 @@ class Bucket(_PropertyMixin):
         return self.configure_website(None, None)
 
     def get_iam_policy(
-        self, client=None, requested_policy_version=None, timeout=_DEFAULT_TIMEOUT
+        self,
+        client=None,
+        requested_policy_version=None,
+        timeout=_DEFAULT_TIMEOUT,
+        retry=DEFAULT_RETRY,
     ):
         """Retrieve the IAM policy for the bucket.
 
@@ -2609,6 +2686,9 @@ class Bucket(_PropertyMixin):
 
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
+
+        :type retry: google.api_core.retry.Retry
+        :param retry: (Optional) How to retry the RPC.
 
         :rtype: :class:`google.api_core.iam.Policy`
         :returns: the policy instance, based on the resource returned from
@@ -2653,11 +2733,17 @@ class Bucket(_PropertyMixin):
             query_params=query_params,
             _target_object=None,
             timeout=timeout,
-            retry=DEFAULT_RETRY,
+            retry=retry,
         )
         return Policy.from_api_repr(info)
 
-    def set_iam_policy(self, policy, client=None, timeout=_DEFAULT_TIMEOUT):
+    def set_iam_policy(
+        self,
+        policy,
+        client=None,
+        timeout=_DEFAULT_TIMEOUT,
+        retry=DEFAULT_RETRY_IF_ETAG_IN_JSON,
+    ):
         """Update the IAM policy for the bucket.
 
         See
@@ -2680,6 +2766,9 @@ class Bucket(_PropertyMixin):
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
 
+        :type retry: google.api_core.retry.Retry
+        :param retry: (Optional) How to retry the RPC.
+
         :rtype: :class:`google.api_core.iam.Policy`
         :returns: the policy instance, based on the resource returned from
                   the ``setIamPolicy`` API request.
@@ -2699,11 +2788,13 @@ class Bucket(_PropertyMixin):
             data=resource,
             _target_object=None,
             timeout=timeout,
-            retry=DEFAULT_RETRY_IF_ETAG_IN_JSON,
+            retry=retry,
         )
         return Policy.from_api_repr(info)
 
-    def test_iam_permissions(self, permissions, client=None, timeout=_DEFAULT_TIMEOUT):
+    def test_iam_permissions(
+        self, permissions, client=None, timeout=_DEFAULT_TIMEOUT, retry=DEFAULT_RETRY
+    ):
         """API call:  test permissions
 
         See
@@ -2726,6 +2817,9 @@ class Bucket(_PropertyMixin):
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
 
+        :type retry: google.api_core.retry.Retry
+        :param retry: (Optional) How to retry the RPC.
+
         :rtype: list of string
         :returns: the permissions returned by the ``testIamPermissions`` API
                   request.
@@ -2742,12 +2836,17 @@ class Bucket(_PropertyMixin):
             path=path,
             query_params=query_params,
             timeout=timeout,
-            retry=DEFAULT_RETRY,
+            retry=retry,
         )
         return resp.get("permissions", [])
 
     def make_public(
-        self, recursive=False, future=False, client=None, timeout=_DEFAULT_TIMEOUT
+        self,
+        recursive=False,
+        future=False,
+        client=None,
+        timeout=_DEFAULT_TIMEOUT,
+        retry=DEFAULT_RETRY,
     ):
         """Update bucket's ACL, granting read access to anonymous users.
 
@@ -2771,6 +2870,9 @@ class Bucket(_PropertyMixin):
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
 
+        :type retry: google.api_core.retry.Retry
+        :param retry: (Optional) How to retry the RPC.
+
         :raises ValueError:
             If ``recursive`` is True, and the bucket contains more than 256
             blobs.  This is to prevent extremely long runtime of this
@@ -2780,14 +2882,14 @@ class Bucket(_PropertyMixin):
             for each blob.
         """
         self.acl.all().grant_read()
-        self.acl.save(client=client, timeout=timeout)
+        self.acl.save(client=client, timeout=timeout, retry=retry)
 
         if future:
             doa = self.default_object_acl
             if not doa.loaded:
-                doa.reload(client=client, timeout=timeout)
+                doa.reload(client=client, timeout=timeout, retry=retry)
             doa.all().grant_read()
-            doa.save(client=client, timeout=timeout)
+            doa.save(client=client, timeout=timeout, retry=retry)
 
         if recursive:
             blobs = list(
@@ -2796,6 +2898,7 @@ class Bucket(_PropertyMixin):
                     max_results=self._MAX_OBJECTS_FOR_ITERATION + 1,
                     client=client,
                     timeout=timeout,
+                    retry=retry,
                 )
             )
             if len(blobs) > self._MAX_OBJECTS_FOR_ITERATION:
@@ -2810,10 +2913,15 @@ class Bucket(_PropertyMixin):
 
             for blob in blobs:
                 blob.acl.all().grant_read()
-                blob.acl.save(client=client, timeout=timeout)
+                blob.acl.save(client=client, timeout=timeout, retry=retry)
 
     def make_private(
-        self, recursive=False, future=False, client=None, timeout=_DEFAULT_TIMEOUT
+        self,
+        recursive=False,
+        future=False,
+        client=None,
+        timeout=_DEFAULT_TIMEOUT,
+        retry=DEFAULT_RETRY,
     ):
         """Update bucket's ACL, revoking read access for anonymous users.
 
@@ -2838,6 +2946,9 @@ class Bucket(_PropertyMixin):
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
 
+        :type retry: google.api_core.retry.Retry
+        :param retry: (Optional) How to retry the RPC.
+
         :raises ValueError:
             If ``recursive`` is True, and the bucket contains more than 256
             blobs.  This is to prevent extremely long runtime of this
@@ -2847,14 +2958,14 @@ class Bucket(_PropertyMixin):
             for each blob.
         """
         self.acl.all().revoke_read()
-        self.acl.save(client=client, timeout=timeout)
+        self.acl.save(client=client, timeout=timeout, retry=retry)
 
         if future:
             doa = self.default_object_acl
             if not doa.loaded:
-                doa.reload(client=client, timeout=timeout)
+                doa.reload(client=client, timeout=timeout, retry=retry)
             doa.all().revoke_read()
-            doa.save(client=client, timeout=timeout)
+            doa.save(client=client, timeout=timeout, retry=retry)
 
         if recursive:
             blobs = list(
@@ -2863,6 +2974,7 @@ class Bucket(_PropertyMixin):
                     max_results=self._MAX_OBJECTS_FOR_ITERATION + 1,
                     client=client,
                     timeout=timeout,
+                    retry=retry,
                 )
             )
             if len(blobs) > self._MAX_OBJECTS_FOR_ITERATION:
@@ -2877,7 +2989,7 @@ class Bucket(_PropertyMixin):
 
             for blob in blobs:
                 blob.acl.all().revoke_read()
-                blob.acl.save(client=client, timeout=timeout)
+                blob.acl.save(client=client, timeout=timeout, retry=retry)
 
     def generate_upload_policy(self, conditions, expiration=None, client=None):
         """Create a signed upload policy for uploading objects.
@@ -2942,8 +3054,15 @@ class Bucket(_PropertyMixin):
 
         return fields
 
-    def lock_retention_policy(self, client=None, timeout=_DEFAULT_TIMEOUT):
+    def lock_retention_policy(
+        self, client=None, timeout=_DEFAULT_TIMEOUT, retry=DEFAULT_RETRY
+    ):
         """Lock the bucket's retention policy.
+
+        :type client: :class:`~google.cloud.storage.client.Client` or
+                      ``NoneType``
+        :param client: (Optional) The client to use.  If not passed, falls back
+                       to the ``client`` stored on the blob's bucket.
 
         :type timeout: float or tuple
         :param timeout: (Optional) The amount of time, in seconds, to wait
@@ -2951,6 +3070,9 @@ class Bucket(_PropertyMixin):
 
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
+
+        :type retry: google.api_core.retry.Retry
+        :param retry: (Optional) How to retry the RPC.
 
         :raises ValueError:
             if the bucket has no metageneration (i.e., new or never reloaded);
@@ -2982,7 +3104,7 @@ class Bucket(_PropertyMixin):
             query_params=query_params,
             _target_object=self,
             timeout=timeout,
-            retry=DEFAULT_RETRY,
+            retry=retry,
         )
         self._set_properties(api_response)
 
