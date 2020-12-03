@@ -120,7 +120,8 @@ class Client(ClientWithProject):
                 project = os.getenv("GCLOUD_PROJECT")
                 if project is None:
                     raise ValueError(
-                        "For emulator pass `project` as a argument or set `GCLOUD_PROJECT` via environment variable"
+                        "To use the GCS emulator, pass 'project' as an argument "
+                        "or set GCLOUD_PROJECT environment variable"
                     )
 
         super(Client, self).__init__(

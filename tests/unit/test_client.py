@@ -220,28 +220,49 @@ class TestClient(unittest.TestCase):
         self.assertIs(client._connection._client_info, client_info)
 
     def test_ctor_w_emulator_w_env_var_glcoud_project(self):
+        from google.auth.credentials import AnonymousCredentials
         from google.cloud.storage._helpers import STORAGE_EMULATOR_ENV_VAR
 
         HOST = "https://api.example.com"
         PROJECT = "test"
+        environ = {
+            STORAGE_EMULATOR_ENV_VAR: HOST,
+            "GCLOUD_PROJECT": PROJECT,
+        }
 
-        with mock.patch("os.environ", {STORAGE_EMULATOR_ENV_VAR: HOST}):
-            with mock.patch("os.getenv", side_effect=[HOST, PROJECT]):
-                client = self._make_one()
-                self.assertEqual(client.project, PROJECT)
-                self.assertEqual(client._connection.API_BASE_URL, HOST)
+        with mock.patch("os.environ", environ):
+            client = self._make_one()
+
+        self.assertEqual(client.project, PROJECT)
+        self.assertEqual(client._connection.API_BASE_URL, HOST)
+        self.assertIsInstance(client._credentials, AnonymousCredentials)
 
     def test_ctor_w_emulator_w_project_argument(self):
+        from google.auth.credentials import AnonymousCredentials
+        from google.cloud.storage._helpers import STORAGE_EMULATOR_ENV_VAR
+
         HOST = "https://api.example.com"
         PROJECT = "test"
+        ENVIRON_PROJECT = "environ-project"
+        environ = {
+            STORAGE_EMULATOR_ENV_VAR: HOST,
+            "GCLOUD_PROJECT": ENVIRON_PROJECT,
+        }
 
-        with mock.patch("os.getenv", side_effect=[HOST]):
+        with mock.patch("os.environ", environ):
             client = self._make_one(project=PROJECT)
-            self.assertEqual(client.project, PROJECT)
+
+        self.assertEqual(client.project, PROJECT)
+        self.assertEqual(client._connection.API_BASE_URL, HOST)
+        self.assertIsInstance(client._credentials, AnonymousCredentials)
 
     def test_ctor_w_emulator_missing_project(self):
+        from google.cloud.storage._helpers import STORAGE_EMULATOR_ENV_VAR
+
         HOST = "https://api.example.com"
-        with mock.patch("os.getenv", side_effect=[HOST, None]):
+        environ = {STORAGE_EMULATOR_ENV_VAR: HOST}
+
+        with mock.patch("os.environ", environ):
             with self.assertRaises(ValueError):
                 self._make_one()
 
