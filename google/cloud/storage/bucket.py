@@ -750,7 +750,9 @@ class Bucket(_PropertyMixin):
                                             blob's current metageneration does not match the given value.
 
         :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC.
+        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
+            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
+            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
 
         :rtype: bool
         :returns: True if the bucket exists in Cloud Storage.
@@ -841,7 +843,9 @@ class Bucket(_PropertyMixin):
             See :meth:`requests.Session.request` documentation for details.
 
         :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC.
+        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
+            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
+            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
         """
         warnings.warn(
             "Bucket.create() is deprecated and will be removed in future."
@@ -898,7 +902,9 @@ class Bucket(_PropertyMixin):
                                             blob's current metageneration does not match the given value.
 
         :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC.
+        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
+            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
+            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
         """
         super(Bucket, self).update(
             client=client,
@@ -947,7 +953,9 @@ class Bucket(_PropertyMixin):
                                             blob's current metageneration does not match the given value.
 
         :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC.
+        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
+            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
+            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
         """
         super(Bucket, self).reload(
             client=client,
@@ -993,7 +1001,9 @@ class Bucket(_PropertyMixin):
                                             blob's current metageneration does not match the given value.
 
         :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC.
+        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
+            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
+            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
         """
         # Special case: For buckets, it is possible that labels are being
         # removed; this requires special handling.
@@ -1114,7 +1124,9 @@ class Bucket(_PropertyMixin):
                                             blob's current metageneration does not match the given value.
 
         :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC.
+        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
+            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
+            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
 
         :param kwargs: Keyword arguments to pass to the
                        :class:`~google.cloud.storage.blob.Blob` constructor.
@@ -1239,7 +1251,9 @@ class Bucket(_PropertyMixin):
             See :meth:`requests.Session.request` documentation for details.
 
         :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC.
+        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
+            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
+            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
 
         :rtype: :class:`~google.api_core.page_iterator.Iterator`
         :returns: Iterator of all :class:`~google.cloud.storage.blob.Blob`
@@ -1321,7 +1335,9 @@ class Bucket(_PropertyMixin):
             See :meth:`requests.Session.request` documentation for details.
 
         :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC.
+        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
+            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
+            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
 
         :rtype: list of :class:`.BucketNotification`
         :returns: notification instances
@@ -1369,7 +1385,9 @@ class Bucket(_PropertyMixin):
             See :meth:`requests.Session.request` documentation for details.
 
         :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC.
+        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
+            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
+            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
 
         :rtype: :class:`.BucketNotification`
         :returns: notification instance.
@@ -1437,7 +1455,9 @@ class Bucket(_PropertyMixin):
                                             blob's current metageneration does not match the given value.
 
         :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC.
+        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
+            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
+            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
 
         :raises: :class:`ValueError` if ``force`` is ``True`` and the bucket
                  contains more than 256 objects / blobs.
@@ -1554,7 +1574,9 @@ class Bucket(_PropertyMixin):
                                             blob's current metageneration does not match the given value.
 
         :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC.
+        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
+            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
+            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
 
         :raises: :class:`google.cloud.exceptions.NotFound` (to suppress
                  the exception, call ``delete_blobs``, passing a no-op
@@ -1655,7 +1677,9 @@ class Bucket(_PropertyMixin):
                                             The list must match ``blobs`` item-to-item.
 
         :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC.
+        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
+            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
+            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
 
         :raises: :class:`~google.cloud.exceptions.NotFound` (if
                  `on_error` is not passed).
@@ -1819,7 +1843,9 @@ class Bucket(_PropertyMixin):
                                                    does not match the given value.
 
         :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC.
+        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
+            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
+            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
 
         :rtype: :class:`google.cloud.storage.blob.Blob`
         :returns: The new Blob.
@@ -1985,7 +2011,9 @@ class Bucket(_PropertyMixin):
                                                    does not match the given value.
 
         :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC.
+        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
+            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
+            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
 
         :rtype: :class:`Blob`
         :returns: The newly-renamed blob.
@@ -2688,7 +2716,9 @@ class Bucket(_PropertyMixin):
             See :meth:`requests.Session.request` documentation for details.
 
         :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC.
+        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
+            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
+            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
 
         :rtype: :class:`google.api_core.iam.Policy`
         :returns: the policy instance, based on the resource returned from
@@ -2767,7 +2797,9 @@ class Bucket(_PropertyMixin):
             See :meth:`requests.Session.request` documentation for details.
 
         :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC.
+        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
+            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
+            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
 
         :rtype: :class:`google.api_core.iam.Policy`
         :returns: the policy instance, based on the resource returned from
@@ -2818,7 +2850,9 @@ class Bucket(_PropertyMixin):
             See :meth:`requests.Session.request` documentation for details.
 
         :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC.
+        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
+            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
+            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
 
         :rtype: list of string
         :returns: the permissions returned by the ``testIamPermissions`` API
@@ -2871,7 +2905,9 @@ class Bucket(_PropertyMixin):
             See :meth:`requests.Session.request` documentation for details.
 
         :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC.
+        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
+            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
+            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
 
         :raises ValueError:
             If ``recursive`` is True, and the bucket contains more than 256
@@ -2947,7 +2983,9 @@ class Bucket(_PropertyMixin):
             See :meth:`requests.Session.request` documentation for details.
 
         :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC.
+        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
+            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
+            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
 
         :raises ValueError:
             If ``recursive`` is True, and the bucket contains more than 256
@@ -3072,7 +3110,9 @@ class Bucket(_PropertyMixin):
             See :meth:`requests.Session.request` documentation for details.
 
         :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC.
+        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
+            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
+            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
 
         :raises ValueError:
             if the bucket has no metageneration (i.e., new or never reloaded);

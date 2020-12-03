@@ -296,7 +296,9 @@ class BucketNotification(object):
             See :meth:`requests.Session.request` documentation for details.
 
         :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC.
+        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
+            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
+            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
 
         :rtype: bool
         :returns: True, if the notification exists, else False.
@@ -345,7 +347,9 @@ class BucketNotification(object):
             See :meth:`requests.Session.request` documentation for details.
 
         :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC.
+        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
+            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
+            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
 
         :raises ValueError: if the notification has no ID.
         """
@@ -388,7 +392,9 @@ class BucketNotification(object):
             See :meth:`requests.Session.request` documentation for details.
 
         :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC.
+        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
+            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
+            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
 
         :raises: :class:`google.api_core.exceptions.NotFound`:
             if the notification does not exist.

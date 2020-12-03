@@ -448,7 +448,9 @@ class ACL(object):
             See :meth:`requests.Session.request` documentation for details.
 
         :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC.
+        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
+            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
+            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
         """
         path = self.reload_path
         client = self._require_client(client)
@@ -495,7 +497,9 @@ class ACL(object):
             See :meth:`requests.Session.request` documentation for details.
 
         :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC.
+        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
+            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
+            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
         """
         query_params = {"projection": "full"}
         if predefined is not None:
@@ -544,7 +548,9 @@ class ACL(object):
             See :meth:`requests.Session.request` documentation for details.
 
         :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC.
+        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
+            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
+            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
         """
         if acl is None:
             acl = self
@@ -581,7 +587,9 @@ class ACL(object):
             See :meth:`requests.Session.request` documentation for details.
 
         :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC.
+        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
+            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
+            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
         """
         predefined = self.validate_predefined(predefined)
         self._save(None, predefined, client, timeout=timeout, retry=retry)
@@ -608,7 +616,9 @@ class ACL(object):
             See :meth:`requests.Session.request` documentation for details.
 
         :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC.
+        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
+            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
+            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
         """
         self.save([], client=client, timeout=timeout, retry=retry)
 

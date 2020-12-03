@@ -639,7 +639,9 @@ class Blob(_PropertyMixin):
             current metageneration does not match the given value.
 
         :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC.
+        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
+            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
+            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
 
         :rtype: bool
         :returns: True if the blob exists in Cloud Storage.
@@ -727,7 +729,9 @@ class Blob(_PropertyMixin):
             current metageneration does not match the given value.
 
         :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC.
+        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
+            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
+            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
 
         :raises: :class:`google.cloud.exceptions.NotFound`
                  (propagated from
@@ -2732,7 +2736,9 @@ class Blob(_PropertyMixin):
             See :meth:`requests.Session.request` documentation for details.
 
         :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC.
+        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
+            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
+            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
 
         :rtype: :class:`google.api_core.iam.Policy`
         :returns: the policy instance, based on the resource returned from
@@ -2795,7 +2801,9 @@ class Blob(_PropertyMixin):
             See :meth:`requests.Session.request` documentation for details.
 
         :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC.
+        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
+            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
+            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
 
         :rtype: :class:`google.api_core.iam.Policy`
         :returns: the policy instance, based on the resource returned from
@@ -2854,7 +2862,9 @@ class Blob(_PropertyMixin):
             See :meth:`requests.Session.request` documentation for details.
 
         :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC.
+        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
+            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
+            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
 
         :rtype: list of string
         :returns: the permissions returned by the ``testIamPermissions`` API
@@ -2886,7 +2896,9 @@ class Blob(_PropertyMixin):
                        to the ``client`` stored on the blob's bucket.
 
         :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC.
+        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
+            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
+            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
         """
         self.acl.all().grant_read()
         self.acl.save(client=client, retry=retry)
@@ -2900,7 +2912,9 @@ class Blob(_PropertyMixin):
                        to the ``client`` stored on the blob's bucket.
 
         :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC.
+        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
+            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
+            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
         """
         self.acl.all().revoke_read()
         self.acl.save(client=client, retry=retry)
@@ -2948,7 +2962,9 @@ class Blob(_PropertyMixin):
             ``sources`` item-to-item.
 
         :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC.
+        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
+            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
+            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
 
         Example:
             Compose blobs using generation match preconditions.
@@ -3112,7 +3128,9 @@ class Blob(_PropertyMixin):
             object's current metageneration does not match the given value.
 
         :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC.
+        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
+            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
+            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
 
         :rtype: tuple
         :returns: ``(token, bytes_rewritten, total_bytes)``, where ``token``
@@ -3269,7 +3287,9 @@ class Blob(_PropertyMixin):
             See :meth:`requests.Session.request` documentation for details.
 
         :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC.
+        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
+            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
+            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
         """
         if new_class not in self.STORAGE_CLASSES:
             raise ValueError("Invalid storage class: %s" % (new_class,))

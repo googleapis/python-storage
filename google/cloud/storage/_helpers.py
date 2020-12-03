@@ -190,7 +190,9 @@ class _PropertyMixin(object):
                                             blob's current metageneration does not match the given value.
 
         :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC.
+        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
+            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
+            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
         """
         client = self._require_client(client)
         query_params = self._query_params
@@ -293,7 +295,9 @@ class _PropertyMixin(object):
                                             blob's current metageneration does not match the given value.
 
         :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC.
+        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
+            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
+            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
         """
         client = self._require_client(client)
         query_params = self._query_params
@@ -371,7 +375,9 @@ class _PropertyMixin(object):
                                             blob's current metageneration does not match the given value.
 
         :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC.
+        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
+            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
+            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
         """
         client = self._require_client(client)
 
