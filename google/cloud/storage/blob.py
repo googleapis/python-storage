@@ -1046,12 +1046,6 @@ class Blob(_PropertyMixin):
 
         :raises: :class:`google.cloud.exceptions.NotFound`
         """
-        warnings.warn(
-            "Blob.download_to_file() is deprecated and will be removed in future."
-            "Use Client.download_blob_to_file() instead.",
-            DeprecationWarning,
-            stacklevel=1,
-        )
         client = self._require_client(client)
 
         client.download_blob_to_file(

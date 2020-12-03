@@ -1218,12 +1218,6 @@ class Bucket(_PropertyMixin):
             >>> bucket = storage.Bucket("my-bucket-name", user_project='my-project')
             >>> all_blobs = list(client.list_blobs(bucket))
         """
-        warnings.warn(
-            "Bucket.list_blobs() is deprecated and will be removed in future."
-            "Use Client.list_blobs() instead.",
-            DeprecationWarning,
-            stacklevel=1,
-        )
         client = self._require_client(client)
         return client.list_blobs(
             self,
