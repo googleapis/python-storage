@@ -749,10 +749,19 @@ class Bucket(_PropertyMixin):
         :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
                                             blob's current metageneration does not match the given value.
 
-        :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
-            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
-            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
+        :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
+        :param retry: (Optional) How to retry the RPC. A None value will disable retries.
+            A google.api_core.retry.Retry value will enable retries, and the object will
+            define retriable response codes and errors and configure backoff and timeout options.
+
+            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a Retry object and
+            activates it only if certain conditions are met. This class exists to provide safe defaults
+            for RPC calls that are not technically safe to retry normally (due to potential data
+            duplication or other side-effects) but become safe to retry if a condition such as
+            if_metageneration_match is set.
+
+            See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
+            information on retry types and how to configure them.
 
         :rtype: bool
         :returns: True if the bucket exists in Cloud Storage.
@@ -842,10 +851,19 @@ class Bucket(_PropertyMixin):
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
 
-        :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
-            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
-            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
+        :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
+        :param retry: (Optional) How to retry the RPC. A None value will disable retries.
+            A google.api_core.retry.Retry value will enable retries, and the object will
+            define retriable response codes and errors and configure backoff and timeout options.
+
+            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a Retry object and
+            activates it only if certain conditions are met. This class exists to provide safe defaults
+            for RPC calls that are not technically safe to retry normally (due to potential data
+            duplication or other side-effects) but become safe to retry if a condition such as
+            if_metageneration_match is set.
+
+            See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
+            information on retry types and how to configure them.
         """
         warnings.warn(
             "Bucket.create() is deprecated and will be removed in future."
@@ -901,10 +919,19 @@ class Bucket(_PropertyMixin):
         :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
                                             blob's current metageneration does not match the given value.
 
-        :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
-            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
-            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
+        :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
+        :param retry: (Optional) How to retry the RPC. A None value will disable retries.
+            A google.api_core.retry.Retry value will enable retries, and the object will
+            define retriable response codes and errors and configure backoff and timeout options.
+
+            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a Retry object and
+            activates it only if certain conditions are met. This class exists to provide safe defaults
+            for RPC calls that are not technically safe to retry normally (due to potential data
+            duplication or other side-effects) but become safe to retry if a condition such as
+            if_metageneration_match is set.
+
+            See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
+            information on retry types and how to configure them.
         """
         super(Bucket, self).update(
             client=client,
@@ -952,10 +979,19 @@ class Bucket(_PropertyMixin):
         :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
                                             blob's current metageneration does not match the given value.
 
-        :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
-            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
-            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
+        :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
+        :param retry: (Optional) How to retry the RPC. A None value will disable retries.
+            A google.api_core.retry.Retry value will enable retries, and the object will
+            define retriable response codes and errors and configure backoff and timeout options.
+
+            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a Retry object and
+            activates it only if certain conditions are met. This class exists to provide safe defaults
+            for RPC calls that are not technically safe to retry normally (due to potential data
+            duplication or other side-effects) but become safe to retry if a condition such as
+            if_metageneration_match is set.
+
+            See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
+            information on retry types and how to configure them.
         """
         super(Bucket, self).reload(
             client=client,
@@ -1000,10 +1036,19 @@ class Bucket(_PropertyMixin):
         :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
                                             blob's current metageneration does not match the given value.
 
-        :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
-            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
-            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
+        :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
+        :param retry: (Optional) How to retry the RPC. A None value will disable retries.
+            A google.api_core.retry.Retry value will enable retries, and the object will
+            define retriable response codes and errors and configure backoff and timeout options.
+
+            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a Retry object and
+            activates it only if certain conditions are met. This class exists to provide safe defaults
+            for RPC calls that are not technically safe to retry normally (due to potential data
+            duplication or other side-effects) but become safe to retry if a condition such as
+            if_metageneration_match is set.
+
+            See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
+            information on retry types and how to configure them.
         """
         # Special case: For buckets, it is possible that labels are being
         # removed; this requires special handling.
@@ -1123,10 +1168,19 @@ class Bucket(_PropertyMixin):
         :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
                                             blob's current metageneration does not match the given value.
 
-        :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
-            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
-            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
+        :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
+        :param retry: (Optional) How to retry the RPC. A None value will disable retries.
+            A google.api_core.retry.Retry value will enable retries, and the object will
+            define retriable response codes and errors and configure backoff and timeout options.
+
+            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a Retry object and
+            activates it only if certain conditions are met. This class exists to provide safe defaults
+            for RPC calls that are not technically safe to retry normally (due to potential data
+            duplication or other side-effects) but become safe to retry if a condition such as
+            if_metageneration_match is set.
+
+            See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
+            information on retry types and how to configure them.
 
         :param kwargs: Keyword arguments to pass to the
                        :class:`~google.cloud.storage.blob.Blob` constructor.
@@ -1250,10 +1304,19 @@ class Bucket(_PropertyMixin):
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
 
-        :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
-            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
-            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
+        :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
+        :param retry: (Optional) How to retry the RPC. A None value will disable retries.
+            A google.api_core.retry.Retry value will enable retries, and the object will
+            define retriable response codes and errors and configure backoff and timeout options.
+
+            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a Retry object and
+            activates it only if certain conditions are met. This class exists to provide safe defaults
+            for RPC calls that are not technically safe to retry normally (due to potential data
+            duplication or other side-effects) but become safe to retry if a condition such as
+            if_metageneration_match is set.
+
+            See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
+            information on retry types and how to configure them.
 
         :rtype: :class:`~google.api_core.page_iterator.Iterator`
         :returns: Iterator of all :class:`~google.cloud.storage.blob.Blob`
@@ -1334,10 +1397,19 @@ class Bucket(_PropertyMixin):
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
 
-        :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
-            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
-            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
+        :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
+        :param retry: (Optional) How to retry the RPC. A None value will disable retries.
+            A google.api_core.retry.Retry value will enable retries, and the object will
+            define retriable response codes and errors and configure backoff and timeout options.
+
+            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a Retry object and
+            activates it only if certain conditions are met. This class exists to provide safe defaults
+            for RPC calls that are not technically safe to retry normally (due to potential data
+            duplication or other side-effects) but become safe to retry if a condition such as
+            if_metageneration_match is set.
+
+            See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
+            information on retry types and how to configure them.
 
         :rtype: list of :class:`.BucketNotification`
         :returns: notification instances
@@ -1384,10 +1456,19 @@ class Bucket(_PropertyMixin):
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
 
-        :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
-            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
-            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
+        :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
+        :param retry: (Optional) How to retry the RPC. A None value will disable retries.
+            A google.api_core.retry.Retry value will enable retries, and the object will
+            define retriable response codes and errors and configure backoff and timeout options.
+
+            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a Retry object and
+            activates it only if certain conditions are met. This class exists to provide safe defaults
+            for RPC calls that are not technically safe to retry normally (due to potential data
+            duplication or other side-effects) but become safe to retry if a condition such as
+            if_metageneration_match is set.
+
+            See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
+            information on retry types and how to configure them.
 
         :rtype: :class:`.BucketNotification`
         :returns: notification instance.
@@ -1454,10 +1535,19 @@ class Bucket(_PropertyMixin):
         :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
                                             blob's current metageneration does not match the given value.
 
-        :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
-            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
-            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
+        :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
+        :param retry: (Optional) How to retry the RPC. A None value will disable retries.
+            A google.api_core.retry.Retry value will enable retries, and the object will
+            define retriable response codes and errors and configure backoff and timeout options.
+
+            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a Retry object and
+            activates it only if certain conditions are met. This class exists to provide safe defaults
+            for RPC calls that are not technically safe to retry normally (due to potential data
+            duplication or other side-effects) but become safe to retry if a condition such as
+            if_metageneration_match is set.
+
+            See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
+            information on retry types and how to configure them.
 
         :raises: :class:`ValueError` if ``force`` is ``True`` and the bucket
                  contains more than 256 objects / blobs.
@@ -1573,10 +1663,19 @@ class Bucket(_PropertyMixin):
         :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
                                             blob's current metageneration does not match the given value.
 
-        :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
-            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
-            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
+        :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
+        :param retry: (Optional) How to retry the RPC. A None value will disable retries.
+            A google.api_core.retry.Retry value will enable retries, and the object will
+            define retriable response codes and errors and configure backoff and timeout options.
+
+            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a Retry object and
+            activates it only if certain conditions are met. This class exists to provide safe defaults
+            for RPC calls that are not technically safe to retry normally (due to potential data
+            duplication or other side-effects) but become safe to retry if a condition such as
+            if_metageneration_match is set.
+
+            See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
+            information on retry types and how to configure them.
 
         :raises: :class:`google.cloud.exceptions.NotFound` (to suppress
                  the exception, call ``delete_blobs``, passing a no-op
@@ -1676,10 +1775,19 @@ class Bucket(_PropertyMixin):
                                             blob's current metageneration does not match the given value.
                                             The list must match ``blobs`` item-to-item.
 
-        :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
-            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
-            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
+        :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
+        :param retry: (Optional) How to retry the RPC. A None value will disable retries.
+            A google.api_core.retry.Retry value will enable retries, and the object will
+            define retriable response codes and errors and configure backoff and timeout options.
+
+            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a Retry object and
+            activates it only if certain conditions are met. This class exists to provide safe defaults
+            for RPC calls that are not technically safe to retry normally (due to potential data
+            duplication or other side-effects) but become safe to retry if a condition such as
+            if_metageneration_match is set.
+
+            See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
+            information on retry types and how to configure them.
 
         :raises: :class:`~google.cloud.exceptions.NotFound` (if
                  `on_error` is not passed).
@@ -1842,10 +1950,19 @@ class Bucket(_PropertyMixin):
                                                    object's current metageneration
                                                    does not match the given value.
 
-        :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
-            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
-            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
+        :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
+        :param retry: (Optional) How to retry the RPC. A None value will disable retries.
+            A google.api_core.retry.Retry value will enable retries, and the object will
+            define retriable response codes and errors and configure backoff and timeout options.
+
+            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a Retry object and
+            activates it only if certain conditions are met. This class exists to provide safe defaults
+            for RPC calls that are not technically safe to retry normally (due to potential data
+            duplication or other side-effects) but become safe to retry if a condition such as
+            if_metageneration_match is set.
+
+            See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
+            information on retry types and how to configure them.
 
         :rtype: :class:`google.cloud.storage.blob.Blob`
         :returns: The new Blob.
@@ -2010,10 +2127,19 @@ class Bucket(_PropertyMixin):
                                                    object's current metageneration
                                                    does not match the given value.
 
-        :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
-            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
-            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
+        :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
+        :param retry: (Optional) How to retry the RPC. A None value will disable retries.
+            A google.api_core.retry.Retry value will enable retries, and the object will
+            define retriable response codes and errors and configure backoff and timeout options.
+
+            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a Retry object and
+            activates it only if certain conditions are met. This class exists to provide safe defaults
+            for RPC calls that are not technically safe to retry normally (due to potential data
+            duplication or other side-effects) but become safe to retry if a condition such as
+            if_metageneration_match is set.
+
+            See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
+            information on retry types and how to configure them.
 
         :rtype: :class:`Blob`
         :returns: The newly-renamed blob.
@@ -2715,10 +2841,19 @@ class Bucket(_PropertyMixin):
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
 
-        :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
-            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
-            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
+        :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
+        :param retry: (Optional) How to retry the RPC. A None value will disable retries.
+            A google.api_core.retry.Retry value will enable retries, and the object will
+            define retriable response codes and errors and configure backoff and timeout options.
+
+            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a Retry object and
+            activates it only if certain conditions are met. This class exists to provide safe defaults
+            for RPC calls that are not technically safe to retry normally (due to potential data
+            duplication or other side-effects) but become safe to retry if a condition such as
+            if_metageneration_match is set.
+
+            See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
+            information on retry types and how to configure them.
 
         :rtype: :class:`google.api_core.iam.Policy`
         :returns: the policy instance, based on the resource returned from
@@ -2796,10 +2931,19 @@ class Bucket(_PropertyMixin):
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
 
-        :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
-            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
-            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
+        :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
+        :param retry: (Optional) How to retry the RPC. A None value will disable retries.
+            A google.api_core.retry.Retry value will enable retries, and the object will
+            define retriable response codes and errors and configure backoff and timeout options.
+
+            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a Retry object and
+            activates it only if certain conditions are met. This class exists to provide safe defaults
+            for RPC calls that are not technically safe to retry normally (due to potential data
+            duplication or other side-effects) but become safe to retry if a condition such as
+            if_metageneration_match is set.
+
+            See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
+            information on retry types and how to configure them.
 
         :rtype: :class:`google.api_core.iam.Policy`
         :returns: the policy instance, based on the resource returned from
@@ -2849,10 +2993,19 @@ class Bucket(_PropertyMixin):
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
 
-        :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
-            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
-            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
+        :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
+        :param retry: (Optional) How to retry the RPC. A None value will disable retries.
+            A google.api_core.retry.Retry value will enable retries, and the object will
+            define retriable response codes and errors and configure backoff and timeout options.
+
+            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a Retry object and
+            activates it only if certain conditions are met. This class exists to provide safe defaults
+            for RPC calls that are not technically safe to retry normally (due to potential data
+            duplication or other side-effects) but become safe to retry if a condition such as
+            if_metageneration_match is set.
+
+            See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
+            information on retry types and how to configure them.
 
         :rtype: list of string
         :returns: the permissions returned by the ``testIamPermissions`` API
@@ -2904,10 +3057,19 @@ class Bucket(_PropertyMixin):
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
 
-        :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
-            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
-            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
+        :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
+        :param retry: (Optional) How to retry the RPC. A None value will disable retries.
+            A google.api_core.retry.Retry value will enable retries, and the object will
+            define retriable response codes and errors and configure backoff and timeout options.
+
+            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a Retry object and
+            activates it only if certain conditions are met. This class exists to provide safe defaults
+            for RPC calls that are not technically safe to retry normally (due to potential data
+            duplication or other side-effects) but become safe to retry if a condition such as
+            if_metageneration_match is set.
+
+            See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
+            information on retry types and how to configure them.
 
         :raises ValueError:
             If ``recursive`` is True, and the bucket contains more than 256
@@ -2982,10 +3144,19 @@ class Bucket(_PropertyMixin):
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
 
-        :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
-            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
-            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
+        :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
+        :param retry: (Optional) How to retry the RPC. A None value will disable retries.
+            A google.api_core.retry.Retry value will enable retries, and the object will
+            define retriable response codes and errors and configure backoff and timeout options.
+
+            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a Retry object and
+            activates it only if certain conditions are met. This class exists to provide safe defaults
+            for RPC calls that are not technically safe to retry normally (due to potential data
+            duplication or other side-effects) but become safe to retry if a condition such as
+            if_metageneration_match is set.
+
+            See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
+            information on retry types and how to configure them.
 
         :raises ValueError:
             If ``recursive`` is True, and the bucket contains more than 256
@@ -3109,10 +3280,19 @@ class Bucket(_PropertyMixin):
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
 
-        :type retry: google.api_core.retry.Retry
-        :param retry: (Optional) How to retry the RPC. To modify the default retry behavior,
-            create a new retry object modeled after this one by calling it a ``with_XXX`` method.
-            See: https://googleapis.dev/python/google-api-core/latest/retry.html for details.
+        :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
+        :param retry: (Optional) How to retry the RPC. A None value will disable retries.
+            A google.api_core.retry.Retry value will enable retries, and the object will
+            define retriable response codes and errors and configure backoff and timeout options.
+
+            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a Retry object and
+            activates it only if certain conditions are met. This class exists to provide safe defaults
+            for RPC calls that are not technically safe to retry normally (due to potential data
+            duplication or other side-effects) but become safe to retry if a condition such as
+            if_metageneration_match is set.
+
+            See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
+            information on retry types and how to configure them.
 
         :raises ValueError:
             if the bucket has no metageneration (i.e., new or never reloaded);
