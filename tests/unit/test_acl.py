@@ -14,8 +14,6 @@
 
 import unittest
 
-from google.cloud.storage.retry import DEFAULT_RETRY
-
 
 class Test_ACLEntity(unittest.TestCase):
     @staticmethod
@@ -552,7 +550,6 @@ class Test_ACL(unittest.TestCase):
                 "path": "/testing/acl",
                 "query_params": {},
                 "timeout": 42,
-                "retry": DEFAULT_RETRY,
             },
         )
 
@@ -578,7 +575,6 @@ class Test_ACL(unittest.TestCase):
                 "path": "/testing/acl",
                 "query_params": {},
                 "timeout": self._get_default_timeout(),
-                "retry": DEFAULT_RETRY,
             },
         )
 
@@ -605,7 +601,6 @@ class Test_ACL(unittest.TestCase):
                 "path": "/testing/acl",
                 "query_params": {"userProject": USER_PROJECT},
                 "timeout": self._get_default_timeout(),
-                "retry": DEFAULT_RETRY,
             },
         )
 
@@ -657,7 +652,6 @@ class Test_ACL(unittest.TestCase):
                 "query_params": {"projection": "full"},
                 "data": {"acl": AFTER},
                 "timeout": self._get_default_timeout(),
-                "retry": DEFAULT_RETRY,
             },
         )
 
@@ -690,7 +684,6 @@ class Test_ACL(unittest.TestCase):
                 "query_params": {"projection": "full", "userProject": USER_PROJECT},
                 "data": {"acl": new_acl},
                 "timeout": self._get_default_timeout(),
-                "retry": DEFAULT_RETRY,
             },
         )
 
@@ -723,7 +716,6 @@ class Test_ACL(unittest.TestCase):
                 "query_params": {"projection": "full", "predefinedAcl": PREDEFINED},
                 "data": {"acl": []},
                 "timeout": 42,
-                "retry": DEFAULT_RETRY,
             },
         )
 
@@ -751,7 +743,6 @@ class Test_ACL(unittest.TestCase):
                 },
                 "data": {"acl": []},
                 "timeout": self._get_default_timeout(),
-                "retry": DEFAULT_RETRY,
             },
         )
 
@@ -777,7 +768,6 @@ class Test_ACL(unittest.TestCase):
                 "query_params": {"projection": "full", "alternate": PREDEFINED},
                 "data": {"acl": []},
                 "timeout": self._get_default_timeout(),
-                "retry": DEFAULT_RETRY,
             },
         )
 
@@ -803,7 +793,6 @@ class Test_ACL(unittest.TestCase):
                 "query_params": {"projection": "full"},
                 "data": {"acl": []},
                 "timeout": 42,
-                "retry": DEFAULT_RETRY,
             },
         )
 

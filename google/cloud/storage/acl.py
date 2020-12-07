@@ -85,7 +85,6 @@ when sending metadata for ACLs to the API.
 """
 
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
-from google.cloud.storage.retry import DEFAULT_RETRY
 
 
 class _ACLEntity(object):
@@ -431,7 +430,7 @@ class ACL(object):
             client = self.client
         return client
 
-    def reload(self, client=None, timeout=_DEFAULT_TIMEOUT, retry=DEFAULT_RETRY):
+    def reload(self, client=None, timeout=_DEFAULT_TIMEOUT):
         """Reload the ACL data from Cloud Storage.
 
         If :attr:`user_project` is set, bills the API request to that project.
@@ -446,20 +445,6 @@ class ACL(object):
 
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
-
-        :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
-        :param retry: (Optional) How to retry the RPC. A None value will disable retries.
-            A google.api_core.retry.Retry value will enable retries, and the object will
-            define retriable response codes and errors and configure backoff and timeout options.
-
-            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a Retry object and
-            activates it only if certain conditions are met. This class exists to provide safe defaults
-            for RPC calls that are not technically safe to retry normally (due to potential data
-            duplication or other side-effects) but become safe to retry if a condition such as
-            if_metageneration_match is set.
-
-            See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
-            information on retry types and how to configure them.
         """
         path = self.reload_path
         client = self._require_client(client)
@@ -471,19 +456,13 @@ class ACL(object):
         self.entities.clear()
 
         found = client._connection.api_request(
-            method="GET",
-            path=path,
-            query_params=query_params,
-            timeout=timeout,
-            retry=retry,
+            method="GET", path=path, query_params=query_params, timeout=timeout,
         )
         self.loaded = True
         for entry in found.get("items", ()):
             self.add_entity(self.entity_from_dict(entry))
 
-    def _save(
-        self, acl, predefined, client, timeout=_DEFAULT_TIMEOUT, retry=DEFAULT_RETRY
-    ):
+    def _save(self, acl, predefined, client, timeout=_DEFAULT_TIMEOUT):
         """Helper for :meth:`save` and :meth:`save_predefined`.
 
         :type acl: :class:`google.cloud.storage.acl.ACL`, or a compatible list.
@@ -504,20 +483,6 @@ class ACL(object):
 
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
-
-        :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
-        :param retry: (Optional) How to retry the RPC. A None value will disable retries.
-            A google.api_core.retry.Retry value will enable retries, and the object will
-            define retriable response codes and errors and configure backoff and timeout options.
-
-            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a Retry object and
-            activates it only if certain conditions are met. This class exists to provide safe defaults
-            for RPC calls that are not technically safe to retry normally (due to potential data
-            duplication or other side-effects) but become safe to retry if a condition such as
-            if_metageneration_match is set.
-
-            See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
-            information on retry types and how to configure them.
         """
         query_params = {"projection": "full"}
         if predefined is not None:
@@ -536,16 +501,13 @@ class ACL(object):
             data={self._URL_PATH_ELEM: list(acl)},
             query_params=query_params,
             timeout=timeout,
-            retry=retry,
         )
         self.entities.clear()
         for entry in result.get(self._URL_PATH_ELEM, ()):
             self.add_entity(self.entity_from_dict(entry))
         self.loaded = True
 
-    def save(
-        self, acl=None, client=None, timeout=_DEFAULT_TIMEOUT, retry=DEFAULT_RETRY
-    ):
+    def save(self, acl=None, client=None, timeout=_DEFAULT_TIMEOUT):
         """Save this ACL for the current bucket.
 
         If :attr:`user_project` is set, bills the API request to that project.
@@ -564,20 +526,6 @@ class ACL(object):
 
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
-
-        :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
-        :param retry: (Optional) How to retry the RPC. A None value will disable retries.
-            A google.api_core.retry.Retry value will enable retries, and the object will
-            define retriable response codes and errors and configure backoff and timeout options.
-
-            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a Retry object and
-            activates it only if certain conditions are met. This class exists to provide safe defaults
-            for RPC calls that are not technically safe to retry normally (due to potential data
-            duplication or other side-effects) but become safe to retry if a condition such as
-            if_metageneration_match is set.
-
-            See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
-            information on retry types and how to configure them.
         """
         if acl is None:
             acl = self
@@ -586,11 +534,9 @@ class ACL(object):
             save_to_backend = True
 
         if save_to_backend:
-            self._save(acl, None, client, timeout=timeout, retry=retry)
+            self._save(acl, None, client, timeout=timeout)
 
-    def save_predefined(
-        self, predefined, client=None, timeout=_DEFAULT_TIMEOUT, retry=DEFAULT_RETRY
-    ):
+    def save_predefined(self, predefined, client=None, timeout=_DEFAULT_TIMEOUT):
         """Save this ACL for the current bucket using a predefined ACL.
 
         If :attr:`user_project` is set, bills the API request to that project.
@@ -612,25 +558,11 @@ class ACL(object):
 
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
-
-        :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
-        :param retry: (Optional) How to retry the RPC. A None value will disable retries.
-            A google.api_core.retry.Retry value will enable retries, and the object will
-            define retriable response codes and errors and configure backoff and timeout options.
-
-            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a Retry object and
-            activates it only if certain conditions are met. This class exists to provide safe defaults
-            for RPC calls that are not technically safe to retry normally (due to potential data
-            duplication or other side-effects) but become safe to retry if a condition such as
-            if_metageneration_match is set.
-
-            See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
-            information on retry types and how to configure them.
         """
         predefined = self.validate_predefined(predefined)
-        self._save(None, predefined, client, timeout=timeout, retry=retry)
+        self._save(None, predefined, client, timeout=timeout)
 
-    def clear(self, client=None, timeout=_DEFAULT_TIMEOUT, retry=DEFAULT_RETRY):
+    def clear(self, client=None, timeout=_DEFAULT_TIMEOUT):
         """Remove all ACL entries.
 
         If :attr:`user_project` is set, bills the API request to that project.
@@ -650,22 +582,8 @@ class ACL(object):
 
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
-
-        :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
-        :param retry: (Optional) How to retry the RPC. A None value will disable retries.
-            A google.api_core.retry.Retry value will enable retries, and the object will
-            define retriable response codes and errors and configure backoff and timeout options.
-
-            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a Retry object and
-            activates it only if certain conditions are met. This class exists to provide safe defaults
-            for RPC calls that are not technically safe to retry normally (due to potential data
-            duplication or other side-effects) but become safe to retry if a condition such as
-            if_metageneration_match is set.
-
-            See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
-            information on retry types and how to configure them.
         """
-        self.save([], client=client, timeout=timeout, retry=retry)
+        self.save([], client=client, timeout=timeout)
 
 
 class BucketACL(ACL):

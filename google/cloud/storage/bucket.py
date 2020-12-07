@@ -3080,14 +3080,14 @@ class Bucket(_PropertyMixin):
             for each blob.
         """
         self.acl.all().grant_read()
-        self.acl.save(client=client, timeout=timeout, retry=retry)
+        self.acl.save(client=client, timeout=timeout)
 
         if future:
             doa = self.default_object_acl
             if not doa.loaded:
-                doa.reload(client=client, timeout=timeout, retry=retry)
+                doa.reload(client=client, timeout=timeout)
             doa.all().grant_read()
-            doa.save(client=client, timeout=timeout, retry=retry)
+            doa.save(client=client, timeout=timeout)
 
         if recursive:
             blobs = list(
@@ -3167,14 +3167,14 @@ class Bucket(_PropertyMixin):
             for each blob.
         """
         self.acl.all().revoke_read()
-        self.acl.save(client=client, timeout=timeout, retry=retry)
+        self.acl.save(client=client, timeout=timeout)
 
         if future:
             doa = self.default_object_acl
             if not doa.loaded:
-                doa.reload(client=client, timeout=timeout, retry=retry)
+                doa.reload(client=client, timeout=timeout)
             doa.all().revoke_read()
-            doa.save(client=client, timeout=timeout, retry=retry)
+            doa.save(client=client, timeout=timeout)
 
         if recursive:
             blobs = list(
@@ -3198,7 +3198,7 @@ class Bucket(_PropertyMixin):
 
             for blob in blobs:
                 blob.acl.all().revoke_read()
-                blob.acl.save(client=client, timeout=timeout, retry=retry)
+                blob.acl.save(client=client, timeout=timeout)
 
     def generate_upload_policy(self, conditions, expiration=None, client=None):
         """Create a signed upload policy for uploading objects.
