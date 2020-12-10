@@ -26,6 +26,7 @@ import pytest
 import six
 from six.moves import http_client
 
+from google.cloud.storage.retry import DEFAULT_RETRY
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_GENERATION_SPECIFIED
 
 
@@ -668,6 +669,7 @@ class Test_Blob(unittest.TestCase):
                 "query_params": {"fields": "name"},
                 "_target_object": None,
                 "timeout": 42,
+                "retry": DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
             },
         )
 
@@ -690,6 +692,7 @@ class Test_Blob(unittest.TestCase):
                 "query_params": {"fields": "name", "userProject": USER_PROJECT},
                 "_target_object": None,
                 "timeout": self._get_default_timeout(),
+                "retry": DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
             },
         )
 
@@ -712,6 +715,7 @@ class Test_Blob(unittest.TestCase):
                 "query_params": {"fields": "name", "generation": GENERATION},
                 "_target_object": None,
                 "timeout": self._get_default_timeout(),
+                "retry": DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
             },
         )
 
@@ -745,6 +749,7 @@ class Test_Blob(unittest.TestCase):
                 },
                 "_target_object": None,
                 "timeout": self._get_default_timeout(),
+                "retry": DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
             },
         )
 
@@ -770,6 +775,7 @@ class Test_Blob(unittest.TestCase):
                     None,
                     None,
                     None,
+                    DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
                 )
             ],
         )
@@ -786,7 +792,20 @@ class Test_Blob(unittest.TestCase):
         blob.delete(timeout=42)
         self.assertFalse(blob.exists())
         self.assertEqual(
-            bucket._deleted, [(BLOB_NAME, None, GENERATION, 42, None, None, None, None)]
+            bucket._deleted,
+            [
+                (
+                    BLOB_NAME,
+                    None,
+                    GENERATION,
+                    42,
+                    None,
+                    None,
+                    None,
+                    None,
+                    DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+                )
+            ],
         )
 
     def test_delete_w_generation_match(self):
@@ -802,7 +821,19 @@ class Test_Blob(unittest.TestCase):
         self.assertFalse(blob.exists())
         self.assertEqual(
             bucket._deleted,
-            [(BLOB_NAME, None, GENERATION, 42, GENERATION, None, None, None)],
+            [
+                (
+                    BLOB_NAME,
+                    None,
+                    GENERATION,
+                    42,
+                    GENERATION,
+                    None,
+                    None,
+                    None,
+                    DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+                )
+            ],
         )
 
     def test__get_transport(self):
@@ -3074,6 +3105,7 @@ class Test_Blob(unittest.TestCase):
                 "query_params": {},
                 "_target_object": None,
                 "timeout": 42,
+                "retry": DEFAULT_RETRY,
             },
         )
 
@@ -3110,6 +3142,7 @@ class Test_Blob(unittest.TestCase):
                 "query_params": {"optionsRequestedPolicyVersion": 3},
                 "_target_object": None,
                 "timeout": self._get_default_timeout(),
+                "retry": DEFAULT_RETRY,
             },
         )
 
@@ -3151,6 +3184,7 @@ class Test_Blob(unittest.TestCase):
                 "query_params": {"userProject": USER_PROJECT},
                 "_target_object": None,
                 "timeout": self._get_default_timeout(),
+                "retry": DEFAULT_RETRY,
             },
         )
 
@@ -4769,6 +4803,7 @@ class _Bucket(object):
         if_generation_not_match=None,
         if_metageneration_match=None,
         if_metageneration_not_match=None,
+        retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
     ):
         del self._blobs[blob_name]
         self._deleted.append(
@@ -4781,6 +4816,7 @@ class _Bucket(object):
                 if_generation_not_match,
                 if_metageneration_match,
                 if_metageneration_not_match,
+                retry,
             )
         )
 
