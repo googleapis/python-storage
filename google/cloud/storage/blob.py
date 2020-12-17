@@ -2575,6 +2575,7 @@ class Blob(_PropertyMixin):
             if_metageneration_match=if_metageneration_match,
             if_metageneration_not_match=if_metageneration_not_match,
             timeout=timeout,
+            checksum=checksum,
         )
 
     def create_resumable_upload_session(
