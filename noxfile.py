@@ -125,7 +125,7 @@ def system(session):
         "google-cloud-testutils",
         "google-cloud-iam",
         "google-cloud-pubsub < 2.0.0",
-        "google-cloud-kms < 2.0dev",
+        "google-cloud-kms",
     )
     session.install("-e", ".")
 
