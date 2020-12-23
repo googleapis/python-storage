@@ -2362,6 +2362,7 @@ class Blob(_PropertyMixin):
         self,
         filename,
         content_type=None,
+        num_retries=None,
         client=None,
         predefined_acl=None,
         if_generation_match=None,
@@ -2405,6 +2406,15 @@ class Blob(_PropertyMixin):
         :param client:
             (Optional) The client to use.  If not passed, falls back to the
             ``client`` stored on the blob's bucket.
+
+        :type num_retries: int
+        :param num_retries:
+            Number of upload retries. By default, only uploads with
+            if_metageneration_match set will be retried, as uploads without the
+            argument are not guaranteed to be idempotent. Setting num_retries
+            will override this default behavior and guarantee retries even when
+            if_metageneration_match is not set.  (Deprecated: This argument
+            will be removed in a future release.)
 
         :type predefined_acl: str
         :param predefined_acl: (Optional) Predefined access control list
@@ -2460,6 +2470,7 @@ class Blob(_PropertyMixin):
             self.upload_from_file(
                 file_obj,
                 content_type=content_type,
+                num_retries=num_retries,
                 client=client,
                 size=total_bytes,
                 predefined_acl=predefined_acl,
@@ -2475,6 +2486,7 @@ class Blob(_PropertyMixin):
         self,
         data,
         content_type="text/plain",
+        num_retries=None,
         client=None,
         predefined_acl=None,
         if_generation_match=None,
@@ -2509,6 +2521,15 @@ class Blob(_PropertyMixin):
         :param content_type:
             (Optional) Type of content being uploaded. Defaults to
             ``'text/plain'``.
+
+        :type num_retries: int
+        :param num_retries:
+            Number of upload retries. By default, only uploads with
+            if_metageneration_match set will be retried, as uploads without the
+            argument are not guaranteed to be idempotent. Setting num_retries
+            will override this default behavior and guarantee retries even when
+            if_metageneration_match is not set.  (Deprecated: This argument
+            will be removed in a future release.)
 
         :type client: :class:`~google.cloud.storage.client.Client`
         :param client:
@@ -2568,6 +2589,7 @@ class Blob(_PropertyMixin):
             file_obj=string_buffer,
             size=len(data),
             content_type=content_type,
+            num_retries=num_retries,
             client=client,
             predefined_acl=predefined_acl,
             if_generation_match=if_generation_match,
