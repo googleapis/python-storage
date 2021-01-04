@@ -668,6 +668,7 @@ class Test_generate_signed_url_v4(unittest.TestCase):
                 access_token="token",
             )
 
+
 class Test_sign_message(unittest.TestCase):
     @staticmethod
     def _call_fut(*args, **kwargs):
