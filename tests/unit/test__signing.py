@@ -655,8 +655,8 @@ class Test_generate_signed_url_v4(unittest.TestCase):
 
     def test_with_access_token(self):
         resource = "/name/path"
-        signer_email = "service@example.com"
-        credentials = _make_credentials(signer_email=signer_email)
+        credentials = _make_credentials()
+        email = mock.sentinel.service_account_email
         with mock.patch(
             "google.cloud.storage._signing._sign_message", return_value=b"DEADBEEF"
         ):
@@ -664,10 +664,9 @@ class Test_generate_signed_url_v4(unittest.TestCase):
                 credentials,
                 resource=resource,
                 expiration=datetime.timedelta(days=5),
-                service_account_email=signer_email,
+                service_account_email=email,
                 access_token="token",
             )
-
 
 class Test_sign_message(unittest.TestCase):
     @staticmethod

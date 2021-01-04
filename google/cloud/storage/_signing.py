@@ -533,7 +533,6 @@ def generate_signed_url_v4(
     :returns: A signed URL you can use to access the resource
               until expiration.
     """
-    ensure_signed_credentials(credentials)
     expiration_seconds = get_expiration_seconds_v4(expiration)
 
     if _request_timestamp is None:
@@ -542,7 +541,11 @@ def generate_signed_url_v4(
         request_timestamp = _request_timestamp
         datestamp = _request_timestamp[:8]
 
-    client_email = credentials.signer_email
+    client_email = service_account_email
+    if not access_token or not service_account_email:
+        ensure_signed_credentials(credentials)
+        client_email = credentials.signer_email
+
     credential_scope = "{}/auto/storage/goog4_request".format(datestamp)
     credential = "{}/{}".format(client_email, credential_scope)
 
