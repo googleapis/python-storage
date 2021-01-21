@@ -575,15 +575,40 @@ class TestClient(unittest.TestCase):
 
         with mock.patch.object(Connection, "api_request") as req:
             client.get_bucket(bucket_obj)
-            req.assert_called_once_with(
-                method="GET",
-                path=mock.ANY,
-                query_params=mock.ANY,
-                headers=mock.ANY,
-                _target_object=bucket_obj,
-                timeout=mock.ANY,
-                retry=DEFAULT_RETRY,
-            )
+
+        req.assert_called_once_with(
+            method="GET",
+            path=mock.ANY,
+            query_params=mock.ANY,
+            headers=mock.ANY,
+            _target_object=bucket_obj,
+            timeout=mock.ANY,
+            retry=DEFAULT_RETRY,
+        )
+
+    def test_get_bucket_respects_retry_override(self):
+        from google.cloud.storage.bucket import Bucket
+        from google.cloud.storage._http import Connection
+
+        PROJECT = "PROJECT"
+        CREDENTIALS = _make_credentials()
+        client = self._make_one(project=PROJECT, credentials=CREDENTIALS)
+
+        bucket_name = "bucket-name"
+        bucket_obj = Bucket(client, bucket_name)
+
+        with mock.patch.object(Connection, "api_request") as req:
+            client.get_bucket(bucket_obj, retry=None)
+
+        req.assert_called_once_with(
+            method="GET",
+            path=mock.ANY,
+            query_params=mock.ANY,
+            headers=mock.ANY,
+            _target_object=bucket_obj,
+            timeout=mock.ANY,
+            retry=None,
+        )
 
     def test_lookup_bucket_miss(self):
         PROJECT = "PROJECT"
