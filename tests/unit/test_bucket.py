@@ -21,6 +21,8 @@ import pytest
 from google.cloud.storage.retry import DEFAULT_RETRY
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_GENERATION_SPECIFIED
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED
+from google.cloud.storage.bucket import PUBLIC_ACCESS_PREVENTION_ENFORCED
+from google.cloud.storage.bucket import PUBLIC_ACCESS_PREVENTION_UNSPECIFIED
 
 
 def _make_connection(*responses):
@@ -291,6 +293,9 @@ class Test_IAMConfiguration(unittest.TestCase):
         self.assertIs(config.bucket, bucket)
         self.assertFalse(config.uniform_bucket_level_access_enabled)
         self.assertIsNone(config.uniform_bucket_level_access_locked_time)
+        self.assertEqual(
+            config.public_access_prevention, PUBLIC_ACCESS_PREVENTION_UNSPECIFIED
+        )
         self.assertFalse(config.bucket_policy_only_enabled)
         self.assertIsNone(config.bucket_policy_only_locked_time)
 
@@ -312,6 +317,24 @@ class Test_IAMConfiguration(unittest.TestCase):
         self.assertEqual(config.uniform_bucket_level_access_locked_time, now)
         self.assertTrue(config.bucket_policy_only_enabled)
         self.assertEqual(config.bucket_policy_only_locked_time, now)
+
+    def test_ctor_explicit_pap(self):
+        bucket = self._make_bucket()
+
+        config = self._make_one(
+            bucket, public_access_prevention=PUBLIC_ACCESS_PREVENTION_ENFORCED,
+        )
+
+        self.assertIs(config.bucket, bucket)
+        self.assertFalse(config.uniform_bucket_level_access_enabled)
+        self.assertEqual(
+            config.public_access_prevention, PUBLIC_ACCESS_PREVENTION_ENFORCED
+        )
+
+        config.public_access_prevention = PUBLIC_ACCESS_PREVENTION_UNSPECIFIED
+        self.assertEqual(
+            config.public_access_prevention, PUBLIC_ACCESS_PREVENTION_UNSPECIFIED
+        )
 
     def test_ctor_explicit_bpo(self):
         import datetime

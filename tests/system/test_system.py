@@ -33,6 +33,8 @@ from google.cloud import storage
 from google.cloud.storage._helpers import _base64_md5hash
 from google.cloud.storage.bucket import LifecycleRuleDelete
 from google.cloud.storage.bucket import LifecycleRuleSetStorageClass
+from google.cloud.storage.bucket import PUBLIC_ACCESS_PREVENTION_UNSPECIFIED
+from google.cloud.storage.bucket import PUBLIC_ACCESS_PREVENTION_ENFORCED
 from google.cloud import kms
 from google import resumable_media
 import google.auth
@@ -2450,6 +2452,79 @@ class TestIAMConfiguration(unittest.TestCase):
 
         self.assertEqual(bucket_acl_before, bucket_acl_after)
         self.assertEqual(blob_acl_before, blob_acl_after)
+
+    def test_new_bucket_created_w_unspecified_pap(self):
+        new_bucket_name = "new-w-pap-unspecified" + unique_resource_id("-")
+        self.assertRaises(
+            exceptions.NotFound, Config.CLIENT.get_bucket, new_bucket_name
+        )
+        bucket = Config.CLIENT.bucket(new_bucket_name)
+        bucket.iam_configuration.uniform_bucket_level_access_enabled = True
+        bucket.create()
+        self.case_buckets_to_delete.append(new_bucket_name)
+
+        self.assertEqual(
+            bucket.iam_configuration.public_access_prevention,
+            PUBLIC_ACCESS_PREVENTION_UNSPECIFIED,
+        )
+
+        bucket.iam_configuration.public_access_prevention = (
+            PUBLIC_ACCESS_PREVENTION_ENFORCED
+        )
+        bucket.patch()
+        self.assertEqual(
+            bucket.iam_configuration.public_access_prevention,
+            PUBLIC_ACCESS_PREVENTION_ENFORCED,
+        )
+        self.assertTrue(bucket.iam_configuration.uniform_bucket_level_access_enabled)
+
+        bucket.iam_configuration.uniform_bucket_level_access_enabled = False
+        bucket.patch()
+        self.assertEqual(
+            bucket.iam_configuration.public_access_prevention,
+            PUBLIC_ACCESS_PREVENTION_ENFORCED,
+        )
+
+        with self.assertRaises(exceptions.BadRequest):
+            bucket.iam_configuration.public_access_prevention = "unexpected value"
+            bucket.patch()
+
+        with self.assertRaises(exceptions.PreconditionFailed):
+            bucket.make_public()
+
+        blob_name = "my-blob.txt"
+        blob = bucket.blob(blob_name)
+        payload = b"DEADBEEF"
+        blob.upload_from_string(payload)
+        with self.assertRaises(exceptions.PreconditionFailed):
+            blob.make_public()
+
+    def test_new_bucket_created_w_enforced_pap(self):
+        new_bucket_name = "new-w-pap-enforced" + unique_resource_id("-")
+        self.assertRaises(
+            exceptions.NotFound, Config.CLIENT.get_bucket, new_bucket_name
+        )
+        bucket = Config.CLIENT.bucket(new_bucket_name)
+        bucket.iam_configuration.public_access_prevention = (
+            PUBLIC_ACCESS_PREVENTION_ENFORCED
+        )
+        bucket.create()
+        self.case_buckets_to_delete.append(new_bucket_name)
+
+        self.assertEqual(
+            bucket.iam_configuration.public_access_prevention,
+            PUBLIC_ACCESS_PREVENTION_ENFORCED,
+        )
+
+        bucket.iam_configuration.public_access_prevention = (
+            PUBLIC_ACCESS_PREVENTION_UNSPECIFIED
+        )
+        bucket.patch()
+        self.assertEqual(
+            bucket.iam_configuration.public_access_prevention,
+            PUBLIC_ACCESS_PREVENTION_UNSPECIFIED,
+        )
+        self.assertFalse(bucket.iam_configuration.uniform_bucket_level_access_enabled)
 
 
 class TestV4POSTPolicies(unittest.TestCase):
