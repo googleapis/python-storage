@@ -829,9 +829,12 @@ class Blob(_PropertyMixin):
         """
         name_value_pairs = []
         if self.media_link is None:
-            base_url = _DOWNLOAD_URL_TEMPLATE.format(
-                hostname=client._connection.API_BASE_URL, path=self.path
+            hostname = (
+                client._connection.API_BASE_URL
+                if not hasattr(client._connection, "get_api_base_url_for_mtls")
+                else client._connection.get_api_base_url_for_mtls()
             )
+            base_url = _DOWNLOAD_URL_TEMPLATE.format(hostname=hostname, path=self.path)
             if self.generation is not None:
                 name_value_pairs.append(("generation", "{:d}".format(self.generation)))
         else:
@@ -1683,8 +1686,13 @@ class Blob(_PropertyMixin):
         info = self._get_upload_arguments(content_type)
         headers, object_metadata, content_type = info
 
+        hostname = (
+            client._connection.API_BASE_URL
+            if not hasattr(client._connection, "get_api_base_url_for_mtls")
+            else client._connection.get_api_base_url_for_mtls()
+        )
         base_url = _MULTIPART_URL_TEMPLATE.format(
-            hostname=client._connection.API_BASE_URL, bucket_path=self.bucket.path
+            hostname=hostname, bucket_path=self.bucket.path
         )
         name_value_pairs = []
 
@@ -1864,8 +1872,13 @@ class Blob(_PropertyMixin):
         if extra_headers is not None:
             headers.update(extra_headers)
 
+        hostname = (
+            client._connection.API_BASE_URL
+            if not hasattr(client._connection, "get_api_base_url_for_mtls")
+            else client._connection.get_api_base_url_for_mtls()
+        )
         base_url = _RESUMABLE_URL_TEMPLATE.format(
-            hostname=client._connection.API_BASE_URL, bucket_path=self.bucket.path
+            hostname=hostname, bucket_path=self.bucket.path
         )
         name_value_pairs = []
 
