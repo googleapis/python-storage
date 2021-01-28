@@ -669,7 +669,7 @@ class Test_Blob(unittest.TestCase):
                 "query_params": {"fields": "name"},
                 "_target_object": None,
                 "timeout": 42,
-                "retry": DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+                "retry": DEFAULT_RETRY,
             },
         )
 
@@ -692,7 +692,7 @@ class Test_Blob(unittest.TestCase):
                 "query_params": {"fields": "name", "userProject": USER_PROJECT},
                 "_target_object": None,
                 "timeout": self._get_default_timeout(),
-                "retry": DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+                "retry": DEFAULT_RETRY,
             },
         )
 
@@ -715,7 +715,7 @@ class Test_Blob(unittest.TestCase):
                 "query_params": {"fields": "name", "generation": GENERATION},
                 "_target_object": None,
                 "timeout": self._get_default_timeout(),
-                "retry": DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+                "retry": DEFAULT_RETRY,
             },
         )
 
@@ -749,7 +749,7 @@ class Test_Blob(unittest.TestCase):
                 },
                 "_target_object": None,
                 "timeout": self._get_default_timeout(),
-                "retry": DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+                "retry": DEFAULT_RETRY,
             },
         )
 
@@ -1627,18 +1627,18 @@ class Test_Blob(unittest.TestCase):
         GENERATION_NUMBER = 6
         MEDIA_LINK = "http://example.com/media/"
 
-        client = mock.Mock(spec=["_http"])
+        client = self._make_client()
         blob = self._make_one(
             "blob-name", bucket=_Bucket(client), properties={"mediaLink": MEDIA_LINK}
         )
-        blob.download_to_file = mock.Mock()
+        client.download_blob_to_file = mock.Mock()
 
         fetched = blob.download_as_bytes(if_generation_match=GENERATION_NUMBER)
         self.assertEqual(fetched, b"")
 
-        blob.download_to_file.assert_called_once_with(
+        client.download_blob_to_file.assert_called_once_with(
+            blob,
             mock.ANY,
-            client=None,
             start=None,
             end=None,
             raw_download=False,
@@ -1810,18 +1810,18 @@ class Test_Blob(unittest.TestCase):
     def test_download_as_string(self, mock_warn):
         MEDIA_LINK = "http://example.com/media/"
 
-        client = mock.Mock(spec=["_http"])
+        client = self._make_client()
         blob = self._make_one(
             "blob-name", bucket=_Bucket(client), properties={"mediaLink": MEDIA_LINK}
         )
-        blob.download_to_file = mock.Mock()
+        client.download_blob_to_file = mock.Mock()
 
         fetched = blob.download_as_string()
         self.assertEqual(fetched, b"")
 
-        blob.download_to_file.assert_called_once_with(
+        client.download_blob_to_file.assert_called_once_with(
+            blob,
             mock.ANY,
-            client=None,
             start=None,
             end=None,
             raw_download=False,
