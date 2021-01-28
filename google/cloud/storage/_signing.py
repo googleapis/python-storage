@@ -457,9 +457,12 @@ def generate_signed_url_v4(
                    google-cloud-python/issues/922
     .. _reference: https://cloud.google.com/storage/docs/reference-headers
 
+
     :type credentials: :class:`google.auth.credentials.Signing`
     :param credentials: Credentials object with an associated private key to
-                        sign text.
+                        sign text. That credentials must provide signer_email
+                        only if service_account_email and access_token are not
+                        passed.
 
     :type resource: str
     :param resource: A pointer to a specific resource
