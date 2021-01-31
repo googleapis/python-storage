@@ -133,8 +133,9 @@ class Client(ClientWithProject):
         # `api_endpoint` plays an important role for mTLS, if it is not set,
         # then mTLS logic will be applied to decide which endpoint will be used.
         storage_host = _get_storage_host()
-        if storage_host != _DEFAULT_STORAGE_HOST:
-            kw_args["api_endpoint"] = storage_host
+        kw_args["api_endpoint"] = (
+            storage_host if storage_host != _DEFAULT_STORAGE_HOST else None
+        )
 
         if client_options:
             if type(client_options) == dict:
