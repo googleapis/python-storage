@@ -2048,7 +2048,7 @@ class Test_Blob(unittest.TestCase):
             "https://storage.googleapis.com/upload/storage/v1" + bucket.path + "/o"
         )
         if mtls:
-            upload_url = mtls_url + bucket.path + "/o"
+            upload_url = mtls_url + "/upload/storage/v1" + bucket.path + "/o"
 
         qs_params = [("uploadType", "multipart")]
 
@@ -2098,8 +2098,10 @@ class Test_Blob(unittest.TestCase):
         self._do_multipart_success(mock_get_boundary, predefined_acl="private")
 
     @mock.patch(u"google.resumable_media._upload.get_boundary", return_value=b"==0==")
-    def test__do_multipart_upload_no_size_mtls(self, mock_get_boundary, mtls=True):
-        self._do_multipart_success(mock_get_boundary, predefined_acl="private")
+    def test__do_multipart_upload_no_size_mtls(self, mock_get_boundary):
+        self._do_multipart_success(
+            mock_get_boundary, predefined_acl="private", mtls=True
+        )
 
     @mock.patch(u"google.resumable_media._upload.get_boundary", return_value=b"==0==")
     def test__do_multipart_upload_with_size(self, mock_get_boundary):
@@ -2281,7 +2283,7 @@ class Test_Blob(unittest.TestCase):
             "https://storage.googleapis.com/upload/storage/v1" + bucket.path + "/o"
         )
         if mtls:
-            upload_url = mtls_url + bucket.path + "/o"
+            upload_url = mtls_url + "/upload/storage/v1" + bucket.path + "/o"
         qs_params = [("uploadType", "resumable")]
 
         if user_project is not None:
@@ -2373,6 +2375,9 @@ class Test_Blob(unittest.TestCase):
 
     def test__initiate_resumable_upload_no_size(self):
         self._initiate_resumable_helper()
+
+    def test__initiate_resumable_upload_no_size_mtls(self):
+        self._initiate_resumable_helper(mtls=True)
 
     def test__initiate_resumable_upload_with_size(self):
         self._initiate_resumable_helper(size=10000)
