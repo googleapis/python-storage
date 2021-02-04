@@ -509,6 +509,55 @@ class TestStorageBuckets(unittest.TestCase):
             for blob in to_delete:
                 retry_429_harder(blob.delete)()
 
+    def test_datetime_rfc3339_without_miliseconds(self):
+        from datetime import datetime, timezone
+
+        new_bucket_name = "bucket_rfc3339" + unique_resource_id("-")
+        created = retry_429_503(Config.CLIENT.create_bucket)(
+            new_bucket_name, requester_pays=True
+        )
+        self.case_buckets_to_delete.append(new_bucket_name)
+        self.assertEqual(created.name, new_bucket_name)
+
+        to_delete = []
+
+        try:
+            blob = storage.Blob("simple", bucket=created)
+            blob.upload_from_string(b"DEADBEEF")
+            blob.reload()
+            custom_time_no_millis = datetime(
+                year=2000,
+                month=1,
+                day=13,
+                hour=13,
+                minute=1,
+                second=0,
+                microsecond=0,
+                tzinfo=timezone.utc,
+            )
+            blob.custom_time = custom_time_no_millis
+            blob.patch()
+            blob.reload()
+            self.assertEqual(blob.custom_time, custom_time_no_millis)
+            custom_time_millis = datetime(
+                year=2000,
+                month=1,
+                day=13,
+                hour=13,
+                minute=1,
+                second=0,
+                microsecond=10,
+                tzinfo=timezone.utc,
+            )
+            blob.custom_time = custom_time_millis
+            blob.patch()
+            blob.reload()
+            self.assertEqual(blob.custom_time, custom_time_millis)
+            to_delete.append(blob)
+        finally:
+            for blob in to_delete:
+                retry_429_harder(blob.delete)()
+
     @unittest.skipUnless(USER_PROJECT, "USER_PROJECT not set in environment.")
     def test_bucket_get_blob_with_user_project(self):
         new_bucket_name = "w-requester-pays" + unique_resource_id("-")

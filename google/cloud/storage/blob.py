@@ -56,6 +56,7 @@ from google.cloud import exceptions
 from google.cloud._helpers import _bytes_to_unicode
 from google.cloud._helpers import _datetime_to_rfc3339
 from google.cloud._helpers import _rfc3339_to_datetime
+from google.cloud._helpers import _rfc3339_nanos_to_datetime
 from google.cloud._helpers import _to_bytes
 from google.cloud.exceptions import NotFound
 from google.cloud.storage._helpers import _add_generation_match_parameters
@@ -3772,7 +3773,7 @@ class Blob(_PropertyMixin):
         """
         value = self._properties.get("customTime")
         if value is not None:
-            return _rfc3339_to_datetime(value)
+            return _rfc3339_nanos_to_datetime(value)
 
     @custom_time.setter
     def custom_time(self, value):
