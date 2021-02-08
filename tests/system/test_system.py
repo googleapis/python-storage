@@ -113,7 +113,7 @@ class TestClient(unittest.TestCase):
             type(Config.CLIENT._credentials)
             is not google.oauth2.service_account.Credentials
         ):
-            cls.skipTest(cls, reason="These tests require a service account credential")
+            raise unittest.SkipTest("These tests require a service account credential")
 
     def setUp(self):
         self.case_hmac_keys_to_delete = []
@@ -584,7 +584,7 @@ class TestStorageWriteFiles(TestStorageFiles):
             type(Config.CLIENT._credentials)
             is not google.oauth2.service_account.Credentials
         ):
-            cls.skipTest(cls, reason="These tests require a service account credential")
+            raise unittest.SkipTest("These tests require a service account credential")
 
     def test_large_file_write_from_stream(self):
         blob = self.bucket.blob("LargeFile")
@@ -1300,8 +1300,8 @@ class TestStorageSignURLs(unittest.TestCase):
             type(Config.CLIENT._credentials)
             is not google.oauth2.service_account.Credentials
         ):
-            cls.skipTest(
-                cls, reason="Signing tests requires a service account credential"
+            raise unittest.SkipTest(
+                "Signing tests requires a service account credential"
             )
 
         bucket_name = "gcp-signing" + unique_resource_id()
@@ -1867,7 +1867,7 @@ class TestStorageNotificationCRUD(unittest.TestCase):
     def setUpClass(cls):
         super(TestStorageNotificationCRUD, cls).setUpClass()
         if Config.TESTING_MTLS:
-            cls.skipTest(cls, reason="Skip pubsub tests for mTLS testing")
+            raise unittest.SkipTest("Skip pubsub tests for mTLS testing")
 
     @property
     def topic_path(self):
@@ -2033,7 +2033,7 @@ class TestKMSIntegration(TestStorageFiles):
     def setUpClass(cls):
         super(TestKMSIntegration, cls).setUpClass()
         if Config.TESTING_MTLS:
-            cls.skipTest(cls, reason="Skip kms tests for mTLS testing")
+            raise unittest.SkipTest("Skip kms tests for mTLS testing")
 
         _empty_bucket(Config.CLIENT, cls.bucket)
 
@@ -2495,7 +2495,7 @@ class TestV4POSTPolicies(unittest.TestCase):
             type(Config.CLIENT._credentials)
             is not google.oauth2.service_account.Credentials
         ):
-            cls.skipTest(cls, reason="These tests require a service account credential")
+            raise unittest.SkipTest("These tests require a service account credential")
 
     def setUp(self):
         self.case_buckets_to_delete = []
