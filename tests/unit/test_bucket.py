@@ -21,8 +21,8 @@ import pytest
 from google.cloud.storage.retry import DEFAULT_RETRY
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_GENERATION_SPECIFIED
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED
-from google.cloud.storage.bucket import PUBLIC_ACCESS_PREVENTION_ENFORCED
-from google.cloud.storage.bucket import PUBLIC_ACCESS_PREVENTION_UNSPECIFIED
+from google.cloud.storage.constants import PUBLIC_ACCESS_PREVENTION_ENFORCED
+from google.cloud.storage.constants import PUBLIC_ACCESS_PREVENTION_UNSPECIFIED
 
 
 def _make_connection(*responses):

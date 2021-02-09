@@ -33,8 +33,8 @@ from google.cloud import storage
 from google.cloud.storage._helpers import _base64_md5hash
 from google.cloud.storage.bucket import LifecycleRuleDelete
 from google.cloud.storage.bucket import LifecycleRuleSetStorageClass
-from google.cloud.storage.bucket import PUBLIC_ACCESS_PREVENTION_UNSPECIFIED
-from google.cloud.storage.bucket import PUBLIC_ACCESS_PREVENTION_ENFORCED
+from google.cloud.storage.constants import PUBLIC_ACCESS_PREVENTION_ENFORCED
+from google.cloud.storage.constants import PUBLIC_ACCESS_PREVENTION_UNSPECIFIED
 from google.cloud import kms
 from google import resumable_media
 import google.auth
