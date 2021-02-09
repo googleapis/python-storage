@@ -4,6 +4,37 @@
 
 [1]: https://pypi.org/project/google-cloud-storage/#history
 
+### [1.35.1](https://www.github.com/googleapis/python-storage/compare/v1.35.0...v1.35.1) (2021-01-28)
+
+
+### Bug Fixes
+
+* address incorrect usage of request preconditions ([#366](https://www.github.com/googleapis/python-storage/issues/366)) ([321658c](https://www.github.com/googleapis/python-storage/commit/321658c3b9ccaf22d08dd881c93206590f8275b7))
+* Amend default retry behavior for bucket operations on client ([#358](https://www.github.com/googleapis/python-storage/issues/358)) ([b91e57d](https://www.github.com/googleapis/python-storage/commit/b91e57d6ca314ac4feaec30bf355fcf7ac4468c0))
+
+## [1.35.0](https://www.github.com/googleapis/python-storage/compare/v1.34.0...v1.35.0) (2020-12-14)
+
+
+### Features
+
+* support ConnectionError retries for media operations ([#342](https://www.github.com/googleapis/python-storage/issues/342)) ([e55b25b](https://www.github.com/googleapis/python-storage/commit/e55b25be1e32f17b17bffe1da99fca5062f180cb))
+
+## [1.34.0](https://www.github.com/googleapis/python-storage/compare/v1.33.0...v1.34.0) (2020-12-11)
+
+
+### Features
+
+* make retry parameter public and added in other methods ([#331](https://www.github.com/googleapis/python-storage/issues/331)) ([910e34c](https://www.github.com/googleapis/python-storage/commit/910e34c57de5823bc3a04adbd87cbfe27fb41882))
+
+
+### Bug Fixes
+
+* avoid triggering global logging config ([#333](https://www.github.com/googleapis/python-storage/issues/333)) ([602108a](https://www.github.com/googleapis/python-storage/commit/602108a976503271fe0d85c8d7891ce8083aca89)), closes [#332](https://www.github.com/googleapis/python-storage/issues/332)
+* fall back to 'charset' of 'content_type' in 'download_as_text'  ([#326](https://www.github.com/googleapis/python-storage/issues/326)) ([63ff233](https://www.github.com/googleapis/python-storage/commit/63ff23387f5873c609490be8e58d69ba34a10a5e)), closes [#319](https://www.github.com/googleapis/python-storage/issues/319)
+* fix conditional retry handling of camelCase query params ([#340](https://www.github.com/googleapis/python-storage/issues/340)) ([4ff6141](https://www.github.com/googleapis/python-storage/commit/4ff614161f6a2654a59706f4f72b5fbb614e70ec))
+* retry uploads only conditionally ([#316](https://www.github.com/googleapis/python-storage/issues/316)) ([547740c](https://www.github.com/googleapis/python-storage/commit/547740c0a898492e76ce5e60dd20c7ddb8a53d1f))
+* update 'custom_time' setter to record change ([#323](https://www.github.com/googleapis/python-storage/issues/323)) ([5174154](https://www.github.com/googleapis/python-storage/commit/5174154fe73bb6581efc3cd32ebe12014ceab306)), closes [#322](https://www.github.com/googleapis/python-storage/issues/322)
+
 ## [1.33.0](https://www.github.com/googleapis/python-storage/compare/v1.32.0...v1.33.0) (2020-11-16)
 
 

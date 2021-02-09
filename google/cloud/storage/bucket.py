@@ -723,7 +723,7 @@ class Bucket(_PropertyMixin):
         timeout=_DEFAULT_TIMEOUT,
         if_metageneration_match=None,
         if_metageneration_not_match=None,
-        retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
+        retry=DEFAULT_RETRY,
     ):
         """Determines whether or not this bucket exists.
 
@@ -1108,7 +1108,7 @@ class Bucket(_PropertyMixin):
         if_generation_not_match=None,
         if_metageneration_match=None,
         if_metageneration_not_match=None,
-        retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
+        retry=DEFAULT_RETRY,
         **kwargs
     ):
         """Get a blob object by name.
@@ -1229,7 +1229,7 @@ class Bucket(_PropertyMixin):
         timeout=_DEFAULT_TIMEOUT,
         retry=DEFAULT_RETRY,
     ):
-        """Return an iterator used to find blobs in the bucket.
+        """DEPRECATED. Return an iterator used to find blobs in the bucket.
 
         .. note::
           Direct use of this method is deprecated. Use ``Client.list_blobs`` instead.
@@ -1329,52 +1329,24 @@ class Bucket(_PropertyMixin):
             >>> client = storage.Client()
 
             >>> bucket = storage.Bucket("my-bucket-name", user_project='my-project')
-            >>> all_blobs = list(bucket.list_blobs())
+            >>> all_blobs = list(client.list_blobs(bucket))
         """
-        extra_params = {"projection": projection}
-
-        if prefix is not None:
-            extra_params["prefix"] = prefix
-
-        if delimiter is not None:
-            extra_params["delimiter"] = delimiter
-
-        if start_offset is not None:
-            extra_params["startOffset"] = start_offset
-
-        if end_offset is not None:
-            extra_params["endOffset"] = end_offset
-
-        if include_trailing_delimiter is not None:
-            extra_params["includeTrailingDelimiter"] = include_trailing_delimiter
-
-        if versions is not None:
-            extra_params["versions"] = versions
-
-        if fields is not None:
-            extra_params["fields"] = fields
-
-        if self.user_project is not None:
-            extra_params["userProject"] = self.user_project
-
         client = self._require_client(client)
-        path = self.path + "/o"
-        api_request = functools.partial(
-            client._connection.api_request, timeout=timeout, retry=retry
-        )
-        iterator = page_iterator.HTTPIterator(
-            client=client,
-            api_request=api_request,
-            path=path,
-            item_to_value=_item_to_blob,
-            page_token=page_token,
+        return client.list_blobs(
+            self,
             max_results=max_results,
-            extra_params=extra_params,
-            page_start=_blobs_page_start,
+            page_token=page_token,
+            prefix=prefix,
+            delimiter=delimiter,
+            start_offset=start_offset,
+            end_offset=end_offset,
+            include_trailing_delimiter=include_trailing_delimiter,
+            versions=versions,
+            projection=projection,
+            fields=fields,
+            timeout=timeout,
+            retry=retry,
         )
-        iterator.bucket = self
-        iterator.prefixes = set()
-        return iterator
 
     def list_notifications(
         self, client=None, timeout=_DEFAULT_TIMEOUT, retry=DEFAULT_RETRY
@@ -2050,6 +2022,9 @@ class Bucket(_PropertyMixin):
           This method will first duplicate the data and then delete the
           old blob.  This means that with very large objects renaming
           could be a very (temporarily) costly or a very slow operation.
+          If you need more control over the copy and deletion, instead
+          use `google.cloud.storage.blob.Blob.copy_to` and
+          `google.cloud.storage.blob.Blob.delete` directly.
 
         :type blob: :class:`google.cloud.storage.blob.Blob`
         :param blob: The blob to be renamed.
@@ -2107,25 +2082,29 @@ class Bucket(_PropertyMixin):
         :param if_source_generation_match: (Optional) Makes the operation
                                            conditional on whether the source
                                            object's generation matches the
-                                           given value.
+                                           given value. Also used in the
+                                           delete request.
 
         :type if_source_generation_not_match: long
         :param if_source_generation_not_match: (Optional) Makes the operation
                                                conditional on whether the source
                                                object's generation does not match
-                                               the given value.
+                                               the given value. Also used in the
+                                               delete request.
 
         :type if_source_metageneration_match: long
         :param if_source_metageneration_match: (Optional) Makes the operation
                                                conditional on whether the source
                                                object's current metageneration
-                                               matches the given value.
+                                               matches the given value.Also used in the
+                                               delete request.
 
         :type if_source_metageneration_not_match: long
         :param if_source_metageneration_not_match: (Optional) Makes the operation
                                                    conditional on whether the source
                                                    object's current metageneration
                                                    does not match the given value.
+                                                   Also used in the delete request.
 
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
         :param retry: (Optional) How to retry the RPC. A None value will disable retries.
@@ -2167,10 +2146,10 @@ class Bucket(_PropertyMixin):
             blob.delete(
                 client=client,
                 timeout=timeout,
-                if_generation_match=if_generation_match,
-                if_generation_not_match=if_generation_not_match,
-                if_metageneration_match=if_metageneration_match,
-                if_metageneration_not_match=if_metageneration_not_match,
+                if_generation_match=if_source_generation_match,
+                if_generation_not_match=if_source_generation_not_match,
+                if_metageneration_match=if_source_metageneration_match,
+                if_metageneration_not_match=if_source_metageneration_not_match,
                 retry=retry,
             )
         return new_blob
@@ -3111,7 +3090,7 @@ class Bucket(_PropertyMixin):
 
             for blob in blobs:
                 blob.acl.all().grant_read()
-                blob.acl.save(client=client, timeout=timeout, retry=retry)
+                blob.acl.save(client=client, timeout=timeout)
 
     def make_private(
         self,

@@ -96,6 +96,7 @@ _WRITABLE_FIELDS = (
     "contentLanguage",
     _CONTENT_TYPE_FIELD,
     "crc32c",
+    "customTime",
     "md5Hash",
     "metadata",
     "name",
@@ -597,7 +598,7 @@ class Blob(_PropertyMixin):
         if_generation_not_match=None,
         if_metageneration_match=None,
         if_metageneration_not_match=None,
-        retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+        retry=DEFAULT_RETRY,
     ):
         """Determines whether or not this blob exists.
 
@@ -992,7 +993,7 @@ class Blob(_PropertyMixin):
         timeout=_DEFAULT_TIMEOUT,
         checksum="md5",
     ):
-        """Download the contents of this blob into a file-like object.
+        """DEPRECATED. Download the contents of this blob into a file-like object.
 
         .. note::
 
@@ -1084,31 +1085,19 @@ class Blob(_PropertyMixin):
         """
         client = self._require_client(client)
 
-        download_url = self._get_download_url(
-            client,
+        client.download_blob_to_file(
+            self,
+            file_obj=file_obj,
+            start=start,
+            end=end,
+            raw_download=raw_download,
             if_generation_match=if_generation_match,
             if_generation_not_match=if_generation_not_match,
             if_metageneration_match=if_metageneration_match,
             if_metageneration_not_match=if_metageneration_not_match,
+            timeout=timeout,
+            checksum=checksum,
         )
-        headers = _get_encryption_headers(self._encryption_key)
-        headers["accept-encoding"] = "gzip"
-
-        transport = self._get_transport(client)
-        try:
-            self._do_download(
-                transport,
-                file_obj,
-                download_url,
-                headers,
-                start,
-                end,
-                raw_download,
-                timeout=timeout,
-                checksum=checksum,
-            )
-        except resumable_media.InvalidResponse as exc:
-            _raise_from_invalid_response(exc)
 
     def download_to_filename(
         self,
@@ -1190,11 +1179,12 @@ class Blob(_PropertyMixin):
 
         :raises: :class:`google.cloud.exceptions.NotFound`
         """
+        client = self._require_client(client)
         try:
             with open(filename, "wb") as file_obj:
-                self.download_to_file(
+                client.download_blob_to_file(
+                    self,
                     file_obj,
-                    client=client,
                     start=start,
                     end=end,
                     raw_download=raw_download,
@@ -1297,10 +1287,11 @@ class Blob(_PropertyMixin):
 
         :raises: :class:`google.cloud.exceptions.NotFound`
         """
+        client = self._require_client(client)
         string_buffer = BytesIO()
-        self.download_to_file(
+        client.download_blob_to_file(
+            self,
             string_buffer,
-            client=client,
             start=start,
             end=end,
             raw_download=raw_download,
@@ -1540,6 +1531,7 @@ class Blob(_PropertyMixin):
         * ``contentLanguage``
         * ``contentType``
         * ``crc32c``
+        * ``customTime``
         * ``md5Hash``
         * ``metadata``
         * ``name``
@@ -2587,6 +2579,7 @@ class Blob(_PropertyMixin):
             if_metageneration_match=if_metageneration_match,
             if_metageneration_not_match=if_metageneration_not_match,
             timeout=timeout,
+            checksum=checksum,
         )
 
     def create_resumable_upload_session(
