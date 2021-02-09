@@ -96,6 +96,7 @@ _WRITABLE_FIELDS = (
     "contentLanguage",
     _CONTENT_TYPE_FIELD,
     "crc32c",
+    "customTime",
     "md5Hash",
     "metadata",
     "name",
@@ -597,7 +598,7 @@ class Blob(_PropertyMixin):
         if_generation_not_match=None,
         if_metageneration_match=None,
         if_metageneration_not_match=None,
-        retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+        retry=DEFAULT_RETRY,
     ):
         """Determines whether or not this blob exists.
 
@@ -1530,6 +1531,7 @@ class Blob(_PropertyMixin):
         * ``contentLanguage``
         * ``contentType``
         * ``crc32c``
+        * ``customTime``
         * ``md5Hash``
         * ``metadata``
         * ``name``
@@ -2577,6 +2579,7 @@ class Blob(_PropertyMixin):
             if_metageneration_match=if_metageneration_match,
             if_metageneration_not_match=if_metageneration_not_match,
             timeout=timeout,
+            checksum=checksum,
         )
 
     def create_resumable_upload_session(
