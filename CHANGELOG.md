@@ -4,6 +4,14 @@
 
 [1]: https://pypi.org/project/google-cloud-storage/#history
 
+### [1.35.2](https://www.github.com/googleapis/python-storage/compare/v1.35.1...v1.35.2) (2021-02-09)
+
+
+### Bug Fixes
+
+* pass the unused parameter ([#349](https://www.github.com/googleapis/python-storage/issues/349)) ([5c60d24](https://www.github.com/googleapis/python-storage/commit/5c60d240aa98d2a1dcc6933d6da2ce60ea1b7559))
+* set custom_time on uploads ([#374](https://www.github.com/googleapis/python-storage/issues/374)) ([f048be1](https://www.github.com/googleapis/python-storage/commit/f048be10416f51cea4e6c8c5b805df7b5d9c4d32)), closes [#372](https://www.github.com/googleapis/python-storage/issues/372)
+
 ### [1.35.1](https://www.github.com/googleapis/python-storage/compare/v1.35.0...v1.35.1) (2021-01-28)
 
 
