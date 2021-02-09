@@ -52,7 +52,6 @@ from google.cloud.storage.constants import (
 from google.cloud.storage.constants import MULTI_REGIONAL_LEGACY_STORAGE_CLASS
 from google.cloud.storage.constants import MULTI_REGION_LOCATION_TYPE
 from google.cloud.storage.constants import NEARLINE_STORAGE_CLASS
-from google.cloud.storage.constants import PUBLIC_ACCESS_PREVENTION_ENFORCED
 from google.cloud.storage.constants import PUBLIC_ACCESS_PREVENTION_UNSPECIFIED
 from google.cloud.storage.constants import REGIONAL_LEGACY_STORAGE_CLASS
 from google.cloud.storage.constants import REGION_LOCATION_TYPE
