@@ -30,7 +30,8 @@ if os.getenv("GOOGLE_API_USE_CLIENT_CERTIFICATE") == "true":  # pragma: NO COVER
 
 
 class Connection(_http.JSONConnection):
-    """A connection to Google Cloud Storage via the JSON REST API.
+    """A connection to Google Cloud Storage via the JSON REST API. Mutual TLS feature will be
+    enabled if `GOOGLE_API_USE_CLIENT_CERTIFICATE` environment variable is set to "true".
 
     :type client: :class:`~google.cloud.storage.client.Client`
     :param client: The client that owns the current connection.
@@ -38,7 +39,7 @@ class Connection(_http.JSONConnection):
     :type client_info: :class:`~google.api_core.client_info.ClientInfo`
     :param client_info: (Optional) instance used to generate user agent.
 
-    :type api_endpoint: str or None
+    :type api_endpoint: str
     :param api_endpoint: (Optional) api endpoint to use.
     """
 
