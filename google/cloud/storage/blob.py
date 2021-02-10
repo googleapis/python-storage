@@ -55,7 +55,7 @@ from google.api_core.iam import Policy
 from google.cloud import exceptions
 from google.cloud._helpers import _bytes_to_unicode
 from google.cloud._helpers import _datetime_to_rfc3339
-from google.cloud._helpers import _rfc3339_to_datetime
+from google.cloud._helpers import _rfc3339_nanos_to_datetime
 from google.cloud._helpers import _to_bytes
 from google.cloud.exceptions import NotFound
 from google.cloud.storage._helpers import _add_generation_match_parameters
@@ -96,6 +96,7 @@ _WRITABLE_FIELDS = (
     "contentLanguage",
     _CONTENT_TYPE_FIELD,
     "crc32c",
+    "customTime",
     "md5Hash",
     "metadata",
     "name",
@@ -597,7 +598,7 @@ class Blob(_PropertyMixin):
         if_generation_not_match=None,
         if_metageneration_match=None,
         if_metageneration_not_match=None,
-        retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+        retry=DEFAULT_RETRY,
     ):
         """Determines whether or not this blob exists.
 
@@ -829,9 +830,8 @@ class Blob(_PropertyMixin):
         """
         name_value_pairs = []
         if self.media_link is None:
-            base_url = _DOWNLOAD_URL_TEMPLATE.format(
-                hostname=client._connection.API_BASE_URL, path=self.path
-            )
+            hostname = _get_host_name(client._connection)
+            base_url = _DOWNLOAD_URL_TEMPLATE.format(hostname=hostname, path=self.path)
             if self.generation is not None:
                 name_value_pairs.append(("generation", "{:d}".format(self.generation)))
         else:
@@ -1178,11 +1178,12 @@ class Blob(_PropertyMixin):
 
         :raises: :class:`google.cloud.exceptions.NotFound`
         """
+        client = self._require_client(client)
         try:
             with open(filename, "wb") as file_obj:
-                self.download_to_file(
+                client.download_blob_to_file(
+                    self,
                     file_obj,
-                    client=client,
                     start=start,
                     end=end,
                     raw_download=raw_download,
@@ -1285,10 +1286,11 @@ class Blob(_PropertyMixin):
 
         :raises: :class:`google.cloud.exceptions.NotFound`
         """
+        client = self._require_client(client)
         string_buffer = BytesIO()
-        self.download_to_file(
+        client.download_blob_to_file(
+            self,
             string_buffer,
-            client=client,
             start=start,
             end=end,
             raw_download=raw_download,
@@ -1528,6 +1530,7 @@ class Blob(_PropertyMixin):
         * ``contentLanguage``
         * ``contentType``
         * ``crc32c``
+        * ``customTime``
         * ``md5Hash``
         * ``metadata``
         * ``name``
@@ -1681,8 +1684,9 @@ class Blob(_PropertyMixin):
         info = self._get_upload_arguments(content_type)
         headers, object_metadata, content_type = info
 
+        hostname = _get_host_name(client._connection)
         base_url = _MULTIPART_URL_TEMPLATE.format(
-            hostname=client._connection.API_BASE_URL, bucket_path=self.bucket.path
+            hostname=hostname, bucket_path=self.bucket.path
         )
         name_value_pairs = []
 
@@ -1862,8 +1866,9 @@ class Blob(_PropertyMixin):
         if extra_headers is not None:
             headers.update(extra_headers)
 
+        hostname = _get_host_name(client._connection)
         base_url = _RESUMABLE_URL_TEMPLATE.format(
-            hostname=client._connection.API_BASE_URL, bucket_path=self.bucket.path
+            hostname=hostname, bucket_path=self.bucket.path
         )
         name_value_pairs = []
 
@@ -2597,6 +2602,7 @@ class Blob(_PropertyMixin):
             if_metageneration_match=if_metageneration_match,
             if_metageneration_not_match=if_metageneration_not_match,
             timeout=timeout,
+            checksum=checksum,
         )
 
     def create_resumable_upload_session(
@@ -2700,13 +2706,13 @@ class Blob(_PropertyMixin):
             extra_headers["Origin"] = origin
 
         try:
-            dummy_stream = BytesIO(b"")
+            fake_stream = BytesIO(b"")
             # Send a fake the chunk size which we **know** will be acceptable
             # to the `ResumableUpload` constructor. The chunk size only
             # matters when **sending** bytes to an upload.
             upload, _ = self._initiate_resumable_upload(
                 client,
-                dummy_stream,
+                fake_stream,
                 content_type,
                 size,
                 None,
@@ -3661,7 +3667,7 @@ class Blob(_PropertyMixin):
         """
         value = self._properties.get("retentionExpirationTime")
         if value is not None:
-            return _rfc3339_to_datetime(value)
+            return _rfc3339_nanos_to_datetime(value)
 
     @property
     def self_link(self):
@@ -3747,7 +3753,7 @@ class Blob(_PropertyMixin):
         """
         value = self._properties.get("timeDeleted")
         if value is not None:
-            return _rfc3339_to_datetime(value)
+            return _rfc3339_nanos_to_datetime(value)
 
     @property
     def time_created(self):
@@ -3762,7 +3768,7 @@ class Blob(_PropertyMixin):
         """
         value = self._properties.get("timeCreated")
         if value is not None:
-            return _rfc3339_to_datetime(value)
+            return _rfc3339_nanos_to_datetime(value)
 
     @property
     def updated(self):
@@ -3777,7 +3783,7 @@ class Blob(_PropertyMixin):
         """
         value = self._properties.get("updated")
         if value is not None:
-            return _rfc3339_to_datetime(value)
+            return _rfc3339_nanos_to_datetime(value)
 
     @property
     def custom_time(self):
@@ -3792,7 +3798,7 @@ class Blob(_PropertyMixin):
         """
         value = self._properties.get("customTime")
         if value is not None:
-            return _rfc3339_to_datetime(value)
+            return _rfc3339_nanos_to_datetime(value)
 
     @custom_time.setter
     def custom_time(self, value):
@@ -3813,6 +3819,25 @@ class Blob(_PropertyMixin):
             value = _datetime_to_rfc3339(value)
 
         self._patch_property("customTime", value)
+
+
+def _get_host_name(connection):
+    """Returns the host name from the given connection.
+
+    :type connection: :class:`~google.cloud.storage._http.Connection`
+    :param connection: The connection object.
+
+    :rtype: str
+    :returns: The host name.
+    """
+    # TODO: After google-cloud-core 1.6.0 is stable and we upgrade it
+    # to 1.6.0 in setup.py, we no longer need to check the attribute
+    # existence. We can simply return connection.get_api_base_url_for_mtls().
+    return (
+        connection.API_BASE_URL
+        if not hasattr(connection, "get_api_base_url_for_mtls")
+        else connection.get_api_base_url_for_mtls()
+    )
 
 
 def _get_encryption_headers(key, source=False):

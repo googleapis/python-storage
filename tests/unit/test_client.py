@@ -36,7 +36,7 @@ _CONFORMANCE_TESTS = _read_local_json("url_signer_v4_test_data.json")[
     "postPolicyV4Tests"
 ]
 _POST_POLICY_TESTS = [test for test in _CONFORMANCE_TESTS if "policyInput" in test]
-_DUMMY_CREDENTIALS = Credentials.from_service_account_info(_SERVICE_ACCOUNT_JSON)
+_FAKE_CREDENTIALS = Credentials.from_service_account_info(_SERVICE_ACCOUNT_JSON)
 
 
 def _make_credentials():
@@ -89,6 +89,7 @@ def _make_json_response(data, status=http_client.OK, headers=None):
 def _make_requests_session(responses):
     session = mock.create_autospec(requests.Session, instance=True)
     session.request.side_effect = responses
+    session.is_mtls = False
     return session
 
 
@@ -218,6 +219,21 @@ class TestClient(unittest.TestCase):
         self.assertIsNone(client.current_batch)
         self.assertEqual(list(client._batch_stack), [])
         self.assertIs(client._connection._client_info, client_info)
+
+    def test_ctor_mtls(self):
+        credentials = _make_credentials()
+
+        client = self._make_one(credentials=credentials)
+        self.assertEqual(client._connection.ALLOW_AUTO_SWITCH_TO_MTLS_URL, True)
+        self.assertEqual(
+            client._connection.API_BASE_URL, "https://storage.googleapis.com"
+        )
+
+        client = self._make_one(
+            credentials=credentials, client_options={"api_endpoint": "http://foo"}
+        )
+        self.assertEqual(client._connection.ALLOW_AUTO_SWITCH_TO_MTLS_URL, False)
+        self.assertEqual(client._connection.API_BASE_URL, "http://foo")
 
     def test_create_anonymous_client(self):
         from google.auth.credentials import AnonymousCredentials
@@ -562,6 +578,54 @@ class TestClient(unittest.TestCase):
         parms = dict(urlparse.parse_qsl(qs))
         self.assertEqual(parms["projection"], "noAcl")
 
+    def test_get_bucket_default_retry(self):
+        from google.cloud.storage.bucket import Bucket
+        from google.cloud.storage._http import Connection
+
+        PROJECT = "PROJECT"
+        CREDENTIALS = _make_credentials()
+        client = self._make_one(project=PROJECT, credentials=CREDENTIALS)
+
+        bucket_name = "bucket-name"
+        bucket_obj = Bucket(client, bucket_name)
+
+        with mock.patch.object(Connection, "api_request") as req:
+            client.get_bucket(bucket_obj)
+
+        req.assert_called_once_with(
+            method="GET",
+            path=mock.ANY,
+            query_params=mock.ANY,
+            headers=mock.ANY,
+            _target_object=bucket_obj,
+            timeout=mock.ANY,
+            retry=DEFAULT_RETRY,
+        )
+
+    def test_get_bucket_respects_retry_override(self):
+        from google.cloud.storage.bucket import Bucket
+        from google.cloud.storage._http import Connection
+
+        PROJECT = "PROJECT"
+        CREDENTIALS = _make_credentials()
+        client = self._make_one(project=PROJECT, credentials=CREDENTIALS)
+
+        bucket_name = "bucket-name"
+        bucket_obj = Bucket(client, bucket_name)
+
+        with mock.patch.object(Connection, "api_request") as req:
+            client.get_bucket(bucket_obj, retry=None)
+
+        req.assert_called_once_with(
+            method="GET",
+            path=mock.ANY,
+            query_params=mock.ANY,
+            headers=mock.ANY,
+            _target_object=bucket_obj,
+            timeout=mock.ANY,
+            retry=None,
+        )
+
     def test_lookup_bucket_miss(self):
         PROJECT = "PROJECT"
         CREDENTIALS = _make_credentials()
@@ -657,6 +721,29 @@ class TestClient(unittest.TestCase):
         parms = dict(urlparse.parse_qsl(qs))
         self.assertEqual(parms["projection"], "noAcl")
         self.assertEqual(parms["ifMetagenerationMatch"], str(METAGENERATION_NUMBER))
+
+    def test_lookup_bucket_default_retry(self):
+        from google.cloud.storage.bucket import Bucket
+        from google.cloud.storage._http import Connection
+
+        PROJECT = "PROJECT"
+        CREDENTIALS = _make_credentials()
+        client = self._make_one(project=PROJECT, credentials=CREDENTIALS)
+
+        bucket_name = "bucket-name"
+        bucket_obj = Bucket(client, bucket_name)
+
+        with mock.patch.object(Connection, "api_request") as req:
+            client.lookup_bucket(bucket_obj)
+            req.assert_called_once_with(
+                method="GET",
+                path=mock.ANY,
+                query_params=mock.ANY,
+                headers=mock.ANY,
+                _target_object=bucket_obj,
+                timeout=mock.ANY,
+                retry=DEFAULT_RETRY,
+            )
 
     def test_create_bucket_w_missing_client_project(self):
         credentials = _make_credentials()
@@ -1375,11 +1462,11 @@ class TestClient(unittest.TestCase):
         blob_name = "bucket-name"
         response = {"items": [{"name": blob_name}]}
 
-        def dummy_response():
+        def fake_response():
             return response
 
         iterator = client.list_buckets()
-        iterator._get_next_page_response = dummy_response
+        iterator._get_next_page_response = fake_response
 
         page = six.next(iterator.pages)
         self.assertEqual(page.num_items, 1)
@@ -1962,7 +2049,7 @@ def test_conformance_post_policy(test_data):
     in_data = test_data["policyInput"]
     timestamp = datetime.datetime.strptime(in_data["timestamp"], "%Y-%m-%dT%H:%M:%SZ")
 
-    client = Client(credentials=_DUMMY_CREDENTIALS, project="PROJECT")
+    client = Client(credentials=_FAKE_CREDENTIALS, project="PROJECT")
 
     # mocking time functions
     with mock.patch("google.cloud.storage._signing.NOW", return_value=timestamp):
@@ -1977,7 +2064,7 @@ def test_conformance_post_policy(test_data):
                     blob_name=in_data["object"],
                     conditions=_prepare_conditions(in_data),
                     fields=in_data.get("fields"),
-                    credentials=_DUMMY_CREDENTIALS,
+                    credentials=_FAKE_CREDENTIALS,
                     expiration=in_data["expiration"],
                     virtual_hosted_style=in_data.get("urlStyle")
                     == "VIRTUAL_HOSTED_STYLE",

@@ -28,7 +28,7 @@ from google.api_core import page_iterator
 from google.api_core import datetime_helpers
 from google.cloud._helpers import _datetime_to_rfc3339
 from google.cloud._helpers import _NOW
-from google.cloud._helpers import _rfc3339_to_datetime
+from google.cloud._helpers import _rfc3339_nanos_to_datetime
 from google.cloud.exceptions import NotFound
 from google.api_core.iam import Policy
 from google.cloud.storage import _signing
@@ -499,7 +499,7 @@ class IAMConfiguration(dict):
         ubla = self.get("uniformBucketLevelAccess", {})
         stamp = ubla.get("lockedTime")
         if stamp is not None:
-            stamp = _rfc3339_to_datetime(stamp)
+            stamp = _rfc3339_nanos_to_datetime(stamp)
         return stamp
 
     @property
@@ -723,7 +723,7 @@ class Bucket(_PropertyMixin):
         timeout=_DEFAULT_TIMEOUT,
         if_metageneration_match=None,
         if_metageneration_not_match=None,
-        retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
+        retry=DEFAULT_RETRY,
     ):
         """Determines whether or not this bucket exists.
 
@@ -1108,7 +1108,7 @@ class Bucket(_PropertyMixin):
         if_generation_not_match=None,
         if_metageneration_match=None,
         if_metageneration_not_match=None,
-        retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
+        retry=DEFAULT_RETRY,
         **kwargs
     ):
         """Get a blob object by name.
@@ -2022,6 +2022,9 @@ class Bucket(_PropertyMixin):
           This method will first duplicate the data and then delete the
           old blob.  This means that with very large objects renaming
           could be a very (temporarily) costly or a very slow operation.
+          If you need more control over the copy and deletion, instead
+          use `google.cloud.storage.blob.Blob.copy_to` and
+          `google.cloud.storage.blob.Blob.delete` directly.
 
         :type blob: :class:`google.cloud.storage.blob.Blob`
         :param blob: The blob to be renamed.
@@ -2079,25 +2082,29 @@ class Bucket(_PropertyMixin):
         :param if_source_generation_match: (Optional) Makes the operation
                                            conditional on whether the source
                                            object's generation matches the
-                                           given value.
+                                           given value. Also used in the
+                                           delete request.
 
         :type if_source_generation_not_match: long
         :param if_source_generation_not_match: (Optional) Makes the operation
                                                conditional on whether the source
                                                object's generation does not match
-                                               the given value.
+                                               the given value. Also used in the
+                                               delete request.
 
         :type if_source_metageneration_match: long
         :param if_source_metageneration_match: (Optional) Makes the operation
                                                conditional on whether the source
                                                object's current metageneration
-                                               matches the given value.
+                                               matches the given value.Also used in the
+                                               delete request.
 
         :type if_source_metageneration_not_match: long
         :param if_source_metageneration_not_match: (Optional) Makes the operation
                                                    conditional on whether the source
                                                    object's current metageneration
                                                    does not match the given value.
+                                                   Also used in the delete request.
 
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
         :param retry: (Optional) How to retry the RPC. A None value will disable retries.
@@ -2139,10 +2146,10 @@ class Bucket(_PropertyMixin):
             blob.delete(
                 client=client,
                 timeout=timeout,
-                if_generation_match=if_generation_match,
-                if_generation_not_match=if_generation_not_match,
-                if_metageneration_match=if_metageneration_match,
-                if_metageneration_not_match=if_metageneration_not_match,
+                if_generation_match=if_source_generation_match,
+                if_generation_not_match=if_source_generation_not_match,
+                if_metageneration_match=if_source_metageneration_match,
+                if_metageneration_not_match=if_source_metageneration_not_match,
                 retry=retry,
             )
         return new_blob
@@ -2549,7 +2556,7 @@ class Bucket(_PropertyMixin):
         if policy is not None:
             timestamp = policy.get("effectiveTime")
             if timestamp is not None:
-                return _rfc3339_to_datetime(timestamp)
+                return _rfc3339_nanos_to_datetime(timestamp)
 
     @property
     def retention_policy_locked(self):
@@ -2668,7 +2675,7 @@ class Bucket(_PropertyMixin):
         """
         value = self._properties.get("timeCreated")
         if value is not None:
-            return _rfc3339_to_datetime(value)
+            return _rfc3339_nanos_to_datetime(value)
 
     @property
     def versioning_enabled(self):
