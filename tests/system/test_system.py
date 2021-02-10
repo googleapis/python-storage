@@ -1867,6 +1867,12 @@ class TestStorageNotificationCRUD(unittest.TestCase):
     def setUpClass(cls):
         super(TestStorageNotificationCRUD, cls).setUpClass()
         if Config.TESTING_MTLS:
+            # mTLS is only available for python-pubsub >= 2.2.0. However, the
+            # system test uses python-pubsub < 2.0, so we skip those tests.
+            # Note that python-pubsub >= 2.0 no longer supports python 2.7, so
+            # we can only upgrade it after python 2.7 system test is removed.
+            # Since python-pubsub >= 2.0 has a new set of api, the test code
+            # also needs to be updated.
             raise unittest.SkipTest("Skip pubsub tests for mTLS testing")
 
     @property
@@ -2033,6 +2039,12 @@ class TestKMSIntegration(TestStorageFiles):
     def setUpClass(cls):
         super(TestKMSIntegration, cls).setUpClass()
         if Config.TESTING_MTLS:
+            # mTLS is only available for python-kms >= 2.2.0. However, the
+            # system test uses python-kms < 2.0, so we skip those tests.
+            # Note that python-kms >= 2.0 no longer supports python 2.7, so
+            # we can only upgrade it after python 2.7 system test is removed.
+            # Since python-kms >= 2.0 has a new set of api, the test code
+            # also needs to be updated.
             raise unittest.SkipTest("Skip kms tests for mTLS testing")
 
         _empty_bucket(Config.CLIENT, cls.bucket)
@@ -2495,6 +2507,8 @@ class TestV4POSTPolicies(unittest.TestCase):
             type(Config.CLIENT._credentials)
             is not google.oauth2.service_account.Credentials
         ):
+            # mTLS only works for user credentials, it doesn't work for
+            # service account credentials.
             raise unittest.SkipTest("These tests require a service account credential")
 
     def setUp(self):
