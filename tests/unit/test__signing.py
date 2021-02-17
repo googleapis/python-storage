@@ -255,7 +255,7 @@ class Test_get_signed_query_params_v2(unittest.TestCase):
             "Signature": base64.b64encode(sig_bytes),
         }
         self.assertEqual(result, expected)
-        credentials.sign_bytes.assert_called_once_with(string_to_sign)
+        credentials.sign_bytes.assert_called_once_with(bytes(string_to_sign, encoding="ascii"))
 
 
 class Test_get_canonical_headers(unittest.TestCase):
@@ -418,7 +418,7 @@ class Test_generate_signed_url_v2(unittest.TestCase):
         elements.extend(["{}:{}".format(*header) for header in headers])
         elements.append(expected_resource)
 
-        string_to_sign = "\n".join(elements)
+        string_to_sign = bytes("\n".join(elements), encoding="ascii")
 
         credentials.sign_bytes.assert_called_once_with(string_to_sign)
 
