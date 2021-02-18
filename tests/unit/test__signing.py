@@ -673,7 +673,7 @@ class Test_generate_signed_url_v4(unittest.TestCase):
         signer_email = "service@example.com"
         credentials = _make_credentials(signer_email=signer_email)
         with mock.patch(
-                "google.cloud.storage._signing._sign_message", return_value=b"DEADBEEF"
+            "google.cloud.storage._signing._sign_message", return_value=b"DEADBEEF"
         ):
             self._call_fut(
                 credentials,
@@ -689,9 +689,7 @@ class Test_generate_signed_url_v4(unittest.TestCase):
         credentials = _make_credentials(signer_email=signer_email)
         credentials.sign_bytes.return_value = b"DEADBEEF"
         self._call_fut(
-            credentials,
-            resource=resource,
-            expiration=datetime.timedelta(days=5),
+            credentials, resource=resource, expiration=datetime.timedelta(days=5),
         )
 
     def test_with_service_account_email_and_signer_email(self):
@@ -717,7 +715,6 @@ class Test_generate_signed_url_v4(unittest.TestCase):
             expiration=datetime.timedelta(days=5),
             access_token="token",
         )
-
 
 
 class Test_sign_message(unittest.TestCase):
