@@ -30,6 +30,7 @@ import cgi
 import copy
 import hashlib
 from io import BytesIO
+from io import TextIOWrapper
 import logging
 import mimetypes
 import os
@@ -78,6 +79,8 @@ from google.cloud.storage.constants import STANDARD_STORAGE_CLASS
 from google.cloud.storage.retry import DEFAULT_RETRY
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_ETAG_IN_JSON
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_GENERATION_SPECIFIED
+from google.cloud.storage.fileio import BlobReader
+from google.cloud.storage.fileio import BlobWriter
 
 
 _API_ACCESS_ENDPOINT = "https://storage.googleapis.com"
@@ -3405,6 +3408,38 @@ class Blob(_PropertyMixin):
                 if_source_metageneration_not_match=if_source_metageneration_not_match,
                 timeout=timeout,
                 retry=retry,
+            )
+
+    def open(
+        self,
+        mode="r",
+        chunk_size=None,
+        encoding=None,
+        errors=None,
+        newline=None,
+        **kwargs
+    ):
+        if mode == "rb":
+            return BlobReader(self, chunk_size=chunk_size, **kwargs)
+        elif mode == "wb":
+            return BlobWriter(self, chunk_size=chunk_size, **kwargs)
+        elif mode in ("r", "rt"):
+            return TextIOWrapper(
+                BlobReader(self, chunk_size=chunk_size, **kwargs),
+                encoding=encoding,
+                errors=errors,
+                newline=newline,
+            )
+        elif mode in ("w", "wt"):
+            return TextIOWrapper(
+                BlobWriter(self, chunk_size=chunk_size, text_mode=True, **kwargs),
+                encoding=encoding,
+                errors=errors,
+                newline=newline,
+            )
+        else:
+            raise NotImplementedError(
+                "Supported modes strings are 'r', 'rb', 'rt', 'w', 'wb', and 'wt' only."
             )
 
     cache_control = _scalar_property("cacheControl")
