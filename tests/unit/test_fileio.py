@@ -137,6 +137,11 @@ class TestBlobReaderBinary(unittest.TestCase):
         self.assertEqual(reader.read(2), TEST_BINARY_DATA[10:12])
         self.assertEqual(blob.download_as_bytes.call_count, 1)
 
+        # Attempt seek past end of file. Position should be at end of file.
+        self.assertEqual(
+            reader.seek(len(TEST_BINARY_DATA) + 100), len(TEST_BINARY_DATA)
+        )
+
         # Seek to beginning. The next read will need to download data again.
         self.assertEqual(reader.seek(0), 0)
         self.assertEqual(reader.read(4), TEST_BINARY_DATA[0:4])
@@ -243,14 +248,14 @@ class TestBlobWriterBinary(unittest.TestCase):
         writer.close()
         self.assertEqual(upload.transmit_next_chunk.call_count, 5)
 
-    def flush_fails(self):
+    def test_flush_fails(self):
         blob = mock.Mock()
         writer = BlobWriter(blob)
 
         with self.assertRaises(io.UnsupportedOperation):
             writer.flush()
 
-    def seek_fails(self):
+    def test_seek_fails(self):
         blob = mock.Mock()
         writer = BlobWriter(blob)
 
