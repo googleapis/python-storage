@@ -317,12 +317,6 @@ class TestBlobWriterBinary(unittest.TestCase):
         with self.assertRaises(ValueError):
             BlobWriter(blob, invalid_kwarg=1)
 
-    def test_flush_fails(self):
-        blob = mock.Mock()
-        writer = BlobWriter(blob)
-        with self.assertRaises(io.UnsupportedOperation):
-            writer.flush()
-
 
 class Test_SlidingBuffer(unittest.TestCase):
     def test_write_and_read(self):
