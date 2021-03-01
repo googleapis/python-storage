@@ -55,7 +55,7 @@ from google.api_core.iam import Policy
 from google.cloud import exceptions
 from google.cloud._helpers import _bytes_to_unicode
 from google.cloud._helpers import _datetime_to_rfc3339
-from google.cloud._helpers import _rfc3339_to_datetime
+from google.cloud._helpers import _rfc3339_nanos_to_datetime
 from google.cloud._helpers import _to_bytes
 from google.cloud.exceptions import NotFound
 from google.cloud.storage._helpers import _add_generation_match_parameters
@@ -830,9 +830,8 @@ class Blob(_PropertyMixin):
         """
         name_value_pairs = []
         if self.media_link is None:
-            base_url = _DOWNLOAD_URL_TEMPLATE.format(
-                hostname=client._connection.API_BASE_URL, path=self.path
-            )
+            hostname = _get_host_name(client._connection)
+            base_url = _DOWNLOAD_URL_TEMPLATE.format(hostname=hostname, path=self.path)
             if self.generation is not None:
                 name_value_pairs.append(("generation", "{:d}".format(self.generation)))
         else:
@@ -1685,8 +1684,9 @@ class Blob(_PropertyMixin):
         info = self._get_upload_arguments(content_type)
         headers, object_metadata, content_type = info
 
+        hostname = _get_host_name(client._connection)
         base_url = _MULTIPART_URL_TEMPLATE.format(
-            hostname=client._connection.API_BASE_URL, bucket_path=self.bucket.path
+            hostname=hostname, bucket_path=self.bucket.path
         )
         name_value_pairs = []
 
@@ -1866,8 +1866,9 @@ class Blob(_PropertyMixin):
         if extra_headers is not None:
             headers.update(extra_headers)
 
+        hostname = _get_host_name(client._connection)
         base_url = _RESUMABLE_URL_TEMPLATE.format(
-            hostname=client._connection.API_BASE_URL, bucket_path=self.bucket.path
+            hostname=hostname, bucket_path=self.bucket.path
         )
         name_value_pairs = []
 
@@ -2366,6 +2367,7 @@ class Blob(_PropertyMixin):
         self,
         filename,
         content_type=None,
+        num_retries=None,
         client=None,
         predefined_acl=None,
         if_generation_match=None,
@@ -2409,6 +2411,15 @@ class Blob(_PropertyMixin):
         :param client:
             (Optional) The client to use.  If not passed, falls back to the
             ``client`` stored on the blob's bucket.
+
+        :type num_retries: int
+        :param num_retries:
+            Number of upload retries. By default, only uploads with
+            if_metageneration_match set will be retried, as uploads without the
+            argument are not guaranteed to be idempotent. Setting num_retries
+            will override this default behavior and guarantee retries even when
+            if_metageneration_match is not set.  (Deprecated: This argument
+            will be removed in a future release.)
 
         :type predefined_acl: str
         :param predefined_acl: (Optional) Predefined access control list
@@ -2464,6 +2475,7 @@ class Blob(_PropertyMixin):
             self.upload_from_file(
                 file_obj,
                 content_type=content_type,
+                num_retries=num_retries,
                 client=client,
                 size=total_bytes,
                 predefined_acl=predefined_acl,
@@ -2479,6 +2491,7 @@ class Blob(_PropertyMixin):
         self,
         data,
         content_type="text/plain",
+        num_retries=None,
         client=None,
         predefined_acl=None,
         if_generation_match=None,
@@ -2513,6 +2526,15 @@ class Blob(_PropertyMixin):
         :param content_type:
             (Optional) Type of content being uploaded. Defaults to
             ``'text/plain'``.
+
+        :type num_retries: int
+        :param num_retries:
+            Number of upload retries. By default, only uploads with
+            if_metageneration_match set will be retried, as uploads without the
+            argument are not guaranteed to be idempotent. Setting num_retries
+            will override this default behavior and guarantee retries even when
+            if_metageneration_match is not set.  (Deprecated: This argument
+            will be removed in a future release.)
 
         :type client: :class:`~google.cloud.storage.client.Client`
         :param client:
@@ -2572,6 +2594,7 @@ class Blob(_PropertyMixin):
             file_obj=string_buffer,
             size=len(data),
             content_type=content_type,
+            num_retries=num_retries,
             client=client,
             predefined_acl=predefined_acl,
             if_generation_match=if_generation_match,
@@ -2683,13 +2706,13 @@ class Blob(_PropertyMixin):
             extra_headers["Origin"] = origin
 
         try:
-            dummy_stream = BytesIO(b"")
+            fake_stream = BytesIO(b"")
             # Send a fake the chunk size which we **know** will be acceptable
             # to the `ResumableUpload` constructor. The chunk size only
             # matters when **sending** bytes to an upload.
             upload, _ = self._initiate_resumable_upload(
                 client,
-                dummy_stream,
+                fake_stream,
                 content_type,
                 size,
                 None,
@@ -3597,13 +3620,16 @@ class Blob(_PropertyMixin):
     def metadata(self, value):
         """Update arbitrary/application specific metadata for the object.
 
+        Values are stored to GCS as strings. To delete a key, set its value to
+        None and call blob.patch().
+
         See https://cloud.google.com/storage/docs/json_api/v1/objects
 
         :type value: dict
         :param value: The blob metadata to set.
         """
         if value is not None:
-            value = {k: str(v) for k, v in value.items()}
+            value = {k: str(v) if v is not None else None for k, v in value.items()}
         self._patch_property("metadata", value)
 
     @property
@@ -3644,7 +3670,7 @@ class Blob(_PropertyMixin):
         """
         value = self._properties.get("retentionExpirationTime")
         if value is not None:
-            return _rfc3339_to_datetime(value)
+            return _rfc3339_nanos_to_datetime(value)
 
     @property
     def self_link(self):
@@ -3730,7 +3756,7 @@ class Blob(_PropertyMixin):
         """
         value = self._properties.get("timeDeleted")
         if value is not None:
-            return _rfc3339_to_datetime(value)
+            return _rfc3339_nanos_to_datetime(value)
 
     @property
     def time_created(self):
@@ -3745,7 +3771,7 @@ class Blob(_PropertyMixin):
         """
         value = self._properties.get("timeCreated")
         if value is not None:
-            return _rfc3339_to_datetime(value)
+            return _rfc3339_nanos_to_datetime(value)
 
     @property
     def updated(self):
@@ -3760,7 +3786,7 @@ class Blob(_PropertyMixin):
         """
         value = self._properties.get("updated")
         if value is not None:
-            return _rfc3339_to_datetime(value)
+            return _rfc3339_nanos_to_datetime(value)
 
     @property
     def custom_time(self):
@@ -3775,7 +3801,7 @@ class Blob(_PropertyMixin):
         """
         value = self._properties.get("customTime")
         if value is not None:
-            return _rfc3339_to_datetime(value)
+            return _rfc3339_nanos_to_datetime(value)
 
     @custom_time.setter
     def custom_time(self, value):
@@ -3796,6 +3822,25 @@ class Blob(_PropertyMixin):
             value = _datetime_to_rfc3339(value)
 
         self._patch_property("customTime", value)
+
+
+def _get_host_name(connection):
+    """Returns the host name from the given connection.
+
+    :type connection: :class:`~google.cloud.storage._http.Connection`
+    :param connection: The connection object.
+
+    :rtype: str
+    :returns: The host name.
+    """
+    # TODO: After google-cloud-core 1.6.0 is stable and we upgrade it
+    # to 1.6.0 in setup.py, we no longer need to check the attribute
+    # existence. We can simply return connection.get_api_base_url_for_mtls().
+    return (
+        connection.API_BASE_URL
+        if not hasattr(connection, "get_api_base_url_for_mtls")
+        else connection.get_api_base_url_for_mtls()
+    )
 
 
 def _get_encryption_headers(key, source=False):

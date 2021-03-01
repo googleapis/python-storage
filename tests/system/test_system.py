@@ -83,6 +83,7 @@ class Config(object):
 
     CLIENT = None
     TEST_BUCKET = None
+    TESTING_MTLS = False
 
 
 def setUpModule():
@@ -93,6 +94,10 @@ def setUpModule():
     Config.TEST_BUCKET = Config.CLIENT.bucket(bucket_name)
     Config.TEST_BUCKET.versioning_enabled = True
     retry_429_503(Config.TEST_BUCKET.create)()
+    # mTLS testing uses the system test as well. For mTLS testing,
+    # GOOGLE_API_USE_CLIENT_CERTIFICATE env var will be set to "true"
+    # explicitly.
+    Config.TESTING_MTLS = os.getenv("GOOGLE_API_USE_CLIENT_CERTIFICATE") == "true"
 
 
 def tearDownModule():
@@ -103,6 +108,15 @@ def tearDownModule():
 
 
 class TestClient(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super(TestClient, cls).setUpClass()
+        if (
+            type(Config.CLIENT._credentials)
+            is not google.oauth2.service_account.Credentials
+        ):
+            raise unittest.SkipTest("These tests require a service account credential")
+
     def setUp(self):
         self.case_hmac_keys_to_delete = []
 
@@ -565,6 +579,15 @@ class TestStorageFiles(unittest.TestCase):
 class TestStorageWriteFiles(TestStorageFiles):
     ENCRYPTION_KEY = "b23ff11bba187db8c37077e6af3b25b8"
 
+    @classmethod
+    def setUpClass(cls):
+        super(TestStorageWriteFiles, cls).setUpClass()
+        if (
+            type(Config.CLIENT._credentials)
+            is not google.oauth2.service_account.Credentials
+        ):
+            raise unittest.SkipTest("These tests require a service account credential")
+
     def test_large_file_write_from_stream(self):
         blob = self.bucket.blob("LargeFile")
 
@@ -853,6 +876,19 @@ class TestStorageWriteFiles(TestStorageFiles):
         blob.content_type = "image/png"
         self.assertEqual(blob.content_type, "image/png")
 
+        metadata = {"foo": "Foo", "bar": "Bar"}
+        blob.metadata = metadata
+        blob.patch()
+        blob.reload()
+        self.assertEqual(blob.metadata, metadata)
+
+        # Ensure that metadata keys can be deleted by setting equal to None.
+        new_metadata = {"foo": "Foo", "bar": None}
+        blob.metadata = new_metadata
+        blob.patch()
+        blob.reload()
+        self.assertEqual(blob.metadata, {"foo": "Foo"})
+
     def test_direct_write_and_read_into_file(self):
         blob = self.bucket.blob("MyBuffer")
         file_contents = b"Hello World"
@@ -1041,6 +1077,21 @@ class TestStorageWriteFiles(TestStorageFiles):
         same_blob.reload(projection="full")
         custom_time = same_blob.custom_time.replace(tzinfo=None)
         self.assertEqual(custom_time, current_time)
+
+    def test_blob_custom_time_no_micros(self):
+        # Test that timestamps without microseconds are treated correctly by
+        # custom_time encoding/decoding.
+        blob = self.bucket.blob("CustomTimeNoMicrosBlob")
+        file_contents = b"Hello World"
+        time_without_micros = datetime.datetime(2021, 2, 10, 12, 30)
+        blob.custom_time = time_without_micros
+        blob.upload_from_string(file_contents)
+        self.case_blobs_to_delete.append(blob)
+
+        same_blob = self.bucket.blob(("CustomTimeNoMicrosBlob"))
+        same_blob.reload(projection="full")
+        custom_time = same_blob.custom_time.replace(tzinfo=None)
+        self.assertEqual(custom_time, time_without_micros)
 
     def test_blob_crc32_md5_hash(self):
         blob = self.bucket.blob("MyBuffer")
@@ -1287,11 +1338,14 @@ class TestStorageSignURLs(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        super(TestStorageSignURLs, cls).setUpClass()
         if (
             type(Config.CLIENT._credentials)
             is not google.oauth2.service_account.Credentials
         ):
-            cls.skipTest("Signing tests requires a service account credential")
+            raise unittest.SkipTest(
+                "Signing tests requires a service account credential"
+            )
 
         bucket_name = "gcp-signing" + unique_resource_id()
         cls.bucket = retry_429_503(Config.CLIENT.create_bucket)(bucket_name)
@@ -1852,6 +1906,18 @@ class TestStorageNotificationCRUD(unittest.TestCase):
     CUSTOM_ATTRIBUTES = {"attr1": "value1", "attr2": "value2"}
     BLOB_NAME_PREFIX = "blob-name-prefix/"
 
+    @classmethod
+    def setUpClass(cls):
+        super(TestStorageNotificationCRUD, cls).setUpClass()
+        if Config.TESTING_MTLS:
+            # mTLS is only available for python-pubsub >= 2.2.0. However, the
+            # system test uses python-pubsub < 2.0, so we skip those tests.
+            # Note that python-pubsub >= 2.0 no longer supports python 2.7, so
+            # we can only upgrade it after python 2.7 system test is removed.
+            # Since python-pubsub >= 2.0 has a new set of api, the test code
+            # also needs to be updated.
+            raise unittest.SkipTest("Skip pubsub tests for mTLS testing")
+
     @property
     def topic_path(self):
         return "projects/{}/topics/{}".format(Config.CLIENT.project, self.TOPIC_NAME)
@@ -2015,6 +2081,15 @@ class TestKMSIntegration(TestStorageFiles):
     @classmethod
     def setUpClass(cls):
         super(TestKMSIntegration, cls).setUpClass()
+        if Config.TESTING_MTLS:
+            # mTLS is only available for python-kms >= 2.2.0. However, the
+            # system test uses python-kms < 2.0, so we skip those tests.
+            # Note that python-kms >= 2.0 no longer supports python 2.7, so
+            # we can only upgrade it after python 2.7 system test is removed.
+            # Since python-kms >= 2.0 has a new set of api, the test code
+            # also needs to be updated.
+            raise unittest.SkipTest("Skip kms tests for mTLS testing")
+
         _empty_bucket(Config.CLIENT, cls.bucket)
 
     def setUp(self):
@@ -2541,6 +2616,17 @@ class TestIAMConfiguration(unittest.TestCase):
 
 
 class TestV4POSTPolicies(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super(TestV4POSTPolicies, cls).setUpClass()
+        if (
+            type(Config.CLIENT._credentials)
+            is not google.oauth2.service_account.Credentials
+        ):
+            # mTLS only works for user credentials, it doesn't work for
+            # service account credentials.
+            raise unittest.SkipTest("These tests require a service account credential")
+
     def setUp(self):
         self.case_buckets_to_delete = []
 

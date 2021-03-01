@@ -94,12 +94,12 @@ class Test_get_expiration_seconds_v2(unittest.TestCase):
         self.assertEqual(self._call_fut(expiration_other), cet_seconds)
 
     def test_w_expiration_timedelta_seconds(self):
-        dummy_utcnow = datetime.datetime(2004, 8, 19, 0, 0, 0, 0)
-        utc_seconds = _utc_seconds(dummy_utcnow)
+        fake_utcnow = datetime.datetime(2004, 8, 19, 0, 0, 0, 0)
+        utc_seconds = _utc_seconds(fake_utcnow)
         expiration_as_delta = datetime.timedelta(seconds=10)
 
         patch = mock.patch(
-            "google.cloud.storage._signing.NOW", return_value=dummy_utcnow
+            "google.cloud.storage._signing.NOW", return_value=fake_utcnow
         )
         with patch as utcnow:
             result = self._call_fut(expiration_as_delta)
@@ -108,12 +108,12 @@ class Test_get_expiration_seconds_v2(unittest.TestCase):
         utcnow.assert_called_once_with()
 
     def test_w_expiration_timedelta_days(self):
-        dummy_utcnow = datetime.datetime(2004, 8, 19, 0, 0, 0, 0)
-        utc_seconds = _utc_seconds(dummy_utcnow)
+        fake_utcnow = datetime.datetime(2004, 8, 19, 0, 0, 0, 0)
+        utc_seconds = _utc_seconds(fake_utcnow)
         expiration_as_delta = datetime.timedelta(days=1)
 
         patch = mock.patch(
-            "google.cloud.storage._signing.NOW", return_value=dummy_utcnow
+            "google.cloud.storage._signing.NOW", return_value=fake_utcnow
         )
         with patch as utcnow:
             result = self._call_fut(expiration_as_delta)
@@ -138,13 +138,13 @@ class Test_get_expiration_seconds_v4(unittest.TestCase):
             self._call_fut(None)
 
     def test_w_expiration_int_gt_seven_days(self):
-        dummy_utcnow = datetime.datetime(2004, 8, 19, 0, 0, 0, 0)
+        fake_utcnow = datetime.datetime(2004, 8, 19, 0, 0, 0, 0)
         delta = datetime.timedelta(days=10)
-        expiration_utc = dummy_utcnow + delta
+        expiration_utc = fake_utcnow + delta
         expiration_seconds = _utc_seconds(expiration_utc)
 
         patch = mock.patch(
-            "google.cloud.storage._signing.NOW", return_value=dummy_utcnow
+            "google.cloud.storage._signing.NOW", return_value=fake_utcnow
         )
 
         with patch as utcnow:
@@ -153,11 +153,11 @@ class Test_get_expiration_seconds_v4(unittest.TestCase):
         utcnow.assert_called_once_with()
 
     def test_w_expiration_int(self):
-        dummy_utcnow = datetime.datetime(2004, 8, 19, 0, 0, 0, 0)
+        fake_utcnow = datetime.datetime(2004, 8, 19, 0, 0, 0, 0)
         expiration_seconds = 10
 
         patch = mock.patch(
-            "google.cloud.storage._signing.NOW", return_value=dummy_utcnow
+            "google.cloud.storage._signing.NOW", return_value=fake_utcnow
         )
 
         with patch as utcnow:
@@ -167,12 +167,12 @@ class Test_get_expiration_seconds_v4(unittest.TestCase):
         utcnow.assert_called_once_with()
 
     def test_w_expiration_naive_datetime(self):
-        dummy_utcnow = datetime.datetime(2004, 8, 19, 0, 0, 0, 0)
+        fake_utcnow = datetime.datetime(2004, 8, 19, 0, 0, 0, 0)
         delta = datetime.timedelta(seconds=10)
-        expiration_no_tz = dummy_utcnow + delta
+        expiration_no_tz = fake_utcnow + delta
 
         patch = mock.patch(
-            "google.cloud.storage._signing.NOW", return_value=dummy_utcnow
+            "google.cloud.storage._signing.NOW", return_value=fake_utcnow
         )
         with patch as utcnow:
             result = self._call_fut(expiration_no_tz)
@@ -183,12 +183,12 @@ class Test_get_expiration_seconds_v4(unittest.TestCase):
     def test_w_expiration_utc_datetime(self):
         from google.cloud._helpers import UTC
 
-        dummy_utcnow = datetime.datetime(2004, 8, 19, 0, 0, 0, 0, UTC)
+        fake_utcnow = datetime.datetime(2004, 8, 19, 0, 0, 0, 0, UTC)
         delta = datetime.timedelta(seconds=10)
-        expiration_utc = dummy_utcnow + delta
+        expiration_utc = fake_utcnow + delta
 
         patch = mock.patch(
-            "google.cloud.storage._signing.NOW", return_value=dummy_utcnow
+            "google.cloud.storage._signing.NOW", return_value=fake_utcnow
         )
         with patch as utcnow:
             result = self._call_fut(expiration_utc)
@@ -205,13 +205,13 @@ class Test_get_expiration_seconds_v4(unittest.TestCase):
             _utcoffset = datetime.timedelta(hours=1)
 
         zone = CET()
-        dummy_utcnow = datetime.datetime(2004, 8, 19, 0, 0, 0, 0, UTC)
-        dummy_cetnow = dummy_utcnow.astimezone(zone)
+        fake_utcnow = datetime.datetime(2004, 8, 19, 0, 0, 0, 0, UTC)
+        fake_cetnow = fake_utcnow.astimezone(zone)
         delta = datetime.timedelta(seconds=10)
-        expiration_other = dummy_cetnow + delta
+        expiration_other = fake_cetnow + delta
 
         patch = mock.patch(
-            "google.cloud.storage._signing.NOW", return_value=dummy_utcnow
+            "google.cloud.storage._signing.NOW", return_value=fake_utcnow
         )
         with patch as utcnow:
             result = self._call_fut(expiration_other)
@@ -220,11 +220,11 @@ class Test_get_expiration_seconds_v4(unittest.TestCase):
         utcnow.assert_called_once_with()
 
     def test_w_expiration_timedelta(self):
-        dummy_utcnow = datetime.datetime(2004, 8, 19, 0, 0, 0, 0)
+        fake_utcnow = datetime.datetime(2004, 8, 19, 0, 0, 0, 0)
         expiration_as_delta = datetime.timedelta(seconds=10)
 
         patch = mock.patch(
-            "google.cloud.storage._signing.NOW", return_value=dummy_utcnow
+            "google.cloud.storage._signing.NOW", return_value=fake_utcnow
         )
         with patch as utcnow:
             result = self._call_fut(expiration_as_delta)
@@ -246,7 +246,7 @@ class Test_get_signed_query_params_v2(unittest.TestCase):
         credentials = _make_credentials(signer_email=account_name)
         credentials.sign_bytes.return_value = sig_bytes
         expiration = 100
-        string_to_sign = "dummy_signature"
+        string_to_sign = "fake_signature"
         result = self._call_fut(credentials, expiration, string_to_sign)
 
         expected = {
@@ -255,7 +255,7 @@ class Test_get_signed_query_params_v2(unittest.TestCase):
             "Signature": base64.b64encode(sig_bytes),
         }
         self.assertEqual(result, expected)
-        credentials.sign_bytes.assert_called_once_with(string_to_sign)
+        credentials.sign_bytes.assert_called_once_with(string_to_sign.encode("ascii"))
 
 
 class Test_get_canonical_headers(unittest.TestCase):
@@ -420,7 +420,7 @@ class Test_generate_signed_url_v2(unittest.TestCase):
 
         string_to_sign = "\n".join(elements)
 
-        credentials.sign_bytes.assert_called_once_with(string_to_sign)
+        credentials.sign_bytes.assert_called_once_with(string_to_sign.encode("ascii"))
 
         scheme, netloc, path, qs, frag = urllib_parse.urlsplit(url)
         expected_scheme, expected_netloc, _, _, _ = urllib_parse.urlsplit(
@@ -653,7 +653,22 @@ class Test_generate_signed_url_v4(unittest.TestCase):
     def test_w_custom_query_parameters_w_none_value(self):
         self._generate_helper(query_parameters={"qux": None})
 
-    def test_with_access_token(self):
+    def test_with_access_token_and_service_account_email(self):
+        resource = "/name/path"
+        credentials = _make_credentials()
+        email = mock.sentinel.service_account_email
+        with mock.patch(
+            "google.cloud.storage._signing._sign_message", return_value=b"DEADBEEF"
+        ):
+            self._call_fut(
+                credentials,
+                resource=resource,
+                expiration=datetime.timedelta(days=5),
+                service_account_email=email,
+                access_token="token",
+            )
+
+    def test_with_access_token_and_service_account_email_and_signer_email(self):
         resource = "/name/path"
         signer_email = "service@example.com"
         credentials = _make_credentials(signer_email=signer_email)
@@ -667,6 +682,39 @@ class Test_generate_signed_url_v4(unittest.TestCase):
                 service_account_email=signer_email,
                 access_token="token",
             )
+
+    def test_with_signer_email(self):
+        resource = "/name/path"
+        signer_email = "service@example.com"
+        credentials = _make_credentials(signer_email=signer_email)
+        credentials.sign_bytes.return_value = b"DEADBEEF"
+        self._call_fut(
+            credentials, resource=resource, expiration=datetime.timedelta(days=5),
+        )
+
+    def test_with_service_account_email_and_signer_email(self):
+        resource = "/name/path"
+        signer_email = "service@example.com"
+        credentials = _make_credentials(signer_email=signer_email)
+        credentials.sign_bytes.return_value = b"DEADBEEF"
+        self._call_fut(
+            credentials,
+            resource=resource,
+            expiration=datetime.timedelta(days=5),
+            service_account_email=signer_email,
+        )
+
+    def test_with_token_and_signer_email(self):
+        resource = "/name/path"
+        signer_email = "service@example.com"
+        credentials = _make_credentials(signer_email=signer_email)
+        credentials.sign_bytes.return_value = b"DEADBEEF"
+        self._call_fut(
+            credentials,
+            resource=resource,
+            expiration=datetime.timedelta(days=5),
+            access_token="token",
+        )
 
 
 class Test_sign_message(unittest.TestCase):
@@ -770,20 +818,20 @@ class TestV4Stamps(unittest.TestCase):
         self.assertEqual(datestamp, "20200312")
 
 
-_DUMMY_SERVICE_ACCOUNT = None
+_FAKE_SERVICE_ACCOUNT = None
 
 
-def dummy_service_account():
-    global _DUMMY_SERVICE_ACCOUNT
+def fake_service_account():
+    global _FAKE_SERVICE_ACCOUNT
 
     from google.oauth2.service_account import Credentials
 
-    if _DUMMY_SERVICE_ACCOUNT is None:
-        _DUMMY_SERVICE_ACCOUNT = Credentials.from_service_account_info(
+    if _FAKE_SERVICE_ACCOUNT is None:
+        _FAKE_SERVICE_ACCOUNT = Credentials.from_service_account_info(
             _SERVICE_ACCOUNT_JSON
         )
 
-    return _DUMMY_SERVICE_ACCOUNT
+    return _FAKE_SERVICE_ACCOUNT
 
 
 _API_ACCESS_ENDPOINT = "https://storage.googleapis.com"
@@ -792,7 +840,7 @@ _API_ACCESS_ENDPOINT = "https://storage.googleapis.com"
 def _run_conformance_test(
     resource, test_data, api_access_endpoint=_API_ACCESS_ENDPOINT
 ):
-    credentials = dummy_service_account()
+    credentials = fake_service_account()
     url = Test_generate_signed_url_v4._call_fut(
         credentials,
         resource,
