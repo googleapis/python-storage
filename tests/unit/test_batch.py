@@ -136,7 +136,8 @@ class TestBatch(unittest.TestCase):
         url = "http://example.com/api"
         http = _make_requests_session([])
         connection = _Connection(http=http)
-        batch = self._make_one(connection)
+        client = _Client(connection)
+        batch = self._make_one(client)
         target = _MockObject()
 
         response = batch._make_request("GET", url, target_object=target)
@@ -164,7 +165,8 @@ class TestBatch(unittest.TestCase):
         url = "http://example.com/api"
         http = _make_requests_session([])
         connection = _Connection(http=http)
-        batch = self._make_one(connection)
+        client = _Client(connection)
+        batch = self._make_one(client)
         data = {"foo": 1}
         target = _MockObject()
 
@@ -191,7 +193,8 @@ class TestBatch(unittest.TestCase):
         url = "http://example.com/api"
         http = _make_requests_session([])
         connection = _Connection(http=http)
-        batch = self._make_one(connection)
+        client = _Client(connection)
+        batch = self._make_one(client)
         data = {"foo": 1}
         target = _MockObject()
 
@@ -218,7 +221,8 @@ class TestBatch(unittest.TestCase):
         url = "http://example.com/api"
         http = _make_requests_session([])
         connection = _Connection(http=http)
-        batch = self._make_one(connection)
+        client = _Client(connection)
+        batch = self._make_one(client)
         target = _MockObject()
 
         response = batch._make_request("DELETE", url, target_object=target)
@@ -243,7 +247,8 @@ class TestBatch(unittest.TestCase):
         url = "http://example.com/api"
         http = _make_requests_session([])
         connection = _Connection(http=http)
-        batch = self._make_one(connection)
+        client = _Client(connection)
+        batch = self._make_one(client)
 
         batch._MAX_BATCH_SIZE = 1
         batch._requests.append(("POST", url, {}, {"bar": 2}))
@@ -254,7 +259,8 @@ class TestBatch(unittest.TestCase):
     def test_finish_empty(self):
         http = _make_requests_session([])
         connection = _Connection(http=http)
-        batch = self._make_one(connection)
+        client = _Client(connection)
+        batch = self._make_one(client)
 
         with self.assertRaises(ValueError):
             batch.finish()
@@ -633,6 +639,8 @@ class _Connection(object):
 
     def __init__(self, **kw):
         self.__dict__.update(kw)
+        self._client_info = None
+        self.API_BASE_URL = ""
 
     def _make_request(self, method, url, data=None, headers=None, timeout=None):
         return self.http.request(
@@ -647,3 +655,4 @@ class _MockObject(object):
 class _Client(object):
     def __init__(self, connection):
         self._base_connection = connection
+        self._connection = connection
