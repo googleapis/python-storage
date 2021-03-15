@@ -1328,7 +1328,7 @@ class Bucket(_PropertyMixin):
             >>> from google.cloud import storage
             >>> client = storage.Client()
 
-            >>> bucket = storage.Bucket("my-bucket-name", user_project='my-project')
+            >>> bucket = storage.Bucket(client, "my-bucket-name", user_project='my-project')
             >>> all_blobs = list(client.list_blobs(bucket))
         """
         client = self._require_client(client)
