@@ -3419,9 +3419,67 @@ class Blob(_PropertyMixin):
         newline=None,
         **kwargs
     ):
+        r"""Create a file handler for file-like I/O to or from this blob.
+
+        :type mode: str
+        :param mode:
+            A mode string, as per standard Python `open()` semantics. The first
+            character must be 'r', to open the blob for reading, or 'w' to open
+            it for writing. The second character, if present, must be 't' for
+            (unicode) text mode, or 'b' for bytes mode. If the second character
+            is omitted, text mode is the default.
+
+        :type chunk_size: long
+        :param chunk_size:
+            (Optional) For reads, the minimum number of bytes to read at a time.
+            If fewer bytes than the chunk_size are requested, the remainder is
+            buffered. For writes, the maximum number of bytes to buffer before
+            sending data to the server, and the size of each request when data
+            is sent. Writes are implemented as a "resumable upload", so
+            chunk_size for writes must be exactly a multiple of 256KiB as with
+            other resumable uploads. The default is 10 MiB.
+
+        :type encoding: str
+        :param encoding:
+            For text mode only, the name of the encoding that the stream will
+            be decoded or encoded with. If omitted, it defaults to
+            locale.getpreferredencoding(False).
+
+        :type errors: str
+        :param errors:
+            For text mode only, an optional string that specifies how encoding
+            and decoding errors are to be handled. Pass 'strict' to raise a
+            ValueError exception if there is an encoding error (the default of
+            None has the same effect), or pass 'ignore' to ignore errors. (Note
+            that ignoring encoding errors can lead to data loss.) Other more
+            rarely-used options are also available; see the Python 'io' module
+            documentation for 'io.TextIOWrapper' for a complete list.
+
+        :type newline: str
+        :param newline:
+            For text mode only, controls how line endings are handled. It can
+            be None, '', '\n', '\r', and '\r\n'. If None, reads use "universal
+            newline mode" and writes use the system default. See the Python
+            'io' module documentation for 'io.TextIOWrapper' for details.
+
+        :param kwargs: Keyword arguments to pass to the underlying API calls.
+            For both uploads and downloads, the following arguments are
+            supported: "if_generation_match", "if_generation_not_match",
+            "if_metageneration_match", "if_metageneration_not_match", "timeout".
+            For uploads only, the following additional arguments are supported:
+            "content_type", "num_retries", "predefined_acl", "checksum".
+
+        :returns: A 'BlobReader' or 'BlobWriter' from
+            'google.cloud.storage.fileio', or an 'io.TextIOWrapper' around one
+            of those classes, depending on the 'mode' argument.
+        """
         if mode == "rb":
+            if encoding or errors or newline:
+                raise ValueError("encoding, errors and newline arguments are for text mode only")
             return BlobReader(self, chunk_size=chunk_size, **kwargs)
         elif mode == "wb":
+            if encoding or errors or newline:
+                raise ValueError("encoding, errors and newline arguments are for text mode only")
             return BlobWriter(self, chunk_size=chunk_size, **kwargs)
         elif mode in ("r", "rt"):
             return TextIOWrapper(
