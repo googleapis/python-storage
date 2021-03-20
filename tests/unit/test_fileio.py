@@ -187,12 +187,18 @@ class TestBlobReaderBinary(unittest.TestCase):
 class TestBlobWriterBinary(unittest.TestCase):
     def test_attributes(self):
         blob = mock.Mock()
-        blob.chunk_size = 256
+        blob.chunk_size = 256 * 1024
         writer = BlobWriter(blob)
         self.assertFalse(writer.seekable())
         self.assertFalse(writer.readable())
         self.assertTrue(writer.writable())
-        self.assertEqual(256, writer._chunk_size)
+        self.assertEqual(256 * 1024, writer._chunk_size)
+
+    def test_reject_wrong_chunk_size(self):
+        blob = mock.Mock()
+        blob.chunk_size = 123
+        with self.assertRaises(ValueError):
+            _ = BlobWriter(blob)
 
     def test_write(self):
         blob = mock.Mock()
@@ -202,19 +208,20 @@ class TestBlobWriterBinary(unittest.TestCase):
 
         blob._initiate_resumable_upload.return_value = (upload, transport)
 
-        # Create a writer with (arbitrary) arguments so we can validate the
-        # arguments are used.
-        # It would be normal to use a context manager here, but not doing so
-        # gives us more control over close() for test purposes.
-        upload_kwargs = {"if_metageneration_match": 1}
-        chunk_size = 8  # Note: Real upload requires a multiple of 256KiB.
-        writer = BlobWriter(
-            blob,
-            chunk_size=chunk_size,
-            num_retries=NUM_RETRIES,
-            content_type=PLAIN_CONTENT_TYPE,
-            **upload_kwargs
-        )
+        with mock.patch("google.cloud.storage.fileio.CHUNK_SIZE_MULTIPLE", 1):
+            # Create a writer with (arbitrary) arguments so we can validate the
+            # arguments are used.
+            # It would be normal to use a context manager here, but not doing so
+            # gives us more control over close() for test purposes.
+            upload_kwargs = {"if_metageneration_match": 1}
+            chunk_size = 8  # Note: Real upload requires a multiple of 256KiB.
+            writer = BlobWriter(
+                blob,
+                chunk_size=chunk_size,
+                num_retries=NUM_RETRIES,
+                content_type=PLAIN_CONTENT_TYPE,
+                **upload_kwargs
+            )
 
         # The transmit_next_chunk method must actually consume bytes from the
         # sliding buffer for the flush() feature to work properly.
@@ -249,14 +256,14 @@ class TestBlobWriterBinary(unittest.TestCase):
         self.assertEqual(upload.transmit_next_chunk.call_count, 5)
 
     def test_flush_fails(self):
-        blob = mock.Mock()
+        blob = mock.Mock(chunk_size=None)
         writer = BlobWriter(blob)
 
         with self.assertRaises(io.UnsupportedOperation):
             writer.flush()
 
     def test_seek_fails(self):
-        blob = mock.Mock()
+        blob = mock.Mock(chunk_size=None)
         writer = BlobWriter(blob)
 
         with self.assertRaises(io.UnsupportedOperation):
@@ -270,16 +277,17 @@ class TestBlobWriterBinary(unittest.TestCase):
 
         blob._initiate_resumable_upload.return_value = (upload, transport)
 
-        # Create a writer.
-        # It would be normal to use a context manager here, but not doing so
-        # gives us more control over close() for test purposes.
-        chunk_size = 8  # Note: Real upload requires a multiple of 256KiB.
-        writer = BlobWriter(
-            blob,
-            chunk_size=chunk_size,
-            num_retries=None,
-            content_type=PLAIN_CONTENT_TYPE,
-        )
+        with mock.patch("google.cloud.storage.fileio.CHUNK_SIZE_MULTIPLE", 1):
+            # Create a writer.
+            # It would be normal to use a context manager here, but not doing so
+            # gives us more control over close() for test purposes.
+            chunk_size = 8  # Note: Real upload requires a multiple of 256KiB.
+            writer = BlobWriter(
+                blob,
+                chunk_size=chunk_size,
+                num_retries=None,
+                content_type=PLAIN_CONTENT_TYPE,
+            )
 
         # The transmit_next_chunk method must actually consume bytes from the
         # sliding buffer for the flush() feature to work properly.
@@ -526,17 +534,18 @@ class TestBlobWriterText(unittest.TestCase):
 
         blob._initiate_resumable_upload.return_value = (upload, transport)
 
-        # Create a writer in text mode.
-        # It would be normal to use a context manager here, but not doing so
-        # gives us more control over close() for test purposes.
-        chunk_size = 8  # Note: Real upload requires a multiple of 256KiB.
-        unwrapped_writer = BlobWriter(
-            blob,
-            chunk_size=chunk_size,
-            text_mode=True,
-            num_retries=NUM_RETRIES,
-            content_type=PLAIN_CONTENT_TYPE,
-        )
+        with mock.patch("google.cloud.storage.fileio.CHUNK_SIZE_MULTIPLE", 1):
+            # Create a writer in text mode.
+            # It would be normal to use a context manager here, but not doing so
+            # gives us more control over close() for test purposes.
+            chunk_size = 8  # Note: Real upload requires a multiple of 256KiB.
+            unwrapped_writer = BlobWriter(
+                blob,
+                chunk_size=chunk_size,
+                text_mode=True,
+                num_retries=NUM_RETRIES,
+                content_type=PLAIN_CONTENT_TYPE,
+            )
 
         writer = io.TextIOWrapper(unwrapped_writer)
 

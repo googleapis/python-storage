@@ -14,8 +14,9 @@
 
 import io
 
-# Resumable uploads require a chunk size of precisely a multiple of 256KiB.
-DEFAULT_CHUNK_SIZE = 10 * 1024 * 1024  # 10 MiB (40 times minimum chunk size).
+# Resumable uploads require a chunk size of precisely a multiple of 256 KiB.
+CHUNK_SIZE_MULTIPLE = 256 * 1024  # 256 KiB
+DEFAULT_CHUNK_SIZE = 40 * 1024 * 1024  # 40 MiB
 
 # Valid keyword arguments for download methods, and blob.reload() if needed.
 # Note: Changes here need to be reflected in the blob.open() docstring.
@@ -43,23 +44,24 @@ VALID_UPLOAD_KWARGS = {
 
 
 class BlobReader(io.BufferedIOBase):
-        """A file-like object that reads from a blob.
+    """A file-like object that reads from a blob.
 
-        :type blob: 'google.cloud.storage.blob.Blob'
-        :param blob:
-            The blob to download.
+    :type blob: 'google.cloud.storage.blob.Blob'
+    :param blob:
+        The blob to download.
 
-        :type chunk_size: long
-        :param chunk_size:
-            (Optional) The minimum number of bytes to read at a time. If fewer
-            bytes than the chunk_size are requested, the remainder is buffered.
-            The default is 10MiB.
+    :type chunk_size: long
+    :param chunk_size:
+        (Optional) The minimum number of bytes to read at a time. If fewer
+        bytes than the chunk_size are requested, the remainder is buffered.
+        The default is the chunk_size of the blob, or 40MiB.
 
-        :param download_kwargs: Keyword arguments to pass to the underlying API
-            calls. The following arguments are supported: "if_generation_match",
-            "if_generation_not_match", "if_metageneration_match",
-            "if_metageneration_not_match", "timeout".
-        """
+    :param download_kwargs: Keyword arguments to pass to the underlying API
+        calls. The following arguments are supported: "if_generation_match",
+        "if_generation_not_match", "if_metageneration_match",
+        "if_metageneration_not_match", "timeout".
+    """
+
     def __init__(self, blob, chunk_size=None, **download_kwargs):
         """docstring note that download_kwargs also used for reload()"""
         for kwarg in download_kwargs:
@@ -163,32 +165,33 @@ class BlobReader(io.BufferedIOBase):
 
 
 class BlobWriter(io.BufferedIOBase):
-        """A file-like object that writes to a blob.
+    """A file-like object that writes to a blob.
 
-        :type blob: 'google.cloud.storage.blob.Blob'
-        :param blob:
-            The blob to which to write.
+    :type blob: 'google.cloud.storage.blob.Blob'
+    :param blob:
+        The blob to which to write.
 
-        :type chunk_size: long
-        :param chunk_size:
-            (Optional) The maximum number of bytes to buffer before sending data
-            to the server, and the size of each request when data is sent.
-            Writes are implemented as a "resumable upload", so chunk_size for
-            writes must be exactly a multiple of 256KiB as with other resumable
-            uploads. The default is 10 MiB.
+    :type chunk_size: long
+    :param chunk_size:
+        (Optional) The maximum number of bytes to buffer before sending data
+        to the server, and the size of each request when data is sent.
+        Writes are implemented as a "resumable upload", so chunk_size for
+        writes must be exactly a multiple of 256KiB as with other resumable
+        uploads. The default is the chunk_size of the blob, or 40 MiB.
 
-        :type text_mode: boolean
-        :param text_mode:
-            Whether this class is wrapped in 'io.TextIOWrapper'. Toggling this
-            changes the behavior of flush() to conform to TextIOWrapper's
-            expectations.
+    :type text_mode: boolean
+    :param text_mode:
+        Whether this class is wrapped in 'io.TextIOWrapper'. Toggling this
+        changes the behavior of flush() to conform to TextIOWrapper's
+        expectations.
 
-        :param upload_kwargs: Keyword arguments to pass to the underlying API
-            calls. The following arguments are supported: "if_generation_match",
-            "if_generation_not_match", "if_metageneration_match",
-            "if_metageneration_not_match", "timeout", "content_type",
-            "num_retries", "predefined_acl", "checksum".
-        """
+    :param upload_kwargs: Keyword arguments to pass to the underlying API
+        calls. The following arguments are supported: "if_generation_match",
+        "if_generation_not_match", "if_metageneration_match",
+        "if_metageneration_not_match", "timeout", "content_type",
+        "num_retries", "predefined_acl", "checksum".
+    """
+
     def __init__(self, blob, chunk_size=None, text_mode=False, **upload_kwargs):
         for kwarg in upload_kwargs:
             if kwarg not in VALID_UPLOAD_KWARGS:
@@ -205,6 +208,31 @@ class BlobWriter(io.BufferedIOBase):
         # different behavior of flush().
         self._text_mode = text_mode
         self._upload_kwargs = upload_kwargs
+
+    @property
+    def _chunk_size(self):
+        """Get the blob's default chunk size.
+
+        :rtype: int or ``NoneType``
+        :returns: The current blob's chunk size, if it is set.
+        """
+        return self.__chunk_size
+
+    @_chunk_size.setter
+    def _chunk_size(self, value):
+        """Set the blob's default chunk size.
+
+        :type value: int
+        :param value: (Optional) The current blob's chunk size, if it is set.
+
+        :raises: :class:`ValueError` if ``value`` is not ``None`` and is not a
+                 multiple of 256 KiB.
+        """
+        if value is not None and value > 0 and value % CHUNK_SIZE_MULTIPLE != 0:
+            raise ValueError(
+                "Chunk size must be a multiple of %d." % CHUNK_SIZE_MULTIPLE
+            )
+        self.__chunk_size = value
 
     def write(self, b):
         self._checkClosed()  # Raises ValueError if closed.
@@ -310,6 +338,7 @@ class SlidingBuffer(object):
 
     This class does not attempt to implement the entire Python I/O interface.
     """
+
     def __init__(self):
         self._buffer = io.BytesIO()
         self._cursor = 0

@@ -147,7 +147,9 @@ class Blob(_PropertyMixin):
     :type chunk_size: int
     :param chunk_size:
         (Optional) The size of a chunk of data whenever iterating (in bytes).
-        This must be a multiple of 256 KB per the API specification.
+        This must be a multiple of 256 KB per the API specification. If not
+        specified, the chunk_size of the blob itself is used. If that is not
+        specified, a default value of 40 MB is used.
 
     :type encryption_key: bytes
     :param encryption_key:
@@ -3421,6 +3423,9 @@ class Blob(_PropertyMixin):
     ):
         r"""Create a file handler for file-like I/O to or from this blob.
 
+        This method can be used as a context manager, just like Python's
+        built-in 'open()' function.
+
         :type mode: str
         :param mode:
             A mode string, as per standard Python `open()` semantics. The first
@@ -3437,7 +3442,7 @@ class Blob(_PropertyMixin):
             sending data to the server, and the size of each request when data
             is sent. Writes are implemented as a "resumable upload", so
             chunk_size for writes must be exactly a multiple of 256KiB as with
-            other resumable uploads. The default is 10 MiB.
+            other resumable uploads. The default is 40 MiB.
 
         :type encoding: str
         :param encoding:
@@ -3472,14 +3477,30 @@ class Blob(_PropertyMixin):
         :returns: A 'BlobReader' or 'BlobWriter' from
             'google.cloud.storage.fileio', or an 'io.TextIOWrapper' around one
             of those classes, depending on the 'mode' argument.
+
+        Example:
+            Read from a text blob by using open() as context manager.
+
+            >>> from google.cloud import storage
+            >>> client = storage.Client()
+            >>> bucket = client.bucket("bucket-name")
+
+            >>> blob = bucket.blob("blob-name.txt")
+            >>> with blob.open("rt") as f:
+            >>>     print(f.read())
+
         """
         if mode == "rb":
             if encoding or errors or newline:
-                raise ValueError("encoding, errors and newline arguments are for text mode only")
+                raise ValueError(
+                    "encoding, errors and newline arguments are for text mode only"
+                )
             return BlobReader(self, chunk_size=chunk_size, **kwargs)
         elif mode == "wb":
             if encoding or errors or newline:
-                raise ValueError("encoding, errors and newline arguments are for text mode only")
+                raise ValueError(
+                    "encoding, errors and newline arguments are for text mode only"
+                )
             return BlobWriter(self, chunk_size=chunk_size, **kwargs)
         elif mode in ("r", "rt"):
             return TextIOWrapper(
