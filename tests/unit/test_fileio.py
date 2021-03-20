@@ -363,10 +363,28 @@ class Test_SlidingBuffer(unittest.TestCase):
         self.assertEqual(buff.tell(), len(TEST_BINARY_DATA))
         self.assertEqual(len(buff), len(TEST_BINARY_DATA[8:]))
 
-    def test_seek_fails(self):
+    def test_seek(self):
         buff = SlidingBuffer()
-        with self.assertRaises(io.UnsupportedOperation):
-            buff.seek(1)
+        buff.write(TEST_BINARY_DATA)
+
+        # Try to seek forward. Verify the tell() doesn't change.
+        with self.assertRaises(ValueError):
+            pos = buff.tell()
+            buff.seek(len(TEST_BINARY_DATA) + 1)
+            self.assertEqual(pos, buff.tell())
+
+        # Read 8 bytes, test seek backwards, read again, and flush.
+        self.assertEqual(buff.read(8), TEST_BINARY_DATA[:8])
+        buff.seek(0)
+        self.assertEqual(buff.read(8), TEST_BINARY_DATA[:8])
+        buff.flush()
+        self.assertEqual(buff.tell(), 8)
+
+        # Try to seek to a byte that has already been flushed.
+        with self.assertRaises(ValueError):
+            pos = buff.tell()
+            buff.seek(0)
+            self.assertEqual(pos, buff.tell())
 
     def test_close(self):
         buff = SlidingBuffer()

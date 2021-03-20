@@ -377,8 +377,31 @@ class SlidingBuffer(object):
         """Report how many bytes have been read from the buffer in total."""
         return self._cursor
 
-    def seek(self, pos, whence=None):
-        raise io.UnsupportedOperation("seek() is not supported for this class.")
+    def seek(self, pos):
+        """Seek to a position (backwards only) within the internal buffer.
+
+        This implementation of seek() verifies that the seek destination is
+        contained in _buffer. It will raise ValueError if the destination byte
+        has already been purged from the buffer.
+
+        The "whence" argument is not supported in this implementation.
+        """
+        self._checkClosed()  # Raises ValueError if closed.
+
+        buffer_initial_pos = self._buffer.tell()
+        difference = pos - self._cursor
+        buffer_seek_result = self._buffer.seek(difference, io.SEEK_CUR)
+        if (
+            not buffer_seek_result - buffer_initial_pos == difference
+            or pos > self._cursor
+        ):
+            # The seek did not arrive at the expected byte because the internal
+            # buffer does not (or no longer) contains the byte. Reset and raise.
+            self._buffer.seek(buffer_initial_pos)
+            raise ValueError("Cannot seek() to that value.")
+
+        self._cursor = pos
+        return self._cursor
 
     def __len__(self):
         """Determine the size of the buffer by seeking to the end."""

@@ -4702,6 +4702,10 @@ class Test_Blob(unittest.TestCase):
 
         with self.assertRaises(NotImplementedError):
             blob.open("a")
+        with self.assertRaises(ValueError):
+            blob.open("rb", encoding="utf-8")
+        with self.assertRaises(ValueError):
+            blob.open("wb", encoding="utf-8")
 
 
 class Test__quote(unittest.TestCase):
