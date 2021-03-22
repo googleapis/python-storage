@@ -611,8 +611,8 @@ class Bucket(_PropertyMixin):
 
         If unset, API requests are billed to the bucket owner.
 
-        A user project is required for all operations on Requester Pays buckets. 
-        
+        A user project is required for all operations on Requester Pays buckets.
+
         See https://cloud.google.com/storage/docs/requester-pays#requirements for details.
 
         :rtype: str
