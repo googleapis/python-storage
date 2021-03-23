@@ -397,15 +397,6 @@ class Client(ClientWithProject):
             ... # in the meantime, so you want to get the latest state.
             >>> bucket = client.get_bucket(bucket)  # API request.
 
-            Get a bucket with user_project.
-
-            >>> from google.cloud import storage
-            >>> client = storage.Client()
-
-            >>> # Set user_project on a plain resource object.
-            >>> bucket_obj = storage.Bucket(client, "my-bucket-name", user_project="my-project")
-            >>> bucket = client.get_bucket(bucket_obj)  # API request.
-
         """
         bucket = self._bucket_arg_to_bucket(bucket_or_name)
         bucket.reload(

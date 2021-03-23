@@ -819,6 +819,10 @@ class Bucket(_PropertyMixin):
         If the bucket already exists, will raise
         :class:`google.cloud.exceptions.Conflict`.
 
+        This implements "storage.buckets.insert".
+
+        If :attr:`user_project` is set, bills the API request to that project.
+
         :type client: :class:`~google.cloud.storage.client.Client` or
                       ``NoneType``
         :param client: (Optional) The client to use. If not passed, falls back
