@@ -4,6 +4,13 @@
 
 [1]: https://pypi.org/project/google-cloud-storage/#history
 
+### [1.36.3](https://www.github.com/googleapis/python-storage/compare/v1.36.2...v1.36.3) (2021-03-23)
+
+
+### Bug Fixes
+
+* update user_project usage and documentation in bucket/client class methods ([#396](https://www.github.com/googleapis/python-storage/issues/396)) ([1a2734b](https://www.github.com/googleapis/python-storage/commit/1a2734ba6d316ce51e4e141571331e86196462b9))
+
 ### [1.36.2](https://www.github.com/googleapis/python-storage/compare/v1.36.1...v1.36.2) (2021-03-09)
 
 
