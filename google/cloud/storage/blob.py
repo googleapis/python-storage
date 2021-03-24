@@ -3426,6 +3426,13 @@ class Blob(_PropertyMixin):
         This method can be used as a context manager, just like Python's
         built-in 'open()' function.
 
+        While reading, as with other read methods, if blob.generation is not set
+        the most recent blob generation will be used. Because the file-like IO
+        reader downloads progressively in chunks, this could result in data from
+        multiple versions being mixed together. If this is a concern, use
+        either bucket.get_blob(), or blob.reload(), which will download the
+        latest generation number and set it.
+
         :type mode: str
         :param mode:
             (Optional) A mode string, as per standard Python `open()` semantics.The first
@@ -3485,7 +3492,7 @@ class Blob(_PropertyMixin):
             >>> client = storage.Client()
             >>> bucket = client.bucket("bucket-name")
 
-            >>> blob = bucket.blob("blob-name.txt")
+            >>> blob = bucket.get_blob("blob-name.txt")
             >>> with blob.open("rt") as f:
             >>>     print(f.read())
 
