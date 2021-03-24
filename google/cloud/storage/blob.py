@@ -3431,7 +3431,8 @@ class Blob(_PropertyMixin):
         reader downloads progressively in chunks, this could result in data from
         multiple versions being mixed together. If this is a concern, use
         either bucket.get_blob(), or blob.reload(), which will download the
-        latest generation number and set it.
+        latest generation number and set it; or, if the generation is known, set
+        it manually, for instance with bucket.blob(generation=123456).
 
         :type mode: str
         :param mode:
@@ -3487,6 +3488,9 @@ class Blob(_PropertyMixin):
 
         Example:
             Read from a text blob by using open() as context manager.
+
+            Using bucket.get_blob() fetches metadata such as the generation,
+            which prevents race conditions in case the blob is modified.
 
             >>> from google.cloud import storage
             >>> client = storage.Client()
