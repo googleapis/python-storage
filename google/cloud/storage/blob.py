@@ -3428,7 +3428,7 @@ class Blob(_PropertyMixin):
 
         :type mode: str
         :param mode:
-            A mode string, as per standard Python `open()` semantics. The first
+            (Optional) A mode string, as per standard Python `open()` semantics.The first
             character must be 'r', to open the blob for reading, or 'w' to open
             it for writing. The second character, if present, must be 't' for
             (unicode) text mode, or 'b' for bytes mode. If the second character
@@ -3446,13 +3446,13 @@ class Blob(_PropertyMixin):
 
         :type encoding: str
         :param encoding:
-            For text mode only, the name of the encoding that the stream will
+            (Optional) For text mode only, the name of the encoding that the stream will
             be decoded or encoded with. If omitted, it defaults to
             locale.getpreferredencoding(False).
 
         :type errors: str
         :param errors:
-            For text mode only, an optional string that specifies how encoding
+            (Optional) For text mode only, an optional string that specifies how encoding
             and decoding errors are to be handled. Pass 'strict' to raise a
             ValueError exception if there is an encoding error (the default of
             None has the same effect), or pass 'ignore' to ignore errors. (Note
@@ -3462,7 +3462,7 @@ class Blob(_PropertyMixin):
 
         :type newline: str
         :param newline:
-            For text mode only, controls how line endings are handled. It can
+            (Optional) For text mode only, controls how line endings are handled. It can
             be None, '', '\n', '\r', and '\r\n'. If None, reads use "universal
             newline mode" and writes use the system default. See the Python
             'io' module documentation for 'io.TextIOWrapper' for details.
