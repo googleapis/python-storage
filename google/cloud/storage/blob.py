@@ -3435,8 +3435,9 @@ class Blob(_PropertyMixin):
         it manually, for instance with bucket.blob(generation=123456).
 
         Checksumming (hashing) to verify data integrity is disabled for reads
-        using this feature because they are implemented using request ranges.
-        See https://cloud.google.com/storage/docs/hashes-etags for details.
+        using this feature because reads are implemented using request ranges,
+        which do not provide checksums to validate. See
+        https://cloud.google.com/storage/docs/hashes-etags for details.
 
         :type mode: str
         :param mode:
