@@ -4673,6 +4673,19 @@ class Test_Blob(unittest.TestCase):
         self.assertEqual(blob.name, "b")
         self.assertEqual(blob.bucket.name, "buckets.example.com")
 
+    def test_from_string_w_encryption_key(self):
+        from google.cloud.storage.blob import Blob
+
+        connection = _Connection()
+        client = _Client(connection)
+        uri = "gs://bucket-name/blob-name"
+        encryption_key = "0123456789abcdef0123456789abcdef"
+        blob = Blob.from_string(uri, client, encryption_key=encryption_key)
+
+        self.assertIsInstance(blob, Blob)
+        self.assertIs(blob.client, client)
+        self.assertEqual(blob._encryption_key, encryption_key)
+
 
 class Test__quote(unittest.TestCase):
     @staticmethod
