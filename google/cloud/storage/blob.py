@@ -342,30 +342,30 @@ class Blob(_PropertyMixin):
     def from_string(cls, uri, client=None, encryption_key=None):
         """Get a constructor for blob object by URI.
 
-         :type uri: str
-         :param uri: The blob uri pass to get blob object.
+        :type uri: str
+        :param uri: The blob uri pass to get blob object.
 
-         :type client: :class:`~google.cloud.storage.client.Client`
-         :param client:
+        :type client: :class:`~google.cloud.storage.client.Client`
+        :param client:
             (Optional) The client to use.  If not passed, falls back to the
             ``client`` stored on the blob's bucket.
             
-         :type encryption_key: bytes
-         :param encryption_key:
+        :type encryption_key: bytes
+        :param encryption_key:
             (Optional) 32 byte encryption key for customer-supplied encryption.
             See https://cloud.google.com/storage/docs/encryption#customer-supplied.
 
-         :rtype: :class:`google.cloud.storage.blob.Blob`
-         :returns: The blob object created.
+        :rtype: :class:`google.cloud.storage.blob.Blob`
+        :returns: The blob object created.
 
-         Example:
+        Example:
             Get a constructor for blob object by URI.
 
             >>> from google.cloud import storage
             >>> from google.cloud.storage.blob import Blob
             >>> client = storage.Client()
             >>> blob = Blob.from_string("gs://bucket/object")
-         """
+        """
         from google.cloud.storage.bucket import Bucket
 
         scheme, netloc, path, query, frag = urlsplit(uri)
