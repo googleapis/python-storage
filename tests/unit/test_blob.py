@@ -4679,7 +4679,7 @@ class Test_Blob(unittest.TestCase):
         connection = _Connection()
         client = _Client(connection)
         uri = "gs://bucket-name/blob-name"
-        encryption_key = "0123456789abcdef0123456789abcdef"
+        encryption_key = b"0123456789abcdef0123456789abcdef"
         blob = Blob.from_string(uri, client, encryption_key=encryption_key)
 
         self.assertIsInstance(blob, Blob)
