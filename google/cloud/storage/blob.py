@@ -254,6 +254,32 @@ class Blob(_PropertyMixin):
             )
         self._chunk_size = value
 
+    @property
+    def encryption_key(self):
+        """Retrieve the customer-supplied encryption key for the object.
+
+        :rtype: bytes or ``NoneType``
+        :returns:
+            The encryption key or ``None`` if no customer-supplied encryption key was used,
+            or the blob's resource has not been loaded from the server.
+        """
+        return self._encryption_key
+
+    @encryption_key.setter
+    def encryption_key(self, value):
+        """Set the blob's encryption key.
+
+        This can only be set at blob / object **creation** time. If you'd like to perform
+        a key rotation for an encrypted blob, use :meth:`rewrite` with current and new encryption key.
+        See https://cloud.google.com/storage/docs/encryption/using-customer-supplied-keys?hl=ca#rotating
+
+        :type value: bytes
+        :param value: (Optional) 32 byte encryption key for customer-supplied encryption.
+        See https://cloud.google.com/storage/docs/encryption#customer-supplied.
+
+        """
+        self._encryption_key = value
+
     @staticmethod
     def path_helper(bucket_path, blob_name):
         """Relative URL path for a blob.
@@ -3838,6 +3864,15 @@ class Blob(_PropertyMixin):
             or the blob's resource has not been loaded from the server.
         """
         return self._properties.get("kmsKeyName")
+
+    @kms_key_name.setter
+    def kms_key_name(self, value):
+        """Set KMS encryption key for object.
+
+        :type value: str or ``NoneType``
+        :param value: new KMS key name (None to clear any existing key).
+        """
+        self._patch_property("kmsKeyName", value)
 
     storage_class = _scalar_property("storageClass")
     """Retrieve the storage class for the object.
