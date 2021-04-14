@@ -269,14 +269,13 @@ class Blob(_PropertyMixin):
     def encryption_key(self, value):
         """Set the blob's encryption key.
 
-        This can only be set at blob / object **creation** time. If you'd like to perform
-        a key rotation for an encrypted blob, use :meth:`rewrite` with current and new encryption key.
+        See https://cloud.google.com/storage/docs/encryption#customer-supplied
+
+        To perform a key rotation for an encrypted blob, use :meth:`rewrite`.
         See https://cloud.google.com/storage/docs/encryption/using-customer-supplied-keys?hl=ca#rotating
 
         :type value: bytes
-        :param value: (Optional) 32 byte encryption key for customer-supplied encryption.
-        See https://cloud.google.com/storage/docs/encryption#customer-supplied.
-
+        :param value: 32 byte encryption key for customer-supplied encryption.
         """
         self._encryption_key = value
 
