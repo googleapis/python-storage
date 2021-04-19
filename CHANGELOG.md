@@ -4,6 +4,13 @@
 
 [1]: https://pypi.org/project/google-cloud-storage/#history
 
+### [1.37.2](https://www.github.com/googleapis/python-storage/compare/v1.37.1...v1.37.2) (2021-04-19)
+
+
+### Documentation
+
+* revise docstrings for generate_signed_url ([#408](https://www.github.com/googleapis/python-storage/issues/408)) ([f090548](https://www.github.com/googleapis/python-storage/commit/f090548437142b635191e90dcee1acd4c38e565c))
+
 ### [1.37.1](https://www.github.com/googleapis/python-storage/compare/v1.37.0...v1.37.1) (2021-04-02)
 
 
