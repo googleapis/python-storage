@@ -4,6 +4,33 @@
 
 [1]: https://pypi.org/project/google-cloud-storage/#history
 
+### [1.37.1](https://www.github.com/googleapis/python-storage/compare/v1.37.0...v1.37.1) (2021-04-02)
+
+
+### Bug Fixes
+
+* Ensure consistency check in test runs even if expected error occurs ([#402](https://www.github.com/googleapis/python-storage/issues/402)) ([416bcd4](https://www.github.com/googleapis/python-storage/commit/416bcd42406ec57e51f04e5d9b0c58509f80520c))
+* silence expected errors for routine operations on BlobReader ([#400](https://www.github.com/googleapis/python-storage/issues/400)) ([d52853b](https://www.github.com/googleapis/python-storage/commit/d52853b420f50012e02c395f5407e3018922c048))
+
+## [1.37.0](https://www.github.com/googleapis/python-storage/compare/v1.36.2...v1.37.0) (2021-03-24)
+
+
+### Features
+
+* add blob.open() for file-like I/O ([#385](https://www.github.com/googleapis/python-storage/issues/385)) ([440a0a4](https://www.github.com/googleapis/python-storage/commit/440a0a4ffe00b1f7c562b0e9c1e47dbadeca33e1)), closes [#29](https://www.github.com/googleapis/python-storage/issues/29)
+
+
+### Bug Fixes
+
+* update user_project usage and documentation in bucket/client class methods ([#396](https://www.github.com/googleapis/python-storage/issues/396)) ([1a2734b](https://www.github.com/googleapis/python-storage/commit/1a2734ba6d316ce51e4e141571331e86196462b9))
+
+### [1.36.2](https://www.github.com/googleapis/python-storage/compare/v1.36.1...v1.36.2) (2021-03-09)
+
+
+### Bug Fixes
+
+* update batch connection to request api endpoint info from client ([#392](https://www.github.com/googleapis/python-storage/issues/392)) ([91fc6d9](https://www.github.com/googleapis/python-storage/commit/91fc6d9870a36308b15a827ed6a691e5b4669b62))
+
 ### [1.36.1](https://www.github.com/googleapis/python-storage/compare/v1.36.0...v1.36.1) (2021-02-19)
 
 
