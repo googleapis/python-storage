@@ -14,19 +14,21 @@
 
 import requests
 
-from google.api_core import exceptions
+from google.api_core import exceptions as exceptions_api
 from google.api_core import retry
+from google.auth import exceptions as exceptions_auth
 
 import json
 
 
 _RETRYABLE_TYPES = (
-    exceptions.TooManyRequests,  # 429
-    exceptions.InternalServerError,  # 500
-    exceptions.BadGateway,  # 502
-    exceptions.ServiceUnavailable,  # 503
-    exceptions.GatewayTimeout,  # 504
+    exceptions_api.TooManyRequests,  # 429
+    exceptions_api.InternalServerError,  # 500
+    exceptions_api.BadGateway,  # 502
+    exceptions_api.ServiceUnavailable,  # 503
+    exceptions_api.GatewayTimeout,  # 504
     requests.ConnectionError,
+    exceptions_auth.TransportError,
 )
 
 # Some retriable errors don't have their own custom exception in api_core.
@@ -37,7 +39,7 @@ def _should_retry(exc):
     """Predicate for determining when to retry."""
     if isinstance(exc, _RETRYABLE_TYPES):
         return True
-    elif isinstance(exc, exceptions.GoogleAPICallError):
+    elif isinstance(exc, exceptions_api.GoogleAPICallError):
         return exc.code in _ADDITIONAL_RETRYABLE_STATUS_CODES
     else:
         return False
