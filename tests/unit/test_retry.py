@@ -29,6 +29,7 @@ class Test_should_retry(unittest.TestCase):
         from google.cloud.storage import retry
         from google.auth.exceptions import TransportError as eTransportError
         from requests import ConnectionError as rConnectionError
+
         caught_exc = rConnectionError("Remote end closed connection unexpected")
         exc = eTransportError(caught_exc)
         self.assertTrue(self._call_fut(exc))
