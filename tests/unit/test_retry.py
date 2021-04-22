@@ -27,6 +27,14 @@ class Test_should_retry(unittest.TestCase):
 
     def test_w_retryable_types(self):
         from google.cloud.storage import retry
+        from google.auth.exceptions import TransportError as eTransportError
+        from requests import ConnectionError as rConnectionError
+        caught_exc = rConnectionError("Remote end closed connection unexpected")
+        exc = eTransportError(caught_exc)
+        self.assertTrue(self._call_fut(exc))
+
+    def test_w_wrapped_type(self):
+        from google.cloud.storage import retry
 
         for exc_type in retry._RETRYABLE_TYPES:
             exc = exc_type("testing")
