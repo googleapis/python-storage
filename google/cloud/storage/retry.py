@@ -16,7 +16,6 @@ import requests
 
 from google.api_core import exceptions as api_exceptions
 from google.api_core import retry
-from google.auth import exceptions as auth_exceptions
 
 import json
 
