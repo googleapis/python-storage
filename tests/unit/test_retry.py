@@ -16,7 +16,11 @@ import unittest
 
 from google.cloud.storage import _helpers
 
+from . import _read_local_json
+
 import mock
+import pytest
+import requests
 
 
 class Test_should_retry(unittest.TestCase):
@@ -259,3 +263,135 @@ class Test_default_conditional_retry_policies(unittest.TestCase):
             query_params={"ifGenerationMatch": 1}, data="I am invalid JSON!"
         )
         self.assertEqual(policy, None)
+
+
+# ToDo: Confirm what are the credentials required. Can we use the same service account created for url_signer_v4_test_account?
+_FAKE_SERVICE_ACCOUNT = None
+
+
+def fake_service_account():
+    global _FAKE_SERVICE_ACCOUNT
+    # validate and set fake service account
+
+# ToDo: Confirm what are the credentials required. Can we use the same service account created for url_signer_v4_test_account? )
+# _SERVICE_ACCOUNT_JSON = _read_local_json("")
+_CONFORMANCE_TESTS = _read_local_json("retry_strategy_test_data.json")["retryStrategyTests"]
+# ToDo: Confirm the correct access endpoint.
+_API_ACCESS_ENDPOINT = "http://127.0.0.1:9000"
+
+# retry tests
+def list_buckets():
+    from google.cloud import storage
+    client = storage.Client()
+    bucket = client.list_buckets()
+
+def get_blob(client, resource):
+    from google.cloud import storage
+    client = storage.Client()
+    bucket = client.bucket(resource["bucket"]["name"])
+    bucket.get_blob(resource["object"]["name"])
+
+def download_blob_to_file(client, resource):
+    client.download_blob_to_file(resource["object"]["name"], resource["file_handle"]) #file handle in resource?
+
+def reload_bucket(client, resource):
+    bucket = Bucket(client, resource["bucket"]["name"])
+    bucket.reload()
+
+# Method invocation mapping. Methods to retry. This is a map whose keys are a string describing a standard
+# API call (e.g. storage.objects.get) and values are a list of functions which
+# wrap library methods that implement these calls. There may be multiple values
+# because multiple library methods may use the same call (e.g. get could be a
+# read or just a metadata get).
+method_mapping = {
+    "storage.buckets.list": [
+        list_buckets,
+        list_buckets 
+    ],
+    "storage.objects.get": [
+        # get_blob(client, resource),
+        # download_blob_to_file(client, resource)
+        list_buckets,
+        list_buckets 
+    ],
+    "storage.buckets.get": [
+        # reload_bucket(client, resource),
+        # (lambda client, resource: client.get_bucket(resource["bucket"]["name"]))
+        list_buckets
+    ],
+    "storage.notification.create": [
+        list_buckets
+    ]
+}
+
+
+def _preflight_send_instructions(method_name, instructions):
+    import json
+
+    preflight_post_uri = _API_ACCESS_ENDPOINT + "/retry_test"
+    headers = {
+        'Content-Type': 'application/json',
+    }
+    data_dict = {
+        'test_instructions': {
+            method_name: instructions
+        }
+    }
+    data = json.dumps(data_dict)
+    r = requests.post(preflight_post_uri, headers=headers, data=data)
+    print(r.text)
+    return r.json()
+
+
+def _get_status_check(id):
+    status_get_uri = "{base}{retry}/{id}".format(base=_API_ACCESS_ENDPOINT, retry="/retry_test", id=id)
+    r = requests.get(status_get_uri)
+    print(r.text)
+    return r.json()
+
+
+def _run_single_test(id):
+    test_run_uri = _API_ACCESS_ENDPOINT + "/storage/v1/b"
+    headers = {
+        'x-retry-test-id': id,
+    }
+    params = (
+        ('project', 'test'),
+    )
+    r = requests.get(test_run_uri, headers=headers, params=params)
+    print(r.text)
+    return r.json()
+
+
+def _run_conformance_test(
+    resource, test_data, api_access_endpoint=_API_ACCESS_ENDPOINT
+):
+    # retry_success = make request to emulator (need a helper method make_request?)
+    assert retry_success == test_data["expectSuccess"]
+
+
+@pytest.mark.parametrize("test_data", _CONFORMANCE_TESTS)
+def test_conformance_retry_strategy(test_data):
+    methods = test_data["methods"]
+    cases = test_data["cases"]
+    for m, c in zip(methods, cases):
+        # extract method name and instructions for preflight request to send instructions
+        method_name = m["name"]
+        instructions = c["instructions"]
+
+        if method_name not in method_mapping:
+            print("No tests for operation {}".format(method_name))
+            continue
+
+        for function in method_mapping[method_name]:
+            # send instructions with preflight
+            r = _preflight_send_instructions(method_name, instructions)
+            id = r["id"]
+            
+            # get status with unique identifier
+            status_response = _get_status_check(id)
+
+            # run each single test for retry
+            test_response = _run_single_test(id)
+            stat_complete = status_response["completed"]
+            assert stat_complete == False

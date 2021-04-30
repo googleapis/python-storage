@@ -1,0 +1,63 @@
+﻿{
+    "retryStrategyTests": [
+      {
+        "id": 1,
+        "description": "always idempotent",
+        "cases": [
+          {
+            "instructions": [
+              "return-503",
+              "return-503",
+              "return-503"
+            ]
+          },
+          {
+            "instructions": [
+              "return-503",
+              "return-503",
+              "return-503"
+            ]
+          }
+        ],
+        "methods": [
+          {
+            "name": "storage.buckets.list",
+            "resources": [
+              "BUCKET"
+            ]
+          },
+          {
+            "name": "storage.buckets.list",
+            "resources": [
+              "BUCKET",
+              "OBJECT"
+            ]
+          }
+        ],
+        "preconditionProvided": false,
+        "expectSuccess": true
+      },
+      {
+        "id": 4,
+        "description": "non idempotent",
+        "cases": [
+          {
+            "instructions": [
+              "return-503"
+            ]
+          }
+        ],
+        "methods": [
+          {
+            "name": "storage.buckets.list",
+            "resources": [
+              "BUCKET",
+              "NOTIFICATION"
+            ]
+          }
+        ],
+        "preconditionProvided": false,
+        "expectSuccess": false
+      }
+    ]
+  }
