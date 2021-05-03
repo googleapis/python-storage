@@ -14,6 +14,7 @@
 
 import unittest
 
+from google.cloud import storage
 from google.cloud.storage import _helpers
 
 from . import _read_local_json
@@ -279,7 +280,7 @@ _CONFORMANCE_TESTS = _read_local_json("retry_strategy_test_data.json")["retryStr
 # ToDo: Confirm the correct access endpoint.
 _API_ACCESS_ENDPOINT = "http://127.0.0.1:9000"
 
-# retry tests
+# Library methods for mapping
 def list_buckets():
     from google.cloud import storage
     client = storage.Client()
@@ -298,6 +299,10 @@ def reload_bucket(client, resource):
     bucket = Bucket(client, resource["bucket"]["name"])
     bucket.reload()
 
+def get_bucket(client, resource):
+    bucket_name = "bucket"      #resource["bucket"]["name"]
+    bucket = client.get_bucket(bucket_name)
+
 # Method invocation mapping. Methods to retry. This is a map whose keys are a string describing a standard
 # API call (e.g. storage.objects.get) and values are a list of functions which
 # wrap library methods that implement these calls. There may be multiple values
@@ -305,22 +310,22 @@ def reload_bucket(client, resource):
 # read or just a metadata get).
 method_mapping = {
     "storage.buckets.list": [
-        list_buckets,
-        list_buckets 
+        get_bucket,
+        get_bucket 
     ],
     "storage.objects.get": [
         # get_blob(client, resource),
         # download_blob_to_file(client, resource)
-        list_buckets,
-        list_buckets 
+        get_bucket,
+        get_bucket 
     ],
     "storage.buckets.get": [
         # reload_bucket(client, resource),
         # (lambda client, resource: client.get_bucket(resource["bucket"]["name"]))
-        list_buckets
+        get_bucket
     ],
     "storage.notification.create": [
-        list_buckets
+        get_bucket
     ]
 }
 
@@ -350,24 +355,12 @@ def _get_status_check(id):
     return r.json()
 
 
-def _run_single_test(id):
-    test_run_uri = _API_ACCESS_ENDPOINT + "/storage/v1/b"
-    headers = {
-        'x-retry-test-id': id,
-    }
-    params = (
-        ('project', 'test'),
-    )
-    r = requests.get(test_run_uri, headers=headers, params=params)
-    print(r.text)
+def _run_single_test(id, func, resource=None):
+    test_run_uri = _API_ACCESS_ENDPOINT + "/storage/v1/b?project=test"
+    client = storage.Client(client_options={"api_endpoint": test_run_uri})
+    client._http.headers.update({"x-retry-test-id": id})
+    r = func(client=client, resource=resource)
     return r.json()
-
-
-def _run_conformance_test(
-    resource, test_data, api_access_endpoint=_API_ACCESS_ENDPOINT
-):
-    # retry_success = make request to emulator (need a helper method make_request?)
-    assert retry_success == test_data["expectSuccess"]
 
 
 @pytest.mark.parametrize("test_data", _CONFORMANCE_TESTS)
@@ -389,9 +382,17 @@ def test_conformance_retry_strategy(test_data):
             id = r["id"]
             
             # get status with unique identifier
-            status_response = _get_status_check(id)
+            # status_response = _get_status_check(id)
 
             # run each single test for retry
-            test_response = _run_single_test(id)
-            stat_complete = status_response["completed"]
-            assert stat_complete == False
+            test_complete = False
+            while not test_complete:
+                try:
+                    _run_single_test(id, func=function)
+                    status_response = _get_status_check(id)
+                    test_complete = status_response["completed"]
+                except Exception as e:
+                    status_response = _get_status_check(id)
+                    test_complete = status_response["completed"]
+                    if test_complete:       # also need to check with expected_success
+                        assert test_complete == True
