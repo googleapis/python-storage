@@ -363,6 +363,11 @@ def _run_single_test(id, func, resource=None):
     return r.json()
 
 
+def _delete_retry_test(id):
+    status_get_uri = "{base}{retry}/{id}".format(base=_API_ACCESS_ENDPOINT, retry="/retry_test", id=id)
+    r = requests.delete(status_get_uri)
+
+
 @pytest.mark.parametrize("test_data", _CONFORMANCE_TESTS)
 def test_conformance_retry_strategy(test_data):
     methods = test_data["methods"]
@@ -395,4 +400,5 @@ def test_conformance_retry_strategy(test_data):
                     status_response = _get_status_check(id)
                     test_complete = status_response["completed"]
                     if test_complete:       # also need to check with expected_success
+                        _delete_retry_test(id)
                         assert test_complete == True
