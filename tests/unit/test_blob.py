@@ -688,105 +688,97 @@ class Test_Blob(unittest.TestCase):
         credentials = object()
         self._generate_signed_url_v4_helper(credentials=credentials)
 
-    def test_exists_miss(self):
-        NONESUCH = "nonesuch"
-        not_found_response = ({"status": http_client.NOT_FOUND}, b"")
-        connection = _Connection(not_found_response)
-        client = _Client(connection)
+    def test_exists_miss_w_defaults(self):
+        from google.cloud.exceptions import NotFound
+
+        blob_name = "nonesuch"
+        client = mock.Mock(spec=["_get_path"])
+        client._get_path.side_effect = NotFound("testing")
         bucket = _Bucket(client)
-        blob = self._make_one(NONESUCH, bucket=bucket)
-        self.assertFalse(blob.exists(timeout=42))
-        self.assertEqual(len(connection._requested), 1)
-        self.assertEqual(
-            connection._requested[0],
-            {
-                "method": "GET",
-                "path": "/b/name/o/{}".format(NONESUCH),
-                "query_params": {"fields": "name"},
-                "_target_object": None,
-                "timeout": 42,
-                "retry": DEFAULT_RETRY,
-            },
+        blob = self._make_one(blob_name, bucket=bucket)
+
+        self.assertFalse(blob.exists())
+
+        expected_query_params = {"fields": "name"}
+        client._get_path.assert_called_once_with(
+            blob.path,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
+            _target_object=None,
         )
 
-    def test_exists_hit_w_user_project(self):
-        BLOB_NAME = "blob-name"
-        USER_PROJECT = "user-project-123"
-        found_response = ({"status": http_client.OK}, b"")
-        connection = _Connection(found_response)
-        client = _Client(connection)
-        bucket = _Bucket(client, user_project=USER_PROJECT)
-        blob = self._make_one(BLOB_NAME, bucket=bucket)
-        bucket._blobs[BLOB_NAME] = 1
-        self.assertTrue(blob.exists())
-        self.assertEqual(len(connection._requested), 1)
-        self.assertEqual(
-            connection._requested[0],
-            {
-                "method": "GET",
-                "path": "/b/name/o/{}".format(BLOB_NAME),
-                "query_params": {"fields": "name", "userProject": USER_PROJECT},
-                "_target_object": None,
-                "timeout": self._get_default_timeout(),
-                "retry": DEFAULT_RETRY,
-            },
+    def test_exists_hit_w_user_project_w_timeout(self):
+        blob_name = "blob-name"
+        user_project = "user-project-123"
+        timeout = 42
+        api_response = {"name": blob_name}
+        client = mock.Mock(spec=["_get_path"])
+        client._get_path.return_value = api_response
+        bucket = _Bucket(client, user_project=user_project)
+        blob = self._make_one(blob_name, bucket=bucket)
+
+        self.assertTrue(blob.exists(timeout=timeout))
+
+        expected_query_params = {"fields": "name", "userProject": user_project}
+        client._get_path.assert_called_once_with(
+            blob.path,
+            query_params=expected_query_params,
+            timeout=timeout,
+            retry=DEFAULT_RETRY,
+            _target_object=None,
         )
 
-    def test_exists_hit_w_generation(self):
-        BLOB_NAME = "blob-name"
-        GENERATION = 123456
-        found_response = ({"status": http_client.OK}, b"")
-        connection = _Connection(found_response)
-        client = _Client(connection)
+    def test_exists_hit_w_generation_w_retry(self):
+        blob_name = "blob-name"
+        generation = 123456
+        api_response = {"name": blob_name}
+        retry = mock.Mock(spec=[])
+        client = mock.Mock(spec=["_get_path"])
+        client._get_path.return_value = api_response
         bucket = _Bucket(client)
-        blob = self._make_one(BLOB_NAME, bucket=bucket, generation=GENERATION)
-        bucket._blobs[BLOB_NAME] = 1
-        self.assertTrue(blob.exists())
-        self.assertEqual(len(connection._requested), 1)
-        self.assertEqual(
-            connection._requested[0],
-            {
-                "method": "GET",
-                "path": "/b/name/o/{}".format(BLOB_NAME),
-                "query_params": {"fields": "name", "generation": GENERATION},
-                "_target_object": None,
-                "timeout": self._get_default_timeout(),
-                "retry": DEFAULT_RETRY,
-            },
+        blob = self._make_one(blob_name, bucket=bucket, generation=generation)
+
+        self.assertTrue(blob.exists(retry=retry))
+
+        expected_query_params = {"fields": "name", "generation": generation}
+        client._get_path.assert_called_once_with(
+            blob.path,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=retry,
+            _target_object=None,
         )
 
     def test_exists_w_generation_match(self):
-        BLOB_NAME = "blob-name"
-        GENERATION_NUMBER = 123456
-        METAGENERATION_NUMBER = 6
-
-        found_response = ({"status": http_client.OK}, b"")
-        connection = _Connection(found_response)
-        client = _Client(connection)
+        blob_name = "blob-name"
+        generation_number = 123456
+        metageneration_number = 6
+        api_response = {"name": blob_name}
+        client = mock.Mock(spec=["_get_path"])
+        client._get_path.return_value = api_response
         bucket = _Bucket(client)
-        blob = self._make_one(BLOB_NAME, bucket=bucket)
-        bucket._blobs[BLOB_NAME] = 1
+        blob = self._make_one(blob_name, bucket=bucket)
+
         self.assertTrue(
             blob.exists(
-                if_generation_match=GENERATION_NUMBER,
-                if_metageneration_match=METAGENERATION_NUMBER,
+                if_generation_match=generation_number,
+                if_metageneration_match=metageneration_number,
+                retry=None,
             )
         )
-        self.assertEqual(len(connection._requested), 1)
-        self.assertEqual(
-            connection._requested[0],
-            {
-                "method": "GET",
-                "path": "/b/name/o/{}".format(BLOB_NAME),
-                "query_params": {
-                    "fields": "name",
-                    "ifGenerationMatch": GENERATION_NUMBER,
-                    "ifMetagenerationMatch": METAGENERATION_NUMBER,
-                },
-                "_target_object": None,
-                "timeout": self._get_default_timeout(),
-                "retry": DEFAULT_RETRY,
-            },
+
+        expected_query_params = {
+            "fields": "name",
+            "ifGenerationMatch": generation_number,
+            "ifMetagenerationMatch": metageneration_number,
+        }
+        client._get_path.assert_called_once_with(
+            blob.path,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=None,
+            _target_object=None,
         )
 
     def test_delete_wo_generation(self):
@@ -797,8 +789,9 @@ class Test_Blob(unittest.TestCase):
         bucket = _Bucket(client)
         blob = self._make_one(BLOB_NAME, bucket=bucket)
         bucket._blobs[BLOB_NAME] = 1
+
         blob.delete()
-        self.assertFalse(blob.exists())
+
         self.assertEqual(
             bucket._deleted,
             [
@@ -825,8 +818,9 @@ class Test_Blob(unittest.TestCase):
         bucket = _Bucket(client)
         blob = self._make_one(BLOB_NAME, bucket=bucket, generation=GENERATION)
         bucket._blobs[BLOB_NAME] = 1
+
         blob.delete(timeout=42)
-        self.assertFalse(blob.exists())
+
         self.assertEqual(
             bucket._deleted,
             [
@@ -853,8 +847,9 @@ class Test_Blob(unittest.TestCase):
         bucket = _Bucket(client)
         blob = self._make_one(BLOB_NAME, bucket=bucket, generation=GENERATION)
         bucket._blobs[BLOB_NAME] = 1
+
         blob.delete(timeout=42, if_generation_match=GENERATION)
-        self.assertFalse(blob.exists())
+
         self.assertEqual(
             bucket._deleted,
             [

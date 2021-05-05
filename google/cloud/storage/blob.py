@@ -704,20 +704,19 @@ class Blob(_PropertyMixin):
         try:
             # We intentionally pass `_target_object=None` since fields=name
             # would limit the local properties.
-            client._connection.api_request(
-                method="GET",
-                path=self.path,
+            client._get_path(
+                self.path,
                 query_params=query_params,
-                _target_object=None,
                 timeout=timeout,
                 retry=retry,
+                _target_object=None,
             )
+        except NotFound:
             # NOTE: This will not fail immediately in a batch. However, when
             #       Batch.finish() is called, the resulting `NotFound` will be
             #       raised.
-            return True
-        except NotFound:
             return False
+        return True
 
     def delete(
         self,
