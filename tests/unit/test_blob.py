@@ -3351,71 +3351,75 @@ class Test_Blob(unittest.TestCase):
         self.assertEqual(kw[0]["query_params"], {"userProject": USER_PROJECT})
         self.assertEqual(kw[0]["data"], {"resourceId": PATH})
 
-    def test_test_iam_permissions(self):
+    def test_test_iam_permissions_defaults(self):
         from google.cloud.storage.iam import STORAGE_OBJECTS_LIST
         from google.cloud.storage.iam import STORAGE_BUCKETS_GET
         from google.cloud.storage.iam import STORAGE_BUCKETS_UPDATE
 
-        BLOB_NAME = "blob-name"
-        PATH = "/b/name/o/%s" % (BLOB_NAME,)
-        PERMISSIONS = [
+        blob_name = "blob-name"
+        permissions = [
             STORAGE_OBJECTS_LIST,
             STORAGE_BUCKETS_GET,
             STORAGE_BUCKETS_UPDATE,
         ]
-        ALLOWED = PERMISSIONS[1:]
-        RETURNED = {"permissions": ALLOWED}
-        after = ({"status": http_client.OK}, RETURNED)
-        connection = _Connection(after)
-        client = _Client(connection)
+        expected = permissions[1:]
+        api_response = {"permissions": expected}
+        client = mock.Mock(spec=["_get_path"])
+        client._get_path.return_value = api_response
         bucket = _Bucket(client=client)
-        blob = self._make_one(BLOB_NAME, bucket=bucket)
+        blob = self._make_one(blob_name, bucket=bucket)
 
-        allowed = blob.test_iam_permissions(PERMISSIONS, timeout=42)
+        found = blob.test_iam_permissions(permissions)
 
-        self.assertEqual(allowed, ALLOWED)
+        self.assertEqual(found, expected)
 
-        kw = connection._requested
-        self.assertEqual(len(kw), 1)
-        self.assertEqual(kw[0]["method"], "GET")
-        self.assertEqual(kw[0]["path"], "%s/iam/testPermissions" % (PATH,))
-        self.assertEqual(kw[0]["query_params"], {"permissions": PERMISSIONS})
-        self.assertEqual(kw[0]["timeout"], 42)
+        expected_path = "/b/name/o/%s/iam/testPermissions" % (blob_name,)
+        expected_query_params = {"permissions": permissions}
+        client._get_path.assert_called_once_with(
+            expected_path,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
+            _target_object=None,
+        )
 
-    def test_test_iam_permissions_w_user_project(self):
+    def test_test_iam_permissions_w_user_project_w_timeout_w_retry(self):
         from google.cloud.storage.iam import STORAGE_OBJECTS_LIST
         from google.cloud.storage.iam import STORAGE_BUCKETS_GET
         from google.cloud.storage.iam import STORAGE_BUCKETS_UPDATE
 
-        BLOB_NAME = "blob-name"
-        USER_PROJECT = "user-project-123"
-        PATH = "/b/name/o/%s" % (BLOB_NAME,)
-        PERMISSIONS = [
+        blob_name = "blob-name"
+        user_project = "user-project-123"
+        timeout = 42
+        retry = mock.Mock(spec=[])
+        permissions = [
             STORAGE_OBJECTS_LIST,
             STORAGE_BUCKETS_GET,
             STORAGE_BUCKETS_UPDATE,
         ]
-        ALLOWED = PERMISSIONS[1:]
-        RETURNED = {"permissions": ALLOWED}
-        after = ({"status": http_client.OK}, RETURNED)
-        connection = _Connection(after)
-        client = _Client(connection)
-        bucket = _Bucket(client=client, user_project=USER_PROJECT)
-        blob = self._make_one(BLOB_NAME, bucket=bucket)
+        expected = permissions[1:]
+        api_response = {"permissions": expected}
+        client = mock.Mock(spec=["_get_path"])
+        client._get_path.return_value = api_response
+        bucket = _Bucket(client=client, user_project=user_project)
+        blob = self._make_one(blob_name, bucket=bucket)
 
-        allowed = blob.test_iam_permissions(PERMISSIONS)
+        found = blob.test_iam_permissions(permissions, timeout=timeout, retry=retry)
 
-        self.assertEqual(allowed, ALLOWED)
+        self.assertEqual(found, expected)
 
-        kw = connection._requested
-        self.assertEqual(len(kw), 1)
-        self.assertEqual(kw[0]["method"], "GET")
-        self.assertEqual(kw[0]["path"], "%s/iam/testPermissions" % (PATH,))
-        self.assertEqual(
-            kw[0]["query_params"],
-            {"permissions": PERMISSIONS, "userProject": USER_PROJECT},
+        expected_path = "/b/name/o/%s/iam/testPermissions" % (blob_name,)
+        expected_query_params = {
+            "permissions": permissions,
+            "userProject": user_project,
+        }
+        client._get_path.assert_called_once_with(
+            expected_path,
+            query_params=expected_query_params,
+            timeout=timeout,
+            retry=retry,
+            _target_object=None,
         )
-        self.assertEqual(kw[0]["timeout"], self._get_default_timeout())
 
     def test_make_public(self):
         from google.cloud.storage.acl import _ACLEntity
