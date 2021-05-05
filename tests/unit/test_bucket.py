@@ -2473,115 +2473,129 @@ class Test_Bucket(unittest.TestCase):
         bucket.disable_website()
         self.assertEqual(bucket._properties, UNSET)
 
-    def test_get_iam_policy(self):
+    def test_get_iam_policy_defaults(self):
         from google.cloud.storage.iam import STORAGE_OWNER_ROLE
         from google.cloud.storage.iam import STORAGE_EDITOR_ROLE
         from google.cloud.storage.iam import STORAGE_VIEWER_ROLE
         from google.api_core.iam import Policy
 
-        NAME = "name"
-        PATH = "/b/%s" % (NAME,)
-        ETAG = "DEADBEEF"
-        VERSION = 1
-        OWNER1 = "user:phred@example.com"
-        OWNER2 = "group:cloud-logs@google.com"
-        EDITOR1 = "domain:google.com"
-        EDITOR2 = "user:phred@example.com"
-        VIEWER1 = "serviceAccount:1234-abcdef@service.example.com"
-        VIEWER2 = "user:phred@example.com"
-        RETURNED = {
-            "resourceId": PATH,
-            "etag": ETAG,
-            "version": VERSION,
+        bucket_name = "name"
+        path = "/b/%s" % (bucket_name,)
+        etag = "DEADBEEF"
+        version = 1
+        owner1 = "user:phred@example.com"
+        owner2 = "group:cloud-logs@google.com"
+        editor1 = "domain:google.com"
+        editor2 = "user:phred@example.com"
+        viewer1 = "serviceAccount:1234-abcdef@service.example.com"
+        viewer2 = "user:phred@example.com"
+        api_response = {
+            "resourceId": path,
+            "etag": etag,
+            "version": version,
             "bindings": [
-                {"role": STORAGE_OWNER_ROLE, "members": [OWNER1, OWNER2]},
-                {"role": STORAGE_EDITOR_ROLE, "members": [EDITOR1, EDITOR2]},
-                {"role": STORAGE_VIEWER_ROLE, "members": [VIEWER1, VIEWER2]},
+                {"role": STORAGE_OWNER_ROLE, "members": [owner1, owner2]},
+                {"role": STORAGE_EDITOR_ROLE, "members": [editor1, editor2]},
+                {"role": STORAGE_VIEWER_ROLE, "members": [viewer1, viewer2]},
             ],
         }
-        EXPECTED = {
-            binding["role"]: set(binding["members"]) for binding in RETURNED["bindings"]
+        expected_policy = {
+            binding["role"]: set(binding["members"])
+            for binding in api_response["bindings"]
         }
-        connection = _Connection(RETURNED)
-        client = _Client(connection, None)
-        bucket = self._make_one(client=client, name=NAME)
-
-        policy = bucket.get_iam_policy(timeout=42)
-
-        self.assertIsInstance(policy, Policy)
-        self.assertEqual(policy.etag, RETURNED["etag"])
-        self.assertEqual(policy.version, RETURNED["version"])
-        self.assertEqual(dict(policy), EXPECTED)
-
-        kw = connection._requested
-        self.assertEqual(len(kw), 1)
-        self.assertEqual(kw[0]["method"], "GET")
-        self.assertEqual(kw[0]["path"], "%s/iam" % (PATH,))
-        self.assertEqual(kw[0]["query_params"], {})
-        self.assertEqual(kw[0]["timeout"], 42)
-
-    def test_get_iam_policy_w_user_project(self):
-        from google.api_core.iam import Policy
-
-        NAME = "name"
-        USER_PROJECT = "user-project-123"
-        PATH = "/b/%s" % (NAME,)
-        ETAG = "DEADBEEF"
-        VERSION = 1
-        RETURNED = {
-            "resourceId": PATH,
-            "etag": ETAG,
-            "version": VERSION,
-            "bindings": [],
-        }
-        EXPECTED = {}
-        connection = _Connection(RETURNED)
-        client = _Client(connection, None)
-        bucket = self._make_one(client=client, name=NAME, user_project=USER_PROJECT)
+        client = mock.Mock(spec=["_get_path"])
+        client._get_path.return_value = api_response
+        bucket = self._make_one(client=client, name=bucket_name)
 
         policy = bucket.get_iam_policy()
 
         self.assertIsInstance(policy, Policy)
-        self.assertEqual(policy.etag, RETURNED["etag"])
-        self.assertEqual(policy.version, RETURNED["version"])
-        self.assertEqual(dict(policy), EXPECTED)
+        self.assertEqual(policy.etag, api_response["etag"])
+        self.assertEqual(policy.version, api_response["version"])
+        self.assertEqual(dict(policy), expected_policy)
 
-        kw = connection._requested
-        self.assertEqual(len(kw), 1)
-        self.assertEqual(kw[0]["method"], "GET")
-        self.assertEqual(kw[0]["path"], "%s/iam" % (PATH,))
-        self.assertEqual(kw[0]["query_params"], {"userProject": USER_PROJECT})
-        self.assertEqual(kw[0]["timeout"], self._get_default_timeout())
+        expected_path = "/b/%s/iam" % (bucket_name,)
+        expected_query_params = {}
+        client._get_path.assert_called_once_with(
+            expected_path,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
+            _target_object=None,
+        )
 
-    def test_get_iam_policy_w_requested_policy_version(self):
+    def test_get_iam_policy_w_user_project_w_timeout(self):
+        from google.api_core.iam import Policy
+
+        bucket_name = "name"
+        timeout = 42
+        user_project = "user-project-123"
+        path = "/b/%s" % (bucket_name,)
+        etag = "DEADBEEF"
+        version = 1
+        api_response = {
+            "resourceId": path,
+            "etag": etag,
+            "version": version,
+            "bindings": [],
+        }
+        expected_policy = {}
+        client = mock.Mock(spec=["_get_path"])
+        client._get_path.return_value = api_response
+        bucket = self._make_one(
+            client=client, name=bucket_name, user_project=user_project
+        )
+
+        policy = bucket.get_iam_policy(timeout=timeout)
+
+        self.assertIsInstance(policy, Policy)
+        self.assertEqual(policy.etag, api_response["etag"])
+        self.assertEqual(policy.version, api_response["version"])
+        self.assertEqual(dict(policy), expected_policy)
+
+        expected_path = "/b/%s/iam" % (bucket_name,)
+        expected_query_params = {"userProject": user_project}
+        client._get_path.assert_called_once_with(
+            expected_path,
+            query_params=expected_query_params,
+            timeout=timeout,
+            retry=DEFAULT_RETRY,
+            _target_object=None,
+        )
+
+    def test_get_iam_policy_w_requested_policy_version_w_retry(self):
         from google.cloud.storage.iam import STORAGE_OWNER_ROLE
 
-        NAME = "name"
-        PATH = "/b/%s" % (NAME,)
-        ETAG = "DEADBEEF"
-        VERSION = 1
-        OWNER1 = "user:phred@example.com"
-        OWNER2 = "group:cloud-logs@google.com"
-        RETURNED = {
-            "resourceId": PATH,
-            "etag": ETAG,
-            "version": VERSION,
-            "bindings": [{"role": STORAGE_OWNER_ROLE, "members": [OWNER1, OWNER2]}],
+        bucket_name = "name"
+        path = "/b/%s" % (bucket_name,)
+        etag = "DEADBEEF"
+        version = 3
+        owner1 = "user:phred@example.com"
+        owner2 = "group:cloud-logs@google.com"
+        api_response = {
+            "resourceId": path,
+            "etag": etag,
+            "version": version,
+            "bindings": [{"role": STORAGE_OWNER_ROLE, "members": [owner1, owner2]}],
         }
-        connection = _Connection(RETURNED)
-        client = _Client(connection, None)
-        bucket = self._make_one(client=client, name=NAME)
+        retry = mock.Mock(spec=[])
+        client = mock.Mock(spec=["_get_path"])
+        client._get_path.return_value = api_response
+        bucket = self._make_one(client=client, name=bucket_name)
 
-        policy = bucket.get_iam_policy(requested_policy_version=3)
+        policy = bucket.get_iam_policy(requested_policy_version=3, retry=retry)
 
-        self.assertEqual(policy.version, VERSION)
+        self.assertEqual(policy.version, version)
 
-        kw = connection._requested
-        self.assertEqual(len(kw), 1)
-        self.assertEqual(kw[0]["method"], "GET")
-        self.assertEqual(kw[0]["path"], "%s/iam" % (PATH,))
-        self.assertEqual(kw[0]["query_params"], {"optionsRequestedPolicyVersion": 3})
-        self.assertEqual(kw[0]["timeout"], self._get_default_timeout())
+        expected_path = "/b/%s/iam" % (bucket_name,)
+        expected_query_params = {"optionsRequestedPolicyVersion": version}
+        client._get_path.assert_called_once_with(
+            expected_path,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=retry,
+            _target_object=None,
+        )
 
     def test_set_iam_policy(self):
         import operator
