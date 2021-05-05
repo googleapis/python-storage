@@ -409,6 +409,64 @@ class TestClient(unittest.TestCase):
         self.assertIsInstance(batch, Batch)
         self.assertIs(batch._client, client)
 
+    def test__get_path_miss_w_defaults(self):
+        from google.cloud.exceptions import NotFound
+
+        PROJECT = "PROJECT"
+        PATH = "/path/to/something"
+        CREDENTIALS = _make_credentials()
+
+        client = self._make_one(project=PROJECT, credentials=CREDENTIALS)
+        connection = client._base_connection = _make_connection()
+
+        with self.assertRaises(NotFound):
+            client._get_path(PATH)
+
+        connection.api_request.assert_called_once_with(
+            method="GET",
+            path=PATH,
+            query_params=None,
+            headers=None,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
+            _target_object=None,
+        )
+
+    def test__get_path_hit_w_explicit(self):
+        PROJECT = "PROJECT"
+        PATH = "/path/to/something"
+        QUERY_PARAMS = {"foo": "Foo"}
+        HEADERS = {"bar": "Bar"}
+        TIMEOUT = 100
+        RETRY = mock.Mock(spec=[])
+        CREDENTIALS = _make_credentials()
+
+        client = self._make_one(project=PROJECT, credentials=CREDENTIALS)
+        expected = mock.Mock(spec={})
+        connection = client._base_connection = _make_connection(expected)
+        target = mock.Mock(spec={})
+
+        found = client._get_path(
+            PATH,
+            query_params=QUERY_PARAMS,
+            headers=HEADERS,
+            timeout=TIMEOUT,
+            retry=RETRY,
+            _target_object=target,
+        )
+
+        self.assertIs(found, expected)
+
+        connection.api_request.assert_called_once_with(
+            method="GET",
+            path=PATH,
+            query_params=QUERY_PARAMS,
+            headers=HEADERS,
+            timeout=TIMEOUT,
+            retry=RETRY,
+            _target_object=target,
+        )
+        
     def test_get_bucket_with_string_miss(self):
         from google.cloud.exceptions import NotFound
 
