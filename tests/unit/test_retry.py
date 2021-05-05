@@ -23,6 +23,8 @@ import mock
 import pytest
 import requests
 
+import http
+http.client.HTTPConnection.debuglevel=5
 
 class Test_should_retry(unittest.TestCase):
     def _call_fut(self, exc):
@@ -315,14 +317,10 @@ method_mapping = {
         get_bucket 
     ],
     "storage.objects.get": [
-        # get_blob(client, resource),
-        # download_blob_to_file(client, resource)
         get_bucket,
         get_bucket 
     ],
     "storage.buckets.get": [
-        # reload_bucket(client, resource),
-        # (lambda client, resource: client.get_bucket(resource["bucket"]["name"]))
         get_bucket
     ],
     "storage.notification.create": [
@@ -407,10 +405,7 @@ def test_conformance_retry_strategy(test_data):
                 continue
 
             # run each single test for retry
-            try:
-                _run_single_test(id, func=function)
-            except Exception as e:
-                pass
+            _run_single_test(id, func=function)
 
             # check if all instructions are dequed
             status_response = _get_status_check(id)
