@@ -650,95 +650,72 @@ class Test_Bucket(unittest.TestCase):
         bucket._user_project = USER_PROJECT
         self.assertEqual(bucket.user_project, USER_PROJECT)
 
-    def test_exists_miss(self):
+    def test_exists_miss_w_defaults(self):
         from google.cloud.exceptions import NotFound
 
-        class _FakeConnection(object):
+        bucket_name = "bucket-name"
+        client = mock.Mock(spec=["_get_path"])
+        client._get_path.side_effect = NotFound("testing")
+        bucket = self._make_one(client, name=bucket_name)
 
-            _called_with = []
+        self.assertFalse(bucket.exists())
 
-            @classmethod
-            def api_request(cls, *args, **kwargs):
-                cls._called_with.append((args, kwargs))
-                raise NotFound(args)
-
-        BUCKET_NAME = "bucket-name"
-        bucket = self._make_one(name=BUCKET_NAME)
-        client = _Client(_FakeConnection)
-        self.assertFalse(bucket.exists(client=client, timeout=42))
-        expected_called_kwargs = {
-            "method": "GET",
-            "path": bucket.path,
-            "query_params": {"fields": "name"},
-            "_target_object": None,
-            "timeout": 42,
-            "retry": DEFAULT_RETRY,
-        }
-        expected_cw = [((), expected_called_kwargs)]
-        self.assertEqual(_FakeConnection._called_with, expected_cw)
-
-    def test_exists_with_metageneration_match(self):
-        class _FakeConnection(object):
-
-            _called_with = []
-
-            @classmethod
-            def api_request(cls, *args, **kwargs):
-                cls._called_with.append((args, kwargs))
-                # exists() does not use the return value
-                return object()
-
-        BUCKET_NAME = "bucket-name"
-        METAGENERATION_NUMBER = 6
-
-        bucket = self._make_one(name=BUCKET_NAME)
-        client = _Client(_FakeConnection)
-        self.assertTrue(
-            bucket.exists(
-                client=client, timeout=42, if_metageneration_match=METAGENERATION_NUMBER
-            )
+        expected_query_params = {"fields": "name"}
+        client._get_path.assert_called_once_with(
+            bucket.path,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
+            _target_object=None,
         )
-        expected_called_kwargs = {
-            "method": "GET",
-            "path": bucket.path,
-            "query_params": {
-                "fields": "name",
-                "ifMetagenerationMatch": METAGENERATION_NUMBER,
-            },
-            "_target_object": None,
-            "timeout": 42,
-            "retry": DEFAULT_RETRY,
+
+    def test_exists_w_metageneration_match_w_timeout(self):
+        bucket_name = "bucket-name"
+        metageneration_number = 6
+        timeout = 42
+        api_response = {"name": bucket_name}
+        client = mock.Mock(spec=["_get_path"])
+        client._get_path.return_value = api_response
+        bucket = self._make_one(client, name=bucket_name)
+
+        self.assertTrue(
+            bucket.exists(timeout=42, if_metageneration_match=metageneration_number)
+        )
+
+        expected_query_params = {
+            "fields": "name",
+            "ifMetagenerationMatch": metageneration_number,
         }
-        expected_cw = [((), expected_called_kwargs)]
-        self.assertEqual(_FakeConnection._called_with, expected_cw)
+        client._get_path.assert_called_once_with(
+            bucket.path,
+            query_params=expected_query_params,
+            timeout=timeout,
+            retry=DEFAULT_RETRY,
+            _target_object=None,
+        )
 
-    def test_exists_hit_w_user_project(self):
-        USER_PROJECT = "user-project-123"
+    def test_exists_hit_w_user_project_w_retry_w_explicit_client(self):
+        bucket_name = "bucket-name"
+        user_project = "user-project-123"
+        retry = mock.Mock(spec=[])
+        api_response = {"name": bucket_name}
+        client = mock.Mock(spec=["_get_path"])
+        client._get_path.return_value = api_response
+        bucket = self._make_one(name=bucket_name, user_project=user_project)
 
-        class _FakeConnection(object):
+        self.assertTrue(bucket.exists(client=client, retry=retry))
 
-            _called_with = []
-
-            @classmethod
-            def api_request(cls, *args, **kwargs):
-                cls._called_with.append((args, kwargs))
-                # exists() does not use the return value
-                return object()
-
-        BUCKET_NAME = "bucket-name"
-        bucket = self._make_one(name=BUCKET_NAME, user_project=USER_PROJECT)
-        client = _Client(_FakeConnection)
-        self.assertTrue(bucket.exists(client=client))
-        expected_called_kwargs = {
-            "method": "GET",
-            "path": bucket.path,
-            "query_params": {"fields": "name", "userProject": USER_PROJECT},
-            "_target_object": None,
-            "timeout": self._get_default_timeout(),
-            "retry": DEFAULT_RETRY,
+        expected_query_params = {
+            "fields": "name",
+            "userProject": user_project,
         }
-        expected_cw = [((), expected_called_kwargs)]
-        self.assertEqual(_FakeConnection._called_with, expected_cw)
+        client._get_path.assert_called_once_with(
+            bucket.path,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=retry,
+            _target_object=None,
+        )
 
     def test_acl_property(self):
         from google.cloud.storage.acl import BucketACL
