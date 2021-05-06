@@ -2802,15 +2802,12 @@ class Test_Bucket(unittest.TestCase):
         permissive = [{"entity": "allUsers", "role": _ACLEntity.READER_ROLE}]
         after1 = {"acl": permissive, "defaultObjectAcl": []}
         after2 = {"acl": permissive, "defaultObjectAcl": permissive}
-        if default_object_acl_loaded:
-            num_requests = 2
-            connection = _Connection(after1, after2)
-        else:
-            num_requests = 3
-            # We return the same value for default_object_acl.reload()
-            # to consume.
-            connection = _Connection(after1, after1, after2)
+        connection = _Connection(after1, after2)
         client = _Client(connection)
+
+        # Temporary workaround until we use real mock client
+        client._get_path = mock.Mock(return_value={"items": []})
+
         bucket = self._make_one(client=client, name=NAME)
         bucket.acl.loaded = True
         bucket.default_object_acl.loaded = default_object_acl_loaded
@@ -2818,21 +2815,27 @@ class Test_Bucket(unittest.TestCase):
         self.assertEqual(list(bucket.acl), permissive)
         self.assertEqual(list(bucket.default_object_acl), permissive)
         kw = connection._requested
-        self.assertEqual(len(kw), num_requests)
+        self.assertEqual(len(kw), 2)
         self.assertEqual(kw[0]["method"], "PATCH")
         self.assertEqual(kw[0]["path"], "/b/%s" % NAME)
         self.assertEqual(kw[0]["data"], {"acl": permissive})
         self.assertEqual(kw[0]["query_params"], {"projection": "full"})
         self.assertEqual(kw[0]["timeout"], self._get_default_timeout())
+        self.assertEqual(kw[1]["method"], "PATCH")
+        self.assertEqual(kw[1]["path"], "/b/%s" % NAME)
+        self.assertEqual(kw[1]["data"], {"defaultObjectAcl": permissive})
+        self.assertEqual(kw[1]["query_params"], {"projection": "full"})
+        self.assertEqual(kw[1]["timeout"], self._get_default_timeout())
+
         if not default_object_acl_loaded:
-            self.assertEqual(kw[1]["method"], "GET")
-            self.assertEqual(kw[1]["path"], "/b/%s/defaultObjectAcl" % NAME)
-        # Last could be 1 or 2 depending on `default_object_acl_loaded`.
-        self.assertEqual(kw[-1]["method"], "PATCH")
-        self.assertEqual(kw[-1]["path"], "/b/%s" % NAME)
-        self.assertEqual(kw[-1]["data"], {"defaultObjectAcl": permissive})
-        self.assertEqual(kw[-1]["query_params"], {"projection": "full"})
-        self.assertEqual(kw[-1]["timeout"], self._get_default_timeout())
+            expected_path = "/b/%s/defaultObjectAcl" % (NAME,)
+            expected_query_params = {}
+            client._get_path.assert_called_once_with(
+                expected_path,
+                query_params=expected_query_params,
+                timeout=self._get_default_timeout(),
+                retry=DEFAULT_RETRY,
+            )
 
     def test_make_public_w_future(self):
         self._make_public_w_future_helper(default_object_acl_loaded=True)
@@ -2950,37 +2953,40 @@ class Test_Bucket(unittest.TestCase):
         no_permissions = []
         after1 = {"acl": no_permissions, "defaultObjectAcl": []}
         after2 = {"acl": no_permissions, "defaultObjectAcl": no_permissions}
-        if default_object_acl_loaded:
-            num_requests = 2
-            connection = _Connection(after1, after2)
-        else:
-            num_requests = 3
-            # We return the same value for default_object_acl.reload()
-            # to consume.
-            connection = _Connection(after1, after1, after2)
+        connection = _Connection(after1, after2)
         client = _Client(connection)
         bucket = self._make_one(client=client, name=NAME)
         bucket.acl.loaded = True
         bucket.default_object_acl.loaded = default_object_acl_loaded
+
+        # Temporary workaround until we use real mock client
+        client._get_path = mock.Mock(return_value={"items": []})
+
         bucket.make_private(future=True)
         self.assertEqual(list(bucket.acl), no_permissions)
         self.assertEqual(list(bucket.default_object_acl), no_permissions)
         kw = connection._requested
-        self.assertEqual(len(kw), num_requests)
+        self.assertEqual(len(kw), 2)
         self.assertEqual(kw[0]["method"], "PATCH")
         self.assertEqual(kw[0]["path"], "/b/%s" % NAME)
         self.assertEqual(kw[0]["data"], {"acl": no_permissions})
         self.assertEqual(kw[0]["query_params"], {"projection": "full"})
         self.assertEqual(kw[0]["timeout"], self._get_default_timeout())
+        self.assertEqual(kw[1]["method"], "PATCH")
+        self.assertEqual(kw[1]["path"], "/b/%s" % NAME)
+        self.assertEqual(kw[1]["data"], {"defaultObjectAcl": no_permissions})
+        self.assertEqual(kw[1]["query_params"], {"projection": "full"})
+        self.assertEqual(kw[1]["timeout"], self._get_default_timeout())
+
         if not default_object_acl_loaded:
-            self.assertEqual(kw[1]["method"], "GET")
-            self.assertEqual(kw[1]["path"], "/b/%s/defaultObjectAcl" % NAME)
-        # Last could be 1 or 2 depending on `default_object_acl_loaded`.
-        self.assertEqual(kw[-1]["method"], "PATCH")
-        self.assertEqual(kw[-1]["path"], "/b/%s" % NAME)
-        self.assertEqual(kw[-1]["data"], {"defaultObjectAcl": no_permissions})
-        self.assertEqual(kw[-1]["query_params"], {"projection": "full"})
-        self.assertEqual(kw[-1]["timeout"], self._get_default_timeout())
+            expected_path = "/b/%s/defaultObjectAcl" % (NAME,)
+            expected_query_params = {}
+            client._get_path.assert_called_once_with(
+                expected_path,
+                query_params=expected_query_params,
+                timeout=self._get_default_timeout(),
+                retry=DEFAULT_RETRY,
+            )
 
     def test_make_private_w_future(self):
         self._make_private_w_future_helper(default_object_acl_loaded=True)
