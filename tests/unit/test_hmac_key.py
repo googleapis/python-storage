@@ -218,31 +218,29 @@ class TestHMACKeyMetadata(unittest.TestCase):
         expected_path = "/projects/{}/hmacKeys/{}".format(project, access_id)
         self.assertEqual(metadata.path, expected_path)
 
-    def test_exists_miss_no_project_set(self):
+    def test_exists_miss_w_defaults(self):
         from google.cloud.exceptions import NotFound
 
         access_id = "ACCESS-ID"
-        connection = mock.Mock(spec=["api_request"])
-        connection.api_request.side_effect = NotFound("testing")
-        client = _Client(connection)
+        project = "PROJECT"
+        client = mock.Mock(spec=["_get_path", "project"])
+        client._get_path.side_effect = NotFound("testing")
+        client.project = project
         metadata = self._make_one(client)
         metadata._properties["accessId"] = access_id
 
-        self.assertFalse(metadata.exists(timeout=42))
+        self.assertFalse(metadata.exists())
 
-        expected_path = "/projects/{}/hmacKeys/{}".format(
-            client.DEFAULT_PROJECT, access_id
+        expected_path = "/projects/{}/hmacKeys/{}".format(project, access_id)
+        expected_query_params = {}
+        client._get_path.assert_called_once_with(
+            expected_path,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
         )
-        expected_kwargs = {
-            "method": "GET",
-            "path": expected_path,
-            "query_params": {},
-            "timeout": 42,
-            "retry": DEFAULT_RETRY,
-        }
-        connection.api_request.assert_called_once_with(**expected_kwargs)
 
-    def test_exists_hit_w_project_set(self):
+    def test_exists_hit_w_user_project_w_timeout_w_retry(self):
         project = "PROJECT-ID"
         access_id = "ACCESS-ID"
         user_project = "billed-project"
@@ -252,24 +250,24 @@ class TestHMACKeyMetadata(unittest.TestCase):
             "accessId": access_id,
             "serviceAccountEmail": email,
         }
-        connection = mock.Mock(spec=["api_request"])
-        connection.api_request.return_value = resource
-        client = _Client(connection)
+        timeout = 42
+        retry = mock.Mock(spec=[])
+        client = mock.Mock(spec=["_get_path"])
+        client._get_path.return_value = resource
         metadata = self._make_one(client, user_project=user_project)
         metadata._properties["accessId"] = access_id
         metadata._properties["projectId"] = project
 
-        self.assertTrue(metadata.exists())
+        self.assertTrue(metadata.exists(timeout=timeout, retry=retry))
 
         expected_path = "/projects/{}/hmacKeys/{}".format(project, access_id)
-        expected_kwargs = {
-            "method": "GET",
-            "path": expected_path,
-            "query_params": {"userProject": user_project},
-            "timeout": self._get_default_timeout(),
-            "retry": DEFAULT_RETRY,
-        }
-        connection.api_request.assert_called_once_with(**expected_kwargs)
+        expected_query_params = {"userProject": user_project}
+        client._get_path.assert_called_once_with(
+            expected_path,
+            query_params=expected_query_params,
+            timeout=timeout,
+            retry=retry,
+        )
 
     def test_reload_miss_no_project_set(self):
         from google.cloud.exceptions import NotFound
