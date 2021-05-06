@@ -783,8 +783,7 @@ class Test_Blob(unittest.TestCase):
 
     def test_delete_wo_generation(self):
         BLOB_NAME = "blob-name"
-        not_found_response = ({"status": http_client.NOT_FOUND}, b"")
-        connection = _Connection(not_found_response)
+        connection = _Connection()  # no requests will be made
         client = _Client(connection)
         bucket = _Bucket(client)
         blob = self._make_one(BLOB_NAME, bucket=bucket)
@@ -812,8 +811,7 @@ class Test_Blob(unittest.TestCase):
     def test_delete_w_generation(self):
         BLOB_NAME = "blob-name"
         GENERATION = 123456
-        not_found_response = ({"status": http_client.NOT_FOUND}, b"")
-        connection = _Connection(not_found_response)
+        connection = _Connection()  # no requests will be made
         client = _Client(connection)
         bucket = _Bucket(client)
         blob = self._make_one(BLOB_NAME, bucket=bucket, generation=GENERATION)
@@ -841,8 +839,7 @@ class Test_Blob(unittest.TestCase):
     def test_delete_w_generation_match(self):
         BLOB_NAME = "blob-name"
         GENERATION = 123456
-        not_found_response = ({"status": http_client.NOT_FOUND}, b"")
-        connection = _Connection(not_found_response)
+        connection = _Connection()  # no requests will be made
         client = _Client(connection)
         bucket = _Bucket(client)
         blob = self._make_one(BLOB_NAME, bucket=bucket, generation=GENERATION)
@@ -4887,11 +4884,7 @@ class _Connection(object):
         return response
 
     def api_request(self, **kw):
-        from google.cloud.exceptions import NotFound
-
         info, content = self._respond(**kw)
-        if info.get("status") == http_client.NOT_FOUND:
-            raise NotFound(info)
         return content
 
 
