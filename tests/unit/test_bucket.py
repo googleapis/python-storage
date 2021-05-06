@@ -1035,44 +1035,76 @@ class Test_Bucket(unittest.TestCase):
                 notification.payload_format, resource.get("payload_format")
             )
 
-    def test_get_notification(self):
+    def test_get_notification_miss_w_defaults(self):
+        from google.cloud.exceptions import NotFound
+
+        project = "my-project-123"
+        name = "name"
+        notification_id = "1"
+
+        client = mock.Mock(spec=["_get_path", "project"])
+        client._get_path.side_effect = NotFound("testing")
+        client.project = project
+        bucket = self._make_one(client=client, name=name)
+
+        with self.assertRaises(NotFound):
+            bucket.get_notification(notification_id=notification_id)
+
+        expected_path = "/b/{}/notificationConfigs/{}".format(name, notification_id)
+        expected_query_params = {}
+        client._get_path.assert_called_once_with(
+            expected_path,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
+        )
+
+    def test_get_notification_hit_w_explicit_w_user_project(self):
+        from google.cloud.storage.notification import BucketNotification
         from google.cloud.storage.notification import _TOPIC_REF_FMT
         from google.cloud.storage.notification import JSON_API_V1_PAYLOAD_FORMAT
 
-        NAME = "name"
-        ETAG = "FACECABB"
-        NOTIFICATION_ID = "1"
-        SELF_LINK = "https://example.com/notification/1"
-        resources = {
+        project = "my-project-123"
+        user_project = "user-project-456"
+        name = "name"
+        etag = "FACECABB"
+        notification_id = "1"
+        self_link = "https://example.com/notification/1"
+        api_response = {
             "topic": _TOPIC_REF_FMT.format("my-project-123", "topic-1"),
-            "id": NOTIFICATION_ID,
-            "etag": ETAG,
-            "selfLink": SELF_LINK,
+            "id": notification_id,
+            "etag": etag,
+            "selfLink": self_link,
             "payload_format": JSON_API_V1_PAYLOAD_FORMAT,
         }
+        timeout = 42
+        retry = mock.Mock(spec=[])
+        client = mock.Mock(spec=["_get_path", "project"])
+        client._get_path.return_value = api_response
+        client.project = project
+        bucket = self._make_one(client=client, name=name, user_project=user_project)
 
-        connection = _make_connection(resources)
-        client = _Client(connection, project="my-project-123")
-        bucket = self._make_one(client=client, name=NAME)
-        notification = bucket.get_notification(notification_id=NOTIFICATION_ID)
+        notification = bucket.get_notification(
+            notification_id=notification_id, timeout=timeout, retry=retry,
+        )
 
-        self.assertEqual(notification.notification_id, NOTIFICATION_ID)
-        self.assertEqual(notification.etag, ETAG)
-        self.assertEqual(notification.self_link, SELF_LINK)
+        self.assertIsInstance(notification, BucketNotification)
+        self.assertEqual(notification.notification_id, notification_id)
+        self.assertEqual(notification.etag, etag)
+        self.assertEqual(notification.self_link, self_link)
         self.assertIsNone(notification.custom_attributes)
         self.assertIsNone(notification.event_types)
         self.assertIsNone(notification.blob_name_prefix)
         self.assertEqual(notification.payload_format, JSON_API_V1_PAYLOAD_FORMAT)
 
-    def test_get_notification_miss(self):
-        from google.cloud.exceptions import NotFound
-
-        response = NotFound("testing")
-        connection = _make_connection(response)
-        client = _Client(connection, project="my-project-123")
-        bucket = self._make_one(client=client, name="name")
-        with self.assertRaises(NotFound):
-            bucket.get_notification(notification_id="1")
+        expected_path = "/b/{}/notificationConfigs/{}".format(name, notification_id)
+        expected_query_params = {"userProject": user_project}
+        client._get_path.assert_called_once_with(
+            expected_path,
+            query_params=expected_query_params,
+            timeout=timeout,
+            retry=retry,
+        )
 
     def test_delete_miss(self):
         from google.cloud.exceptions import NotFound
