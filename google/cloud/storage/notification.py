@@ -323,12 +323,8 @@ class BucketNotification(object):
             query_params["userProject"] = self.bucket.user_project
 
         try:
-            client._connection.api_request(
-                method="GET",
-                path=self.path,
-                query_params=query_params,
-                timeout=timeout,
-                retry=retry,
+            client._get_path(
+                self.path, query_params=query_params, timeout=timeout, retry=retry,
             )
         except NotFound:
             return False
