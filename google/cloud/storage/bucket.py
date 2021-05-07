@@ -3068,7 +3068,7 @@ class Bucket(_PropertyMixin):
             for each blob.
         """
         self.acl.all().grant_read()
-        self.acl.save(client=client, timeout=timeout)
+        self.acl.save(client=client, timeout=timeout, retry=retry)
 
         if future:
             doa = self.default_object_acl
@@ -3099,7 +3099,7 @@ class Bucket(_PropertyMixin):
 
             for blob in blobs:
                 blob.acl.all().grant_read()
-                blob.acl.save(client=client, timeout=timeout)
+                blob.acl.save(client=client, timeout=timeout, retry=retry)
 
     def make_private(
         self,

@@ -2808,59 +2808,72 @@ class Test_Bucket(unittest.TestCase):
     def test_make_public_defaults(self):
         from google.cloud.storage.acl import _ACLEntity
 
-        NAME = "name"
+        name = "name"
         permissive = [{"entity": "allUsers", "role": _ACLEntity.READER_ROLE}]
-        after = {"acl": permissive, "defaultObjectAcl": []}
-        connection = _Connection(after)
-        client = _Client(connection)
-        bucket = self._make_one(client=client, name=NAME)
+        api_response = {"acl": permissive, "defaultObjectAcl": []}
+        client = mock.Mock(spec=["_patch_resource"])
+        client._patch_resource.return_value = api_response
+        bucket = self._make_one(client=client, name=name)
         bucket.acl.loaded = True
         bucket.default_object_acl.loaded = True
+
         bucket.make_public()
+
         self.assertEqual(list(bucket.acl), permissive)
         self.assertEqual(list(bucket.default_object_acl), [])
-        kw = connection._requested
-        self.assertEqual(len(kw), 1)
-        self.assertEqual(kw[0]["method"], "PATCH")
-        self.assertEqual(kw[0]["path"], "/b/%s" % NAME)
-        self.assertEqual(kw[0]["data"], {"acl": after["acl"]})
-        self.assertEqual(kw[0]["query_params"], {"projection": "full"})
-        self.assertEqual(kw[0]["timeout"], self._get_default_timeout())
+
+        expected_path = bucket.path
+        expected_data = {"acl": permissive}
+        expected_query_params = {"projection": "full"}
+        client._patch_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
+        )
 
     def _make_public_w_future_helper(self, default_object_acl_loaded=True):
         from google.cloud.storage.acl import _ACLEntity
 
-        NAME = "name"
+        name = "name"
+        get_api_response = {"items": []}
         permissive = [{"entity": "allUsers", "role": _ACLEntity.READER_ROLE}]
-        after1 = {"acl": permissive, "defaultObjectAcl": []}
-        after2 = {"acl": permissive, "defaultObjectAcl": permissive}
-        connection = _Connection(after1, after2)
-        client = _Client(connection)
+        acl_patched_response = {"acl": permissive, "defaultObjectAcl": []}
+        dac_patched_response = {"acl": permissive, "defaultObjectAcl": permissive}
+        client = mock.Mock(spec=["_get_resource", "_patch_resource"])
+        client._get_resource.return_value = get_api_response
+        client._patch_resource.side_effect = [
+            acl_patched_response,
+            dac_patched_response,
+        ]
 
-        # Temporary workaround until we use real mock client
-        client._get_resource = mock.Mock(return_value={"items": []})
-
-        bucket = self._make_one(client=client, name=NAME)
+        bucket = self._make_one(client=client, name=name)
         bucket.acl.loaded = True
         bucket.default_object_acl.loaded = default_object_acl_loaded
+
         bucket.make_public(future=True)
+
         self.assertEqual(list(bucket.acl), permissive)
         self.assertEqual(list(bucket.default_object_acl), permissive)
-        kw = connection._requested
-        self.assertEqual(len(kw), 2)
-        self.assertEqual(kw[0]["method"], "PATCH")
-        self.assertEqual(kw[0]["path"], "/b/%s" % NAME)
-        self.assertEqual(kw[0]["data"], {"acl": permissive})
-        self.assertEqual(kw[0]["query_params"], {"projection": "full"})
-        self.assertEqual(kw[0]["timeout"], self._get_default_timeout())
-        self.assertEqual(kw[1]["method"], "PATCH")
-        self.assertEqual(kw[1]["path"], "/b/%s" % NAME)
-        self.assertEqual(kw[1]["data"], {"defaultObjectAcl": permissive})
-        self.assertEqual(kw[1]["query_params"], {"projection": "full"})
-        self.assertEqual(kw[1]["timeout"], self._get_default_timeout())
+
+        self.assertEqual(len(client._patch_resource.call_args_list), 2)
+        expected_acl_data = {"acl": permissive}
+        expected_dac_data = {"defaultObjectAcl": permissive}
+        expected_kw = {
+            "query_params": {"projection": "full"},
+            "timeout": self._get_default_timeout(),
+            "retry": DEFAULT_RETRY,
+        }
+        client._patch_resource.assert_has_calls(
+            [
+                ((bucket.path, expected_acl_data), expected_kw),
+                ((bucket.path, expected_dac_data), expected_kw),
+            ]
+        )
 
         if not default_object_acl_loaded:
-            expected_path = "/b/%s/defaultObjectAcl" % (NAME,)
+            expected_path = "/b/%s/defaultObjectAcl" % (name,)
             expected_query_params = {}
             client._get_resource.assert_called_once_with(
                 expected_path,
@@ -2868,6 +2881,8 @@ class Test_Bucket(unittest.TestCase):
                 timeout=self._get_default_timeout(),
                 retry=DEFAULT_RETRY,
             )
+        else:
+            client._get_resource.assert_not_called()
 
     def test_make_public_w_future(self):
         self._make_public_w_future_helper(default_object_acl_loaded=True)
@@ -2898,67 +2913,80 @@ class Test_Bucket(unittest.TestCase):
             def grant_read(self):
                 self._granted = True
 
-            def save(self, client=None, timeout=None):
+            def save(self, client=None, timeout=None, retry=None):
                 _saved.append(
-                    (self._bucket, self._name, self._granted, client, timeout)
+                    (self._bucket, self._name, self._granted, client, timeout, retry)
                 )
 
-        def item_to_blob(self, item):
-            return _Blob(self.bucket, item["name"])
-
-        NAME = "name"
-        BLOB_NAME = "blob-name"
+        name = "name"
+        blob_name = "blob-name"
         permissive = [{"entity": "allUsers", "role": _ACLEntity.READER_ROLE}]
-        after = {"acl": permissive, "defaultObjectAcl": []}
-        connection = _Connection(after, {"items": [{"name": BLOB_NAME}]})
-        client = self._make_client()
-        client._base_connection = connection
-        bucket = self._make_one(client=client, name=NAME)
+
+        patch_acl_response = {"acl": permissive, "defaultObjectAcl": []}
+        client = mock.Mock(spec=["list_blobs", "_patch_resource"])
+        client._patch_resource.return_value = patch_acl_response
+
+        bucket = self._make_one(client=client, name=name)
         bucket.acl.loaded = True
         bucket.default_object_acl.loaded = True
 
-        with mock.patch("google.cloud.storage.client._item_to_blob", new=item_to_blob):
-            bucket.make_public(recursive=True, timeout=42, retry=DEFAULT_RETRY)
+        list_blobs_response = iter([_Blob(bucket, blob_name)])
+        client.list_blobs.return_value = list_blobs_response
+
+        timeout = 42
+        retry = mock.Mock(spec=[])
+
+        bucket.make_public(recursive=True, timeout=timeout, retry=retry)
 
         self.assertEqual(list(bucket.acl), permissive)
         self.assertEqual(list(bucket.default_object_acl), [])
-        self.assertEqual(_saved, [(bucket, BLOB_NAME, True, None, 42)])
-        kw = connection._requested
-        self.assertEqual(len(kw), 2)
-        self.assertEqual(kw[0]["method"], "PATCH")
-        self.assertEqual(kw[0]["path"], "/b/%s" % NAME)
-        self.assertEqual(kw[0]["data"], {"acl": permissive})
-        self.assertEqual(kw[0]["query_params"], {"projection": "full"})
-        self.assertEqual(kw[0]["timeout"], 42)
-        self.assertEqual(kw[1]["method"], "GET")
-        self.assertEqual(kw[1]["path"], "/b/%s/o" % NAME)
-        self.assertEqual(kw[1]["retry"], DEFAULT_RETRY)
-        max_results = bucket._MAX_OBJECTS_FOR_ITERATION + 1
-        self.assertEqual(
-            kw[1]["query_params"], {"maxResults": max_results, "projection": "full"}
+        self.assertEqual(_saved, [(bucket, blob_name, True, None, timeout, retry)])
+
+        expected_patch_data = {"acl": permissive}
+        expected_patch_query_params = {"projection": "full"}
+        client._patch_resource.assert_called_once_with(
+            bucket.path,
+            expected_patch_data,
+            query_params=expected_patch_query_params,
+            timeout=timeout,
+            retry=retry,
         )
-        self.assertEqual(kw[1]["timeout"], 42)
+        client.list_blobs.assert_called_once()
 
     def test_make_public_recursive_too_many(self):
         from google.cloud.storage.acl import _ACLEntity
 
-        PERMISSIVE = [{"entity": "allUsers", "role": _ACLEntity.READER_ROLE}]
-        AFTER = {"acl": PERMISSIVE, "defaultObjectAcl": []}
+        permissive = [{"entity": "allUsers", "role": _ACLEntity.READER_ROLE}]
 
-        NAME = "name"
-        BLOB_NAME1 = "blob-name1"
-        BLOB_NAME2 = "blob-name2"
-        GET_BLOBS_RESP = {"items": [{"name": BLOB_NAME1}, {"name": BLOB_NAME2}]}
-        connection = _Connection(AFTER, GET_BLOBS_RESP)
-        client = self._make_client()
-        client._base_connection = connection
-        bucket = self._make_one(client=client, name=NAME)
+        name = "name"
+        blob1 = mock.Mock(spec=[])
+        blob2 = mock.Mock(spec=[])
+        patch_acl_response = {"acl": permissive, "defaultObjectAcl": []}
+        list_blobs_response = iter([blob1, blob2])
+        client = mock.Mock(spec=["list_blobs", "_patch_resource"])
+        client.list_blobs.return_value = list_blobs_response
+        client._patch_resource.return_value = patch_acl_response
+        bucket = self._make_one(client=client, name=name)
         bucket.acl.loaded = True
         bucket.default_object_acl.loaded = True
 
         # Make the Bucket refuse to make_public with 2 objects.
         bucket._MAX_OBJECTS_FOR_ITERATION = 1
-        self.assertRaises(ValueError, bucket.make_public, recursive=True)
+
+        with self.assertRaises(ValueError):
+            bucket.make_public(recursive=True)
+
+        expected_path = bucket.path
+        expected_data = {"acl": permissive}
+        expected_query_params = {"projection": "full"}
+        client._patch_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
+        )
+        client.list_blobs.assert_called_once()
 
     def test_make_private_defaults(self):
         NAME = "name"
