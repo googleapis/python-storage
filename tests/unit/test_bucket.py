@@ -1793,7 +1793,11 @@ class Test_Bucket(unittest.TestCase):
 
         list(bucket.lifecycle_rules)
         mock_warn.assert_called_with(
-            "Unknown lifecycle rule: {}".format(BOGUS_RULE), UserWarning, stacklevel=1,
+            "Unknown lifecycle rule by the client: {}. Please upgrade your client.".format(
+                BOGUS_RULE
+            ),
+            UserWarning,
+            stacklevel=1,
         )
 
     def test_lifecycle_rules_getter(self):
