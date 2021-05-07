@@ -396,7 +396,7 @@ class Client(ClientWithProject):
         retry=DEFAULT_RETRY,
         _target_object=None,
     ):
-        """Helper for bucket / blob methods making API 'GET' calls.
+        """Helper for bucket / blob methods making API 'PATCH' calls.
 
         Args:
             path str:
