@@ -1492,34 +1492,39 @@ class Test_Bucket(unittest.TestCase):
         with self.assertRaises(TypeError):
             bucket.reload(if_generation_match=6)
 
-    def test_update_bucket_w_metageneration_match(self):
-        NAME = "name"
-        METAGENERATION_NUMBER = 9
+    def test_update_w_metageneration_match(self):
+        name = "name"
+        metageneration_number = 9
+        client = mock.Mock(spec=["_put_resource"])
+        client._put_resource.return_value = {}
+        bucket = self._make_one(client=client, name=name)
 
-        connection = _Connection({})
-        client = _Client(connection)
-        bucket = self._make_one(client=client, name=NAME)
+        bucket.update(if_metageneration_match=metageneration_number)
 
-        bucket.update(if_metageneration_match=METAGENERATION_NUMBER)
-
-        self.assertEqual(len(connection._requested), 1)
-        req = connection._requested[0]
-        self.assertEqual(req["method"], "PUT")
-        self.assertEqual(req["path"], "/b/%s" % NAME)
-        self.assertEqual(req["timeout"], self._get_default_timeout())
-        self.assertEqual(
-            req["query_params"],
-            {"projection": "full", "ifMetagenerationMatch": METAGENERATION_NUMBER},
+        expected_query_params = {
+            "projection": "full",
+            "ifMetagenerationMatch": metageneration_number,
+        }
+        client._put_resource.assert_called_once_with(
+            bucket.path,
+            bucket._properties,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
+            _target_object=bucket,
         )
-        self.assertEqual(req["retry"], DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED)
 
-    def test_update_bucket_w_generation_match(self):
-        connection = _Connection({})
-        client = _Client(connection)
-        bucket = self._make_one(client=client, name="name")
+    def test_update_w_generation_match(self):
+        name = "name"
+        generation_number = 6
+        client = mock.Mock(spec=["_put_resource"])
+        client._put_resource.return_value = {}
+        bucket = self._make_one(client=client, name=name)
 
         with self.assertRaises(TypeError):
-            bucket.update(if_generation_match=6)
+            bucket.update(if_generation_match=generation_number)
+
+        client._put_resource.assert_not_called()
 
     @staticmethod
     def _make_blob(bucket_name, blob_name):
