@@ -704,7 +704,7 @@ class Blob(_PropertyMixin):
         try:
             # We intentionally pass `_target_object=None` since fields=name
             # would limit the local properties.
-            client._get_path(
+            client._get_resource(
                 self.path,
                 query_params=query_params,
                 timeout=timeout,
@@ -2828,7 +2828,7 @@ class Blob(_PropertyMixin):
         if requested_policy_version is not None:
             query_params["optionsRequestedPolicyVersion"] = requested_policy_version
 
-        info = client._get_path(
+        info = client._get_resource(
             "%s/iam" % (self.path,),
             query_params=query_params,
             timeout=timeout,
@@ -2968,7 +2968,7 @@ class Blob(_PropertyMixin):
             query_params["userProject"] = self.user_project
 
         path = "%s/iam/testPermissions" % (self.path,)
-        resp = client._get_path(
+        resp = client._get_resource(
             path,
             query_params=query_params,
             timeout=timeout,

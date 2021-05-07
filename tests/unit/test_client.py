@@ -409,7 +409,7 @@ class TestClient(unittest.TestCase):
         self.assertIsInstance(batch, Batch)
         self.assertIs(batch._client, client)
 
-    def test__get_path_miss_w_defaults(self):
+    def test__get_resource_miss_w_defaults(self):
         from google.cloud.exceptions import NotFound
 
         PROJECT = "PROJECT"
@@ -420,7 +420,7 @@ class TestClient(unittest.TestCase):
         connection = client._base_connection = _make_connection()
 
         with self.assertRaises(NotFound):
-            client._get_path(PATH)
+            client._get_resource(PATH)
 
         connection.api_request.assert_called_once_with(
             method="GET",
@@ -432,7 +432,7 @@ class TestClient(unittest.TestCase):
             _target_object=None,
         )
 
-    def test__get_path_hit_w_explicit(self):
+    def test__get_resource_hit_w_explicit(self):
         PROJECT = "PROJECT"
         PATH = "/path/to/something"
         QUERY_PARAMS = {"foo": "Foo"}
@@ -446,7 +446,7 @@ class TestClient(unittest.TestCase):
         connection = client._base_connection = _make_connection(expected)
         target = mock.Mock(spec={})
 
-        found = client._get_path(
+        found = client._get_resource(
             PATH,
             query_params=QUERY_PARAMS,
             headers=HEADERS,
@@ -474,8 +474,8 @@ class TestClient(unittest.TestCase):
         project = "PROJECT"
         credentials = _make_credentials()
         client = self._make_one(project=project, credentials=credentials)
-        client._get_path = mock.Mock()
-        client._get_path.side_effect = NotFound("testing")
+        client._get_resource = mock.Mock()
+        client._get_resource.side_effect = NotFound("testing")
         bucket_name = "nonesuch"
 
         with self.assertRaises(NotFound):
@@ -484,7 +484,7 @@ class TestClient(unittest.TestCase):
         expected_path = "/b/%s" % (bucket_name,)
         expected_query_params = {"projection": "noAcl"}
         expected_headers = {}
-        client._get_path.assert_called_once_with(
+        client._get_resource.assert_called_once_with(
             expected_path,
             query_params=expected_query_params,
             headers=expected_headers,
@@ -493,7 +493,7 @@ class TestClient(unittest.TestCase):
             _target_object=mock.ANY,
         )
 
-        target = client._get_path.call_args[1]["_target_object"]
+        target = client._get_resource.call_args[1]["_target_object"]
         self.assertIsInstance(target, Bucket)
         self.assertEqual(target.name, bucket_name)
 
@@ -506,7 +506,7 @@ class TestClient(unittest.TestCase):
         api_response = {"name": bucket_name}
         credentials = _make_credentials()
         client = self._make_one(project=project, credentials=credentials)
-        client._get_path = mock.Mock(return_value=api_response)
+        client._get_resource = mock.Mock(return_value=api_response)
 
         bucket = client.get_bucket(bucket_name, timeout=timeout)
 
@@ -516,7 +516,7 @@ class TestClient(unittest.TestCase):
         expected_path = "/b/%s" % (bucket_name,)
         expected_query_params = {"projection": "noAcl"}
         expected_headers = {}
-        client._get_path.assert_called_once_with(
+        client._get_resource.assert_called_once_with(
             expected_path,
             query_params=expected_query_params,
             headers=expected_headers,
@@ -534,7 +534,7 @@ class TestClient(unittest.TestCase):
         api_response = {"name": bucket_name}
         credentials = _make_credentials()
         client = self._make_one(project=project, credentials=credentials)
-        client._get_path = mock.Mock(return_value=api_response)
+        client._get_resource = mock.Mock(return_value=api_response)
 
         bucket = client.get_bucket(
             bucket_name, if_metageneration_match=metageneration_number
@@ -549,7 +549,7 @@ class TestClient(unittest.TestCase):
             "ifMetagenerationMatch": metageneration_number,
         }
         expected_headers = {}
-        client._get_path.assert_called_once_with(
+        client._get_resource.assert_called_once_with(
             expected_path,
             query_params=expected_query_params,
             headers=expected_headers,
@@ -567,7 +567,7 @@ class TestClient(unittest.TestCase):
         retry = mock.Mock(spec=[])
         credentials = _make_credentials()
         client = self._make_one(project=project, credentials=credentials)
-        client._get_path = mock.Mock(side_effect=NotFound("testing"))
+        client._get_resource = mock.Mock(side_effect=NotFound("testing"))
         bucket_obj = Bucket(client, bucket_name)
 
         with self.assertRaises(NotFound):
@@ -576,7 +576,7 @@ class TestClient(unittest.TestCase):
         expected_path = "/b/%s" % (bucket_name,)
         expected_query_params = {"projection": "noAcl"}
         expected_headers = {}
-        client._get_path.assert_called_once_with(
+        client._get_resource.assert_called_once_with(
             expected_path,
             query_params=expected_query_params,
             headers=expected_headers,
@@ -585,7 +585,7 @@ class TestClient(unittest.TestCase):
             _target_object=mock.ANY,
         )
 
-        target = client._get_path.call_args[1]["_target_object"]
+        target = client._get_resource.call_args[1]["_target_object"]
         self.assertIsInstance(target, Bucket)
         self.assertEqual(target.name, bucket_name)
 
@@ -597,7 +597,7 @@ class TestClient(unittest.TestCase):
         api_response = {"name": bucket_name}
         credentials = _make_credentials()
         client = self._make_one(project=project, credentials=credentials)
-        client._get_path = mock.Mock(return_value=api_response)
+        client._get_resource = mock.Mock(return_value=api_response)
         bucket_obj = Bucket(client, bucket_name)
 
         bucket = client.get_bucket(bucket_obj)
@@ -608,7 +608,7 @@ class TestClient(unittest.TestCase):
         expected_path = "/b/%s" % (bucket_name,)
         expected_query_params = {"projection": "noAcl"}
         expected_headers = {}
-        client._get_path.assert_called_once_with(
+        client._get_resource.assert_called_once_with(
             expected_path,
             query_params=expected_query_params,
             headers=expected_headers,
@@ -625,7 +625,7 @@ class TestClient(unittest.TestCase):
         api_response = {"name": bucket_name}
         credentials = _make_credentials()
         client = self._make_one(project=project, credentials=credentials)
-        client._get_path = mock.Mock(return_value=api_response)
+        client._get_resource = mock.Mock(return_value=api_response)
         bucket_obj = Bucket(client, bucket_name)
 
         bucket = client.get_bucket(bucket_obj, retry=None)
@@ -636,7 +636,7 @@ class TestClient(unittest.TestCase):
         expected_path = "/b/%s" % (bucket_name,)
         expected_query_params = {"projection": "noAcl"}
         expected_headers = {}
-        client._get_path.assert_called_once_with(
+        client._get_resource.assert_called_once_with(
             expected_path,
             query_params=expected_query_params,
             headers=expected_headers,
@@ -653,7 +653,7 @@ class TestClient(unittest.TestCase):
         bucket_name = "nonesuch"
         credentials = _make_credentials()
         client = self._make_one(project=project, credentials=credentials)
-        client._get_path = mock.Mock(side_effect=NotFound("testing"))
+        client._get_resource = mock.Mock(side_effect=NotFound("testing"))
 
         bucket = client.lookup_bucket(bucket_name)
 
@@ -662,7 +662,7 @@ class TestClient(unittest.TestCase):
         expected_path = "/b/%s" % (bucket_name,)
         expected_query_params = {"projection": "noAcl"}
         expected_headers = {}
-        client._get_path.assert_called_once_with(
+        client._get_resource.assert_called_once_with(
             expected_path,
             query_params=expected_query_params,
             headers=expected_headers,
@@ -671,7 +671,7 @@ class TestClient(unittest.TestCase):
             _target_object=mock.ANY,
         )
 
-        target = client._get_path.call_args[1]["_target_object"]
+        target = client._get_resource.call_args[1]["_target_object"]
         self.assertIsInstance(target, Bucket)
         self.assertEqual(target.name, bucket_name)
 
@@ -684,7 +684,7 @@ class TestClient(unittest.TestCase):
         api_response = {"name": bucket_name}
         credentials = _make_credentials()
         client = self._make_one(project=project, credentials=credentials)
-        client._get_path = mock.Mock(return_value=api_response)
+        client._get_resource = mock.Mock(return_value=api_response)
 
         bucket = client.lookup_bucket(bucket_name, timeout=timeout)
 
@@ -694,7 +694,7 @@ class TestClient(unittest.TestCase):
         expected_path = "/b/%s" % (bucket_name,)
         expected_query_params = {"projection": "noAcl"}
         expected_headers = {}
-        client._get_path.assert_called_once_with(
+        client._get_resource.assert_called_once_with(
             expected_path,
             query_params=expected_query_params,
             headers=expected_headers,
@@ -712,7 +712,7 @@ class TestClient(unittest.TestCase):
         credentials = _make_credentials()
         metageneration_number = 6
         client = self._make_one(project=project, credentials=credentials)
-        client._get_path = mock.Mock(return_value=api_response)
+        client._get_resource = mock.Mock(return_value=api_response)
 
         bucket = client.lookup_bucket(
             bucket_name, if_metageneration_match=metageneration_number
@@ -727,7 +727,7 @@ class TestClient(unittest.TestCase):
             "ifMetagenerationMatch": metageneration_number,
         }
         expected_headers = {}
-        client._get_path.assert_called_once_with(
+        client._get_resource.assert_called_once_with(
             expected_path,
             query_params=expected_query_params,
             headers=expected_headers,
@@ -744,7 +744,7 @@ class TestClient(unittest.TestCase):
         api_response = {"name": bucket_name}
         credentials = _make_credentials()
         client = self._make_one(project=project, credentials=credentials)
-        client._get_path = mock.Mock(return_value=api_response)
+        client._get_resource = mock.Mock(return_value=api_response)
         bucket_obj = Bucket(client, bucket_name)
 
         bucket = client.lookup_bucket(bucket_obj, retry=None)
@@ -755,7 +755,7 @@ class TestClient(unittest.TestCase):
         expected_path = "/b/%s" % (bucket_name,)
         expected_query_params = {"projection": "noAcl"}
         expected_headers = {}
-        client._get_path.assert_called_once_with(
+        client._get_resource.assert_called_once_with(
             expected_path,
             query_params=expected_query_params,
             headers=expected_headers,

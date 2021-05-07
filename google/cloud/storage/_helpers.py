@@ -215,7 +215,7 @@ class _PropertyMixin(object):
             if_metageneration_match=if_metageneration_match,
             if_metageneration_not_match=if_metageneration_not_match,
         )
-        api_response = client._get_path(
+        api_response = client._get_resource(
             self.path,
             query_params=query_params,
             headers=self._encryption_headers(),

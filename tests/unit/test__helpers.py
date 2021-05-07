@@ -112,8 +112,8 @@ class Test_PropertyMixin(unittest.TestCase):
     def test_reload_w_defaults(self):
         path = "/path"
         response = {"foo": "Foo"}
-        client = mock.Mock(spec=["_get_path"])
-        client._get_path.return_value = response
+        client = mock.Mock(spec=["_get_resource"])
+        client._get_resource.return_value = response
         derived = self._derivedClass(path)()
         # Make sure changes is not a set instance before calling reload
         # (which will clear / replace it with an empty set), checked below.
@@ -127,7 +127,7 @@ class Test_PropertyMixin(unittest.TestCase):
 
         expected_query_params = {"projection": "noAcl"}
         expected_headers = {}  # no encryption headers by default
-        client._get_path.assert_called_once_with(
+        client._get_resource.assert_called_once_with(
             path,
             query_params=expected_query_params,
             headers=expected_headers,
@@ -142,8 +142,8 @@ class Test_PropertyMixin(unittest.TestCase):
         path = "/path"
         timeout = 42
         response = {"foo": "Foo"}
-        client = mock.Mock(spec=["_get_path"])
-        client._get_path.return_value = response
+        client = mock.Mock(spec=["_get_resource"])
+        client._get_resource.return_value = response
         derived = self._derivedClass(path)()
         # Make sure changes is not a set instance before calling reload
         # (which will clear / replace it with an empty set), checked below.
@@ -165,7 +165,7 @@ class Test_PropertyMixin(unittest.TestCase):
             "ifMetagenerationMatch": metageneration_number,
         }
         expected_headers = {}  # no encryption headers by default
-        client._get_path.assert_called_once_with(
+        client._get_resource.assert_called_once_with(
             path,
             query_params=expected_query_params,
             headers=expected_headers,
@@ -179,8 +179,8 @@ class Test_PropertyMixin(unittest.TestCase):
         path = "/path"
         retry = mock.Mock(spec=[])
         response = {"foo": "Foo"}
-        client = mock.Mock(spec=["_get_path"])
-        client._get_path.return_value = response
+        client = mock.Mock(spec=["_get_resource"])
+        client._get_resource.return_value = response
         derived = self._derivedClass(path, user_project)()
         # Make sure changes is not a set instance before calling reload
         # (which will clear / replace it with an empty set), checked below.
@@ -197,7 +197,7 @@ class Test_PropertyMixin(unittest.TestCase):
             "userProject": user_project,
         }
         expected_headers = {}  # no encryption headers by default
-        client._get_path.assert_called_once_with(
+        client._get_resource.assert_called_once_with(
             path,
             query_params=expected_query_params,
             headers=expected_headers,
@@ -210,8 +210,8 @@ class Test_PropertyMixin(unittest.TestCase):
         path = "/path"
         response = {"foo": "Foo"}
         encryption_headers = {"bar": "Bar"}
-        client = mock.Mock(spec=["_get_path"])
-        client._get_path.return_value = response
+        client = mock.Mock(spec=["_get_resource"])
+        client._get_resource.return_value = response
         derived = self._derivedClass(path)()
         # Make sure changes is not a set instance before calling reload
         # (which will clear / replace it with an empty set), checked below.
@@ -224,7 +224,7 @@ class Test_PropertyMixin(unittest.TestCase):
         self.assertEqual(derived._changes, set())
 
         expected_query_params = {"projection": "full"}
-        client._get_path.assert_called_once_with(
+        client._get_resource.assert_called_once_with(
             path,
             query_params=expected_query_params,
             headers=encryption_headers,

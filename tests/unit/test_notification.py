@@ -327,7 +327,7 @@ class TestBucketNotification(unittest.TestCase):
         )
 
     def test_exists_wo_notification_id(self):
-        client = mock.Mock(spec=["_get_path", "project"])
+        client = mock.Mock(spec=["_get_resource", "project"])
         client.project = self.BUCKET_PROJECT
         bucket = self._make_bucket(client)
         notification = self._make_one(bucket, self.TOPIC_NAME)
@@ -335,13 +335,13 @@ class TestBucketNotification(unittest.TestCase):
         with self.assertRaises(ValueError):
             notification.exists()
 
-        client._get_path.assert_not_called()
+        client._get_resource.assert_not_called()
 
     def test_exists_miss_w_defaults(self):
         from google.cloud.exceptions import NotFound
 
-        client = mock.Mock(spec=["_get_path", "project"])
-        client._get_path.side_effect = NotFound("testing")
+        client = mock.Mock(spec=["_get_resource", "project"])
+        client._get_resource.side_effect = NotFound("testing")
         client.project = self.BUCKET_PROJECT
         bucket = self._make_bucket(client)
         notification = self._make_one(bucket, self.TOPIC_NAME)
@@ -350,7 +350,7 @@ class TestBucketNotification(unittest.TestCase):
         self.assertFalse(notification.exists())
 
         expected_query_params = {}
-        client._get_path.assert_called_once_with(
+        client._get_resource.assert_called_once_with(
             self.NOTIFICATION_PATH,
             query_params=expected_query_params,
             timeout=self._get_default_timeout(),
@@ -365,8 +365,8 @@ class TestBucketNotification(unittest.TestCase):
             "etag": self.ETAG,
             "selfLink": self.SELF_LINK,
         }
-        client = mock.Mock(spec=["_get_path", "project"])
-        client._get_path.return_vale = api_response
+        client = mock.Mock(spec=["_get_resource", "project"])
+        client._get_resource.return_vale = api_response
         client.project = self.BUCKET_PROJECT
         bucket = self._make_bucket(client, user_project=user_project)
         notification = self._make_one(bucket, self.TOPIC_NAME)
@@ -379,7 +379,7 @@ class TestBucketNotification(unittest.TestCase):
         )
 
         expected_query_params = {"userProject": user_project}
-        client._get_path.assert_called_once_with(
+        client._get_resource.assert_called_once_with(
             self.NOTIFICATION_PATH,
             query_params=expected_query_params,
             timeout=timeout,
@@ -387,7 +387,7 @@ class TestBucketNotification(unittest.TestCase):
         )
 
     def test_reload_wo_notification_id(self):
-        client = mock.Mock(spec=["_get_path", "project"])
+        client = mock.Mock(spec=["_get_resource", "project"])
         client.project = self.BUCKET_PROJECT
         bucket = self._make_bucket(client)
         notification = self._make_one(bucket, self.TOPIC_NAME)
@@ -395,13 +395,13 @@ class TestBucketNotification(unittest.TestCase):
         with self.assertRaises(ValueError):
             notification.reload()
 
-        client._get_path.assert_not_called()
+        client._get_resource.assert_not_called()
 
     def test_reload_miss_w_defaults(self):
         from google.cloud.exceptions import NotFound
 
-        client = mock.Mock(spec=["_get_path", "project"])
-        client._get_path.side_effect = NotFound("testing")
+        client = mock.Mock(spec=["_get_resource", "project"])
+        client._get_resource.side_effect = NotFound("testing")
         client.project = self.BUCKET_PROJECT
         bucket = self._make_bucket(client)
         notification = self._make_one(bucket, self.TOPIC_NAME)
@@ -411,7 +411,7 @@ class TestBucketNotification(unittest.TestCase):
             notification.reload()
 
         expected_query_params = {}
-        client._get_path.assert_called_once_with(
+        client._get_resource.assert_called_once_with(
             self.NOTIFICATION_PATH,
             query_params=expected_query_params,
             timeout=self._get_default_timeout(),
@@ -429,8 +429,8 @@ class TestBucketNotification(unittest.TestCase):
             "selfLink": self.SELF_LINK,
             "payload_format": NONE_PAYLOAD_FORMAT,
         }
-        client = mock.Mock(spec=["_get_path", "project"])
-        client._get_path.return_value = api_response
+        client = mock.Mock(spec=["_get_resource", "project"])
+        client._get_resource.return_value = api_response
         client.project = self.BUCKET_PROJECT
         bucket = self._make_bucket(client, user_project=user_project)
         notification = self._make_one(bucket, self.TOPIC_NAME)
@@ -448,7 +448,7 @@ class TestBucketNotification(unittest.TestCase):
         self.assertEqual(notification.payload_format, NONE_PAYLOAD_FORMAT)
 
         expected_query_params = {"userProject": user_project}
-        client._get_path.assert_called_once_with(
+        client._get_resource.assert_called_once_with(
             self.NOTIFICATION_PATH,
             query_params=expected_query_params,
             timeout=timeout,

@@ -286,7 +286,7 @@ class Client(ClientWithProject):
             project = self.project
 
         path = "/projects/%s/serviceAccount" % (project,)
-        api_response = self._get_path(path, timeout=timeout, retry=retry)
+        api_response = self._get_resource(path, timeout=timeout, retry=retry)
         return api_response["email_address"]
 
     def bucket(self, bucket_name, user_project=None):
@@ -320,7 +320,7 @@ class Client(ClientWithProject):
         """
         return Batch(client=self)
 
-    def _get_path(
+    def _get_resource(
         self,
         path,
         query_params=None,

@@ -223,8 +223,8 @@ class TestHMACKeyMetadata(unittest.TestCase):
 
         access_id = "ACCESS-ID"
         project = "PROJECT"
-        client = mock.Mock(spec=["_get_path", "project"])
-        client._get_path.side_effect = NotFound("testing")
+        client = mock.Mock(spec=["_get_resource", "project"])
+        client._get_resource.side_effect = NotFound("testing")
         client.project = project
         metadata = self._make_one(client)
         metadata._properties["accessId"] = access_id
@@ -233,7 +233,7 @@ class TestHMACKeyMetadata(unittest.TestCase):
 
         expected_path = "/projects/{}/hmacKeys/{}".format(project, access_id)
         expected_query_params = {}
-        client._get_path.assert_called_once_with(
+        client._get_resource.assert_called_once_with(
             expected_path,
             query_params=expected_query_params,
             timeout=self._get_default_timeout(),
@@ -252,8 +252,8 @@ class TestHMACKeyMetadata(unittest.TestCase):
         }
         timeout = 42
         retry = mock.Mock(spec=[])
-        client = mock.Mock(spec=["_get_path"])
-        client._get_path.return_value = resource
+        client = mock.Mock(spec=["_get_resource"])
+        client._get_resource.return_value = resource
         metadata = self._make_one(client, user_project=user_project)
         metadata._properties["accessId"] = access_id
         metadata._properties["projectId"] = project
@@ -262,7 +262,7 @@ class TestHMACKeyMetadata(unittest.TestCase):
 
         expected_path = "/projects/{}/hmacKeys/{}".format(project, access_id)
         expected_query_params = {"userProject": user_project}
-        client._get_path.assert_called_once_with(
+        client._get_resource.assert_called_once_with(
             expected_path,
             query_params=expected_query_params,
             timeout=timeout,
@@ -274,8 +274,8 @@ class TestHMACKeyMetadata(unittest.TestCase):
 
         access_id = "ACCESS-ID"
         project = "PROJECT"
-        client = mock.Mock(spec=["_get_path", "project"])
-        client._get_path.side_effect = NotFound("testing")
+        client = mock.Mock(spec=["_get_resource", "project"])
+        client._get_resource.side_effect = NotFound("testing")
         client.project = project
         metadata = self._make_one(client)
         metadata._properties["accessId"] = access_id
@@ -285,7 +285,7 @@ class TestHMACKeyMetadata(unittest.TestCase):
 
         expected_path = "/projects/{}/hmacKeys/{}".format(project, access_id)
         expected_query_params = {}
-        client._get_path.assert_called_once_with(
+        client._get_resource.assert_called_once_with(
             expected_path,
             query_params=expected_query_params,
             timeout=self._get_default_timeout(),
@@ -304,8 +304,8 @@ class TestHMACKeyMetadata(unittest.TestCase):
         }
         timeout = 42
         retry = mock.Mock(spec=[])
-        client = mock.Mock(spec=["_get_path"])
-        client._get_path.return_value = resource
+        client = mock.Mock(spec=["_get_resource"])
+        client._get_resource.return_value = resource
         metadata = self._make_one(client, user_project=user_project)
         metadata._properties["accessId"] = access_id
         metadata._properties["projectId"] = project
@@ -316,7 +316,7 @@ class TestHMACKeyMetadata(unittest.TestCase):
 
         expected_path = "/projects/{}/hmacKeys/{}".format(project, access_id)
         expected_query_params = {"userProject": user_project}
-        client._get_path.assert_called_once_with(
+        client._get_resource.assert_called_once_with(
             expected_path,
             query_params=expected_query_params,
             timeout=timeout,

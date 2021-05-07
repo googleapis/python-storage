@@ -222,7 +222,7 @@ class HMACKeyMetadata(object):
             if self.user_project is not None:
                 qs_params["userProject"] = self.user_project
 
-            self._client._get_path(
+            self._client._get_resource(
                 self.path, query_params=qs_params, timeout=timeout, retry=retry,
             )
         except NotFound:
@@ -262,7 +262,7 @@ class HMACKeyMetadata(object):
         if self.user_project is not None:
             qs_params["userProject"] = self.user_project
 
-        self._properties = self._client._get_path(
+        self._properties = self._client._get_resource(
             self.path, query_params=qs_params, timeout=timeout, retry=retry,
         )
 

@@ -466,7 +466,7 @@ class ACL(object):
 
         self.entities.clear()
 
-        found = client._get_path(
+        found = client._get_resource(
             path, query_params=query_params, timeout=timeout, retry=retry,
         )
         self.loaded = True

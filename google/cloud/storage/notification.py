@@ -323,7 +323,7 @@ class BucketNotification(object):
             query_params["userProject"] = self.bucket.user_project
 
         try:
-            client._get_path(
+            client._get_resource(
                 self.path, query_params=query_params, timeout=timeout, retry=retry,
             )
         except NotFound:
@@ -377,7 +377,7 @@ class BucketNotification(object):
         if self.bucket.user_project is not None:
             query_params["userProject"] = self.bucket.user_project
 
-        response = client._get_path(
+        response = client._get_resource(
             self.path, query_params=query_params, timeout=timeout, retry=retry,
         )
         self._set_properties(response)

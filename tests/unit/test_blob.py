@@ -692,15 +692,15 @@ class Test_Blob(unittest.TestCase):
         from google.cloud.exceptions import NotFound
 
         blob_name = "nonesuch"
-        client = mock.Mock(spec=["_get_path"])
-        client._get_path.side_effect = NotFound("testing")
+        client = mock.Mock(spec=["_get_resource"])
+        client._get_resource.side_effect = NotFound("testing")
         bucket = _Bucket(client)
         blob = self._make_one(blob_name, bucket=bucket)
 
         self.assertFalse(blob.exists())
 
         expected_query_params = {"fields": "name"}
-        client._get_path.assert_called_once_with(
+        client._get_resource.assert_called_once_with(
             blob.path,
             query_params=expected_query_params,
             timeout=self._get_default_timeout(),
@@ -713,15 +713,15 @@ class Test_Blob(unittest.TestCase):
         user_project = "user-project-123"
         timeout = 42
         api_response = {"name": blob_name}
-        client = mock.Mock(spec=["_get_path"])
-        client._get_path.return_value = api_response
+        client = mock.Mock(spec=["_get_resource"])
+        client._get_resource.return_value = api_response
         bucket = _Bucket(client, user_project=user_project)
         blob = self._make_one(blob_name, bucket=bucket)
 
         self.assertTrue(blob.exists(timeout=timeout))
 
         expected_query_params = {"fields": "name", "userProject": user_project}
-        client._get_path.assert_called_once_with(
+        client._get_resource.assert_called_once_with(
             blob.path,
             query_params=expected_query_params,
             timeout=timeout,
@@ -734,15 +734,15 @@ class Test_Blob(unittest.TestCase):
         generation = 123456
         api_response = {"name": blob_name}
         retry = mock.Mock(spec=[])
-        client = mock.Mock(spec=["_get_path"])
-        client._get_path.return_value = api_response
+        client = mock.Mock(spec=["_get_resource"])
+        client._get_resource.return_value = api_response
         bucket = _Bucket(client)
         blob = self._make_one(blob_name, bucket=bucket, generation=generation)
 
         self.assertTrue(blob.exists(retry=retry))
 
         expected_query_params = {"fields": "name", "generation": generation}
-        client._get_path.assert_called_once_with(
+        client._get_resource.assert_called_once_with(
             blob.path,
             query_params=expected_query_params,
             timeout=self._get_default_timeout(),
@@ -755,8 +755,8 @@ class Test_Blob(unittest.TestCase):
         generation_number = 123456
         metageneration_number = 6
         api_response = {"name": blob_name}
-        client = mock.Mock(spec=["_get_path"])
-        client._get_path.return_value = api_response
+        client = mock.Mock(spec=["_get_resource"])
+        client._get_resource.return_value = api_response
         bucket = _Bucket(client)
         blob = self._make_one(blob_name, bucket=bucket)
 
@@ -773,7 +773,7 @@ class Test_Blob(unittest.TestCase):
             "ifGenerationMatch": generation_number,
             "ifMetagenerationMatch": metageneration_number,
         }
-        client._get_path.assert_called_once_with(
+        client._get_resource.assert_called_once_with(
             blob.path,
             query_params=expected_query_params,
             timeout=self._get_default_timeout(),
@@ -3168,8 +3168,8 @@ class Test_Blob(unittest.TestCase):
             binding["role"]: set(binding["members"])
             for binding in api_response["bindings"]
         }
-        client = mock.Mock(spec=["_get_path"])
-        client._get_path.return_value = api_response
+        client = mock.Mock(spec=["_get_resource"])
+        client._get_resource.return_value = api_response
         bucket = _Bucket(client=client)
         blob = self._make_one(blob_name, bucket=bucket)
 
@@ -3182,7 +3182,7 @@ class Test_Blob(unittest.TestCase):
 
         expected_path = "%s/iam" % (path,)
         expected_query_params = {}
-        client._get_path.assert_called_once_with(
+        client._get_resource.assert_called_once_with(
             expected_path,
             query_params=expected_query_params,
             timeout=self._get_default_timeout(),
@@ -3206,8 +3206,8 @@ class Test_Blob(unittest.TestCase):
             "bindings": [],
         }
         expected_policy = {}
-        client = mock.Mock(spec=["_get_path"])
-        client._get_path.return_value = api_response
+        client = mock.Mock(spec=["_get_resource"])
+        client._get_resource.return_value = api_response
         bucket = _Bucket(client=client, user_project=user_project)
         blob = self._make_one(blob_name, bucket=bucket)
 
@@ -3220,7 +3220,7 @@ class Test_Blob(unittest.TestCase):
 
         expected_path = "%s/iam" % (path,)
         expected_query_params = {"userProject": user_project}
-        client._get_path.assert_called_once_with(
+        client._get_resource.assert_called_once_with(
             expected_path,
             query_params=expected_query_params,
             timeout=timeout,
@@ -3243,8 +3243,8 @@ class Test_Blob(unittest.TestCase):
             "version": version,
             "bindings": [{"role": STORAGE_OWNER_ROLE, "members": [owner1, owner2]}],
         }
-        client = mock.Mock(spec=["_get_path"])
-        client._get_path.return_value = api_response
+        client = mock.Mock(spec=["_get_resource"])
+        client._get_resource.return_value = api_response
         bucket = _Bucket(client=client)
         blob = self._make_one(blob_name, bucket=bucket)
 
@@ -3254,7 +3254,7 @@ class Test_Blob(unittest.TestCase):
 
         expected_path = "%s/iam" % (path,)
         expected_query_params = {"optionsRequestedPolicyVersion": version}
-        client._get_path.assert_called_once_with(
+        client._get_resource.assert_called_once_with(
             expected_path,
             query_params=expected_query_params,
             timeout=self._get_default_timeout(),
@@ -3361,8 +3361,8 @@ class Test_Blob(unittest.TestCase):
         ]
         expected = permissions[1:]
         api_response = {"permissions": expected}
-        client = mock.Mock(spec=["_get_path"])
-        client._get_path.return_value = api_response
+        client = mock.Mock(spec=["_get_resource"])
+        client._get_resource.return_value = api_response
         bucket = _Bucket(client=client)
         blob = self._make_one(blob_name, bucket=bucket)
 
@@ -3372,7 +3372,7 @@ class Test_Blob(unittest.TestCase):
 
         expected_path = "/b/name/o/%s/iam/testPermissions" % (blob_name,)
         expected_query_params = {"permissions": permissions}
-        client._get_path.assert_called_once_with(
+        client._get_resource.assert_called_once_with(
             expected_path,
             query_params=expected_query_params,
             timeout=self._get_default_timeout(),
@@ -3396,8 +3396,8 @@ class Test_Blob(unittest.TestCase):
         ]
         expected = permissions[1:]
         api_response = {"permissions": expected}
-        client = mock.Mock(spec=["_get_path"])
-        client._get_path.return_value = api_response
+        client = mock.Mock(spec=["_get_resource"])
+        client._get_resource.return_value = api_response
         bucket = _Bucket(client=client, user_project=user_project)
         blob = self._make_one(blob_name, bucket=bucket)
 
@@ -3410,7 +3410,7 @@ class Test_Blob(unittest.TestCase):
             "permissions": permissions,
             "userProject": user_project,
         }
-        client._get_path.assert_called_once_with(
+        client._get_resource.assert_called_once_with(
             expected_path,
             query_params=expected_query_params,
             timeout=timeout,

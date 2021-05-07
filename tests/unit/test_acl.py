@@ -546,15 +546,15 @@ class Test_ACL(unittest.TestCase):
         acl.reload_path = reload_path
         acl.loaded = True
         acl.entity("allUsers", role)
-        client = acl.client = mock.Mock(spec=["_get_path"])
-        client._get_path.return_value = api_response
+        client = acl.client = mock.Mock(spec=["_get_resource"])
+        client._get_resource.return_value = api_response
 
         acl.reload()
 
         self.assertEqual(list(acl), [])
 
         expected_query_params = {}
-        client._get_path.assert_called_once_with(
+        client._get_resource.assert_called_once_with(
             reload_path,
             query_params=expected_query_params,
             timeout=self._get_default_timeout(),
@@ -571,8 +571,8 @@ class Test_ACL(unittest.TestCase):
         acl.reload_path = reload_path
         acl.loaded = True
         acl.entity("allUsers", role)
-        client = mock.Mock(spec=["_get_path"])
-        client._get_path.return_value = api_response
+        client = mock.Mock(spec=["_get_resource"])
+        client._get_resource.return_value = api_response
 
         acl.reload(client=client, timeout=timeout, retry=retry)
 
@@ -580,7 +580,7 @@ class Test_ACL(unittest.TestCase):
         self.assertEqual(list(acl), [])
 
         expected_query_params = {}
-        client._get_path.assert_called_once_with(
+        client._get_resource.assert_called_once_with(
             reload_path,
             query_params=expected_query_params,
             timeout=timeout,
@@ -596,8 +596,8 @@ class Test_ACL(unittest.TestCase):
         acl.reload_path = reload_path
         acl.loaded = True
         acl.user_project = user_project
-        client = mock.Mock(spec=["_get_path"])
-        client._get_path.return_value = api_response
+        client = mock.Mock(spec=["_get_resource"])
+        client._get_resource.return_value = api_response
 
         acl.reload(client=client)
 
@@ -605,7 +605,7 @@ class Test_ACL(unittest.TestCase):
         self.assertEqual(list(acl), [{"entity": "allUsers", "role": role}])
 
         expected_query_params = {"userProject": user_project}
-        client._get_path.assert_called_once_with(
+        client._get_resource.assert_called_once_with(
             reload_path,
             query_params=expected_query_params,
             timeout=self._get_default_timeout(),
