@@ -2362,9 +2362,7 @@ class Bucket(_PropertyMixin):
                 yield LifecycleRuleSetStorageClass.from_api_repr(rule)
             else:
                 warnings.warn(
-                    "Unknown lifecycle rule: {}".format(rule),
-                    UserWarning,
-                    stacklevel=1
+                    "Unknown lifecycle rule: {}".format(rule), UserWarning, stacklevel=1
                 )
 
     @lifecycle_rules.setter
