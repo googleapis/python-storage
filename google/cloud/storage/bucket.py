@@ -3155,7 +3155,7 @@ class Bucket(_PropertyMixin):
             for each blob.
         """
         self.acl.all().revoke_read()
-        self.acl.save(client=client, timeout=timeout)
+        self.acl.save(client=client, timeout=timeout, retry=retry)
 
         if future:
             doa = self.default_object_acl
@@ -3186,7 +3186,7 @@ class Bucket(_PropertyMixin):
 
             for blob in blobs:
                 blob.acl.all().revoke_read()
-                blob.acl.save(client=client, timeout=timeout)
+                blob.acl.save(client=client, timeout=timeout, retry=retry)
 
     def generate_upload_policy(self, conditions, expiration=None, client=None):
         """Create a signed upload policy for uploading objects.
