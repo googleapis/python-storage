@@ -2361,7 +2361,11 @@ class Bucket(_PropertyMixin):
             elif action_type == "SetStorageClass":
                 yield LifecycleRuleSetStorageClass.from_api_repr(rule)
             else:
-                raise ValueError("Unknown lifecycle rule: {}".format(rule))
+                warnings.warn(
+                    "Unknown lifecycle rule: {}".format(rule),
+                    UserWarning,
+                    stacklevel=1
+                )
 
     @lifecycle_rules.setter
     def lifecycle_rules(self, rules):
