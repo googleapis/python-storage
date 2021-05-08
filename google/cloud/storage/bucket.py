@@ -1065,9 +1065,9 @@ class Bucket(_PropertyMixin):
         # Call the superclass method.
         super(Bucket, self).patch(
             client=client,
-            timeout=timeout,
             if_metageneration_match=if_metageneration_match,
             if_metageneration_not_match=if_metageneration_not_match,
+            timeout=timeout,
             retry=retry,
         )
 

@@ -1646,7 +1646,7 @@ class Test_Bucket(unittest.TestCase):
         self.assertEqual(new_blob.name, new_name)
         self.assertIsInstance(new_blob.acl, ObjectACL)
 
-        kw1, = connection._requested
+        (kw1,) = connection._requested
         copy_path = "/b/{}/o/{}/copyTo/b/{}/o/{}".format(
             source_name, blob_name, dest_name, new_name
         )
@@ -1664,7 +1664,7 @@ class Test_Bucket(unittest.TestCase):
             expected_data,
             query_params=expected_query_params,
             timeout=self._get_default_timeout(),
-            retry = DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
         )
 
     def test_copy_blobs_w_name_and_user_project(self):
@@ -2110,23 +2110,39 @@ class Test_Bucket(unittest.TestCase):
         self.assertEqual(bucket.labels, {"color": "red"})
 
         # Make sure that a patch call correctly removes the flavor label.
-        client = mock.NonCallableMock(spec=("_connection",))
-        client._connection = mock.NonCallableMock(spec=("api_request",))
+        client = mock.Mock(spec=["_patch_resource"])
+        client._patch_resource.return_value = {}
+
         bucket.patch(client=client)
-        client._connection.api_request.assert_called()
-        _, _, kwargs = client._connection.api_request.mock_calls[0]
-        self.assertEqual(len(kwargs["data"]["labels"]), 2)
-        self.assertEqual(kwargs["data"]["labels"]["color"], "red")
-        self.assertIsNone(kwargs["data"]["labels"]["flavor"])
-        self.assertEqual(kwargs["timeout"], self._get_default_timeout())
+
+        expected_patch_data = {
+            "labels": {"color": "red", "flavor": None},
+        }
+        expected_query_params = {"projection": "full"}
+        client._patch_resource.assert_called_once_with(
+            bucket.path,
+            expected_patch_data,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
+            _target_object=bucket,
+        )
 
         # A second patch call should be a no-op for labels.
-        client._connection.api_request.reset_mock()
+        client._patch_resource.reset_mock()
+
         bucket.patch(client=client, timeout=42)
-        client._connection.api_request.assert_called()
-        _, _, kwargs = client._connection.api_request.mock_calls[0]
-        self.assertNotIn("labels", kwargs["data"])
-        self.assertEqual(kwargs["timeout"], 42)
+
+        expected_patch_data = {}
+        expected_query_params = {"projection": "full"}
+        client._patch_resource.assert_called_once_with(
+            bucket.path,
+            expected_patch_data,
+            query_params=expected_query_params,
+            timeout=42,
+            retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
+            _target_object=bucket,
+        )
 
     def test_location_type_getter_unset(self):
         bucket = self._make_one()
