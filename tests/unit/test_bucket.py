@@ -1623,41 +1623,49 @@ class Test_Bucket(unittest.TestCase):
     def test_copy_blobs_preserve_acl(self):
         from google.cloud.storage.acl import ObjectACL
 
-        SOURCE = "source"
-        DEST = "dest"
-        BLOB_NAME = "blob-name"
-        NEW_NAME = "new_name"
+        source_name = "source"
+        dest_name = "dest"
+        blob_name = "blob-name"
+        new_name = "new_name"
 
         connection = _Connection({}, {})
         client = _Client(connection)
-        source = self._make_one(client=client, name=SOURCE)
-        dest = self._make_one(client=client, name=DEST)
-        blob = self._make_blob(SOURCE, BLOB_NAME)
+
+        # Temporary, until we get a real client in place.
+        client._patch_resource = mock.Mock(return_value={})
+
+        source = self._make_one(client=client, name=source_name)
+        dest = self._make_one(client=client, name=dest_name)
+        blob = self._make_blob(source_name, blob_name)
 
         new_blob = source.copy_blob(
-            blob, dest, NEW_NAME, client=client, preserve_acl=False
+            blob, dest, new_name, client=client, preserve_acl=False
         )
 
         self.assertIs(new_blob.bucket, dest)
-        self.assertEqual(new_blob.name, NEW_NAME)
+        self.assertEqual(new_blob.name, new_name)
         self.assertIsInstance(new_blob.acl, ObjectACL)
 
-        kw1, kw2 = connection._requested
-        COPY_PATH = "/b/{}/o/{}/copyTo/b/{}/o/{}".format(
-            SOURCE, BLOB_NAME, DEST, NEW_NAME
+        kw1, = connection._requested
+        copy_path = "/b/{}/o/{}/copyTo/b/{}/o/{}".format(
+            source_name, blob_name, dest_name, new_name
         )
-        NEW_BLOB_PATH = "/b/{}/o/{}".format(DEST, NEW_NAME)
-
         self.assertEqual(kw1["method"], "POST")
-        self.assertEqual(kw1["path"], COPY_PATH)
+        self.assertEqual(kw1["path"], copy_path)
         self.assertEqual(kw1["query_params"], {})
         self.assertEqual(kw1["timeout"], self._get_default_timeout())
         self.assertEqual(kw1["retry"], DEFAULT_RETRY_IF_GENERATION_SPECIFIED)
 
-        self.assertEqual(kw2["method"], "PATCH")
-        self.assertEqual(kw2["path"], NEW_BLOB_PATH)
-        self.assertEqual(kw2["query_params"], {"projection": "full"})
-        self.assertEqual(kw2["timeout"], self._get_default_timeout())
+        expected_patch_path = "/b/{}/o/{}".format(dest_name, new_name)
+        expected_data = {"acl": []}
+        expected_query_params = {"projection": "full"}
+        client._patch_resource.assert_called_once_with(
+            expected_patch_path,
+            expected_data,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry = DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+        )
 
     def test_copy_blobs_w_name_and_user_project(self):
         SOURCE = "source"

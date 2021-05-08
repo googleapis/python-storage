@@ -1993,7 +1993,7 @@ class Bucket(_PropertyMixin):
         )
 
         if not preserve_acl:
-            new_blob.acl.save(acl={}, client=client, timeout=timeout)
+            new_blob.acl.save(acl={}, client=client, timeout=timeout, retry=retry)
 
         new_blob._set_properties(copy_result)
         return new_blob
