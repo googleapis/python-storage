@@ -1793,7 +1793,7 @@ class Test_Bucket(unittest.TestCase):
 
         list(bucket.lifecycle_rules)
         mock_warn.assert_called_with(
-            "Unknown lifecycle rule by the client: {}. Please upgrade your client.".format(
+            "Unknown lifecycle rule type received: {}. Please upgrade to the latest version of google-cloud-storage.".format(
                 BOGUS_RULE
             ),
             UserWarning,

@@ -2362,7 +2362,7 @@ class Bucket(_PropertyMixin):
                 yield LifecycleRuleSetStorageClass.from_api_repr(rule)
             else:
                 warnings.warn(
-                    "Unknown lifecycle rule by the client: {}. Please upgrade your client.".format(
+                    "Unknown lifecycle rule type received: {}. Please upgrade to the latest version of google-cloud-storage.".format(
                         rule
                     ),
                     UserWarning,
