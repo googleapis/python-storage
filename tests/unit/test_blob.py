@@ -3540,243 +3540,237 @@ class Test_Blob(unittest.TestCase):
         )
 
     def test_compose_wo_content_type_set(self):
-        SOURCE_1 = "source-1"
-        SOURCE_2 = "source-2"
-        DESTINATION = "destination"
-        RESOURCE = {}
-        after = ({"status": http_client.OK}, RESOURCE)
-        connection = _Connection(after)
-        client = _Client(connection)
+        source_1_name = "source-1"
+        source_2_name = "source-2"
+        destination_name = "destination"
+        api_response = {}
+        client = mock.Mock(spec=["_post_resource"])
+        client._post_resource.return_value = api_response
         bucket = _Bucket(client=client)
-        source_1 = self._make_one(SOURCE_1, bucket=bucket)
-        source_2 = self._make_one(SOURCE_2, bucket=bucket)
-        destination = self._make_one(DESTINATION, bucket=bucket)
+        source_1 = self._make_one(source_1_name, bucket=bucket)
+        source_2 = self._make_one(source_2_name, bucket=bucket)
+        destination = self._make_one(destination_name, bucket=bucket)
         # no destination.content_type set
 
         destination.compose(sources=[source_1, source_2])
 
         self.assertIsNone(destination.content_type)
 
-        kw = connection._requested
-        self.assertEqual(len(kw), 1)
-        self.assertEqual(
-            kw[0],
-            {
-                "method": "POST",
-                "path": "/b/name/o/%s/compose" % DESTINATION,
-                "query_params": {},
-                "data": {
-                    "sourceObjects": [{"name": source_1.name}, {"name": source_2.name}],
-                    "destination": {},
-                },
-                "_target_object": destination,
-                "timeout": self._get_default_timeout(),
-                "retry": DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
-            },
+        expected_path = "/b/name/o/%s/compose" % destination_name
+        expected_data = {
+            "sourceObjects": [{"name": source_1_name}, {"name": source_2_name},],
+            "destination": {},
+        }
+        expected_query_params = {}
+        client._post_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+            _target_object=destination,
         )
 
-    def test_compose_minimal_w_user_project(self):
-        SOURCE_1 = "source-1"
-        SOURCE_2 = "source-2"
-        DESTINATION = "destination"
-        RESOURCE = {"etag": "DEADBEEF"}
-        USER_PROJECT = "user-project-123"
-        after = ({"status": http_client.OK}, RESOURCE)
-        connection = _Connection(after)
-        client = _Client(connection)
-        bucket = _Bucket(client=client, user_project=USER_PROJECT)
-        source_1 = self._make_one(SOURCE_1, bucket=bucket)
-        source_2 = self._make_one(SOURCE_2, bucket=bucket)
-        destination = self._make_one(DESTINATION, bucket=bucket)
+    def test_compose_minimal_w_user_project_w_timeout(self):
+        source_1_name = "source-1"
+        source_2_name = "source-2"
+        destination_name = "destination"
+        api_response = {"etag": "DEADBEEF"}
+        user_project = "user-project-123"
+        client = mock.Mock(spec=["_post_resource"])
+        client._post_resource.return_value = api_response
+        bucket = _Bucket(client=client, user_project=user_project)
+        source_1 = self._make_one(source_1_name, bucket=bucket)
+        source_2 = self._make_one(source_2_name, bucket=bucket)
+        destination = self._make_one(destination_name, bucket=bucket)
         destination.content_type = "text/plain"
+        timeout = 42
 
-        destination.compose(sources=[source_1, source_2], timeout=42)
+        destination.compose(sources=[source_1, source_2], timeout=timeout)
 
         self.assertEqual(destination.etag, "DEADBEEF")
 
-        kw = connection._requested
-        self.assertEqual(len(kw), 1)
-        self.assertEqual(
-            kw[0],
-            {
-                "method": "POST",
-                "path": "/b/name/o/%s/compose" % DESTINATION,
-                "query_params": {"userProject": USER_PROJECT},
-                "data": {
-                    "sourceObjects": [{"name": source_1.name}, {"name": source_2.name}],
-                    "destination": {"contentType": "text/plain"},
-                },
-                "_target_object": destination,
-                "timeout": 42,
-                "retry": DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
-            },
+        expected_path = "/b/name/o/%s/compose" % destination_name
+        expected_data = {
+            "sourceObjects": [{"name": source_1_name}, {"name": source_2_name},],
+            "destination": {"contentType": "text/plain"},
+        }
+        expected_query_params = {"userProject": user_project}
+        client._post_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            timeout=timeout,
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+            _target_object=destination,
         )
 
-    def test_compose_w_additional_property_changes(self):
-        SOURCE_1 = "source-1"
-        SOURCE_2 = "source-2"
-        DESTINATION = "destination"
-        RESOURCE = {"etag": "DEADBEEF"}
-        after = ({"status": http_client.OK}, RESOURCE)
-        connection = _Connection(after)
-        client = _Client(connection)
+    def test_compose_w_additional_property_changes_w_retry(self):
+        source_1_name = "source-1"
+        source_2_name = "source-2"
+        destination_name = "destination"
+        api_response = {"etag": "DEADBEEF"}
+        client = mock.Mock(spec=["_post_resource"])
+        client._post_resource.return_value = api_response
         bucket = _Bucket(client=client)
-        source_1 = self._make_one(SOURCE_1, bucket=bucket)
-        source_2 = self._make_one(SOURCE_2, bucket=bucket)
-        destination = self._make_one(DESTINATION, bucket=bucket)
+        source_1 = self._make_one(source_1_name, bucket=bucket)
+        source_2 = self._make_one(source_2_name, bucket=bucket)
+        destination = self._make_one(destination_name, bucket=bucket)
         destination.content_type = "text/plain"
         destination.content_language = "en-US"
         destination.metadata = {"my-key": "my-value"}
+        retry = mock.Mock(spec=[])
 
-        destination.compose(sources=[source_1, source_2])
+        destination.compose(sources=[source_1, source_2], retry=retry)
 
         self.assertEqual(destination.etag, "DEADBEEF")
 
-        kw = connection._requested
-        self.assertEqual(len(kw), 1)
-        self.assertEqual(
-            kw[0],
-            {
-                "method": "POST",
-                "path": "/b/name/o/%s/compose" % DESTINATION,
-                "query_params": {},
-                "data": {
-                    "sourceObjects": [{"name": source_1.name}, {"name": source_2.name}],
-                    "destination": {
-                        "contentType": "text/plain",
-                        "contentLanguage": "en-US",
-                        "metadata": {"my-key": "my-value"},
-                    },
-                },
-                "_target_object": destination,
-                "timeout": self._get_default_timeout(),
-                "retry": DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+        expected_path = "/b/name/o/%s/compose" % destination_name
+        expected_data = {
+            "sourceObjects": [{"name": source_1_name}, {"name": source_2_name},],
+            "destination": {
+                "contentType": "text/plain",
+                "contentLanguage": "en-US",
+                "metadata": {"my-key": "my-value"},
             },
+        }
+        expected_query_params = {}
+        client._post_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=retry,
+            _target_object=destination,
         )
 
     def test_compose_w_generation_match(self):
-        SOURCE_1 = "source-1"
-        SOURCE_2 = "source-2"
-        DESTINATION = "destination"
-        RESOURCE = {}
-        GENERATION_NUMBERS = [6, 9]
-        METAGENERATION_NUMBERS = [7, 1]
+        source_1_name = "source-1"
+        source_2_name = "source-2"
+        destination_name = "destination"
+        api_response = {}
+        generation_numbers = [6, 9]
+        metageneration_numbers = [7, 1]
 
-        after = ({"status": http_client.OK}, RESOURCE)
-        connection = _Connection(after)
-        client = _Client(connection)
+        client = mock.Mock(spec=["_post_resource"])
+        client._post_resource.return_value = api_response
         bucket = _Bucket(client=client)
-        source_1 = self._make_one(SOURCE_1, bucket=bucket)
-        source_2 = self._make_one(SOURCE_2, bucket=bucket)
+        source_1 = self._make_one(source_1_name, bucket=bucket)
+        source_2 = self._make_one(source_2_name, bucket=bucket)
 
-        destination = self._make_one(DESTINATION, bucket=bucket)
+        destination = self._make_one(destination_name, bucket=bucket)
         destination.compose(
             sources=[source_1, source_2],
-            if_generation_match=GENERATION_NUMBERS,
-            if_metageneration_match=METAGENERATION_NUMBERS,
+            if_generation_match=generation_numbers,
+            if_metageneration_match=metageneration_numbers,
         )
 
-        kw = connection._requested
-        self.assertEqual(len(kw), 1)
-        self.assertEqual(
-            kw[0],
-            {
-                "method": "POST",
-                "path": "/b/name/o/%s/compose" % DESTINATION,
-                "query_params": {},
-                "data": {
-                    "sourceObjects": [
-                        {
-                            "name": source_1.name,
-                            "objectPreconditions": {
-                                "ifGenerationMatch": GENERATION_NUMBERS[0],
-                                "ifMetagenerationMatch": METAGENERATION_NUMBERS[0],
-                            },
-                        },
-                        {
-                            "name": source_2.name,
-                            "objectPreconditions": {
-                                "ifGenerationMatch": GENERATION_NUMBERS[1],
-                                "ifMetagenerationMatch": METAGENERATION_NUMBERS[1],
-                            },
-                        },
-                    ],
-                    "destination": {},
+        expected_path = "/b/name/o/%s/compose" % destination_name
+        expected_data = {
+            "sourceObjects": [
+                {
+                    "name": source_1_name,
+                    "objectPreconditions": {
+                        "ifGenerationMatch": generation_numbers[0],
+                        "ifMetagenerationMatch": metageneration_numbers[0],
+                    },
                 },
-                "_target_object": destination,
-                "timeout": self._get_default_timeout(),
-                "retry": DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
-            },
+                {
+                    "name": source_2_name,
+                    "objectPreconditions": {
+                        "ifGenerationMatch": generation_numbers[1],
+                        "ifMetagenerationMatch": metageneration_numbers[1],
+                    },
+                },
+            ],
+            "destination": {},
+        }
+        expected_query_params = {}
+        client._post_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+            _target_object=destination,
         )
 
     def test_compose_w_generation_match_bad_length(self):
-        SOURCE_1 = "source-1"
-        SOURCE_2 = "source-2"
-        DESTINATION = "destination"
-        GENERATION_NUMBERS = [6]
-        METAGENERATION_NUMBERS = [7]
-
-        after = ({"status": http_client.OK}, {})
-        connection = _Connection(after)
-        client = _Client(connection)
+        source_1_name = "source-1"
+        source_2_name = "source-2"
+        destination_name = "destination"
+        generation_numbers = [6]
+        client = mock.Mock(spec=["_post_resource"])
         bucket = _Bucket(client=client)
-        source_1 = self._make_one(SOURCE_1, bucket=bucket)
-        source_2 = self._make_one(SOURCE_2, bucket=bucket)
+        source_1 = self._make_one(source_1_name, bucket=bucket)
+        source_2 = self._make_one(source_2_name, bucket=bucket)
 
-        destination = self._make_one(DESTINATION, bucket=bucket)
+        destination = self._make_one(destination_name, bucket=bucket)
 
         with self.assertRaises(ValueError):
             destination.compose(
-                sources=[source_1, source_2], if_generation_match=GENERATION_NUMBERS
+                sources=[source_1, source_2], if_generation_match=generation_numbers
             )
+
+        client._post_resource.assert_not_called()
+
+    def test_compose_w_metageneration_match_bad_length(self):
+        source_1_name = "source-1"
+        source_2_name = "source-2"
+        destination_name = "destination"
+        metageneration_numbers = [7]
+        client = mock.Mock(spec=["_post_resource"])
+        bucket = _Bucket(client=client)
+        source_1 = self._make_one(source_1_name, bucket=bucket)
+        source_2 = self._make_one(source_2_name, bucket=bucket)
+        destination = self._make_one(destination_name, bucket=bucket)
+
         with self.assertRaises(ValueError):
             destination.compose(
                 sources=[source_1, source_2],
-                if_metageneration_match=METAGENERATION_NUMBERS,
+                if_metageneration_match=metageneration_numbers,
             )
 
+        client._post_resource.assert_not_called()
+
     def test_compose_w_generation_match_nones(self):
-        SOURCE_1 = "source-1"
-        SOURCE_2 = "source-2"
-        DESTINATION = "destination"
-        GENERATION_NUMBERS = [6, None]
-
-        after = ({"status": http_client.OK}, {})
-        connection = _Connection(after)
-        client = _Client(connection)
+        source_1_name = "source-1"
+        source_2_name = "source-2"
+        destination_name = "destination"
+        generation_numbers = [6, None]
+        api_response = {}
+        client = mock.Mock(spec=["_post_resource"])
+        client._post_resource.return_value = api_response
         bucket = _Bucket(client=client)
-        source_1 = self._make_one(SOURCE_1, bucket=bucket)
-        source_2 = self._make_one(SOURCE_2, bucket=bucket)
+        source_1 = self._make_one(source_1_name, bucket=bucket)
+        source_2 = self._make_one(source_2_name, bucket=bucket)
+        destination = self._make_one(destination_name, bucket=bucket)
 
-        destination = self._make_one(DESTINATION, bucket=bucket)
         destination.compose(
-            sources=[source_1, source_2], if_generation_match=GENERATION_NUMBERS
+            sources=[source_1, source_2], if_generation_match=generation_numbers
         )
 
-        kw = connection._requested
-        self.assertEqual(len(kw), 1)
-        self.assertEqual(
-            kw[0],
-            {
-                "method": "POST",
-                "path": "/b/name/o/%s/compose" % DESTINATION,
-                "query_params": {},
-                "data": {
-                    "sourceObjects": [
-                        {
-                            "name": source_1.name,
-                            "objectPreconditions": {
-                                "ifGenerationMatch": GENERATION_NUMBERS[0]
-                            },
-                        },
-                        {"name": source_2.name},
-                    ],
-                    "destination": {},
+        expected_path = "/b/name/o/%s/compose" % destination_name
+        expected_data = {
+            "sourceObjects": [
+                {
+                    "name": source_1_name,
+                    "objectPreconditions": {
+                        "ifGenerationMatch": generation_numbers[0],
+                    },
                 },
-                "_target_object": destination,
-                "timeout": self._get_default_timeout(),
-                "retry": DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
-            },
+                {"name": source_2_name,},
+            ],
+            "destination": {},
+        }
+        expected_query_params = {}
+        client._post_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+            _target_object=destination,
         )
 
     def test_rewrite_response_without_resource(self):

@@ -3164,14 +3164,13 @@ class Blob(_PropertyMixin):
             "sourceObjects": source_objects,
             "destination": self._properties.copy(),
         }
-        api_response = client._connection.api_request(
-            method="POST",
-            path=self.path + "/compose",
+        api_response = client._post_resource(
+            "{}/compose".format(self.path),
+            request,
             query_params=query_params,
-            data=request,
-            _target_object=self,
             timeout=timeout,
             retry=retry,
+            _target_object=self,
         )
         self._set_properties(api_response)
 
