@@ -593,17 +593,6 @@ class Test__bucket_bound_hostname_url(unittest.TestCase):
         self.assertEqual(self._call_fut(host=HOST, scheme=SCHEME), EXPECTED_URL)
 
 
-class _Connection(object):
-    def __init__(self, *responses):
-        self._responses = responses
-        self._requested = []
-
-    def api_request(self, **kw):
-        self._requested.append(kw)
-        response, self._responses = self._responses[0], self._responses[1:]
-        return response
-
-
 class _MD5Hash(object):
     def __init__(self, digest_val):
         self.digest_val = digest_val
@@ -635,8 +624,3 @@ class _Base64(object):
     def b64encode(self, value):
         self._called_b64encode.append(value)
         return value
-
-
-class _Client(object):
-    def __init__(self, connection):
-        self._connection = connection
