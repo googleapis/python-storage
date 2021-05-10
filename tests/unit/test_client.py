@@ -1679,43 +1679,43 @@ class TestClient(unittest.TestCase):
         self.assertEqual(bucket.name, blob_name)
 
     def _create_hmac_key_helper(
-        self, explicit_project=None, user_project=None, timeout=None
+        self, explicit_project=None, user_project=None, timeout=None, retry=None,
     ):
         import datetime
         from pytz import UTC
         from google.cloud.storage.hmac_key import HMACKeyMetadata
 
-        PROJECT = "PROJECT"
-        ACCESS_ID = "ACCESS-ID"
-        CREDENTIALS = _make_credentials()
-        EMAIL = "storage-user-123@example.com"
-        SECRET = "a" * 40
+        project = "PROJECT"
+        access_id = "ACCESS-ID"
+        credentials = _make_credentials()
+        email = "storage-user-123@example.com"
+        secret = "a" * 40
         now = datetime.datetime.utcnow().replace(tzinfo=UTC)
         now_stamp = "{}Z".format(now.isoformat())
 
         if explicit_project is not None:
             expected_project = explicit_project
         else:
-            expected_project = PROJECT
+            expected_project = project
 
-        RESOURCE = {
+        api_response = {
             "kind": "storage#hmacKey",
             "metadata": {
-                "accessId": ACCESS_ID,
+                "accessId": access_id,
                 "etag": "ETAG",
-                "id": "projects/{}/hmacKeys/{}".format(PROJECT, ACCESS_ID),
+                "id": "projects/{}/hmacKeys/{}".format(project, access_id),
                 "project": expected_project,
                 "state": "ACTIVE",
-                "serviceAccountEmail": EMAIL,
+                "serviceAccountEmail": email,
                 "timeCreated": now_stamp,
                 "updated": now_stamp,
             },
-            "secret": SECRET,
+            "secret": secret,
         }
 
-        client = self._make_one(project=PROJECT, credentials=CREDENTIALS)
-        http = _make_requests_session([_make_json_response(RESOURCE)])
-        client._http_internal = http
+        client = self._make_one(project=project, credentials=credentials)
+        client._post_resource = mock.Mock()
+        client._post_resource.return_value = api_response
 
         kwargs = {}
         if explicit_project is not None:
@@ -1725,43 +1725,37 @@ class TestClient(unittest.TestCase):
             kwargs["user_project"] = user_project
 
         if timeout is None:
-            timeout = self._get_default_timeout()
-        kwargs["timeout"] = timeout
+            expected_timeout = self._get_default_timeout()
+        else:
+            expected_timeout = kwargs["timeout"] = timeout
 
-        metadata, secret = client.create_hmac_key(service_account_email=EMAIL, **kwargs)
+        if retry is None:
+            expected_retry = DEFAULT_RETRY
+        else:
+            expected_retry = kwargs["retry"] = retry
+
+        metadata, secret = client.create_hmac_key(service_account_email=email, **kwargs)
 
         self.assertIsInstance(metadata, HMACKeyMetadata)
-        self.assertIs(metadata._client, client)
-        self.assertEqual(metadata._properties, RESOURCE["metadata"])
-        self.assertEqual(secret, RESOURCE["secret"])
 
-        qs_params = {"serviceAccountEmail": EMAIL}
+        self.assertIs(metadata._client, client)
+        self.assertEqual(metadata._properties, api_response["metadata"])
+        self.assertEqual(secret, api_response["secret"])
+
+        expected_path = "/projects/{}/hmacKeys".format(expected_project)
+        expected_data = None
+        expected_query_params = {"serviceAccountEmail": email}
 
         if user_project is not None:
-            qs_params["userProject"] = user_project
+            expected_query_params["userProject"] = user_project
 
-        http.request.assert_called_once_with(
-            method="POST", url=mock.ANY, data=None, headers=mock.ANY, timeout=timeout
+        client._post_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            timeout=expected_timeout,
+            retry=expected_retry,
         )
-        _, kwargs = http.request.call_args
-        scheme, netloc, path, qs, _ = urlparse.urlsplit(kwargs.get("url"))
-        self.assertEqual("%s://%s" % (scheme, netloc), client._connection.API_BASE_URL)
-        self.assertEqual(
-            path,
-            "/".join(
-                [
-                    "",
-                    "storage",
-                    client._connection.API_VERSION,
-                    "projects",
-                    expected_project,
-                    "hmacKeys",
-                ]
-            ),
-        )
-        parms = dict(urlparse.parse_qsl(qs))
-        for param, expected in qs_params.items():
-            self.assertEqual(parms[param], expected)
 
     def test_create_hmac_key_defaults(self):
         self._create_hmac_key_helper()
@@ -1769,8 +1763,14 @@ class TestClient(unittest.TestCase):
     def test_create_hmac_key_explicit_project(self):
         self._create_hmac_key_helper(explicit_project="other-project-456")
 
-    def test_create_hmac_key_user_project(self):
-        self._create_hmac_key_helper(user_project="billed-project", timeout=42)
+    def test_create_hmac_key_w_user_project(self):
+        self._create_hmac_key_helper(user_project="billed-project")
+
+    def test_create_hmac_key_w_timeout(self):
+        self._create_hmac_key_helper(timeout=42)
+
+    def test_create_hmac_key_w_retry(self):
+        self._create_hmac_key_helper(retry=mock.Mock(spec=[]))
 
     def test_list_hmac_keys_defaults_empty(self):
         PROJECT = "PROJECT"

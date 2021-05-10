@@ -1348,6 +1348,7 @@ class Client(ClientWithProject):
         project_id=None,
         user_project=None,
         timeout=_DEFAULT_TIMEOUT,
+        retry=DEFAULT_RETRY,
     ):
         """Create an HMAC key for a service account.
 
@@ -1368,6 +1369,20 @@ class Client(ClientWithProject):
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
 
+        :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
+        :param retry: (Optional) How to retry the RPC. A None value will disable retries.
+            A google.api_core.retry.Retry value will enable retries, and the object will
+            define retriable response codes and errors and configure backoff and timeout options.
+
+            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a Retry object and
+            activates it only if certain conditions are met. This class exists to provide safe defaults
+            for RPC calls that are not technically safe to retry normally (due to potential data
+            duplication or other side-effects) but become safe to retry if a condition such as
+            if_metageneration_match is set.
+
+            See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
+            information on retry types and how to configure them.
+
         :rtype:
             Tuple[:class:`~google.cloud.storage.hmac_key.HMACKeyMetadata`, str]
         :returns: metadata for the created key, plus the bytes of the key's secret, which is an 40-character base64-encoded string.
@@ -1381,12 +1396,8 @@ class Client(ClientWithProject):
         if user_project is not None:
             qs_params["userProject"] = user_project
 
-        api_response = self._connection.api_request(
-            method="POST",
-            path=path,
-            query_params=qs_params,
-            timeout=timeout,
-            retry=None,
+        api_response = self._post_resource(
+            path, None, query_params=qs_params, timeout=timeout, retry=retry,
         )
         metadata = HMACKeyMetadata(self)
         metadata._properties = api_response["metadata"]
