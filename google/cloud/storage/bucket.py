@@ -1677,13 +1677,12 @@ class Bucket(_PropertyMixin):
         # We intentionally pass `_target_object=None` since a DELETE
         # request has no response value (whether in a standard request or
         # in a batch request).
-        client._connection.api_request(
-            method="DELETE",
-            path=blob.path,
+        client._delete_resource(
+            blob.path,
             query_params=query_params,
-            _target_object=None,
             timeout=timeout,
             retry=retry,
+            _target_object=None,
         )
 
     def delete_blobs(
@@ -1802,11 +1801,11 @@ class Bucket(_PropertyMixin):
                 self.delete_blob(
                     blob_name,
                     client=client,
-                    timeout=timeout,
                     if_generation_match=next(if_generation_match, None),
                     if_generation_not_match=next(if_generation_not_match, None),
                     if_metageneration_match=next(if_metageneration_match, None),
                     if_metageneration_not_match=next(if_metageneration_not_match, None),
+                    timeout=timeout,
                     retry=retry,
                 )
             except NotFound:

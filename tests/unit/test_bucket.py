@@ -1241,224 +1241,298 @@ class Test_Bucket(unittest.TestCase):
         self.assertRaises(ValueError, bucket.delete, force=True)
         self.assertEqual(connection._deleted_buckets, [])
 
-    def test_delete_blob_miss(self):
+    def test_delete_blob_miss_w_defaults(self):
         from google.cloud.exceptions import NotFound
 
-        NAME = "name"
-        NONESUCH = "nonesuch"
-        connection = _Connection()
-        client = _Client(connection)
-        bucket = self._make_one(client=client, name=NAME)
-        self.assertRaises(NotFound, bucket.delete_blob, NONESUCH)
-        (kw,) = connection._requested
-        self.assertEqual(kw["method"], "DELETE")
-        self.assertEqual(kw["path"], "/b/%s/o/%s" % (NAME, NONESUCH))
-        self.assertEqual(kw["query_params"], {})
-        self.assertEqual(kw["timeout"], self._get_default_timeout())
+        name = "name"
+        blob_name = "nonesuch"
+        client = mock.Mock(spec=["_delete_resource"])
+        client._delete_resource.side_effect = NotFound("testing")
+        bucket = self._make_one(client=client, name=name)
 
-    def test_delete_blob_hit_with_user_project(self):
-        NAME = "name"
-        BLOB_NAME = "blob-name"
-        USER_PROJECT = "user-project-123"
-        connection = _Connection({})
-        client = _Client(connection)
-        bucket = self._make_one(client=client, name=NAME, user_project=USER_PROJECT)
-        result = bucket.delete_blob(BLOB_NAME, timeout=42)
+        with self.assertRaises(NotFound):
+            bucket.delete_blob(blob_name)
+
+        expected_path = "/b/%s/o/%s" % (name, blob_name)
+        expected_query_params = {}
+        client._delete_resource.assert_called_once_with(
+            expected_path,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+            _target_object=None,
+        )
+
+    def test_delete_blob_hit_w_user_project_w_timeout(self):
+        name = "name"
+        blob_name = "blob-name"
+        user_project = "user-project-123"
+        client = mock.Mock(spec=["_delete_resource"])
+        client._delete_resource.return_value = None
+        bucket = self._make_one(client=client, name=name, user_project=user_project)
+        timeout = 42
+
+        result = bucket.delete_blob(blob_name, timeout=timeout)
+
         self.assertIsNone(result)
-        (kw,) = connection._requested
-        self.assertEqual(kw["method"], "DELETE")
-        self.assertEqual(kw["path"], "/b/%s/o/%s" % (NAME, BLOB_NAME))
-        self.assertEqual(kw["query_params"], {"userProject": USER_PROJECT})
-        self.assertEqual(kw["timeout"], 42)
-        self.assertEqual(kw["retry"], DEFAULT_RETRY_IF_GENERATION_SPECIFIED)
 
-    def test_delete_blob_hit_with_generation(self):
-        NAME = "name"
-        BLOB_NAME = "blob-name"
-        GENERATION = 1512565576797178
-        connection = _Connection({})
-        client = _Client(connection)
-        bucket = self._make_one(client=client, name=NAME)
-        result = bucket.delete_blob(BLOB_NAME, generation=GENERATION)
+        expected_path = "/b/%s/o/%s" % (name, blob_name)
+        expected_query_params = {"userProject": user_project}
+        client._delete_resource.assert_called_once_with(
+            expected_path,
+            query_params=expected_query_params,
+            timeout=timeout,
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+            _target_object=None,
+        )
+
+    def test_delete_blob_hit_w_generation_w_retry(self):
+        name = "name"
+        blob_name = "blob-name"
+        generation = 1512565576797178
+        client = mock.Mock(spec=["_delete_resource"])
+        client._delete_resource.return_value = None
+        bucket = self._make_one(client=client, name=name)
+        retry = mock.Mock(spec=[])
+
+        result = bucket.delete_blob(blob_name, generation=generation, retry=retry)
+
         self.assertIsNone(result)
-        (kw,) = connection._requested
-        self.assertEqual(kw["method"], "DELETE")
-        self.assertEqual(kw["path"], "/b/%s/o/%s" % (NAME, BLOB_NAME))
-        self.assertEqual(kw["query_params"], {"generation": GENERATION})
-        self.assertEqual(kw["timeout"], self._get_default_timeout())
-        self.assertEqual(kw["retry"], DEFAULT_RETRY_IF_GENERATION_SPECIFIED)
 
-    def test_delete_blob_with_generation_match(self):
-        NAME = "name"
-        BLOB_NAME = "blob-name"
-        GENERATION = 6
-        METAGENERATION = 9
+        expected_path = "/b/%s/o/%s" % (name, blob_name)
+        expected_query_params = {"generation": generation}
+        client._delete_resource.assert_called_once_with(
+            expected_path,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=retry,
+            _target_object=None,
+        )
 
-        connection = _Connection({})
-        client = _Client(connection)
-        bucket = self._make_one(client=client, name=NAME)
+    def test_delete_blob_hit_w_generation_match(self):
+        name = "name"
+        blob_name = "blob-name"
+        generation = 6
+        metageneration = 9
+        client = mock.Mock(spec=["_delete_resource"])
+        client._delete_resource.return_value = None
+        bucket = self._make_one(client=client, name=name)
+
         result = bucket.delete_blob(
-            BLOB_NAME,
-            if_generation_match=GENERATION,
-            if_metageneration_match=METAGENERATION,
+            blob_name,
+            if_generation_match=generation,
+            if_metageneration_match=metageneration,
         )
 
         self.assertIsNone(result)
-        (kw,) = connection._requested
-        self.assertEqual(kw["method"], "DELETE")
-        self.assertEqual(kw["path"], "/b/%s/o/%s" % (NAME, BLOB_NAME))
-        self.assertEqual(
-            kw["query_params"],
-            {"ifGenerationMatch": GENERATION, "ifMetagenerationMatch": METAGENERATION},
+
+        expected_path = "/b/%s/o/%s" % (name, blob_name)
+        expected_query_params = {
+            "ifGenerationMatch": generation,
+            "ifMetagenerationMatch": metageneration,
+        }
+        client._delete_resource.assert_called_once_with(
+            expected_path,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+            _target_object=None,
         )
-        self.assertEqual(kw["timeout"], self._get_default_timeout())
-        self.assertEqual(kw["retry"], DEFAULT_RETRY_IF_GENERATION_SPECIFIED)
 
     def test_delete_blobs_empty(self):
-        NAME = "name"
-        connection = _Connection()
-        client = _Client(connection)
-        bucket = self._make_one(client=client, name=NAME)
+        name = "name"
+        bucket = self._make_one(client=None, name=name)
+        bucket.delete_blob = mock.Mock()
+
         bucket.delete_blobs([])
-        self.assertEqual(connection._requested, [])
 
-    def test_delete_blobs_hit_w_user_project(self):
-        NAME = "name"
-        BLOB_NAME = "blob-name"
-        USER_PROJECT = "user-project-123"
-        connection = _Connection({})
-        client = _Client(connection)
-        bucket = self._make_one(client=client, name=NAME, user_project=USER_PROJECT)
-        bucket.delete_blobs([BLOB_NAME], timeout=42)
-        kw = connection._requested
-        self.assertEqual(len(kw), 1)
-        self.assertEqual(kw[0]["method"], "DELETE")
-        self.assertEqual(kw[0]["path"], "/b/%s/o/%s" % (NAME, BLOB_NAME))
-        self.assertEqual(kw[0]["query_params"], {"userProject": USER_PROJECT})
-        self.assertEqual(kw[0]["timeout"], 42)
-        self.assertEqual(kw[0]["retry"], DEFAULT_RETRY_IF_GENERATION_SPECIFIED)
+        bucket.delete_blob.assert_not_called()
 
-    def test_delete_blobs_w_generation_match(self):
-        NAME = "name"
-        BLOB_NAME = "blob-name"
-        BLOB_NAME2 = "blob-name2"
-        GENERATION_NUMBER = 6
-        GENERATION_NUMBER2 = 9
+    def test_delete_blobs_hit_w_explicit_client_w_timeout(self):
+        name = "name"
+        blob_name = "blob-name"
+        client = mock.Mock(spec=[])
+        bucket = self._make_one(client=None, name=name)
+        bucket.delete_blob = mock.Mock()
+        timeout = 42
 
-        connection = _Connection({}, {})
-        client = _Client(connection)
-        bucket = self._make_one(client=client, name=NAME)
-        bucket.delete_blobs(
-            [BLOB_NAME, BLOB_NAME2],
-            timeout=42,
-            if_generation_match=[GENERATION_NUMBER, GENERATION_NUMBER2],
+        bucket.delete_blobs([blob_name], client=client, timeout=timeout)
+
+        bucket.delete_blob.assert_called_once_with(
+            blob_name,
+            client=client,
+            if_generation_match=None,
+            if_generation_not_match=None,
+            if_metageneration_match=None,
+            if_metageneration_not_match=None,
+            timeout=timeout,
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
         )
-        kw = connection._requested
-        self.assertEqual(len(kw), 2)
-
-        self.assertEqual(kw[0]["method"], "DELETE")
-        self.assertEqual(kw[0]["path"], "/b/%s/o/%s" % (NAME, BLOB_NAME))
-        self.assertEqual(kw[0]["timeout"], 42)
-        self.assertEqual(
-            kw[0]["query_params"], {"ifGenerationMatch": GENERATION_NUMBER}
-        )
-        self.assertEqual(kw[0]["retry"], DEFAULT_RETRY_IF_GENERATION_SPECIFIED)
-        self.assertEqual(kw[1]["method"], "DELETE")
-        self.assertEqual(kw[1]["path"], "/b/%s/o/%s" % (NAME, BLOB_NAME2))
-        self.assertEqual(kw[1]["timeout"], 42)
-        self.assertEqual(
-            kw[1]["query_params"], {"ifGenerationMatch": GENERATION_NUMBER2}
-        )
-        self.assertEqual(kw[1]["retry"], DEFAULT_RETRY_IF_GENERATION_SPECIFIED)
 
     def test_delete_blobs_w_generation_match_wrong_len(self):
-        NAME = "name"
-        BLOB_NAME = "blob-name"
-        BLOB_NAME2 = "blob-name2"
-        GENERATION_NUMBER = 6
+        name = "name"
+        blob_name = "blob-name"
+        blob_name2 = "blob-name2"
+        generation_number = 6
+        bucket = self._make_one(client=None, name=name)
+        bucket.delete_blob = mock.Mock()
 
-        connection = _Connection()
-        client = _Client(connection)
-        bucket = self._make_one(client=client, name=NAME)
         with self.assertRaises(ValueError):
             bucket.delete_blobs(
-                [BLOB_NAME, BLOB_NAME2],
-                timeout=42,
-                if_generation_not_match=[GENERATION_NUMBER],
+                [blob_name, blob_name2], if_generation_not_match=[generation_number],
             )
 
-    def test_delete_blobs_w_generation_match_none(self):
-        NAME = "name"
-        BLOB_NAME = "blob-name"
-        BLOB_NAME2 = "blob-name2"
-        GENERATION_NUMBER = 6
-        GENERATION_NUMBER2 = None
+        bucket.delete_blob.assert_not_called()
 
-        connection = _Connection({}, {})
-        client = _Client(connection)
-        bucket = self._make_one(client=client, name=NAME)
+    def test_delete_blobs_w_generation_match_w_retry(self):
+        name = "name"
+        blob_name = "blob-name"
+        blob_name2 = "blob-name2"
+        generation_number = 6
+        generation_number2 = 9
+        client = mock.Mock(spec=[])
+        bucket = self._make_one(client=client, name=name)
+        bucket.delete_blob = mock.Mock()
+        retry = mock.Mock(spec=[])
+
         bucket.delete_blobs(
-            [BLOB_NAME, BLOB_NAME2],
-            timeout=42,
-            if_generation_match=[GENERATION_NUMBER, GENERATION_NUMBER2],
+            [blob_name, blob_name2],
+            if_generation_match=[generation_number, generation_number2],
+            retry=retry,
         )
-        kw = connection._requested
-        self.assertEqual(len(kw), 2)
 
-        self.assertEqual(kw[0]["method"], "DELETE")
-        self.assertEqual(kw[0]["path"], "/b/%s/o/%s" % (NAME, BLOB_NAME))
-        self.assertEqual(kw[0]["timeout"], 42)
-        self.assertEqual(
-            kw[0]["query_params"], {"ifGenerationMatch": GENERATION_NUMBER}
+        call_1 = mock.call(
+            blob_name,
+            client=None,
+            if_generation_match=generation_number,
+            if_generation_not_match=None,
+            if_metageneration_match=None,
+            if_metageneration_not_match=None,
+            timeout=self._get_default_timeout(),
+            retry=retry,
         )
-        self.assertEqual(kw[0]["retry"], DEFAULT_RETRY_IF_GENERATION_SPECIFIED)
-        self.assertEqual(kw[1]["method"], "DELETE")
-        self.assertEqual(kw[1]["path"], "/b/%s/o/%s" % (NAME, BLOB_NAME2))
-        self.assertEqual(kw[1]["timeout"], 42)
-        self.assertEqual(kw[1]["query_params"], {})
-        self.assertEqual(kw[1]["retry"], DEFAULT_RETRY_IF_GENERATION_SPECIFIED)
+        call_2 = mock.call(
+            blob_name2,
+            client=None,
+            if_generation_match=generation_number2,
+            if_generation_not_match=None,
+            if_metageneration_match=None,
+            if_metageneration_not_match=None,
+            timeout=self._get_default_timeout(),
+            retry=retry,
+        )
+        bucket.delete_blob.assert_has_calls([call_1, call_2])
 
-    def test_delete_blobs_miss_no_on_error(self):
+    def test_delete_blobs_w_generation_match_none(self):
+        name = "name"
+        blob_name = "blob-name"
+        blob_name2 = "blob-name2"
+        generation_number = 6
+        generation_number2 = None
+        client = mock.Mock(spec=[])
+        bucket = self._make_one(client=client, name=name)
+        bucket.delete_blob = mock.Mock()
+
+        bucket.delete_blobs(
+            [blob_name, blob_name2],
+            if_generation_match=[generation_number, generation_number2],
+        )
+
+        call_1 = mock.call(
+            blob_name,
+            client=None,
+            if_generation_match=generation_number,
+            if_generation_not_match=None,
+            if_metageneration_match=None,
+            if_metageneration_not_match=None,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+        )
+        call_2 = mock.call(
+            blob_name2,
+            client=None,
+            if_generation_match=None,
+            if_generation_not_match=None,
+            if_metageneration_match=None,
+            if_metageneration_not_match=None,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+        )
+        bucket.delete_blob.assert_has_calls([call_1, call_2])
+
+    def test_delete_blobs_miss_wo_on_error(self):
         from google.cloud.exceptions import NotFound
 
-        NAME = "name"
-        BLOB_NAME = "blob-name"
-        NONESUCH = "nonesuch"
-        connection = _Connection({})
-        client = _Client(connection)
-        bucket = self._make_one(client=client, name=NAME)
-        self.assertRaises(NotFound, bucket.delete_blobs, [BLOB_NAME, NONESUCH])
-        kw = connection._requested
-        self.assertEqual(len(kw), 2)
-        self.assertEqual(kw[0]["method"], "DELETE")
-        self.assertEqual(kw[0]["path"], "/b/%s/o/%s" % (NAME, BLOB_NAME))
-        self.assertEqual(kw[0]["timeout"], self._get_default_timeout())
-        self.assertEqual(kw[0]["retry"], DEFAULT_RETRY_IF_GENERATION_SPECIFIED)
-        self.assertEqual(kw[1]["method"], "DELETE")
-        self.assertEqual(kw[1]["path"], "/b/%s/o/%s" % (NAME, NONESUCH))
-        self.assertEqual(kw[1]["timeout"], self._get_default_timeout())
-        self.assertEqual(kw[1]["retry"], DEFAULT_RETRY_IF_GENERATION_SPECIFIED)
+        name = "name"
+        blob_name = "blob-name"
+        blob_name2 = "nonesuch"
+        client = mock.Mock(spec=[])
+        bucket = self._make_one(client=client, name=name)
+        bucket.delete_blob = mock.Mock()
+        bucket.delete_blob.side_effect = [None, NotFound("testing")]
+
+        with self.assertRaises(NotFound):
+            bucket.delete_blobs([blob_name, blob_name2])
+
+        call_1 = mock.call(
+            blob_name,
+            client=None,
+            if_generation_match=None,
+            if_generation_not_match=None,
+            if_metageneration_match=None,
+            if_metageneration_not_match=None,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+        )
+        call_2 = mock.call(
+            blob_name2,
+            client=None,
+            if_generation_match=None,
+            if_generation_not_match=None,
+            if_metageneration_match=None,
+            if_metageneration_not_match=None,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+        )
+        bucket.delete_blob.assert_has_calls([call_1, call_2])
 
     def test_delete_blobs_miss_w_on_error(self):
-        NAME = "name"
-        BLOB_NAME = "blob-name"
-        NONESUCH = "nonesuch"
-        connection = _Connection({})
-        client = _Client(connection)
-        bucket = self._make_one(client=client, name=NAME)
+        from google.cloud.exceptions import NotFound
+
+        name = "name"
+        blob_name = "blob-name"
+        blob_name2 = "nonesuch"
+        client = mock.Mock(spec=[])
+        bucket = self._make_one(client=client, name=name)
+        bucket.delete_blob = mock.Mock()
+        bucket.delete_blob.side_effect = [None, NotFound("testing")]
+
         errors = []
-        bucket.delete_blobs([BLOB_NAME, NONESUCH], errors.append)
-        self.assertEqual(errors, [NONESUCH])
-        kw = connection._requested
-        self.assertEqual(len(kw), 2)
-        self.assertEqual(kw[0]["method"], "DELETE")
-        self.assertEqual(kw[0]["path"], "/b/%s/o/%s" % (NAME, BLOB_NAME))
-        self.assertEqual(kw[0]["timeout"], self._get_default_timeout())
-        self.assertEqual(kw[0]["retry"], DEFAULT_RETRY_IF_GENERATION_SPECIFIED)
-        self.assertEqual(kw[1]["method"], "DELETE")
-        self.assertEqual(kw[1]["path"], "/b/%s/o/%s" % (NAME, NONESUCH))
-        self.assertEqual(kw[1]["timeout"], self._get_default_timeout())
-        self.assertEqual(kw[1]["retry"], DEFAULT_RETRY_IF_GENERATION_SPECIFIED)
+        bucket.delete_blobs([blob_name, blob_name2], on_error=errors.append)
+
+        self.assertEqual(errors, [blob_name2])
+
+        call_1 = mock.call(
+            blob_name,
+            client=None,
+            if_generation_match=None,
+            if_generation_not_match=None,
+            if_metageneration_match=None,
+            if_metageneration_not_match=None,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+        )
+        call_2 = mock.call(
+            blob_name2,
+            client=None,
+            if_generation_match=None,
+            if_generation_not_match=None,
+            if_metageneration_match=None,
+            if_metageneration_not_match=None,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+        )
+        bucket.delete_blob.assert_has_calls([call_1, call_2])
 
     def test_reload_w_metageneration_match(self):
         name = "name"
