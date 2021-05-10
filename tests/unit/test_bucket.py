@@ -1107,139 +1107,179 @@ class Test_Bucket(unittest.TestCase):
             retry=retry,
         )
 
-    def test_delete_miss(self):
+    def test_delete_miss_w_defaults(self):
         from google.cloud.exceptions import NotFound
 
-        NAME = "name"
-        connection = _Connection()
-        client = _Client(connection)
-        bucket = self._make_one(client=client, name=NAME)
-        self.assertRaises(NotFound, bucket.delete)
-        expected_cw = [
-            {
-                "method": "DELETE",
-                "path": bucket.path,
-                "query_params": {},
-                "_target_object": None,
-                "timeout": self._get_default_timeout(),
-                "retry": DEFAULT_RETRY,
-            }
-        ]
-        self.assertEqual(connection._deleted_buckets, expected_cw)
+        name = "name"
+        client = mock.Mock(spec=["_delete_resource"])
+        client._delete_resource.side_effect = NotFound("testing")
+        bucket = self._make_one(client=client, name=name)
 
-    def test_delete_hit_with_user_project(self):
-        NAME = "name"
-        USER_PROJECT = "user-project-123"
-        GET_BLOBS_RESP = {"items": []}
-        connection = _Connection(GET_BLOBS_RESP)
-        connection._delete_bucket = True
-        client = self._make_client()
-        client._base_connection = connection
-        bucket = self._make_one(client=client, name=NAME, user_project=USER_PROJECT)
-        result = bucket.delete(force=True, timeout=42)
+        with self.assertRaises(NotFound):
+            bucket.delete()
+
+        expected_query_params = {}
+        client._delete_resource.assert_called_once_with(
+            bucket.path,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
+            _target_object=None,
+        )
+
+    def test_delete_hit_w_metageneration_match_w_explicit_client(self):
+        name = "name"
+        metageneration_number = 6
+        client = mock.Mock(spec=["_delete_resource"])
+        client._delete_resource.return_value = None
+        bucket = self._make_one(client=None, name=name)
+
+        result = bucket.delete(
+            client=client, if_metageneration_match=metageneration_number,
+        )
+
         self.assertIsNone(result)
-        expected_cw = [
-            {
-                "method": "DELETE",
-                "path": bucket.path,
-                "_target_object": None,
-                "query_params": {"userProject": USER_PROJECT},
-                "timeout": 42,
-                "retry": DEFAULT_RETRY,
-            }
-        ]
-        self.assertEqual(connection._deleted_buckets, expected_cw)
 
-    def test_delete_force_delete_blobs(self):
-        NAME = "name"
-        BLOB_NAME1 = "blob-name1"
-        BLOB_NAME2 = "blob-name2"
-        GET_BLOBS_RESP = {"items": [{"name": BLOB_NAME1}, {"name": BLOB_NAME2}]}
-        DELETE_BLOB1_RESP = DELETE_BLOB2_RESP = {}
-        connection = _Connection(GET_BLOBS_RESP, DELETE_BLOB1_RESP, DELETE_BLOB2_RESP)
-        connection._delete_bucket = True
-        client = self._make_client()
-        client._base_connection = connection
-        bucket = self._make_one(client=client, name=NAME)
+        expected_query_params = {"ifMetagenerationMatch": metageneration_number}
+        client._delete_resource.assert_called_once_with(
+            bucket.path,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
+            _target_object=None,
+        )
+
+    def test_delete_hit_w_force_w_user_project_w_explicit_timeout_retry(self):
+        name = "name"
+        user_project = "user-project-123"
+        client = mock.Mock(spec=["_delete_resource"])
+        client._delete_resource.return_value = None
+        bucket = self._make_one(client=client, name=name, user_project=user_project)
+        bucket.list_blobs = mock.Mock(return_value=iter([]))
+        bucket.delete_blobs = mock.Mock(return_value=None)
+        timeout = 42
+        retry = mock.Mock(spec=[])
+
+        result = bucket.delete(force=True, timeout=timeout, retry=retry)
+
+        self.assertIsNone(result)
+
+        bucket.list_blobs.assert_called_once_with(
+            max_results=bucket._MAX_OBJECTS_FOR_ITERATION + 1,
+            client=client,
+            timeout=timeout,
+            retry=retry,
+        )
+
+        bucket.delete_blobs.assert_called_once_with(
+            [], on_error=mock.ANY, client=client, timeout=timeout, retry=retry,
+        )
+
+        expected_query_params = {"userProject": user_project}
+        client._delete_resource.assert_called_once_with(
+            bucket.path,
+            query_params=expected_query_params,
+            timeout=timeout,
+            retry=retry,
+            _target_object=None,
+        )
+
+    def test_delete_hit_w_force_delete_blobs(self):
+        name = "name"
+        client = mock.Mock(spec=["_delete_resource"])
+        client._delete_resource.return_value = None
+        bucket = self._make_one(client=client, name=name)
+        blobs = [mock.Mock(spec=[]), mock.Mock(spec=[])]
+        bucket.list_blobs = mock.Mock(return_value=iter(blobs))
+        bucket.delete_blobs = mock.Mock(return_value=None)
+
         result = bucket.delete(force=True)
+
         self.assertIsNone(result)
-        expected_cw = [
-            {
-                "method": "DELETE",
-                "path": bucket.path,
-                "query_params": {},
-                "_target_object": None,
-                "timeout": self._get_default_timeout(),
-                "retry": DEFAULT_RETRY,
-            }
-        ]
-        self.assertEqual(connection._deleted_buckets, expected_cw)
 
-    def test_delete_with_metageneration_match(self):
-        NAME = "name"
-        BLOB_NAME1 = "blob-name1"
-        BLOB_NAME2 = "blob-name2"
-        GET_BLOBS_RESP = {"items": [{"name": BLOB_NAME1}, {"name": BLOB_NAME2}]}
-        DELETE_BLOB1_RESP = DELETE_BLOB2_RESP = {}
-        METAGENERATION_NUMBER = 6
+        bucket.list_blobs.assert_called_once_with(
+            max_results=bucket._MAX_OBJECTS_FOR_ITERATION + 1,
+            client=client,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
+        )
 
-        connection = _Connection(GET_BLOBS_RESP, DELETE_BLOB1_RESP, DELETE_BLOB2_RESP)
-        connection._delete_bucket = True
-        client = _Client(connection)
-        bucket = self._make_one(client=client, name=NAME)
-        result = bucket.delete(if_metageneration_match=METAGENERATION_NUMBER)
-        self.assertIsNone(result)
-        expected_cw = [
-            {
-                "method": "DELETE",
-                "path": bucket.path,
-                "query_params": {"ifMetagenerationMatch": METAGENERATION_NUMBER},
-                "_target_object": None,
-                "timeout": self._get_default_timeout(),
-                "retry": DEFAULT_RETRY,
-            }
-        ]
-        self.assertEqual(connection._deleted_buckets, expected_cw)
+        bucket.delete_blobs.assert_called_once_with(
+            blobs,
+            on_error=mock.ANY,
+            client=client,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
+        )
 
-    def test_delete_force_miss_blobs(self):
-        NAME = "name"
-        BLOB_NAME = "blob-name1"
-        GET_BLOBS_RESP = {"items": [{"name": BLOB_NAME}]}
-        # Note the connection does not have a response for the blob.
-        connection = _Connection(GET_BLOBS_RESP)
-        connection._delete_bucket = True
-        client = self._make_client()
-        client._base_connection = connection
-        bucket = self._make_one(client=client, name=NAME)
+        expected_query_params = {}
+        client._delete_resource.assert_called_once_with(
+            bucket.path,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
+            _target_object=None,
+        )
+
+    def test_delete_w_force_w_user_project_w_miss_on_blob(self):
+        from google.cloud.exceptions import NotFound
+
+        name = "name"
+        blob_name = "blob-name"
+        client = mock.Mock(spec=["_delete_resource"])
+        client._delete_resource.return_value = None
+        bucket = self._make_one(client=client, name=name)
+        blob = mock.Mock(spec=["name"])
+        blob.name = blob_name
+        blobs = [blob]
+        bucket.list_blobs = mock.Mock(return_value=iter(blobs))
+        bucket.delete_blob = mock.Mock(side_effect=NotFound("testing"))
+
         result = bucket.delete(force=True)
+
         self.assertIsNone(result)
-        expected_cw = [
-            {
-                "method": "DELETE",
-                "path": bucket.path,
-                "query_params": {},
-                "_target_object": None,
-                "timeout": self._get_default_timeout(),
-                "retry": DEFAULT_RETRY,
-            }
-        ]
-        self.assertEqual(connection._deleted_buckets, expected_cw)
 
-    def test_delete_too_many(self):
-        NAME = "name"
-        BLOB_NAME1 = "blob-name1"
-        BLOB_NAME2 = "blob-name2"
-        GET_BLOBS_RESP = {"items": [{"name": BLOB_NAME1}, {"name": BLOB_NAME2}]}
-        connection = _Connection(GET_BLOBS_RESP)
-        connection._delete_bucket = True
-        client = self._make_client()
-        client._base_connection = connection
-        bucket = self._make_one(client=client, name=NAME)
+        bucket.delete_blob.assert_called_once_with(
+            blob_name,
+            client=client,
+            if_generation_match=None,
+            if_generation_not_match=None,
+            if_metageneration_match=None,
+            if_metageneration_not_match=None,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
+        )
 
+        expected_query_params = {}
+        client._delete_resource.assert_called_once_with(
+            bucket.path,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
+            _target_object=None,
+        )
+
+    def test_delete_w_too_many(self):
+        name = "name"
+        blob_name1 = "blob-name1"
+        blob_name2 = "blob-name2"
+        client = mock.Mock(spec=["_delete_resource"])
+        client._delete_resource.return_value = None
+        bucket = self._make_one(client=client, name=name)
+        blob1 = mock.Mock(spec=["name"])
+        blob1.name = blob_name1
+        blob2 = mock.Mock(spec=["name"])
+        blob2.name = blob_name2
+        blobs = [blob1, blob2]
+        bucket.list_blobs = mock.Mock(return_value=iter(blobs))
+        bucket.delete_blobs = mock.Mock()
         # Make the Bucket refuse to delete with 2 objects.
         bucket._MAX_OBJECTS_FOR_ITERATION = 1
-        self.assertRaises(ValueError, bucket.delete, force=True)
-        self.assertEqual(connection._deleted_buckets, [])
+
+        with self.assertRaises(ValueError):
+            bucket.delete(force=True)
+
+        bucket.delete_blobs.assert_not_called()
 
     def test_delete_blob_miss_w_defaults(self):
         from google.cloud.exceptions import NotFound
