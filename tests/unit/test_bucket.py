@@ -3830,31 +3830,10 @@ class _Connection(object):
         self._deleted_buckets = []
         self.credentials = None
 
-    @staticmethod
-    def _is_bucket_path(path):
-        # Now just ensure the path only has /b/ and one more segment.
-        return path.startswith("/b/") and path.count("/") == 2
-
     def api_request(self, **kw):
-        from google.cloud.exceptions import NotFound
-
         self._requested.append(kw)
-
-        method = kw.get("method")
-        path = kw.get("path", "")
-        if method == "DELETE" and self._is_bucket_path(path):
-            self._deleted_buckets.append(kw)
-            if self._delete_bucket:
-                return
-            else:
-                raise NotFound("miss")
-
-        try:
-            response, self._responses = self._responses[0], self._responses[1:]
-        except IndexError:
-            raise NotFound("miss")
-        else:
-            return response
+        response, self._responses = self._responses[0], self._responses[1:]
+        return response
 
 
 class _Client(object):
