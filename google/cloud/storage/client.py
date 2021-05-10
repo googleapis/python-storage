@@ -946,14 +946,13 @@ class Client(ClientWithProject):
         if location is not None:
             properties["location"] = location
 
-        api_response = self._connection.api_request(
-            method="POST",
-            path="/b",
+        api_response = self._post_resource(
+            "/b",
+            properties,
             query_params=query_params,
-            data=properties,
-            _target_object=bucket,
             timeout=timeout,
             retry=retry,
+            _target_object=bucket,
         )
 
         bucket._set_properties(api_response)

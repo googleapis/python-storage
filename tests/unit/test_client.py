@@ -1018,7 +1018,7 @@ class TestClient(unittest.TestCase):
         with self.assertRaises(ValueError):
             client.create_bucket("bucket")
 
-    def test_create_bucket_w_conflict(self):
+    def test_create_bucket_w_conflict_w_user_project(self):
         from google.cloud.exceptions import Conflict
 
         project = "PROJECT"
@@ -1026,62 +1026,60 @@ class TestClient(unittest.TestCase):
         other_project = "OTHER_PROJECT"
         credentials = _make_credentials()
         client = self._make_one(project=project, credentials=credentials)
-        connection = _make_connection()
-        client._base_connection = connection
-        connection.api_request.side_effect = Conflict("testing")
+        client._post_resource = mock.Mock()
+        client._post_resource.side_effect = Conflict("testing")
 
         bucket_name = "bucket-name"
-        data = {"name": bucket_name}
 
         with self.assertRaises(Conflict):
             client.create_bucket(
                 bucket_name, project=other_project, user_project=user_project
             )
 
-        connection.api_request.assert_called_once_with(
-            method="POST",
-            path="/b",
-            query_params={"project": other_project, "userProject": user_project},
-            data=data,
-            _target_object=mock.ANY,
+        expected_path = "/b"
+        expected_data = {"name": bucket_name}
+        expected_query_params = {
+            "project": other_project,
+            "userProject": user_project,
+        }
+        client._post_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
             timeout=self._get_default_timeout(),
             retry=DEFAULT_RETRY,
+            _target_object=mock.ANY,
         )
 
     @mock.patch("warnings.warn")
-    def test_create_requester_pays_deprecated(self, mock_warn):
+    def test_create_bucket_w_requester_pays_deprecated(self, mock_warn):
         from google.cloud.storage.bucket import Bucket
 
+        bucket_name = "bucket-name"
         project = "PROJECT"
         credentials = _make_credentials()
+        api_respone = {"name": bucket_name, "billing": {"requesterPays": True}}
         client = self._make_one(project=project, credentials=credentials)
-        bucket_name = "bucket-name"
-        json_expected = {"name": bucket_name, "billing": {"requesterPays": True}}
-        http = _make_requests_session([_make_json_response(json_expected)])
-        client._http_internal = http
+        client._post_resource = mock.Mock()
+        client._post_resource.return_value = api_respone
 
         bucket = client.create_bucket(bucket_name, requester_pays=True)
 
         self.assertIsInstance(bucket, Bucket)
         self.assertEqual(bucket.name, bucket_name)
         self.assertTrue(bucket.requester_pays)
-        http.request.assert_called_once_with(
-            method="POST",
-            url=mock.ANY,
-            data=mock.ANY,
-            headers=mock.ANY,
-            timeout=mock.ANY,
+
+        expected_path = "/b"
+        expected_data = api_respone
+        expected_query_params = {"project": project}
+        client._post_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
+            _target_object=mock.ANY,
         )
-        _, kwargs = http.request.call_args
-        scheme, netloc, path, qs, _ = urlparse.urlsplit(kwargs.get("url"))
-        self.assertEqual("%s://%s" % (scheme, netloc), client._connection.API_BASE_URL)
-        self.assertEqual(
-            path, "/".join(["", "storage", client._connection.API_VERSION, "b"])
-        )
-        parms = dict(urlparse.parse_qsl(qs))
-        self.assertEqual(parms["project"], project)
-        json_sent = http.request.call_args_list[0][1]["data"]
-        self.assertEqual(json_expected, json.loads(json_sent))
 
         mock_warn.assert_called_with(
             "requester_pays arg is deprecated. Use Bucket().requester_pays instead.",
@@ -1094,31 +1092,40 @@ class TestClient(unittest.TestCase):
         bucket_name = "bucket-name"
         credentials = _make_credentials()
         client = self._make_one(project=project, credentials=credentials)
+        client._post_resource = mock.Mock()
 
         with self.assertRaises(ValueError):
             client.create_bucket(bucket_name, predefined_acl="bogus")
 
-    def test_create_bucket_w_predefined_acl_valid(self):
+        client._post_resource.assert_not_called()
+
+    def test_create_bucket_w_predefined_acl_valid_w_timeout(self):
         project = "PROJECT"
         bucket_name = "bucket-name"
-        data = {"name": bucket_name}
-
+        api_response = {"name": bucket_name}
         credentials = _make_credentials()
         client = self._make_one(project=project, credentials=credentials)
-        connection = _make_connection(data)
-        client._base_connection = connection
+        client._post_resource = mock.Mock()
+        client._post_resource.return_value = api_response
+        timeout = 42
+
         bucket = client.create_bucket(
-            bucket_name, predefined_acl="publicRead", timeout=42
+            bucket_name, predefined_acl="publicRead", timeout=timeout,
         )
 
-        connection.api_request.assert_called_once_with(
-            method="POST",
-            path="/b",
-            query_params={"project": project, "predefinedAcl": "publicRead"},
-            data=data,
-            _target_object=bucket,
-            timeout=42,
+        expected_path = "/b"
+        expected_data = api_response
+        expected_query_params = {
+            "project": project,
+            "predefinedAcl": "publicRead",
+        }
+        client._post_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            timeout=timeout,
             retry=DEFAULT_RETRY,
+            _target_object=bucket,
         )
 
     def test_create_bucket_w_predefined_default_object_acl_invalid(self):
@@ -1127,93 +1134,98 @@ class TestClient(unittest.TestCase):
 
         credentials = _make_credentials()
         client = self._make_one(project=project, credentials=credentials)
+        client._post_resource = mock.Mock()
 
         with self.assertRaises(ValueError):
             client.create_bucket(bucket_name, predefined_default_object_acl="bogus")
 
-    def test_create_bucket_w_predefined_default_object_acl_valid(self):
+        client._post_resource.assert_not_called()
+
+    def test_create_bucket_w_predefined_default_object_acl_valid_w_retry(self):
         project = "PROJECT"
         bucket_name = "bucket-name"
-        data = {"name": bucket_name}
-
+        api_response = {"name": bucket_name}
         credentials = _make_credentials()
         client = self._make_one(project=project, credentials=credentials)
-        connection = _make_connection(data)
-        client._base_connection = connection
+        client._post_resource = mock.Mock()
+        client._post_resource.return_value = api_response
+        retry = mock.Mock(spec=[])
+
         bucket = client.create_bucket(
-            bucket_name, predefined_default_object_acl="publicRead"
+            bucket_name, predefined_default_object_acl="publicRead", retry=retry,
         )
 
-        connection.api_request.assert_called_once_with(
-            method="POST",
-            path="/b",
-            query_params={
-                "project": project,
-                "predefinedDefaultObjectAcl": "publicRead",
-            },
-            data=data,
-            _target_object=bucket,
+        expected_path = "/b"
+        expected_data = api_response
+        expected_query_params = {
+            "project": project,
+            "predefinedDefaultObjectAcl": "publicRead",
+        }
+        client._post_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
             timeout=self._get_default_timeout(),
-            retry=DEFAULT_RETRY,
+            retry=retry,
+            _target_object=bucket,
         )
 
     def test_create_bucket_w_explicit_location(self):
         project = "PROJECT"
         bucket_name = "bucket-name"
         location = "us-central1"
-        data = {"location": location, "name": bucket_name}
-
-        connection = _make_connection(
-            data, "{'location': 'us-central1', 'name': 'bucket-name'}"
-        )
-
+        api_response = {"location": location, "name": bucket_name}
         credentials = _make_credentials()
         client = self._make_one(project=project, credentials=credentials)
-        client._base_connection = connection
+        client._post_resource = mock.Mock()
+        client._post_resource.return_value = api_response
 
         bucket = client.create_bucket(bucket_name, location=location)
 
-        connection.api_request.assert_called_once_with(
-            method="POST",
-            path="/b",
-            data=data,
-            _target_object=bucket,
-            query_params={"project": project},
-            timeout=self._get_default_timeout(),
-            retry=DEFAULT_RETRY,
-        )
         self.assertEqual(bucket.location, location)
 
-    def test_create_bucket_w_explicit_project(self):
-        from google.cloud.storage.client import Client
-
-        PROJECT = "PROJECT"
-        OTHER_PROJECT = "other-project-123"
-        BUCKET_NAME = "bucket-name"
-        DATA = {"name": BUCKET_NAME}
-        connection = _make_connection(DATA)
-
-        client = Client(project=PROJECT)
-        client._base_connection = connection
-
-        bucket = client.create_bucket(BUCKET_NAME, project=OTHER_PROJECT)
-        connection.api_request.assert_called_once_with(
-            method="POST",
-            path="/b",
-            query_params={"project": OTHER_PROJECT},
-            data=DATA,
-            _target_object=bucket,
+        expected_path = "/b"
+        expected_data = {"location": location, "name": bucket_name}
+        expected_query_params = {"project": project}
+        client._post_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
             timeout=self._get_default_timeout(),
             retry=DEFAULT_RETRY,
+            _target_object=bucket,
         )
 
-    def test_create_w_extra_properties(self):
-        from google.cloud.storage.client import Client
+    def test_create_bucket_w_explicit_project(self):
+        project = "PROJECT"
+        other_project = "other-project-123"
+        bucket_name = "bucket-name"
+        api_response = {"name": bucket_name}
+        credentials = _make_credentials()
+        client = self._make_one(project=project, credentials=credentials)
+        client._post_resource = mock.Mock()
+        client._post_resource.return_value = api_response
+
+        bucket = client.create_bucket(bucket_name, project=other_project)
+
+        expected_path = "/b"
+        expected_data = api_response
+        expected_query_params = {"project": other_project}
+        client._post_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
+            _target_object=bucket,
+        )
+
+    def test_create_bucket_w_extra_properties(self):
         from google.cloud.storage.bucket import Bucket
 
-        BUCKET_NAME = "bucket-name"
-        PROJECT = "PROJECT"
-        CORS = [
+        bucket_name = "bucket-name"
+        project = "PROJECT"
+        cors = [
             {
                 "maxAgeSeconds": 60,
                 "methods": ["*"],
@@ -1221,144 +1233,69 @@ class TestClient(unittest.TestCase):
                 "responseHeader": ["X-Custom-Header"],
             }
         ]
-        LIFECYCLE_RULES = [{"action": {"type": "Delete"}, "condition": {"age": 365}}]
-        LOCATION = "eu"
-        LABELS = {"color": "red", "flavor": "cherry"}
-        STORAGE_CLASS = "NEARLINE"
-        DATA = {
-            "name": BUCKET_NAME,
-            "cors": CORS,
-            "lifecycle": {"rule": LIFECYCLE_RULES},
-            "location": LOCATION,
-            "storageClass": STORAGE_CLASS,
+        lifecycle_rules = [{"action": {"type": "Delete"}, "condition": {"age": 365}}]
+        location = "eu"
+        labels = {"color": "red", "flavor": "cherry"}
+        storage_class = "NEARLINE"
+        api_response = {
+            "name": bucket_name,
+            "cors": cors,
+            "lifecycle": {"rule": lifecycle_rules},
+            "location": location,
+            "storageClass": storage_class,
             "versioning": {"enabled": True},
             "billing": {"requesterPays": True},
-            "labels": LABELS,
+            "labels": labels,
         }
-
-        connection = _make_connection(DATA)
-        client = Client(project=PROJECT)
-        client._base_connection = connection
-
-        bucket = Bucket(client=client, name=BUCKET_NAME)
-        bucket.cors = CORS
-        bucket.lifecycle_rules = LIFECYCLE_RULES
-        bucket.storage_class = STORAGE_CLASS
-        bucket.versioning_enabled = True
-        bucket.requester_pays = True
-        bucket.labels = LABELS
-        client.create_bucket(bucket, location=LOCATION)
-
-        connection.api_request.assert_called_once_with(
-            method="POST",
-            path="/b",
-            query_params={"project": PROJECT},
-            data=DATA,
-            _target_object=bucket,
-            timeout=self._get_default_timeout(),
-            retry=DEFAULT_RETRY,
-        )
-
-    def test_create_hit(self):
-        from google.cloud.storage.client import Client
-
-        PROJECT = "PROJECT"
-        BUCKET_NAME = "bucket-name"
-        DATA = {"name": BUCKET_NAME}
-        connection = _make_connection(DATA)
-        client = Client(project=PROJECT)
-        client._base_connection = connection
-
-        bucket = client.create_bucket(BUCKET_NAME)
-
-        connection.api_request.assert_called_once_with(
-            method="POST",
-            path="/b",
-            query_params={"project": PROJECT},
-            data=DATA,
-            _target_object=bucket,
-            timeout=self._get_default_timeout(),
-            retry=DEFAULT_RETRY,
-        )
-
-    def test_create_bucket_w_string_success(self):
-        from google.cloud.storage.bucket import Bucket
-
-        project = "PROJECT"
         credentials = _make_credentials()
         client = self._make_one(project=project, credentials=credentials)
+        client._post_resource = mock.Mock()
+        client._post_resource.return_value = api_response
 
+        bucket = Bucket(client=client, name=bucket_name)
+        bucket.cors = cors
+        bucket.lifecycle_rules = lifecycle_rules
+        bucket.storage_class = storage_class
+        bucket.versioning_enabled = True
+        bucket.requester_pays = True
+        bucket.labels = labels
+
+        client.create_bucket(bucket, location=location)
+
+        expected_path = "/b"
+        expected_data = api_response
+        expected_query_params = {"project": project}
+        client._post_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
+            _target_object=bucket,
+        )
+
+    def test_create_bucket_w_name_only(self):
+        project = "PROJECT"
         bucket_name = "bucket-name"
-        json_expected = {"name": bucket_name}
-        data = json_expected
-        http = _make_requests_session([_make_json_response(data)])
-        client._http_internal = http
+        api_response = {"name": bucket_name}
+        credentials = _make_credentials()
+        client = self._make_one(project=project, credentials=credentials)
+        client._post_resource = mock.Mock()
+        client._post_resource.return_value = api_response
 
         bucket = client.create_bucket(bucket_name)
 
-        self.assertIsInstance(bucket, Bucket)
-        self.assertEqual(bucket.name, bucket_name)
-        http.request.assert_called_once_with(
-            method="POST",
-            url=mock.ANY,
-            data=mock.ANY,
-            headers=mock.ANY,
-            timeout=mock.ANY,
+        expected_path = "/b"
+        expected_data = api_response
+        expected_query_params = {"project": project}
+        client._post_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
+            _target_object=bucket,
         )
-        _, kwargs = http.request.call_args
-        scheme, netloc, path, qs, _ = urlparse.urlsplit(kwargs.get("url"))
-        self.assertEqual("%s://%s" % (scheme, netloc), client._connection.API_BASE_URL)
-        self.assertEqual(
-            path, "/".join(["", "storage", client._connection.API_VERSION, "b"]),
-        )
-        parms = dict(urlparse.parse_qsl(qs))
-        self.assertEqual(parms["project"], project)
-        json_sent = http.request.call_args_list[0][1]["data"]
-        self.assertEqual(json_expected, json.loads(json_sent))
-
-    def test_create_bucket_w_object_success(self):
-        from google.cloud.storage.bucket import Bucket
-
-        project = "PROJECT"
-        credentials = _make_credentials()
-        client = self._make_one(project=project, credentials=credentials)
-
-        bucket_name = "bucket-name"
-        bucket_obj = Bucket(client, bucket_name)
-        bucket_obj.storage_class = "COLDLINE"
-        bucket_obj.requester_pays = True
-
-        json_expected = {
-            "name": bucket_name,
-            "billing": {"requesterPays": True},
-            "storageClass": "COLDLINE",
-        }
-        data = json_expected
-        http = _make_requests_session([_make_json_response(data)])
-        client._http_internal = http
-
-        bucket = client.create_bucket(bucket_obj)
-
-        self.assertIsInstance(bucket, Bucket)
-        self.assertEqual(bucket.name, bucket_name)
-        self.assertTrue(bucket.requester_pays)
-        http.request.assert_called_once_with(
-            method="POST",
-            url=mock.ANY,
-            data=mock.ANY,
-            headers=mock.ANY,
-            timeout=mock.ANY,
-        )
-        _, kwargs = http.request.call_args
-        scheme, netloc, path, qs, _ = urlparse.urlsplit(kwargs.get("url"))
-        self.assertEqual("%s://%s" % (scheme, netloc), client._connection.API_BASE_URL)
-        self.assertEqual(
-            path, "/".join(["", "storage", client._connection.API_VERSION, "b"]),
-        )
-        parms = dict(urlparse.parse_qsl(qs))
-        self.assertEqual(parms["project"], project)
-        json_sent = http.request.call_args_list[0][1]["data"]
-        self.assertEqual(json_expected, json.loads(json_sent))
 
     def test_download_blob_to_file_with_failure(self):
         from google.resumable_media import InvalidResponse

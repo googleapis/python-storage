@@ -24,15 +24,6 @@ from google.cloud.storage.retry import DEFAULT_RETRY_IF_GENERATION_SPECIFIED
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED
 
 
-def _make_connection(*responses):
-    import google.cloud.storage._http
-
-    mock_connection = mock.create_autospec(google.cloud.storage._http.Connection)
-    mock_connection.user_agent = "testing 1.2.3"
-    mock_connection.api_request.side_effect = list(responses)
-    return mock_connection
-
-
 def _create_signing_credentials():
     import google.auth.credentials
 
@@ -2543,23 +2534,22 @@ class Test_Bucket(unittest.TestCase):
         self.assertEqual(bucket.versioning_enabled, True)
 
     @mock.patch("warnings.warn")
-    def test_create_deprecated(self, mock_warn):
-        PROJECT = "PROJECT"
-        BUCKET_NAME = "bucket-name"
-        DATA = {"name": BUCKET_NAME}
-        connection = _make_connection(DATA)
-        client = self._make_client(project=PROJECT)
-        client._base_connection = connection
+    def test_create_w_defaults_deprecated(self, mock_warn):
+        bucket_name = "bucket-name"
+        api_response = {"name": bucket_name}
+        client = mock.Mock(spec=["create_bucket"])
+        client.create_bucket.return_value = api_response
+        bucket = self._make_one(client=client, name=bucket_name)
 
-        bucket = self._make_one(client=client, name=BUCKET_NAME)
         bucket.create()
 
-        connection.api_request.assert_called_once_with(
-            method="POST",
-            path="/b",
-            query_params={"project": PROJECT},
-            data=DATA,
-            _target_object=bucket,
+        client.create_bucket.assert_called_once_with(
+            bucket_or_name=bucket,
+            project=None,
+            user_project=None,
+            location=None,
+            predefined_acl=None,
+            predefined_default_object_acl=None,
             timeout=self._get_default_timeout(),
             retry=DEFAULT_RETRY,
         )
@@ -2572,26 +2562,40 @@ class Test_Bucket(unittest.TestCase):
         )
 
     @mock.patch("warnings.warn")
-    def test_create_w_user_project(self, mock_warn):
-        PROJECT = "PROJECT"
-        BUCKET_NAME = "bucket-name"
-        DATA = {"name": BUCKET_NAME}
-        connection = _make_connection(DATA)
-        client = self._make_client(project=PROJECT)
-        client._base_connection = connection
+    def test_create_w_explicit_deprecated(self, mock_warn):
+        project = "PROJECT"
+        location = "eu"
+        user_project = "USER_PROJECT"
+        bucket_name = "bucket-name"
+        predefined_acl = "authenticatedRead"
+        predefined_default_object_acl = "bucketOwnerFullControl"
+        api_response = {"name": bucket_name}
+        client = mock.Mock(spec=["create_bucket"])
+        client.create_bucket.return_value = api_response
+        bucket = self._make_one(client=None, name=bucket_name)
+        bucket._user_project = user_project
+        timeout = 42
+        retry = mock.Mock(spec=[])
 
-        bucket = self._make_one(client=client, name=BUCKET_NAME)
-        bucket._user_project = "USER_PROJECT"
-        bucket.create()
+        bucket.create(
+            client=client,
+            project=project,
+            location=location,
+            predefined_acl=predefined_acl,
+            predefined_default_object_acl=predefined_default_object_acl,
+            timeout=timeout,
+            retry=retry,
+        )
 
-        connection.api_request.assert_called_once_with(
-            method="POST",
-            path="/b",
-            query_params={"project": PROJECT, "userProject": "USER_PROJECT"},
-            data=DATA,
-            _target_object=bucket,
-            timeout=self._get_default_timeout(),
-            retry=DEFAULT_RETRY,
+        client.create_bucket.assert_called_once_with(
+            bucket_or_name=bucket,
+            project=project,
+            user_project=user_project,
+            location=location,
+            predefined_acl=predefined_acl,
+            predefined_default_object_acl=predefined_default_object_acl,
+            timeout=timeout,
+            retry=retry,
         )
 
         mock_warn.assert_called_with(
