@@ -3123,9 +3123,6 @@ class Test_Bucket(unittest.TestCase):
                     (self._bucket, self._name, self._granted, client, timeout, retry)
                 )
 
-        def item_to_blob(self, item):
-            return _Blob(self.bucket, item["name"])
-
         name = "name"
         blob_name = "blob-name"
         no_permissions = []
