@@ -3314,15 +3314,15 @@ class Blob(_PropertyMixin):
             if_source_metageneration_not_match=if_source_metageneration_not_match,
         )
 
-        api_response = client._connection.api_request(
-            method="POST",
-            path=source.path + "/rewriteTo" + self.path,
+        path = "{}/rewriteTo{}".format(source.path, self.path)
+        api_response = client._post_resource(
+            path,
+            self._properties,
             query_params=query_params,
-            data=self._properties,
             headers=headers,
-            _target_object=self,
             timeout=timeout,
             retry=retry,
+            _target_object=self,
         )
         rewritten = int(api_response["totalBytesRewritten"])
         size = int(api_response["objectSize"])
