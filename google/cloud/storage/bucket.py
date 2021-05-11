@@ -3311,13 +3311,13 @@ class Bucket(_PropertyMixin):
             query_params["userProject"] = self.user_project
 
         path = "/b/{}/lockRetentionPolicy".format(self.name)
-        api_response = client._connection.api_request(
-            method="POST",
-            path=path,
+        api_response = client._post_resource(
+            path,
+            None,
             query_params=query_params,
-            _target_object=self,
             timeout=timeout,
             retry=retry,
+            _target_object=self,
         )
         self._set_properties(api_response)
 
