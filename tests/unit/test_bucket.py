@@ -1642,111 +1642,124 @@ class Test_Bucket(unittest.TestCase):
         return blob
 
     def test_copy_blobs_wo_name(self):
-        SOURCE = "source"
-        DEST = "dest"
-        BLOB_NAME = "blob-name"
-        connection = _Connection({})
-        client = _Client(connection)
-        source = self._make_one(client=client, name=SOURCE)
-        dest = self._make_one(client=client, name=DEST)
-        blob = self._make_blob(SOURCE, BLOB_NAME)
+        source_name = "source"
+        dest_name = "dest"
+        blob_name = "blob-name"
+        api_response = {}
+        client = mock.Mock(spec=["_post_resource"])
+        client._post_resource.return_value = api_response
+        source = self._make_one(client=client, name=source_name)
+        dest = self._make_one(client=client, name=dest_name)
+        blob = self._make_blob(source_name, blob_name)
 
-        new_blob = source.copy_blob(blob, dest, timeout=42)
-
-        self.assertIs(new_blob.bucket, dest)
-        self.assertEqual(new_blob.name, BLOB_NAME)
-
-        (kw,) = connection._requested
-        COPY_PATH = "/b/{}/o/{}/copyTo/b/{}/o/{}".format(
-            SOURCE, BLOB_NAME, DEST, BLOB_NAME
-        )
-        self.assertEqual(kw["method"], "POST")
-        self.assertEqual(kw["path"], COPY_PATH)
-        self.assertEqual(kw["query_params"], {})
-        self.assertEqual(kw["timeout"], 42)
-        self.assertEqual(kw["retry"], DEFAULT_RETRY_IF_GENERATION_SPECIFIED)
-
-    def test_copy_blobs_source_generation(self):
-        SOURCE = "source"
-        DEST = "dest"
-        BLOB_NAME = "blob-name"
-        GENERATION = 1512565576797178
-
-        connection = _Connection({})
-        client = _Client(connection)
-        source = self._make_one(client=client, name=SOURCE)
-        dest = self._make_one(client=client, name=DEST)
-        blob = self._make_blob(SOURCE, BLOB_NAME)
-
-        new_blob = source.copy_blob(blob, dest, source_generation=GENERATION)
+        new_blob = source.copy_blob(blob, dest)
 
         self.assertIs(new_blob.bucket, dest)
-        self.assertEqual(new_blob.name, BLOB_NAME)
+        self.assertEqual(new_blob.name, blob_name)
 
-        (kw,) = connection._requested
-        COPY_PATH = "/b/{}/o/{}/copyTo/b/{}/o/{}".format(
-            SOURCE, BLOB_NAME, DEST, BLOB_NAME
+        expected_path = "/b/{}/o/{}/copyTo/b/{}/o/{}".format(
+            source_name, blob_name, dest_name, blob_name
         )
-        self.assertEqual(kw["method"], "POST")
-        self.assertEqual(kw["path"], COPY_PATH)
-        self.assertEqual(kw["query_params"], {"sourceGeneration": GENERATION})
-        self.assertEqual(kw["timeout"], self._get_default_timeout())
-        self.assertEqual(kw["retry"], DEFAULT_RETRY_IF_GENERATION_SPECIFIED)
+        expected_data = None
+        expected_query_params = {}
+        client._post_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+            _target_object=new_blob,
+        )
 
-    def test_copy_blobs_w_generation_match(self):
-        SOURCE = "source"
-        DEST = "dest"
-        BLOB_NAME = "blob-name"
-        GENERATION_NUMBER = 6
-        SOURCE_GENERATION_NUMBER = 9
+    def test_copy_blob_w_source_generation_w_timeout(self):
+        source_name = "source"
+        dest_name = "dest"
+        blob_name = "blob-name"
+        generation = 1512565576797178
+        api_response = {}
+        client = mock.Mock(spec=["_post_resource"])
+        client._post_resource.return_value = api_response
+        source = self._make_one(client=client, name=source_name)
+        dest = self._make_one(client=client, name=dest_name)
+        blob = self._make_blob(source_name, blob_name)
+        timeout = 42
 
-        connection = _Connection({})
-        client = _Client(connection)
-        source = self._make_one(client=client, name=SOURCE)
-        dest = self._make_one(client=client, name=DEST)
-        blob = self._make_blob(SOURCE, BLOB_NAME)
+        new_blob = source.copy_blob(
+            blob, dest, source_generation=generation, timeout=timeout,
+        )
+
+        self.assertIs(new_blob.bucket, dest)
+        self.assertEqual(new_blob.name, blob_name)
+
+        expected_path = "/b/{}/o/{}/copyTo/b/{}/o/{}".format(
+            source_name, blob_name, dest_name, blob_name
+        )
+        expected_data = None
+        expected_query_params = {"sourceGeneration": generation}
+        client._post_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            timeout=timeout,
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+            _target_object=new_blob,
+        )
+
+    def test_copy_blob_w_generation_match_w_retry(self):
+        source_name = "source"
+        dest_name = "dest"
+        blob_name = "blob-name"
+        generation_number = 6
+        source_generation_number = 9
+        api_response = {}
+        client = mock.Mock(spec=["_post_resource"])
+        client._post_resource.return_value = api_response
+        source = self._make_one(client=client, name=source_name)
+        dest = self._make_one(client=client, name=dest_name)
+        blob = self._make_blob(source_name, blob_name)
+        retry = mock.Mock(spec=[])
 
         new_blob = source.copy_blob(
             blob,
             dest,
-            if_generation_match=GENERATION_NUMBER,
-            if_source_generation_match=SOURCE_GENERATION_NUMBER,
+            if_generation_match=generation_number,
+            if_source_generation_match=source_generation_number,
+            retry=retry,
         )
         self.assertIs(new_blob.bucket, dest)
-        self.assertEqual(new_blob.name, BLOB_NAME)
+        self.assertEqual(new_blob.name, blob_name)
 
-        (kw,) = connection._requested
-        COPY_PATH = "/b/{}/o/{}/copyTo/b/{}/o/{}".format(
-            SOURCE, BLOB_NAME, DEST, BLOB_NAME
+        expected_path = "/b/{}/o/{}/copyTo/b/{}/o/{}".format(
+            source_name, blob_name, dest_name, blob_name
         )
-        self.assertEqual(kw["method"], "POST")
-        self.assertEqual(kw["path"], COPY_PATH)
-        self.assertEqual(
-            kw["query_params"],
-            {
-                "ifGenerationMatch": GENERATION_NUMBER,
-                "ifSourceGenerationMatch": SOURCE_GENERATION_NUMBER,
-            },
+        expected_data = None
+        expected_query_params = {
+            "ifGenerationMatch": generation_number,
+            "ifSourceGenerationMatch": source_generation_number,
+        }
+        client._post_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=retry,
+            _target_object=new_blob,
         )
-        self.assertEqual(kw["timeout"], self._get_default_timeout())
-        self.assertEqual(kw["retry"], DEFAULT_RETRY_IF_GENERATION_SPECIFIED)
 
-    def test_copy_blobs_preserve_acl(self):
+    def test_copy_blob_w_preserve_acl_false_w_explicit_client(self):
         from google.cloud.storage.acl import ObjectACL
 
         source_name = "source"
         dest_name = "dest"
         blob_name = "blob-name"
         new_name = "new_name"
-
-        connection = _Connection({}, {})
-        client = _Client(connection)
-
-        # Temporary, until we get a real client in place.
-        client._patch_resource = mock.Mock(return_value={})
-
-        source = self._make_one(client=client, name=source_name)
-        dest = self._make_one(client=client, name=dest_name)
+        post_api_response = {}
+        patch_api_response = {}
+        client = mock.Mock(spec=["_post_resource", "_patch_resource"])
+        client._post_resource.return_value = post_api_response
+        client._patch_resource.return_value = patch_api_response
+        source = self._make_one(client=None, name=source_name)
+        dest = self._make_one(client=None, name=dest_name)
         blob = self._make_blob(source_name, blob_name)
 
         new_blob = source.copy_blob(
@@ -1757,170 +1770,159 @@ class Test_Bucket(unittest.TestCase):
         self.assertEqual(new_blob.name, new_name)
         self.assertIsInstance(new_blob.acl, ObjectACL)
 
-        (kw1,) = connection._requested
-        copy_path = "/b/{}/o/{}/copyTo/b/{}/o/{}".format(
+        expected_copy_path = "/b/{}/o/{}/copyTo/b/{}/o/{}".format(
             source_name, blob_name, dest_name, new_name
         )
-        self.assertEqual(kw1["method"], "POST")
-        self.assertEqual(kw1["path"], copy_path)
-        self.assertEqual(kw1["query_params"], {})
-        self.assertEqual(kw1["timeout"], self._get_default_timeout())
-        self.assertEqual(kw1["retry"], DEFAULT_RETRY_IF_GENERATION_SPECIFIED)
+        expected_copy_data = None
+        expected_copy_query_params = {}
+        client._post_resource.assert_called_once_with(
+            expected_copy_path,
+            expected_copy_data,
+            query_params=expected_copy_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+            _target_object=new_blob,
+        )
 
         expected_patch_path = "/b/{}/o/{}".format(dest_name, new_name)
-        expected_data = {"acl": []}
-        expected_query_params = {"projection": "full"}
+        expected_patch_data = {"acl": []}
+        expected_patch_query_params = {"projection": "full"}
         client._patch_resource.assert_called_once_with(
             expected_patch_path,
-            expected_data,
-            query_params=expected_query_params,
+            expected_patch_data,
+            query_params=expected_patch_query_params,
             timeout=self._get_default_timeout(),
             retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
         )
 
-    def test_copy_blobs_w_name_and_user_project(self):
-        SOURCE = "source"
-        DEST = "dest"
-        BLOB_NAME = "blob-name"
-        NEW_NAME = "new_name"
-        USER_PROJECT = "user-project-123"
-        connection = _Connection({})
-        client = _Client(connection)
-        source = self._make_one(client=client, name=SOURCE, user_project=USER_PROJECT)
-        dest = self._make_one(client=client, name=DEST)
-        blob = self._make_blob(SOURCE, BLOB_NAME)
+    def test_copy_blob_w_name_and_user_project(self):
+        source_name = "source"
+        dest_name = "dest"
+        blob_name = "blob-name"
+        new_name = "new_name"
+        user_project = "user-project-123"
+        api_response = {}
+        client = mock.Mock(spec=["_post_resource"])
+        client._post_resource.return_value = api_response
+        source = self._make_one(
+            client=client, name=source_name, user_project=user_project
+        )
+        dest = self._make_one(client=client, name=dest_name)
+        blob = self._make_blob(source_name, blob_name)
 
-        new_blob = source.copy_blob(blob, dest, NEW_NAME)
+        new_blob = source.copy_blob(blob, dest, new_name)
 
         self.assertIs(new_blob.bucket, dest)
-        self.assertEqual(new_blob.name, NEW_NAME)
+        self.assertEqual(new_blob.name, new_name)
 
-        COPY_PATH = "/b/{}/o/{}/copyTo/b/{}/o/{}".format(
-            SOURCE, BLOB_NAME, DEST, NEW_NAME
+        expected_path = "/b/{}/o/{}/copyTo/b/{}/o/{}".format(
+            source_name, blob_name, dest_name, new_name
         )
-        (kw,) = connection._requested
-        self.assertEqual(kw["method"], "POST")
-        self.assertEqual(kw["path"], COPY_PATH)
-        self.assertEqual(kw["query_params"], {"userProject": USER_PROJECT})
-        self.assertEqual(kw["timeout"], self._get_default_timeout())
-        self.assertEqual(kw["retry"], DEFAULT_RETRY_IF_GENERATION_SPECIFIED)
-
-    def test_rename_blob(self):
-        BUCKET_NAME = "BUCKET_NAME"
-        BLOB_NAME = "blob-name"
-        NEW_BLOB_NAME = "new-blob-name"
-        DATA = {"name": NEW_BLOB_NAME}
-        connection = _Connection(DATA)
-        client = _Client(connection)
-        bucket = self._make_one(client=client, name=BUCKET_NAME)
-        blob = self._make_blob(BUCKET_NAME, BLOB_NAME)
-
-        renamed_blob = bucket.rename_blob(
-            blob, NEW_BLOB_NAME, client=client, timeout=42
-        )
-
-        self.assertIs(renamed_blob.bucket, bucket)
-        self.assertEqual(renamed_blob.name, NEW_BLOB_NAME)
-
-        COPY_PATH = "/b/{}/o/{}/copyTo/b/{}/o/{}".format(
-            BUCKET_NAME, BLOB_NAME, BUCKET_NAME, NEW_BLOB_NAME
-        )
-        (kw,) = connection._requested
-        self.assertEqual(kw["method"], "POST")
-        self.assertEqual(kw["path"], COPY_PATH)
-        self.assertEqual(kw["query_params"], {})
-        self.assertEqual(kw["timeout"], 42)
-        self.assertEqual(kw["retry"], DEFAULT_RETRY_IF_GENERATION_SPECIFIED)
-
-        blob.delete.assert_called_once_with(
-            client=client,
-            timeout=42,
-            if_generation_match=None,
-            if_generation_not_match=None,
-            if_metageneration_match=None,
-            if_metageneration_not_match=None,
+        expected_data = None
+        expected_query_params = {"userProject": user_project}
+        client._post_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
             retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+            _target_object=new_blob,
         )
 
-    def test_rename_blob_with_generation_match(self):
-        BUCKET_NAME = "BUCKET_NAME"
-        BLOB_NAME = "blob-name"
-        NEW_BLOB_NAME = "new-blob-name"
-        DATA = {"name": NEW_BLOB_NAME}
-        GENERATION_NUMBER = 6
-        SOURCE_GENERATION_NUMBER = 7
-        SOURCE_METAGENERATION_NUMBER = 9
+    def _rename_blob_helper(self, explicit_client=False, same_name=False, **kw):
+        bucket_name = "BUCKET_NAME"
+        blob_name = "blob-name"
 
-        connection = _Connection(DATA)
-        client = _Client(connection)
-        bucket = self._make_one(client=client, name=BUCKET_NAME)
-        blob = self._make_blob(BUCKET_NAME, BLOB_NAME)
+        if same_name:
+            new_blob_name = blob_name
+        else:
+            new_blob_name = "new-blob-name"
 
-        renamed_blob = bucket.rename_blob(
+        client = mock.Mock(spec=[])
+        kw = kw.copy()
+
+        if explicit_client:
+            bucket = self._make_one(client=None, name=bucket_name)
+            expected_client = kw["client"] = client
+        else:
+            bucket = self._make_one(client=client, name=bucket_name)
+            expected_client = None
+
+        expected_i_g_m = kw.get("if_generation_match")
+        expected_i_g_n_m = kw.get("if_generation_not_match")
+        expected_i_m_m = kw.get("if_metageneration_match")
+        expected_i_m_n_m = kw.get("if_metageneration_not_match")
+        expected_i_s_g_m = kw.get("if_source_generation_match")
+        expected_i_s_g_n_m = kw.get("if_source_generation_not_match")
+        expected_i_s_m_m = kw.get("if_source_metageneration_match")
+        expected_i_s_m_n_m = kw.get("if_source_metageneration_not_match")
+        expected_timeout = kw.get("timeout", self._get_default_timeout())
+        expected_retry = kw.get("retry", DEFAULT_RETRY_IF_GENERATION_SPECIFIED)
+
+        bucket.copy_blob = mock.Mock(spec=[])
+        blob = self._make_blob(bucket_name, blob_name)
+
+        renamed_blob = bucket.rename_blob(blob, new_blob_name, **kw)
+
+        self.assertIs(renamed_blob, bucket.copy_blob.return_value)
+
+        bucket.copy_blob.assert_called_once_with(
             blob,
-            NEW_BLOB_NAME,
-            client=client,
-            timeout=42,
-            if_generation_match=GENERATION_NUMBER,
-            if_source_generation_match=SOURCE_GENERATION_NUMBER,
-            if_source_metageneration_not_match=SOURCE_METAGENERATION_NUMBER,
+            bucket,
+            new_blob_name,
+            client=expected_client,
+            if_generation_match=expected_i_g_m,
+            if_generation_not_match=expected_i_g_n_m,
+            if_metageneration_match=expected_i_m_m,
+            if_metageneration_not_match=expected_i_m_n_m,
+            if_source_generation_match=expected_i_s_g_m,
+            if_source_generation_not_match=expected_i_s_g_n_m,
+            if_source_metageneration_match=expected_i_s_m_m,
+            if_source_metageneration_not_match=expected_i_s_m_n_m,
+            timeout=expected_timeout,
+            retry=expected_retry,
         )
 
-        self.assertIs(renamed_blob.bucket, bucket)
-        self.assertEqual(renamed_blob.name, NEW_BLOB_NAME)
+        if same_name:
+            blob.delete.assert_not_called()
+        else:
+            blob.delete.assert_called_once_with(
+                client=expected_client,
+                if_generation_match=expected_i_s_g_m,
+                if_generation_not_match=expected_i_s_g_n_m,
+                if_metageneration_match=expected_i_s_m_m,
+                if_metageneration_not_match=expected_i_s_m_n_m,
+                timeout=expected_timeout,
+                retry=expected_retry,
+            )
 
-        COPY_PATH = "/b/{}/o/{}/copyTo/b/{}/o/{}".format(
-            BUCKET_NAME, BLOB_NAME, BUCKET_NAME, NEW_BLOB_NAME
-        )
-        (kw,) = connection._requested
-        self.assertEqual(kw["method"], "POST")
-        self.assertEqual(kw["path"], COPY_PATH)
-        self.assertEqual(
-            kw["query_params"],
-            {
-                "ifGenerationMatch": GENERATION_NUMBER,
-                "ifSourceGenerationMatch": SOURCE_GENERATION_NUMBER,
-                "ifSourceMetagenerationNotMatch": SOURCE_METAGENERATION_NUMBER,
-            },
-        )
-        self.assertEqual(kw["timeout"], 42)
-        self.assertEqual(kw["retry"], DEFAULT_RETRY_IF_GENERATION_SPECIFIED)
+    def test_rename_blob_w_defaults(self):
+        self._rename_blob_helper()
 
-        blob.delete.assert_called_once_with(
-            client=client,
-            timeout=42,
-            if_generation_match=SOURCE_GENERATION_NUMBER,
-            if_generation_not_match=None,
-            if_metageneration_match=None,
-            if_metageneration_not_match=SOURCE_METAGENERATION_NUMBER,
-            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+    def test_rename_blob_w_explicit_client(self):
+        self._rename_blob_helper(explicit_client=True)
+
+    def test_rename_blob_w_generation_match(self):
+        generation_number = 6
+        source_generation_number = 7
+        source_metageneration_number = 9
+
+        self._rename_blob_helper(
+            if_generation_match=generation_number,
+            if_source_generation_match=source_generation_number,
+            if_source_metageneration_not_match=source_metageneration_number,
         )
+
+    def test_rename_blob_w_timeout(self):
+        timeout = 42
+        self._rename_blob_helper(timeout=timeout)
+
+    def test_rename_blob_w_retry(self):
+        retry = mock.Mock(spec={})
+        self._rename_blob_helper(retry=retry)
 
     def test_rename_blob_to_itself(self):
-        BUCKET_NAME = "BUCKET_NAME"
-        BLOB_NAME = "blob-name"
-        DATA = {"name": BLOB_NAME}
-        connection = _Connection(DATA)
-        client = _Client(connection)
-        bucket = self._make_one(client=client, name=BUCKET_NAME)
-        blob = self._make_blob(BUCKET_NAME, BLOB_NAME)
-
-        renamed_blob = bucket.rename_blob(blob, BLOB_NAME)
-
-        self.assertIs(renamed_blob.bucket, bucket)
-        self.assertEqual(renamed_blob.name, BLOB_NAME)
-
-        COPY_PATH = "/b/{}/o/{}/copyTo/b/{}/o/{}".format(
-            BUCKET_NAME, BLOB_NAME, BUCKET_NAME, BLOB_NAME
-        )
-        (kw,) = connection._requested
-        self.assertEqual(kw["method"], "POST")
-        self.assertEqual(kw["path"], COPY_PATH)
-        self.assertEqual(kw["query_params"], {})
-        self.assertEqual(kw["timeout"], self._get_default_timeout())
-        self.assertEqual(kw["retry"], DEFAULT_RETRY_IF_GENERATION_SPECIFIED)
-
-        blob.delete.assert_not_called()
+        self._rename_blob_helper(same_name=True)
 
     def test_etag(self):
         ETAG = "ETAG"
