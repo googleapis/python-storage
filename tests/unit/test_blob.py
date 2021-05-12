@@ -28,6 +28,7 @@ from six.moves import http_client
 
 from google.cloud.storage.retry import DEFAULT_RETRY
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_GENERATION_SPECIFIED
+from google.cloud.storage.retry import DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED
 
 
 def _make_credentials():
@@ -1666,6 +1667,7 @@ class Test_Blob(unittest.TestCase):
             if_metageneration_not_match=None,
             timeout=self._get_default_timeout(),
             checksum="md5",
+            retry=DEFAULT_RETRY,
         )
 
     def test_download_as_bytes_wo_raw(self):
@@ -1757,6 +1759,7 @@ class Test_Blob(unittest.TestCase):
             if_generation_not_match=if_generation_not_match,
             if_metageneration_match=if_metageneration_match,
             if_metageneration_not_match=if_metageneration_not_match,
+            retry=DEFAULT_RETRY,
         )
 
     def test_download_as_text_wo_raw(self):
@@ -1849,6 +1852,7 @@ class Test_Blob(unittest.TestCase):
             if_metageneration_not_match=None,
             timeout=self._get_default_timeout(),
             checksum="md5",
+            retry=DEFAULT_RETRY,
         )
 
         mock_warn.assert_called_with(
@@ -1967,7 +1971,6 @@ class Test_Blob(unittest.TestCase):
         mock_get_boundary,
         client=None,
         size=None,
-        num_retries=None,
         user_project=None,
         predefined_acl=None,
         if_generation_match=None,
@@ -1978,6 +1981,7 @@ class Test_Blob(unittest.TestCase):
         timeout=None,
         metadata=None,
         mtls=False,
+        retry=None,
     ):
         from six.moves.urllib.parse import urlencode
 
@@ -2020,7 +2024,7 @@ class Test_Blob(unittest.TestCase):
             stream,
             content_type,
             size,
-            num_retries,
+            retry,
             predefined_acl,
             if_generation_match,
             if_generation_not_match,
@@ -2135,7 +2139,7 @@ class Test_Blob(unittest.TestCase):
 
     @mock.patch(u"google.resumable_media._upload.get_boundary", return_value=b"==0==")
     def test__do_multipart_upload_with_retry(self, mock_get_boundary):
-        self._do_multipart_success(mock_get_boundary, num_retries=8)
+        self._do_multipart_success(mock_get_boundary, retry=DEFAULT_RETRY)
 
     @mock.patch(u"google.resumable_media._upload.get_boundary", return_value=b"==0==")
     def test__do_multipart_upload_with_generation_match(self, mock_get_boundary):
@@ -2187,7 +2191,7 @@ class Test_Blob(unittest.TestCase):
         size=None,
         extra_headers=None,
         chunk_size=None,
-        num_retries=None,
+        retry=None,
         user_project=None,
         predefined_acl=None,
         if_generation_match=None,
@@ -2261,7 +2265,7 @@ class Test_Blob(unittest.TestCase):
             stream,
             content_type,
             size,
-            num_retries,
+            retry,
             extra_headers=extra_headers,
             chunk_size=chunk_size,
             predefined_acl=predefined_acl,
@@ -2334,13 +2338,12 @@ class Test_Blob(unittest.TestCase):
         self.assertEqual(upload._content_type, content_type)
         self.assertEqual(upload.resumable_url, resumable_url)
         retry_strategy = upload._retry_strategy
-        self.assertEqual(retry_strategy.max_sleep, 64.0)
-        if num_retries is None:
-            self.assertEqual(retry_strategy.max_cumulative_retry, 600.0)
-            self.assertIsNone(retry_strategy.max_retries)
+        if retry is None:
+            self.assertEqual(retry_strategy.max_retries, 0)
         else:
-            self.assertIsNone(retry_strategy.max_cumulative_retry)
-            self.assertEqual(retry_strategy.max_retries, num_retries)
+            self.assertEqual(retry_strategy.max_sleep, 60.0)
+            self.assertEqual(retry_strategy.max_cumulative_retry, 120.0)
+            self.assertIsNone(retry_strategy.max_retries)
         self.assertIs(client._http, transport)
         # Make sure we never read from the stream.
         self.assertEqual(stream.tell(), 0)
@@ -2417,7 +2420,7 @@ class Test_Blob(unittest.TestCase):
         self._initiate_resumable_helper(extra_headers=extra_headers)
 
     def test__initiate_resumable_upload_with_retry(self):
-        self._initiate_resumable_helper(num_retries=11)
+        self._initiate_resumable_helper(retry=DEFAULT_RETRY)
 
     def test__initiate_resumable_upload_with_generation_match(self):
         self._initiate_resumable_helper(
@@ -2562,7 +2565,7 @@ class Test_Blob(unittest.TestCase):
     def _do_resumable_helper(
         self,
         use_size=False,
-        num_retries=None,
+        retry=None,
         predefined_acl=None,
         if_generation_match=None,
         if_generation_not_match=None,
@@ -2610,7 +2613,7 @@ class Test_Blob(unittest.TestCase):
             stream,
             content_type,
             size,
-            num_retries,
+            retry,
             predefined_acl,
             if_generation_match,
             if_generation_not_match,
@@ -2673,7 +2676,7 @@ class Test_Blob(unittest.TestCase):
         self._do_resumable_helper(use_size=True)
 
     def test__do_resumable_upload_with_retry(self):
-        self._do_resumable_helper(num_retries=6)
+        self._do_resumable_helper(retry=DEFAULT_RETRY)
 
     def test__do_resumable_upload_with_predefined_acl(self):
         self._do_resumable_helper(predefined_acl="private")
@@ -2691,7 +2694,7 @@ class Test_Blob(unittest.TestCase):
     def _do_upload_helper(
         self,
         chunk_size=None,
-        num_retries=None,
+        retry=None,
         predefined_acl=None,
         if_generation_match=None,
         if_generation_not_match=None,
@@ -2736,7 +2739,7 @@ class Test_Blob(unittest.TestCase):
             stream,
             content_type,
             size,
-            num_retries,
+            retry,
             predefined_acl,
             if_generation_match,
             if_generation_not_match,
@@ -2744,11 +2747,6 @@ class Test_Blob(unittest.TestCase):
             if_metageneration_not_match,
             **timeout_kwarg
         )
-
-        # Adjust num_retries expectations to reflect the conditional default in
-        # _do_upload()
-        if num_retries is None and if_metageneration_match is None:
-            num_retries = 0
 
         self.assertIs(created_json, mock.sentinel.json)
         response.json.assert_called_once_with()
@@ -2758,7 +2756,7 @@ class Test_Blob(unittest.TestCase):
                 stream,
                 content_type,
                 size,
-                num_retries,
+                retry,
                 predefined_acl,
                 if_generation_match,
                 if_generation_not_match,
@@ -2775,7 +2773,7 @@ class Test_Blob(unittest.TestCase):
                 stream,
                 content_type,
                 size,
-                num_retries,
+                retry,
                 predefined_acl,
                 if_generation_match,
                 if_generation_not_match,
@@ -2810,7 +2808,7 @@ class Test_Blob(unittest.TestCase):
         )
 
     def test__do_upload_with_retry(self):
-        self._do_upload_helper(num_retries=20)
+        self._do_upload_helper(retry=DEFAULT_RETRY)
 
     def _upload_from_file_helper(self, side_effect=None, **kwargs):
         from google.cloud._helpers import UTC
@@ -2846,13 +2844,16 @@ class Test_Blob(unittest.TestCase):
         expected_timeout = kwargs.get("timeout", self._get_default_timeout())
 
         # Check the mock.
-        num_retries = kwargs.get("num_retries")
+        if "retry" in kwargs:
+            retry = kwargs["retry"]
+        else:
+            retry = DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED
         blob._do_upload.assert_called_once_with(
             client,
             stream,
             content_type,
             len(data),
-            num_retries,
+            retry,
             predefined_acl,
             if_generation_match,
             if_generation_not_match,
@@ -2871,10 +2872,16 @@ class Test_Blob(unittest.TestCase):
     def test_upload_from_file_with_retries(self, mock_warn):
         from google.cloud.storage import blob as blob_module
 
-        self._upload_from_file_helper(num_retries=20)
-        mock_warn.assert_called_once_with(
-            blob_module._NUM_RETRIES_MESSAGE, DeprecationWarning, stacklevel=2
-        )
+        self._upload_from_file_helper(retry=DEFAULT_RETRY)
+
+#    @mock.patch("warnings.warn")
+#    def test_upload_from_file_with_num_retries(self, mock_warn):
+#        from google.cloud.storage import blob as blob_module
+
+#        self._upload_from_file_helper(num_retries=2)
+#        mock_warn.assert_called_once_with(
+#            blob_module._NUM_RETRIES_MESSAGE, DeprecationWarning, stacklevel=2
+#        )
 
     def test_upload_from_file_with_rewind(self):
         stream = self._upload_from_file_helper(rewind=True)
@@ -2912,7 +2919,7 @@ class Test_Blob(unittest.TestCase):
         self.assertEqual(pos_args[0], client)
         self.assertEqual(pos_args[2], content_type)
         self.assertEqual(pos_args[3], size)
-        self.assertIsNone(pos_args[4])  # num_retries
+        self.assertEqual(pos_args[4], DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED)  # retry
         self.assertIsNone(pos_args[5])  # predefined_acl
         self.assertIsNone(pos_args[6])  # if_generation_match
         self.assertIsNone(pos_args[7])  # if_generation_not_match

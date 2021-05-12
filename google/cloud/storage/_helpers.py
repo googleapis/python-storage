@@ -23,6 +23,7 @@ from datetime import datetime
 import os
 
 from six.moves.urllib.parse import urlsplit
+from google import resumable_media
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 from google.cloud.storage.retry import DEFAULT_RETRY
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED
@@ -45,6 +46,11 @@ _GENERATION_MATCH_PARAMETERS = (
     ("if_source_metageneration_not_match", "ifSourceMetagenerationNotMatch"),
 )
 
+_NUM_RETRIES_MESSAGE = (
+    "`num_retries` has been deprecated and will be removed in a future "
+    "release. Use the `retry` argument with a Retry or ConditionalRetryPolicy "
+    "object, or None, instead."
+)
 
 def _get_storage_host():
     return os.environ.get(STORAGE_EMULATOR_ENV_VAR, _DEFAULT_STORAGE_HOST)
@@ -563,3 +569,37 @@ def _bucket_bound_hostname_url(host, scheme=None):
         return host
 
     return "{scheme}://{host}/".format(scheme=scheme, host=host)
+
+
+def _api_core_retry_to_resumable_media_retry(retry):
+    """Convert google.api.core.Retry to google.resumable_media.RetryStrategy.
+
+    Custom predicates are not translated.
+
+    :type retry: google.api_core.Retry
+    :param retry: (Optional) The google.api_core.Retry object to translate.
+
+    :rtype: google.resumable_media.RetryStrategy
+    :returns: A RetryStrategy with all applicable attributes copied from input,
+              or a RetryStrategy with max_retries set to 0 if None was input.
+    """
+
+    if retry is not None:
+        return resumable_media.RetryStrategy(max_sleep=retry._maximum, max_cumulative_retry=retry._deadline, initial_delay=retry._initial, multiplier=retry._multiplier)
+    else:
+        return resumable_media.RetryStrategy(max_retries=0)
+
+def _retry_from_num_retries(num_retries):
+    """Convert num_retries into a Retry object.
+    
+    Retry objects have deadlines but not a maximum number of retries. This
+    function chooses a deadline that will approximate the requested number of
+    retries. num_retries is deprecated and this approximates previous behavior
+    on a best-effort basis.
+
+    :type num_retries: int
+    :param num_retries: The number of retries desired.
+    """
+
+    deadline = DEFAULT_RETRY.initial * ((DEFAULT_RETRY.multiplier ** (num_retries+1)) - DEFAULT_RETRY.multiplier)
+    return DEFAULT_RETRY.with_deadline(deadline)

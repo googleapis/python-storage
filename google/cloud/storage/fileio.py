@@ -15,6 +15,11 @@
 import io
 
 from google.api_core.exceptions import RequestRangeNotSatisfiable
+from google.cloud.storage._helpers import _NUM_RETRIES_MESSAGE
+from google.cloud.storage.retry import DEFAULT_RETRY
+from google.cloud.storage.retry import DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED
+from google.cloud.storage.retry import ConditionalRetryPolicy
+
 
 # Resumable uploads require a chunk size of precisely a multiple of 256 KiB.
 CHUNK_SIZE_MULTIPLE = 256 * 1024  # 256 KiB
@@ -28,20 +33,22 @@ VALID_DOWNLOAD_KWARGS = {
     "if_metageneration_match",
     "if_metageneration_not_match",
     "timeout",
+    "retry",
 }
 
 # Valid keyword arguments for upload methods.
 # Note: Changes here need to be reflected in the blob.open() docstring.
 VALID_UPLOAD_KWARGS = {
     "content_type",
-    "num_retries",
     "predefined_acl",
+    "num_retries",
     "if_generation_match",
     "if_generation_not_match",
     "if_metageneration_match",
     "if_metageneration_not_match",
     "timeout",
     "checksum",
+    "retry",
 }
 
 
@@ -58,13 +65,15 @@ class BlobReader(io.BufferedIOBase):
         bytes than the chunk_size are requested, the remainder is buffered.
         The default is the chunk_size of the blob, or 40MiB.
 
+    
+
     :param download_kwargs: Keyword arguments to pass to the underlying API
         calls. The following arguments are supported: "if_generation_match",
         "if_generation_not_match", "if_metageneration_match",
         "if_metageneration_not_match", "timeout".
     """
 
-    def __init__(self, blob, chunk_size=None, **download_kwargs):
+    def __init__(self, blob, chunk_size=None, retry=DEFAULT_RETRY, **download_kwargs):
         """docstring note that download_kwargs also used for reload()"""
         for kwarg in download_kwargs:
             if kwarg not in VALID_DOWNLOAD_KWARGS:
@@ -76,6 +85,7 @@ class BlobReader(io.BufferedIOBase):
         self._pos = 0
         self._buffer = io.BytesIO()
         self._chunk_size = chunk_size or blob.chunk_size or DEFAULT_CHUNK_SIZE
+        self._retry=retry
         self._download_kwargs = download_kwargs
 
     def read(self, size=-1):
@@ -102,6 +112,7 @@ class BlobReader(io.BufferedIOBase):
                     start=fetch_start,
                     end=fetch_end,
                     checksum=None,
+                    retry=self._retry,
                     **self._download_kwargs
                 )
             except RequestRangeNotSatisfiable:
@@ -204,7 +215,7 @@ class BlobWriter(io.BufferedIOBase):
         "num_retries", "predefined_acl", "checksum".
     """
 
-    def __init__(self, blob, chunk_size=None, text_mode=False, **upload_kwargs):
+    def __init__(self, blob, chunk_size=None, text_mode=False, retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED, **upload_kwargs):
         for kwarg in upload_kwargs:
             if kwarg not in VALID_UPLOAD_KWARGS:
                 raise ValueError(
@@ -219,6 +230,7 @@ class BlobWriter(io.BufferedIOBase):
         # In text mode this class will be wrapped and TextIOWrapper requires a
         # different behavior of flush().
         self._text_mode = text_mode
+        self._retry = retry
         self._upload_kwargs = upload_kwargs
 
     @property
@@ -259,27 +271,41 @@ class BlobWriter(io.BufferedIOBase):
         return pos
 
     def _initiate_upload(self):
+        # num_retries is only supported for backwards-compatibility reasons.
         num_retries = self._upload_kwargs.pop("num_retries", None)
+        retry = self._retry
         content_type = self._upload_kwargs.pop("content_type", None)
 
-        if (
-            self._upload_kwargs.get("if_metageneration_match") is None
-            and num_retries is None
-        ):
-            # Uploads are only idempotent (safe to retry) if
-            # if_metageneration_match is set. If it is not set, the default
-            # num_retries should be 0. Note: Because retry logic for uploads is
-            # provided by the google-resumable-media-python package, it doesn't
-            # use the ConditionalRetryStrategy class used in other API calls in
-            # this library to solve this problem.
-            num_retries = 0
+        # Handle num_retries backwards-compatibility.
+        if num_retries is not None:
+            warnings.warn(_NUM_RETRIES_MESSAGE, DeprecationWarning, stacklevel=2)
+            # Convert num_retries into a Retry object. Retry objects don't have
+            # a maximum number of retries, just a deadline in seconds, so we
+            # attempt to convert num_retries into a deadline sufficient to do
+            # that number of retries and no more.
+            if retry is not None:
+                raise ValueError("num_retries and retry arguments are mutually exclusive")
+            elif num_retries < 1:
+                retry = None
+            else:
+                deadline = DEFAULT_RETRY.initial * ((DEFAULT_RETRY.multiplier ** (num_retries+1)) - DEFAULT_RETRY.multiplier)
+                retry = DEFAULT_RETRY.with_deadline(deadline)
+
+        # Handle ConditionalRetryPolicy.
+        if isinstance(retry, ConditionalRetryPolicy):
+            # Conditional retries are designed for non-media calls, which change
+            # arguments into query_params dictionaries. Media operations work
+            # differently, so here we make a "fake" query_params to feed to the
+            # ConditionalRetryPolicy.
+            query_params = {"ifGenerationMatch": self._upload_kwargs.get("if_generation_match"), "ifMetagenerationMatch": self._upload_kwargs.get("if_metageneration_match")}
+            retry = retry.get_retry_policy_if_conditions_met(query_params=query_params)
 
         self._upload_and_transport = self._blob._initiate_resumable_upload(
             self._blob.bucket.client,
             self._buffer,
             content_type,
             None,
-            num_retries,
+            retry,
             chunk_size=self._chunk_size,
             **self._upload_kwargs
         )

@@ -53,6 +53,7 @@ from google.cloud.storage.acl import BucketACL
 from google.cloud.storage.acl import DefaultObjectACL
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 from google.cloud.storage.retry import DEFAULT_RETRY
+from google.cloud.storage.retry import ConditionalRetryPolicy
 
 
 _marker = object()
@@ -628,6 +629,7 @@ class Client(ClientWithProject):
         if_metageneration_not_match=None,
         timeout=_DEFAULT_TIMEOUT,
         checksum="md5",
+        retry=DEFAULT_RETRY,
     ):
         """Download the contents of a blob object or blob URI into a file-like object.
 
@@ -702,6 +704,16 @@ class Client(ClientWithProject):
 
 
         """
+
+        # Handle ConditionalRetryPolicy.
+        if isinstance(retry, ConditionalRetryPolicy):
+            # Conditional retries are designed for non-media calls, which change
+            # arguments into query_params dictionaries. Media operations work
+            # differently, so here we make a "fake" query_params to feed to the
+            # ConditionalRetryPolicy.
+            query_params = {"ifGenerationMatch": if_generation_match, "ifMetagenerationMatch": if_metageneration_match}
+            retry = retry.get_retry_policy_if_conditions_met(query_params=query_params)
+
         if not isinstance(blob_or_uri, Blob):
             blob_or_uri = Blob.from_string(blob_or_uri)
         download_url = blob_or_uri._get_download_url(
