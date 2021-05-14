@@ -22,6 +22,7 @@ import json
 
 
 _RETRYABLE_TYPES = (
+    ConnectionError,
     api_exceptions.TooManyRequests,  # 429
     api_exceptions.InternalServerError,  # 500
     api_exceptions.BadGateway,  # 502
