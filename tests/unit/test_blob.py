@@ -2191,7 +2191,7 @@ class Test_Blob(unittest.TestCase):
         size=None,
         extra_headers=None,
         chunk_size=None,
-        retry=None,
+        num_retries=None,
         user_project=None,
         predefined_acl=None,
         if_generation_match=None,
@@ -2203,6 +2203,7 @@ class Test_Blob(unittest.TestCase):
         timeout=None,
         metadata=None,
         mtls=False,
+        retry=None,
     ):
         from six.moves.urllib.parse import urlencode
         from google.resumable_media.requests import ResumableUpload
@@ -2265,7 +2266,7 @@ class Test_Blob(unittest.TestCase):
             stream,
             content_type,
             size,
-            retry,
+            num_retries,
             extra_headers=extra_headers,
             chunk_size=chunk_size,
             predefined_acl=predefined_acl,
@@ -2273,6 +2274,7 @@ class Test_Blob(unittest.TestCase):
             if_generation_not_match=if_generation_not_match,
             if_metageneration_match=if_metageneration_match,
             if_metageneration_not_match=if_metageneration_not_match,
+            retry=retry,
             **timeout_kwarg
         )
 
@@ -2340,6 +2342,8 @@ class Test_Blob(unittest.TestCase):
         retry_strategy = upload._retry_strategy
         if retry is None:
             self.assertEqual(retry_strategy.max_retries, 0)
+        elif num_retries is not None:
+            self.assertEqual(retry_strategy.max_retries, num_retries)
         else:
             self.assertEqual(retry_strategy.max_sleep, 60.0)
             self.assertEqual(retry_strategy.max_cumulative_retry, 120.0)
@@ -2565,7 +2569,7 @@ class Test_Blob(unittest.TestCase):
     def _do_resumable_helper(
         self,
         use_size=False,
-        retry=None,
+        num_retries=None,
         predefined_acl=None,
         if_generation_match=None,
         if_generation_not_match=None,
@@ -2573,6 +2577,7 @@ class Test_Blob(unittest.TestCase):
         if_metageneration_not_match=None,
         timeout=None,
         data_corruption=False,
+        retry=None,
     ):
         bucket = _Bucket(name="yesterday")
         blob = self._make_one(u"blob-name", bucket=bucket)
@@ -2694,7 +2699,7 @@ class Test_Blob(unittest.TestCase):
     def _do_upload_helper(
         self,
         chunk_size=None,
-        retry=None,
+        num_retries=None,
         predefined_acl=None,
         if_generation_match=None,
         if_generation_not_match=None,
@@ -2702,6 +2707,7 @@ class Test_Blob(unittest.TestCase):
         if_metageneration_not_match=None,
         size=None,
         timeout=None,
+        retry=None,
     ):
         from google.cloud.storage.blob import _MAX_MULTIPART_SIZE
 
@@ -2739,12 +2745,13 @@ class Test_Blob(unittest.TestCase):
             stream,
             content_type,
             size,
-            retry,
+            num_retries,
             predefined_acl,
             if_generation_match,
             if_generation_not_match,
             if_metageneration_match,
             if_metageneration_not_match,
+            retry=retry,
             **timeout_kwarg
         )
 
@@ -2756,7 +2763,7 @@ class Test_Blob(unittest.TestCase):
                 stream,
                 content_type,
                 size,
-                retry,
+                num_retries,
                 predefined_acl,
                 if_generation_match,
                 if_generation_not_match,
@@ -2764,6 +2771,7 @@ class Test_Blob(unittest.TestCase):
                 if_metageneration_not_match,
                 timeout=expected_timeout,
                 checksum=None,
+                retry=retry,
             )
             blob._do_resumable_upload.assert_not_called()
         else:
@@ -2773,7 +2781,7 @@ class Test_Blob(unittest.TestCase):
                 stream,
                 content_type,
                 size,
-                retry,
+                num_retries,
                 predefined_acl,
                 if_generation_match,
                 if_generation_not_match,
@@ -2781,6 +2789,7 @@ class Test_Blob(unittest.TestCase):
                 if_metageneration_not_match,
                 timeout=expected_timeout,
                 checksum=None,
+                retry=retry,
             )
 
     def test__do_upload_uses_multipart(self):
@@ -2832,6 +2841,8 @@ class Test_Blob(unittest.TestCase):
         if_generation_not_match = kwargs.get("if_generation_not_match", None)
         if_metageneration_match = kwargs.get("if_metageneration_match", None)
         if_metageneration_not_match = kwargs.get("if_metageneration_not_match", None)
+        num_retries = kwargs.get("num_retries", None)
+        retry = kwargs.get("retry", DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED)
         ret_val = blob.upload_from_file(
             stream, size=len(data), content_type=content_type, client=client, **kwargs
         )
@@ -2843,17 +2854,12 @@ class Test_Blob(unittest.TestCase):
 
         expected_timeout = kwargs.get("timeout", self._get_default_timeout())
 
-        # Check the mock.
-        if "retry" in kwargs:
-            retry = kwargs["retry"]
-        else:
-            retry = DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED
         blob._do_upload.assert_called_once_with(
             client,
             stream,
             content_type,
             len(data),
-            retry,
+            num_retries,
             predefined_acl,
             if_generation_match,
             if_generation_not_match,
@@ -2861,6 +2867,7 @@ class Test_Blob(unittest.TestCase):
             if_metageneration_not_match,
             timeout=expected_timeout,
             checksum=None,
+            retry=retry
         )
         return stream
 
@@ -2919,7 +2926,7 @@ class Test_Blob(unittest.TestCase):
         self.assertEqual(pos_args[0], client)
         self.assertEqual(pos_args[2], content_type)
         self.assertEqual(pos_args[3], size)
-        self.assertEqual(pos_args[4], DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED)  # retry
+        self.assertEqual(pos_args[4], None)  # num_retries
         self.assertIsNone(pos_args[5])  # predefined_acl
         self.assertIsNone(pos_args[6])  # if_generation_match
         self.assertIsNone(pos_args[7])  # if_generation_not_match
@@ -2927,7 +2934,7 @@ class Test_Blob(unittest.TestCase):
         self.assertIsNone(pos_args[9])  # if_metageneration_not_match
 
         expected_timeout = self._get_default_timeout() if timeout is None else timeout
-        self.assertEqual(kwargs, {"timeout": expected_timeout, "checksum": None})
+        self.assertEqual(kwargs, {"timeout": expected_timeout, "checksum": None, "retry": DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED})
 
         return pos_args[1]
 

@@ -66,7 +66,6 @@ from google.cloud.storage._helpers import _bucket_bound_hostname_url
 from google.cloud.storage._helpers import _convert_to_timestamp
 from google.cloud.storage._helpers import _raise_if_more_than_one_set
 from google.cloud.storage._helpers import _api_core_retry_to_resumable_media_retry
-from google.cloud.storage._helpers import _retry_from_num_retries
 from google.cloud.storage._signing import generate_signed_url_v2
 from google.cloud.storage._signing import generate_signed_url_v4
 from google.cloud.storage._helpers import _NUM_RETRIES_MESSAGE
@@ -1605,7 +1604,7 @@ class Blob(_PropertyMixin):
         stream,
         content_type,
         size,
-        retry,
+        num_retries,
         predefined_acl,
         if_generation_match,
         if_generation_not_match,
@@ -1613,6 +1612,7 @@ class Blob(_PropertyMixin):
         if_metageneration_not_match,
         timeout=_DEFAULT_TIMEOUT,
         checksum=None,
+        retry=None,
     ):
         """Perform a multipart upload.
 
@@ -1752,7 +1752,7 @@ class Blob(_PropertyMixin):
         upload_url = _add_query_parameters(base_url, name_value_pairs)
         upload = MultipartUpload(upload_url, headers=headers, checksum=checksum)
 
-        upload._retry_strategy = _api_core_retry_to_resumable_media_retry(retry)
+        upload._retry_strategy = _api_core_retry_to_resumable_media_retry(retry, num_retries)
 
         response = upload.transmit(
             transport, data, object_metadata, content_type, timeout=timeout
@@ -1766,7 +1766,7 @@ class Blob(_PropertyMixin):
         stream,
         content_type,
         size,
-        retry,
+        num_retries,
         predefined_acl=None,
         extra_headers=None,
         chunk_size=None,
@@ -1776,6 +1776,7 @@ class Blob(_PropertyMixin):
         if_metageneration_not_match=None,
         timeout=_DEFAULT_TIMEOUT,
         checksum=None,
+        retry=None,
     ):
         """Initiate a resumable upload.
 
@@ -1933,7 +1934,7 @@ class Blob(_PropertyMixin):
             upload_url, chunk_size, headers=headers, checksum=checksum
         )
 
-        upload._retry_strategy = _api_core_retry_to_resumable_media_retry(retry)
+        upload._retry_strategy = _api_core_retry_to_resumable_media_retry(retry, num_retries)
 
         upload.initiate(
             transport,
@@ -1953,7 +1954,7 @@ class Blob(_PropertyMixin):
         stream,
         content_type,
         size,
-        retry,
+        num_retries,
         predefined_acl,
         if_generation_match,
         if_generation_not_match,
@@ -1961,6 +1962,7 @@ class Blob(_PropertyMixin):
         if_metageneration_not_match,
         timeout=_DEFAULT_TIMEOUT,
         checksum=None,
+        retry=None,
     ):
         """Perform a resumable upload.
 
@@ -2079,7 +2081,7 @@ class Blob(_PropertyMixin):
         stream,
         content_type,
         size,
-        retry,
+        num_retries,
         predefined_acl,
         if_generation_match,
         if_generation_not_match,
@@ -2087,6 +2089,7 @@ class Blob(_PropertyMixin):
         if_metageneration_not_match,
         timeout=_DEFAULT_TIMEOUT,
         checksum=None,
+        retry=None
     ):
         """Determine an upload strategy and then perform the upload.
 
@@ -2195,7 +2198,7 @@ class Blob(_PropertyMixin):
                 stream,
                 content_type,
                 size,
-                retry,
+                num_retries,
                 predefined_acl,
                 if_generation_match,
                 if_generation_not_match,
@@ -2203,6 +2206,7 @@ class Blob(_PropertyMixin):
                 if_metageneration_not_match,
                 timeout=timeout,
                 checksum=checksum,
+                retry=retry,
             )
         else:
             response = self._do_resumable_upload(
@@ -2210,7 +2214,7 @@ class Blob(_PropertyMixin):
                 stream,
                 content_type,
                 size,
-                retry,
+                num_retries,
                 predefined_acl,
                 if_generation_match,
                 if_generation_not_match,
@@ -2218,6 +2222,7 @@ class Blob(_PropertyMixin):
                 if_metageneration_not_match,
                 timeout=timeout,
                 checksum=checksum,
+                retry=retry,
             )
 
         return response.json()
@@ -2364,16 +2369,11 @@ class Blob(_PropertyMixin):
         """
         if num_retries is not None:
             warnings.warn(_NUM_RETRIES_MESSAGE, DeprecationWarning, stacklevel=2)
-            # Convert num_retries into a Retry object. Retry objects don't have
-            # a maximum number of retries, just a deadline in seconds, so we
-            # attempt to convert num_retries into a deadline sufficient to do
-            # that number of retries and no more.
-            if retry is not None:
-                raise ValueError("num_retries and retry arguments are mutually exclusive")
-            elif num_retries < 1:
+            # num_retries and retry are mutually exclusive. If num_retries is
+            # set and retry is exactly the default, then nullify retry for
+            # backwards compatibility.
+            if retry is DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED:
                 retry = None
-            else:
-                retry = _retry_from_num_retries(num_retries)
 
         _maybe_rewind(file_obj, rewind=rewind)
         predefined_acl = ACL.validate_predefined(predefined_acl)
@@ -2384,7 +2384,7 @@ class Blob(_PropertyMixin):
                 file_obj,
                 content_type,
                 size,
-                retry,
+                num_retries,
                 predefined_acl,
                 if_generation_match,
                 if_generation_not_match,
@@ -2392,6 +2392,7 @@ class Blob(_PropertyMixin):
                 if_metageneration_not_match,
                 timeout=timeout,
                 checksum=checksum,
+                retry=retry
             )
             self._set_properties(created_json)
         except resumable_media.InvalidResponse as exc:

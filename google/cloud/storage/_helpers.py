@@ -571,7 +571,7 @@ def _bucket_bound_hostname_url(host, scheme=None):
     return "{scheme}://{host}/".format(scheme=scheme, host=host)
 
 
-def _api_core_retry_to_resumable_media_retry(retry):
+def _api_core_retry_to_resumable_media_retry(retry, num_retries=None):
     """Convert google.api.core.Retry to google.resumable_media.RetryStrategy.
 
     Custom predicates are not translated.
@@ -579,27 +579,23 @@ def _api_core_retry_to_resumable_media_retry(retry):
     :type retry: google.api_core.Retry
     :param retry: (Optional) The google.api_core.Retry object to translate.
 
+    :type num_retries: int
+    :param num_retries: (Optional) The number of retries desired. This is
+        supported for backwards compatibility and is mutually exclusive with
+        `retry`.
+
     :rtype: google.resumable_media.RetryStrategy
     :returns: A RetryStrategy with all applicable attributes copied from input,
               or a RetryStrategy with max_retries set to 0 if None was input.
     """
 
-    if retry is not None:
+    if retry is not None and num_retries is not None:
+        raise ValueError("num_retries and retry arguments are mutually exclusive")
+
+    elif retry is not None:
         return resumable_media.RetryStrategy(max_sleep=retry._maximum, max_cumulative_retry=retry._deadline, initial_delay=retry._initial, multiplier=retry._multiplier)
+    elif num_retries is not None:
+        return resumable_media.RetryStrategy(max_retries=num_retries)
     else:
         return resumable_media.RetryStrategy(max_retries=0)
 
-def _retry_from_num_retries(num_retries):
-    """Convert num_retries into a Retry object.
-    
-    Retry objects have deadlines but not a maximum number of retries. This
-    function chooses a deadline that will approximate the requested number of
-    retries. num_retries is deprecated and this approximates previous behavior
-    on a best-effort basis.
-
-    :type num_retries: int
-    :param num_retries: The number of retries desired.
-    """
-
-    deadline = DEFAULT_RETRY.initial * ((DEFAULT_RETRY.multiplier ** (num_retries+1)) - DEFAULT_RETRY.multiplier)
-    return DEFAULT_RETRY.with_deadline(deadline)
