@@ -59,6 +59,16 @@ class Test_should_retry(unittest.TestCase):
         exc = ValueError("testing")
         self.assertFalse(self._call_fut(exc))
 
+    def test_w_stdlib_connection_error(self):
+        from google.cloud.storage import retry
+
+        try:
+            exc = ConnectionError()
+            self.assertTrue(self._call_fut(exc))
+            self.assertTrue(ConnectionError in retry._RETRYABLE_TYPES)
+        except NameError:
+            pass
+
 
 class TestConditionalRetryPolicy(unittest.TestCase):
     def _make_one(self, retry_policy, conditional_predicate, required_kwargs):

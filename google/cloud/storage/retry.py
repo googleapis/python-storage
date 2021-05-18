@@ -21,7 +21,14 @@ from google.auth import exceptions as auth_exceptions
 import json
 
 
-_RETRYABLE_TYPES = (
+# ConnectionError is a built-in exception only in Python3 and not in Python2.
+try:
+    _RETRYABLE_STDLIB_TYPES = (ConnectionError,)
+except NameError:
+    _RETRYABLE_STDLIB_TYPES = ()
+
+
+_RETRYABLE_TYPES = _RETRYABLE_STDLIB_TYPES + (
     api_exceptions.TooManyRequests,  # 429
     api_exceptions.InternalServerError,  # 500
     api_exceptions.BadGateway,  # 502
@@ -31,12 +38,6 @@ _RETRYABLE_TYPES = (
 )
 
 
-try:
-    _RETRYABLE_STDLIB_TYPES = (ConnectionError,)
-except NameError:
-    _RETRYABLE_STDLIB_TYPES = ()
-
-
 # Some retriable errors don't have their own custom exception in api_core.
 _ADDITIONAL_RETRYABLE_STATUS_CODES = (408,)
 
@@ -44,8 +45,6 @@ _ADDITIONAL_RETRYABLE_STATUS_CODES = (408,)
 def _should_retry(exc):
     """Predicate for determining when to retry."""
     if isinstance(exc, _RETRYABLE_TYPES):
-        return True
-    elif isinstance(exc, _RETRYABLE_STDLIB_TYPES):
         return True
     elif isinstance(exc, api_exceptions.GoogleAPICallError):
         return exc.code in _ADDITIONAL_RETRYABLE_STATUS_CODES
