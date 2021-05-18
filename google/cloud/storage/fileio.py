@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import io
+import warnings
 
 from google.api_core.exceptions import RequestRangeNotSatisfiable
 from google.cloud.storage._helpers import _NUM_RETRIES_MESSAGE
@@ -276,20 +277,13 @@ class BlobWriter(io.BufferedIOBase):
         retry = self._retry
         content_type = self._upload_kwargs.pop("content_type", None)
 
-        # Handle num_retries backwards-compatibility.
         if num_retries is not None:
             warnings.warn(_NUM_RETRIES_MESSAGE, DeprecationWarning, stacklevel=2)
-            # Convert num_retries into a Retry object. Retry objects don't have
-            # a maximum number of retries, just a deadline in seconds, so we
-            # attempt to convert num_retries into a deadline sufficient to do
-            # that number of retries and no more.
-            if retry is not None:
-                raise ValueError("num_retries and retry arguments are mutually exclusive")
-            elif num_retries < 1:
+            # num_retries and retry are mutually exclusive. If num_retries is
+            # set and retry is exactly the default, then nullify retry for
+            # backwards compatibility.
+            if retry is DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED:
                 retry = None
-            else:
-                deadline = DEFAULT_RETRY.initial * ((DEFAULT_RETRY.multiplier ** (num_retries+1)) - DEFAULT_RETRY.multiplier)
-                retry = DEFAULT_RETRY.with_deadline(deadline)
 
         # Handle ConditionalRetryPolicy.
         if isinstance(retry, ConditionalRetryPolicy):
@@ -305,8 +299,9 @@ class BlobWriter(io.BufferedIOBase):
             self._buffer,
             content_type,
             None,
-            retry,
+            num_retries,
             chunk_size=self._chunk_size,
+            retry=retry,
             **self._upload_kwargs
         )
 
