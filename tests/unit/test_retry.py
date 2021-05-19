@@ -337,7 +337,7 @@ def _preflight_send_instructions(method_name, instructions):
         'Content-Type': 'application/json',
     }
     data_dict = {
-        'test_instructions': {
+        'instructions': {
             method_name: instructions
         }
     }
