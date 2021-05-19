@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import unittest
+import uuid
 
 from google.cloud import storage
 from google.cloud.storage import _helpers
@@ -329,6 +330,29 @@ method_mapping = {
 }
 
 
+def _populate_resource_bucket(client, resources):
+    bucket = client.bucket(uuid.uuid4().hex)
+    client.create_bucket(bucket)
+    return bucket
+    
+
+resource_mapping = {
+    "BUCKET": _populate_resource_bucket,
+}
+
+
+def _populate_resource(client, json_resource):
+    resources = {}
+    for r in json_resource:
+        try: 
+            func = resource_mapping[r]
+            res = func(client, resources)
+            resources[r] = res
+        except Exception as e:
+            print("log warning here: {}".format(e))
+
+
+
 def _create_retry_test(method_name, instructions):
     import json
 
@@ -361,9 +385,9 @@ def _check_retry_test(id):
         # do something
         return None
 
-def _run_retry_test(id, func, resource=None):
-    test_run_uri = _API_ACCESS_ENDPOINT + "/storage/v1/b?project=test"
-    client = storage.Client(client_options={"api_endpoint": test_run_uri})
+def _run_retry_test(client, id, func, resource=None):
+    # test_run_uri = _API_ACCESS_ENDPOINT + "/storage/v1/b?project=test"
+    # client = storage.Client(client_options={"api_endpoint": test_run_uri})
     client._http.headers.update({"x-retry-test-id": id})
     func(client=client, resource=resource)
 
@@ -381,6 +405,9 @@ def _delete_retry_test(id):
 def test_conformance_retry_strategy(test_data):
     if _API_ACCESS_ENDPOINT == _DEFAULT_STORAGE_HOST:
         pytest.skip("This test must use the testbench emulator; set STORAGE_EMULATOR_HOST to run.")
+
+    test_run_uri = _API_ACCESS_ENDPOINT + "/storage/v1/b?project=test"
+    client = storage.Client(client_options={"api_endpoint": test_run_uri})
 
     methods = test_data["methods"]
     cases = test_data["cases"]
@@ -407,7 +434,7 @@ def test_conformance_retry_strategy(test_data):
                     continue
 
                 # Run retry tests on library methods
-                _run_retry_test(id, func=function)
+                _run_retry_test(client, id, func=function)
 
                 # Verify that all instructions were used up during the test
 				# (indicates that the client sent the correct requests).
