@@ -329,7 +329,7 @@ method_mapping = {
 }
 
 
-def _preflight_send_instructions(method_name, instructions):
+def _create_retry_test(method_name, instructions):
     import json
 
     preflight_post_uri = _API_ACCESS_ENDPOINT + "/retry_test"
@@ -351,7 +351,7 @@ def _preflight_send_instructions(method_name, instructions):
         return None
 
 
-def _get_status_check(id):
+def _check_retry_test(id):
     status_get_uri = "{base}{retry}/{id}".format(base=_API_ACCESS_ENDPOINT, retry="/retry_test", id=id)
     try:
         r = requests.get(status_get_uri)
@@ -361,12 +361,11 @@ def _get_status_check(id):
         # do something
         return None
 
-def _run_single_test(id, func, resource=None):
+def _run_retry_test(id, func, resource=None):
     test_run_uri = _API_ACCESS_ENDPOINT + "/storage/v1/b?project=test"
     client = storage.Client(client_options={"api_endpoint": test_run_uri})
     client._http.headers.update({"x-retry-test-id": id})
-    r = func(client=client, resource=resource)
-    return r
+    func(client=client, resource=resource)
 
 
 def _delete_retry_test(id):
@@ -386,34 +385,38 @@ def test_conformance_retry_strategy(test_data):
     methods = test_data["methods"]
     cases = test_data["cases"]
     expect_success = test_data["expectSuccess"]
-    for m, c in zip(methods, cases):
-        # extract method name and instructions for preflight request to send instructions
-        method_name = m["name"]
-        instructions = c["instructions"]
+    for c in cases:
+        for m in methods:
+            # Extract method name and instructions to create retry test.
+            method_name = m["name"]
+            instructions = c["instructions"]
 
-        if method_name not in method_mapping:
-            print("No tests for operation {}".format(method_name))
-            continue
-
-        for function in method_mapping[method_name]:
-            # send instructions with preflight
-            r = _preflight_send_instructions(method_name, instructions)
-            if r:
-                id = r["id"]
-            else:
-                print("Error creating retry test")
+            if method_name not in method_mapping:
+                # TODO(cathyo@): change to log warning
+                print("No tests for operation {}".format(method_name))
                 continue
 
-            # run each single test for retry
-            _run_single_test(id, func=function)
+            for function in method_mapping[method_name]:
+                # Create the retry test in the emulator to handle instructions.
+                r = _create_retry_test(method_name, instructions)
+                if r:
+                    id = r["id"]
+                else:
+                    # TODO(cathyo@): change to log warning
+                    print("Error creating retry test")
+                    continue
 
-            # check if all instructions are dequed
-            status_response = _get_status_check(id)
-            if status_response:
-                test_complete = status_response["completed"]
-                # assert test_complete == True
-            else:
-                print("Error getting retry test")
+                # Run retry tests on library methods
+                _run_retry_test(id, func=function)
 
-            # clean up and delete retry test
-            _delete_retry_test(id)
+                # Verify that all instructions were used up during the test
+				# (indicates that the client sent the correct requests).
+                status_response = _check_retry_test(id)
+                if status_response:
+                    test_complete = status_response["completed"]
+                    # assert test_complete == True
+                else:
+                    print("do something")
+
+                # Clean up and close out test in emulator.
+                _delete_retry_test(id)
