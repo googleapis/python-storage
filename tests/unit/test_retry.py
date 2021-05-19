@@ -56,6 +56,12 @@ class Test_should_retry(unittest.TestCase):
         self.assertFalse(self._call_fut(exc))
 
     def test_w_requests_connection_error(self):
+        import requests
+
+        exc = requests.ConnectionError()
+        self.assertTrue(self._call_fut(exc))
+
+    def test_miss_w_stdlib_error(self):
         exc = ValueError("testing")
         self.assertFalse(self._call_fut(exc))
 
