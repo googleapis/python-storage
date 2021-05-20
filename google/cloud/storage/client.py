@@ -386,6 +386,31 @@ class Client(ClientWithProject):
             _target_object=_target_object,
         )
 
+    def _list_resource(
+        self,
+        path,
+        item_to_value,
+        page_token=None,
+        max_results=None,
+        extra_params=None,
+        page_start=page_iterator._do_nothing_page_start,
+        timeout=_DEFAULT_TIMEOUT,
+        retry=DEFAULT_RETRY,
+    ):
+        api_request = functools.partial(
+            self._connection.api_request, timeout=timeout, retry=retry
+        )
+        return page_iterator.HTTPIterator(
+            client=self,
+            api_request=api_request,
+            path=path,
+            item_to_value=item_to_value,
+            page_token=page_token,
+            max_results=max_results,
+            extra_params=extra_params,
+            page_start=page_start,
+        )
+
     def _patch_resource(
         self,
         path,

@@ -467,6 +467,74 @@ class TestClient(unittest.TestCase):
             _target_object=target,
         )
 
+    def test__list_resource_w_defaults(self):
+        import functools
+        from google.api_core.page_iterator import HTTPIterator
+        from google.api_core.page_iterator import _do_nothing_page_start
+
+        project = "PROJECT"
+        path = "/path/to/list/resource"
+        item_to_value = mock.Mock(spec=[])
+        credentials = _make_credentials()
+        client = self._make_one(project=project, credentials=credentials)
+        connection = client._base_connection = _make_connection()
+
+        iterator = client._list_resource(path=path, item_to_value=item_to_value,)
+
+        self.assertIsInstance(iterator, HTTPIterator)
+        self.assertIs(iterator.client, client)
+        self.assertIsInstance(iterator.api_request, functools.partial)
+        self.assertIs(iterator.api_request.func, connection.api_request)
+        self.assertEqual(iterator.api_request.args, ())
+        expected_keywords = {
+            "timeout": self._get_default_timeout(),
+            "retry": DEFAULT_RETRY,
+        }
+        self.assertEqual(iterator.api_request.keywords, expected_keywords)
+        self.assertEqual(iterator.path, path)
+        self.assertEqual(iterator.next_page_token, None)
+        self.assertEqual(iterator.max_results, None)
+        self.assertIs(iterator._page_start, _do_nothing_page_start)
+
+    def test__list_resource_w_explicit(self):
+        import functools
+        from google.api_core.page_iterator import HTTPIterator
+
+        project = "PROJECT"
+        path = "/path/to/list/resource"
+        item_to_value = mock.Mock(spec=[])
+        page_token = "PAGE-TOKEN"
+        max_results = 47
+        extra_params = {"foo": "Foo"}
+        page_start = mock.Mock(spec=[])
+        credentials = _make_credentials()
+        client = self._make_one(project=project, credentials=credentials)
+        connection = client._base_connection = _make_connection()
+
+        iterator = client._list_resource(
+            path=path,
+            item_to_value=item_to_value,
+            page_token=page_token,
+            max_results=max_results,
+            extra_params=extra_params,
+            page_start=page_start,
+        )
+
+        self.assertIsInstance(iterator, HTTPIterator)
+        self.assertIs(iterator.client, client)
+        self.assertIsInstance(iterator.api_request, functools.partial)
+        self.assertIs(iterator.api_request.func, connection.api_request)
+        self.assertEqual(iterator.api_request.args, ())
+        expected_keywords = {
+            "timeout": self._get_default_timeout(),
+            "retry": DEFAULT_RETRY,
+        }
+        self.assertEqual(iterator.api_request.keywords, expected_keywords)
+        self.assertEqual(iterator.path, path)
+        self.assertEqual(iterator.next_page_token, page_token)
+        self.assertEqual(iterator.max_results, max_results)
+        self.assertIs(iterator._page_start, page_start)
+
     def test__patch_resource_miss_w_defaults(self):
         from google.cloud.exceptions import NotFound
 
