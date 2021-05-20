@@ -45,15 +45,11 @@ def lint(session):
     session.run("flake8", "google", "tests")
 
 
-@nox.session(python="3.6")
+@nox.session(python=DEFAULT_PYTHON_VERSION)
 def blacken(session):
     """Run black.
 
     Format code to uniform standard.
-
-    This currently uses Python 3.6 due to the automated Kokoro run of synthtool.
-    That run uses an image that doesn't have 3.6 installed. Before updating this
-    check the state of the `gcp_ubuntu_config` we use for that Kokoro run.
     """
     session.install(BLACK_VERSION)
     session.run(
@@ -122,15 +118,19 @@ def system(session):
 
     # Install all test dependencies, then install this package into the
     # virtualenv's dist-packages.
+    # 2021-05-06: defer installing 'google-cloud-*' to after this package,
+    #             in order to work around Python 2.7 googolapis-common-protos
+    #             issue.
     session.install(
-        "mock",
-        "pytest",
+        "mock", "pytest",
+    )
+    session.install("-e", ".")
+    session.install(
         "google-cloud-testutils",
         "google-cloud-iam",
         "google-cloud-pubsub < 2.0.0",
         "google-cloud-kms < 2.0dev",
     )
-    session.install("-e", ".")
 
     # Run py.test against the system tests.
     if system_test_exists:
