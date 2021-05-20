@@ -1774,110 +1774,74 @@ class TestClient(unittest.TestCase):
     def test_create_hmac_key_w_retry(self):
         self._create_hmac_key_helper(retry=mock.Mock(spec=[]))
 
-    def test_list_hmac_keys_defaults_empty(self):
-        PROJECT = "PROJECT"
-        CREDENTIALS = _make_credentials()
-        client = self._make_one(project=PROJECT, credentials=CREDENTIALS)
+    def test_list_hmac_keys_w_defaults(self):
+        from google.cloud.storage.client import _item_to_hmac_key_metadata
 
-        http = _make_requests_session([_make_json_response({})])
-        client._http_internal = http
+        project = "PROJECT"
+        credentials = _make_credentials()
+        client = self._make_one(project=project, credentials=credentials)
+        client._list_resource = mock.Mock(spec=[])
 
-        metadatas = list(client.list_hmac_keys())
+        iterator = client.list_hmac_keys()
 
-        self.assertEqual(len(metadatas), 0)
+        self.assertIs(iterator, client._list_resource.return_value)
 
-        http.request.assert_called_once_with(
-            method="GET",
-            url=mock.ANY,
-            data=None,
-            headers=mock.ANY,
+        expected_path = "/projects/{}/hmacKeys".format(project)
+        expected_item_to_value = _item_to_hmac_key_metadata
+        expected_max_results = None
+        expected_extra_params = {}
+        client._list_resource.assert_called_once_with(
+            expected_path,
+            expected_item_to_value,
+            max_results=expected_max_results,
+            extra_params=expected_extra_params,
             timeout=self._get_default_timeout(),
-        )
-        _, kwargs = http.request.call_args
-        scheme, netloc, path, qs, _ = urlparse.urlsplit(kwargs.get("url"))
-        self.assertEqual("%s://%s" % (scheme, netloc), client._connection.API_BASE_URL)
-        self.assertEqual(
-            path,
-            "/".join(
-                [
-                    "",
-                    "storage",
-                    client._connection.API_VERSION,
-                    "projects",
-                    PROJECT,
-                    "hmacKeys",
-                ]
-            ),
+            retry=DEFAULT_RETRY,
         )
 
-    def test_list_hmac_keys_explicit_non_empty(self):
-        from google.cloud.storage.hmac_key import HMACKeyMetadata
+    def test_list_hmac_keys_w_explicit(self):
+        from google.cloud.storage.client import _item_to_hmac_key_metadata
 
-        PROJECT = "PROJECT"
-        OTHER_PROJECT = "other-project-456"
-        MAX_RESULTS = 3
-        EMAIL = "storage-user-123@example.com"
-        ACCESS_ID = "ACCESS-ID"
-        USER_PROJECT = "billed-project"
-        CREDENTIALS = _make_credentials()
-        client = self._make_one(project=PROJECT, credentials=CREDENTIALS)
+        project = "PROJECT"
+        other_project = "other-project-456"
+        max_results = 3
+        show_deleted_keys = True
+        service_account_email = "storage-user-123@example.com"
+        user_project = "billed-project"
+        credentials = _make_credentials()
+        client = self._make_one(project=project, credentials=credentials)
+        client._list_resource = mock.Mock(spec=[])
+        timeout = 42
+        retry = mock.Mock(spec=[])
 
-        response = {
-            "kind": "storage#hmacKeysMetadata",
-            "items": [
-                {
-                    "kind": "storage#hmacKeyMetadata",
-                    "accessId": ACCESS_ID,
-                    "serviceAccountEmail": EMAIL,
-                }
-            ],
+        iterator = client.list_hmac_keys(
+            max_results=max_results,
+            service_account_email=service_account_email,
+            show_deleted_keys=show_deleted_keys,
+            project_id=other_project,
+            user_project=user_project,
+            timeout=timeout,
+            retry=retry,
+        )
+
+        self.assertIs(iterator, client._list_resource.return_value)
+
+        expected_path = "/projects/{}/hmacKeys".format(other_project)
+        expected_item_to_value = _item_to_hmac_key_metadata
+        expected_max_results = max_results
+        expected_extra_params = {
+            "serviceAccountEmail": service_account_email,
+            "showDeletedKeys": show_deleted_keys,
+            "userProject": user_project,
         }
-
-        http = _make_requests_session([_make_json_response(response)])
-        client._http_internal = http
-
-        metadatas = list(
-            client.list_hmac_keys(
-                max_results=MAX_RESULTS,
-                service_account_email=EMAIL,
-                show_deleted_keys=True,
-                project_id=OTHER_PROJECT,
-                user_project=USER_PROJECT,
-                timeout=42,
-            )
+        client._list_resource.assert_called_once_with(
+            expected_path,
+            expected_item_to_value,
+            max_results=expected_max_results,
+            extra_params=expected_extra_params,
+            timeout=timeout,
+            retry=retry,
         )
-
-        self.assertEqual(len(metadatas), len(response["items"]))
-
-        for metadata, resource in zip(metadatas, response["items"]):
-            self.assertIsInstance(metadata, HMACKeyMetadata)
-            self.assertIs(metadata._client, client)
-            self.assertEqual(metadata._properties, resource)
-
-        http.request.assert_called_once_with(
-            method="GET", url=mock.ANY, data=None, headers=mock.ANY, timeout=42
-        )
-        _, kwargs = http.request.call_args
-        scheme, netloc, path, qs, _ = urlparse.urlsplit(kwargs.get("url"))
-        self.assertEqual("%s://%s" % (scheme, netloc), client._connection.API_BASE_URL)
-        self.assertEqual(
-            path,
-            "/".join(
-                [
-                    "",
-                    "storage",
-                    client._connection.API_VERSION,
-                    "projects",
-                    OTHER_PROJECT,
-                    "hmacKeys",
-                ]
-            ),
-        )
-        parms = dict(urlparse.parse_qsl(qs))
-        self.assertEqual(parms["maxResults"], str(MAX_RESULTS))
-        self.assertEqual(parms["serviceAccountEmail"], EMAIL)
-        self.assertEqual(parms["showDeletedKeys"], "True")
-        self.assertEqual(parms["userProject"], USER_PROJECT)
 
     def test_get_hmac_key_metadata_wo_project(self):
         from google.cloud.storage.hmac_key import HMACKeyMetadata
@@ -2217,6 +2181,58 @@ class TestClient(unittest.TestCase):
         )
         self.assertEqual(fields["x-goog-signature"], EXPECTED_SIGN)
         self.assertEqual(fields["policy"], EXPECTED_POLICY)
+
+
+class Test__item_to_bucket(unittest.TestCase):
+    def _call_fut(self, iterator, item):
+        from google.cloud.storage.client import _item_to_bucket
+
+        return _item_to_bucket(iterator, item)
+
+    def test_w_empty_item(self):
+        from google.cloud.storage.bucket import Bucket
+
+        iterator = mock.Mock(spec=["client"])
+        item = {}
+
+        bucket = self._call_fut(iterator, item)
+
+        self.assertIsInstance(bucket, Bucket)
+        self.assertIs(bucket.client, iterator.client)
+        self.assertIsNone(bucket.name)
+
+    def test_w_name(self):
+        from google.cloud.storage.bucket import Bucket
+
+        name = "name"
+        iterator = mock.Mock(spec=["client"])
+        item = {"name": name}
+
+        bucket = self._call_fut(iterator, item)
+
+        self.assertIsInstance(bucket, Bucket)
+        self.assertIs(bucket.client, iterator.client)
+        self.assertEqual(bucket.name, name)
+
+
+class Test__item_to_hmac_key_metadata(unittest.TestCase):
+    def _call_fut(self, iterator, item):
+        from google.cloud.storage.client import _item_to_hmac_key_metadata
+
+        return _item_to_hmac_key_metadata(iterator, item)
+
+    def test_it(self):
+        from google.cloud.storage.hmac_key import HMACKeyMetadata
+
+        access_id = "ABCDE"
+        iterator = mock.Mock(spec=["client"])
+        item = {"id": access_id}
+
+        metadata = self._call_fut(iterator, item)
+
+        self.assertIsInstance(metadata, HMACKeyMetadata)
+        self.assertIs(metadata._client, iterator.client)
+        self.assertEqual(metadata._properties, item)
 
 
 @pytest.mark.parametrize("test_data", _POST_POLICY_TESTS)

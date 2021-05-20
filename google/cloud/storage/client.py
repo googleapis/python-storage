@@ -1492,17 +1492,13 @@ class Client(ClientWithProject):
         if user_project is not None:
             extra_params["userProject"] = user_project
 
-        api_request = functools.partial(
-            self._connection.api_request, timeout=timeout, retry=retry
-        )
-
-        return page_iterator.HTTPIterator(
-            client=self,
-            api_request=api_request,
-            path=path,
-            item_to_value=_item_to_hmac_key_metadata,
+        return self._list_resource(
+            path,
+            _item_to_hmac_key_metadata,
             max_results=max_results,
             extra_params=extra_params,
+            timeout=timeout,
+            retry=retry,
         )
 
     def get_hmac_key_metadata(
