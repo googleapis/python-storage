@@ -20,13 +20,13 @@
         ],
         "methods": [
           {
-            "name": "storage.buckets.list",
+            "name": "storage.buckets.get",
             "resources": [
               "BUCKET"
             ]
           },
           {
-            "name": "storage.buckets.list",
+            "name": "storage.buckets.get",
             "resources": [
               "BUCKET",
               "OBJECT"
@@ -48,7 +48,7 @@
         ],
         "methods": [
           {
-            "name": "storage.buckets.list",
+            "name": "storage.buckets.get",
             "resources": [
               "BUCKET",
               "NOTIFICATION"

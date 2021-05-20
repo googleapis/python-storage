@@ -387,10 +387,10 @@ def _populate_resources(client, json_resource):
     return resources
 
 
-def _create_retry_test(method_name, instructions):
+def _create_retry_test(host, method_name, instructions):
     import json
 
-    preflight_post_uri = _API_ACCESS_ENDPOINT + "/retry_test"
+    preflight_post_uri = host + "/retry_test"
     headers = {
         'Content-Type': 'application/json',
     }
@@ -409,8 +409,8 @@ def _create_retry_test(method_name, instructions):
         return None
 
 
-def _check_retry_test(id):
-    status_get_uri = "{base}{retry}/{id}".format(base=_API_ACCESS_ENDPOINT, retry="/retry_test", id=id)
+def _check_retry_test(host, id):
+    status_get_uri = "{base}{retry}/{id}".format(base=host, retry="/retry_test", id=id)
     try:
         r = requests.get(status_get_uri)
         return r.json()
@@ -419,15 +419,15 @@ def _check_retry_test(id):
         # do something
         return None
 
-def _run_retry_test(client, id, func, resources):
-    test_run_uri = _API_ACCESS_ENDPOINT + "/storage/v1/b?project=test"
-    client = storage.Client(client_options={"api_endpoint": test_run_uri})
+def _run_retry_test(host, id, func, resources):
+    # Create client using x-retry-test-id header.
+    client = storage.Client(client_options={"api_endpoint": host})
     client._http.headers.update({"x-retry-test-id": id})
     func(client=client, resources=resources)
 
 
-def _delete_retry_test(id):
-    status_get_uri = "{base}{retry}/{id}".format(base=_API_ACCESS_ENDPOINT, retry="/retry_test", id=id)
+def _delete_retry_test(host, id):
+    status_get_uri = "{base}{retry}/{id}".format(base=host, retry="/retry_test", id=id)
     try:
         r = requests.delete(status_get_uri)
     except Exception as e:
@@ -437,9 +437,11 @@ def _delete_retry_test(id):
 
 @pytest.mark.parametrize("test_data", _CONFORMANCE_TESTS)
 def test_conformance_retry_strategy(test_data):
-    if _API_ACCESS_ENDPOINT == _DEFAULT_STORAGE_HOST:
+    host = _API_ACCESS_ENDPOINT
+    if host == _DEFAULT_STORAGE_HOST:
         pytest.skip("This test must use the testbench emulator; set STORAGE_EMULATOR_HOST to run.")
 
+    # Create client to use for setup steps.
     client = storage.Client()
     methods = test_data["methods"]
     cases = test_data["cases"]
@@ -458,7 +460,7 @@ def test_conformance_retry_strategy(test_data):
 
             for function in method_mapping[method_name]:
                 # Create the retry test in the emulator to handle instructions.
-                r = _create_retry_test(method_name, instructions)
+                r = _create_retry_test(host, method_name, instructions)
                 if r:
                     id = r["id"]
                 else:
@@ -470,11 +472,11 @@ def test_conformance_retry_strategy(test_data):
                 resources = _populate_resources(client, json_resources)
 
                 # Run retry tests on library methods.
-                _run_retry_test(client, id, func=function, resources=resources)
+                _run_retry_test(host, id, func=function, resources=resources)
 
                 # Verify that all instructions were used up during the test
 				# (indicates that the client sent the correct requests).
-                status_response = _check_retry_test(id)
+                status_response = _check_retry_test(host, id)
                 if status_response:
                     test_complete = status_response["completed"]
                     # assert test_complete == True
@@ -482,4 +484,4 @@ def test_conformance_retry_strategy(test_data):
                     print("do something")
 
                 # Clean up and close out test in emulator.
-                _delete_retry_test(id)
+                _delete_retry_test(host, id)
