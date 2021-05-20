@@ -1487,98 +1487,112 @@ class TestClient(unittest.TestCase):
     def test_download_blob_to_file_w_chunks_w_raw(self):
         self._download_blob_to_file_helper(use_chunks=True, raw_download=True)
 
-    def test_list_blobs(self):
+    def test_list_blobs_w_defaults_w_bucket_obj(self):
         from google.cloud.storage.bucket import Bucket
+        from google.cloud.storage.bucket import _blobs_page_start
+        from google.cloud.storage.bucket import _item_to_blob
 
-        BUCKET_NAME = "bucket-name"
-
+        project = "PROJECT"
+        bucket_name = "bucket-name"
         credentials = _make_credentials()
-        client = self._make_one(project="PROJECT", credentials=credentials)
-        connection = _make_connection({"items": []})
+        client = self._make_one(project=project, credentials=credentials)
+        client._list_resource = mock.Mock(spec=[])
+        bucket = Bucket(client, bucket_name)
 
-        with mock.patch(
-            "google.cloud.storage.client.Client._connection",
-            new_callable=mock.PropertyMock,
-        ) as client_mock:
-            client_mock.return_value = connection
+        iterator = client.list_blobs(bucket)
 
-            bucket_obj = Bucket(client, BUCKET_NAME)
-            iterator = client.list_blobs(bucket_obj)
-            blobs = list(iterator)
+        self.assertIs(iterator, client._list_resource.return_value)
+        self.assertIs(iterator.bucket, bucket)
+        self.assertEqual(iterator.prefixes, set())
 
-            self.assertEqual(blobs, [])
-            connection.api_request.assert_called_once_with(
-                method="GET",
-                path="/b/%s/o" % BUCKET_NAME,
-                query_params={"projection": "noAcl"},
-                timeout=self._get_default_timeout(),
-                retry=DEFAULT_RETRY,
-            )
+        expected_path = "/b/{}/o".format(bucket_name)
+        expected_item_to_value = _item_to_blob
+        expected_page_token = None
+        expected_max_results = None
+        expected_extra_params = {"projection": "noAcl"}
+        expected_page_start = _blobs_page_start
+        client._list_resource.assert_called_once_with(
+            expected_path,
+            expected_item_to_value,
+            page_token=expected_page_token,
+            max_results=expected_max_results,
+            extra_params=expected_extra_params,
+            page_start=expected_page_start,
+        )
 
-    def test_list_blobs_w_all_arguments_and_user_project(self):
-        from google.cloud.storage.bucket import Bucket
+    def test_list_blobs_w_explicit_w_user_project(self):
+        from google.cloud.storage.bucket import _blobs_page_start
+        from google.cloud.storage.bucket import _item_to_blob
 
-        BUCKET_NAME = "name"
-        USER_PROJECT = "user-project-123"
-        MAX_RESULTS = 10
-        PAGE_TOKEN = "ABCD"
-        PREFIX = "subfolder"
-        DELIMITER = "/"
-        START_OFFSET = "c"
-        END_OFFSET = "g"
-        INCLUDE_TRAILING_DELIMITER = True
-        VERSIONS = True
-        PROJECTION = "full"
-        FIELDS = "items/contentLanguage,nextPageToken"
-        EXPECTED = {
-            "maxResults": 10,
-            "pageToken": PAGE_TOKEN,
-            "prefix": PREFIX,
-            "delimiter": DELIMITER,
-            "startOffset": START_OFFSET,
-            "endOffset": END_OFFSET,
-            "includeTrailingDelimiter": INCLUDE_TRAILING_DELIMITER,
-            "versions": VERSIONS,
-            "projection": PROJECTION,
-            "fields": FIELDS,
-            "userProject": USER_PROJECT,
+        project = "PROJECT"
+        user_project = "user-project-123"
+        bucket_name = "name"
+        max_results = 10
+        page_token = "ABCD"
+        prefix = "subfolder"
+        delimiter = "/"
+        start_offset = "c"
+        end_offset = "g"
+        include_trailing_delimiter = True
+        versions = True
+        projection = "full"
+        fields = "items/contentLanguage,nextPageToken"
+        credentials = _make_credentials()
+        client = self._make_one(project=project, credentials=credentials)
+        client._list_resource = mock.Mock(spec=[])
+        client._bucket_arg_to_bucket = mock.Mock(spec=[])
+        bucket = client._bucket_arg_to_bucket.return_value = mock.Mock(
+            spec=["path", "user_project"],
+        )
+        bucket.path = "/b/{}".format(bucket_name)
+        bucket.user_project = user_project
+        timeout = 42
+        retry = mock.Mock(spec=[])
+
+        iterator = client.list_blobs(
+            bucket_or_name=bucket_name,
+            max_results=max_results,
+            page_token=page_token,
+            prefix=prefix,
+            delimiter=delimiter,
+            start_offset=start_offset,
+            end_offset=end_offset,
+            include_trailing_delimiter=include_trailing_delimiter,
+            versions=versions,
+            projection=projection,
+            fields=fields,
+            timeout=timeout,
+            retry=retry,
+        )
+
+        self.assertIs(iterator, client._list_resource.return_value)
+        self.assertIs(iterator.bucket, bucket)
+        self.assertEqual(iterator.prefixes, set())
+
+        expected_path = "/b/{}/o".format(bucket_name)
+        expected_item_to_value = _item_to_blob
+        expected_page_token = page_token
+        expected_max_results = max_results
+        expected_extra_params = {
+            "projection": projection,
+            "prefix": prefix,
+            "delimiter": delimiter,
+            "startOffset": start_offset,
+            "endOffset": end_offset,
+            "includeTrailingDelimiter": include_trailing_delimiter,
+            "versions": versions,
+            "fields": fields,
+            "userProject": user_project,
         }
-
-        credentials = _make_credentials()
-        client = self._make_one(project=USER_PROJECT, credentials=credentials)
-        connection = _make_connection({"items": []})
-
-        with mock.patch(
-            "google.cloud.storage.client.Client._connection",
-            new_callable=mock.PropertyMock,
-        ) as client_mock:
-            client_mock.return_value = connection
-
-            bucket = Bucket(client, BUCKET_NAME, user_project=USER_PROJECT)
-            iterator = client.list_blobs(
-                bucket_or_name=bucket,
-                max_results=MAX_RESULTS,
-                page_token=PAGE_TOKEN,
-                prefix=PREFIX,
-                delimiter=DELIMITER,
-                start_offset=START_OFFSET,
-                end_offset=END_OFFSET,
-                include_trailing_delimiter=INCLUDE_TRAILING_DELIMITER,
-                versions=VERSIONS,
-                projection=PROJECTION,
-                fields=FIELDS,
-                timeout=42,
-            )
-            blobs = list(iterator)
-
-            self.assertEqual(blobs, [])
-            connection.api_request.assert_called_once_with(
-                method="GET",
-                path="/b/%s/o" % BUCKET_NAME,
-                query_params=EXPECTED,
-                timeout=42,
-                retry=DEFAULT_RETRY,
-            )
+        expected_page_start = _blobs_page_start
+        client._list_resource.assert_called_once_with(
+            expected_path,
+            expected_item_to_value,
+            page_token=expected_page_token,
+            max_results=expected_max_results,
+            extra_params=expected_extra_params,
+            page_start=expected_page_start,
+        )
 
     def test_list_buckets_wo_project(self):
         CREDENTIALS = _make_credentials()

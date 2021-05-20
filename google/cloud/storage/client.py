@@ -1239,14 +1239,9 @@ class Client(ClientWithProject):
             extra_params["userProject"] = bucket.user_project
 
         path = bucket.path + "/o"
-        api_request = functools.partial(
-            self._connection.api_request, timeout=timeout, retry=retry
-        )
-        iterator = page_iterator.HTTPIterator(
-            client=self,
-            api_request=api_request,
-            path=path,
-            item_to_value=_item_to_blob,
+        iterator = self._list_resource(
+            path,
+            _item_to_blob,
             page_token=page_token,
             max_results=max_results,
             extra_params=extra_params,

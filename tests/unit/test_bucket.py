@@ -902,72 +902,103 @@ class Test_Bucket(unittest.TestCase):
             _target_object=blob,
         )
 
-    def test_list_blobs_defaults(self):
-        NAME = "name"
-        connection = _Connection({"items": []})
+    def test_list_blobs_w_defaults(self):
+        name = "name"
         client = self._make_client()
-        client._base_connection = connection
-        bucket = self._make_one(client=client, name=NAME)
-        iterator = bucket.list_blobs()
-        blobs = list(iterator)
-        self.assertEqual(blobs, [])
-        (kw,) = connection._requested
-        self.assertEqual(kw["method"], "GET")
-        self.assertEqual(kw["path"], "/b/%s/o" % NAME)
-        self.assertEqual(kw["query_params"], {"projection": "noAcl"})
-        self.assertEqual(kw["timeout"], self._get_default_timeout())
+        client.list_blobs = mock.Mock(spec=[])
+        bucket = self._make_one(client=client, name=name)
 
-    def test_list_blobs_w_all_arguments_and_user_project(self):
-        NAME = "name"
-        USER_PROJECT = "user-project-123"
-        MAX_RESULTS = 10
-        PAGE_TOKEN = "ABCD"
-        PREFIX = "subfolder"
-        DELIMITER = "/"
-        START_OFFSET = "c"
-        END_OFFSET = "g"
-        INCLUDE_TRAILING_DELIMITER = True
-        VERSIONS = True
-        PROJECTION = "full"
-        FIELDS = "items/contentLanguage,nextPageToken"
-        EXPECTED = {
-            "maxResults": 10,
-            "pageToken": PAGE_TOKEN,
-            "prefix": PREFIX,
-            "delimiter": DELIMITER,
-            "startOffset": START_OFFSET,
-            "endOffset": END_OFFSET,
-            "includeTrailingDelimiter": INCLUDE_TRAILING_DELIMITER,
-            "versions": VERSIONS,
-            "projection": PROJECTION,
-            "fields": FIELDS,
-            "userProject": USER_PROJECT,
-        }
-        connection = _Connection({"items": []})
-        client = self._make_client()
-        client._base_connection = connection
-        bucket = self._make_one(name=NAME, user_project=USER_PROJECT)
-        iterator = bucket.list_blobs(
-            max_results=MAX_RESULTS,
-            page_token=PAGE_TOKEN,
-            prefix=PREFIX,
-            delimiter=DELIMITER,
-            start_offset=START_OFFSET,
-            end_offset=END_OFFSET,
-            include_trailing_delimiter=INCLUDE_TRAILING_DELIMITER,
-            versions=VERSIONS,
-            projection=PROJECTION,
-            fields=FIELDS,
-            client=client,
-            timeout=42,
+        iterator = bucket.list_blobs()
+
+        self.assertIs(iterator, client.list_blobs.return_value)
+
+        expected_page_token = None
+        expected_max_results = None
+        expected_prefix = None
+        expected_delimiter = None
+        expected_start_offset = None
+        expected_end_offset = None
+        expected_include_trailing_delimiter = None
+        expected_versions = None
+        expected_projection = "noAcl"
+        expected_fields = None
+        client.list_blobs.assert_called_once_with(
+            bucket,
+            max_results=expected_max_results,
+            page_token=expected_page_token,
+            prefix=expected_prefix,
+            delimiter=expected_delimiter,
+            start_offset=expected_start_offset,
+            end_offset=expected_end_offset,
+            include_trailing_delimiter=expected_include_trailing_delimiter,
+            versions=expected_versions,
+            projection=expected_projection,
+            fields=expected_fields,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
         )
-        blobs = list(iterator)
-        self.assertEqual(blobs, [])
-        (kw,) = connection._requested
-        self.assertEqual(kw["method"], "GET")
-        self.assertEqual(kw["path"], "/b/%s/o" % NAME)
-        self.assertEqual(kw["query_params"], EXPECTED)
-        self.assertEqual(kw["timeout"], 42)
+
+    def test_list_blobs_w_explicit(self):
+        name = "name"
+        max_results = 10
+        page_token = "ABCD"
+        prefix = "subfolder"
+        delimiter = "/"
+        start_offset = "c"
+        end_offset = "g"
+        include_trailing_delimiter = True
+        versions = True
+        projection = "full"
+        fields = "items/contentLanguage,nextPageToken"
+        bucket = self._make_one(client=None, name=name)
+        other_client = self._make_client()
+        other_client.list_blobs = mock.Mock(spec=[])
+        timeout = 42
+        retry = mock.Mock(spec=[])
+
+        iterator = bucket.list_blobs(
+            max_results=max_results,
+            page_token=page_token,
+            prefix=prefix,
+            delimiter=delimiter,
+            start_offset=start_offset,
+            end_offset=end_offset,
+            include_trailing_delimiter=include_trailing_delimiter,
+            versions=versions,
+            projection=projection,
+            fields=fields,
+            client=other_client,
+            timeout=timeout,
+            retry=retry,
+        )
+
+        self.assertIs(iterator, other_client.list_blobs.return_value)
+
+        expected_page_token = page_token
+        expected_max_results = max_results
+        expected_prefix = prefix
+        expected_delimiter = delimiter
+        expected_start_offset = start_offset
+        expected_end_offset = end_offset
+        expected_include_trailing_delimiter = include_trailing_delimiter
+        expected_versions = versions
+        expected_projection = projection
+        expected_fields = fields
+        other_client.list_blobs.assert_called_once_with(
+            bucket,
+            max_results=expected_max_results,
+            page_token=expected_page_token,
+            prefix=expected_prefix,
+            delimiter=expected_delimiter,
+            start_offset=expected_start_offset,
+            end_offset=expected_end_offset,
+            include_trailing_delimiter=expected_include_trailing_delimiter,
+            versions=expected_versions,
+            projection=expected_projection,
+            fields=expected_fields,
+            timeout=timeout,
+            retry=retry,
+        )
 
     def test_list_notifications(self):
         from google.cloud.storage.notification import BucketNotification
