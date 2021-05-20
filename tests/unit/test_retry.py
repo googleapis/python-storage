@@ -283,6 +283,8 @@ _CONFORMANCE_TESTS = _read_local_json("retry_strategy_test_data.json")["retryStr
 # ToDo: Confirm the correct access endpoint.
 _API_ACCESS_ENDPOINT = _helpers._get_storage_host()
 _DEFAULT_STORAGE_HOST = u"https://storage.googleapis.com"
+_CONF_TEST_PROJECT_ID = "my-project-id"
+_CONF_TEST_SERVICE_ACCOUNT_EMAIL = "my-service-account@my-project-id.iam.gserviceaccount.com"
 
 # Library methods for mapping
 def list_buckets():
@@ -350,12 +352,20 @@ def _populate_resource_notification(client, resources):
     notification.create()
     notification.reload()
     resources["notification"] = notification
+
+def _populate_resource_hmackey(client, resources):
+    hmac_key, secret = client.create_hmac_key(
+        service_account_email=_CONF_TEST_SERVICE_ACCOUNT_EMAIL, 
+        project_id=_CONF_TEST_PROJECT_ID
+    )
+    resources["hmac_key"] = hmac_key
     
 
 resource_mapping = {
     "BUCKET": _populate_resource_bucket,
     "OBJECT": _populate_resource_object,
     "NOTIFICATION": _populate_resource_notification,
+    "HMAC_KEY": _populate_resource_hmackey,
 }
 
 
