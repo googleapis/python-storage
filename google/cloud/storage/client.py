@@ -711,7 +711,10 @@ class Client(ClientWithProject):
             # arguments into query_params dictionaries. Media operations work
             # differently, so here we make a "fake" query_params to feed to the
             # ConditionalRetryPolicy.
-            query_params = {"ifGenerationMatch": if_generation_match, "ifMetagenerationMatch": if_metageneration_match}
+            query_params = {
+                "ifGenerationMatch": if_generation_match,
+                "ifMetagenerationMatch": if_metageneration_match,
+            }
             retry = retry.get_retry_policy_if_conditions_met(query_params=query_params)
 
         if not isinstance(blob_or_uri, Blob):

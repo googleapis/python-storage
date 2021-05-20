@@ -66,8 +66,6 @@ class BlobReader(io.BufferedIOBase):
         bytes than the chunk_size are requested, the remainder is buffered.
         The default is the chunk_size of the blob, or 40MiB.
 
-    
-
     :param download_kwargs: Keyword arguments to pass to the underlying API
         calls. The following arguments are supported: "if_generation_match",
         "if_generation_not_match", "if_metageneration_match",
@@ -86,7 +84,7 @@ class BlobReader(io.BufferedIOBase):
         self._pos = 0
         self._buffer = io.BytesIO()
         self._chunk_size = chunk_size or blob.chunk_size or DEFAULT_CHUNK_SIZE
-        self._retry=retry
+        self._retry = retry
         self._download_kwargs = download_kwargs
 
     def read(self, size=-1):
@@ -216,7 +214,14 @@ class BlobWriter(io.BufferedIOBase):
         "num_retries", "predefined_acl", "checksum".
     """
 
-    def __init__(self, blob, chunk_size=None, text_mode=False, retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED, **upload_kwargs):
+    def __init__(
+        self,
+        blob,
+        chunk_size=None,
+        text_mode=False,
+        retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
+        **upload_kwargs
+    ):
         for kwarg in upload_kwargs:
             if kwarg not in VALID_UPLOAD_KWARGS:
                 raise ValueError(
@@ -291,7 +296,12 @@ class BlobWriter(io.BufferedIOBase):
             # arguments into query_params dictionaries. Media operations work
             # differently, so here we make a "fake" query_params to feed to the
             # ConditionalRetryPolicy.
-            query_params = {"ifGenerationMatch": self._upload_kwargs.get("if_generation_match"), "ifMetagenerationMatch": self._upload_kwargs.get("if_metageneration_match")}
+            query_params = {
+                "ifGenerationMatch": self._upload_kwargs.get("if_generation_match"),
+                "ifMetagenerationMatch": self._upload_kwargs.get(
+                    "if_metageneration_match"
+                ),
+            }
             retry = retry.get_retry_policy_if_conditions_met(query_params=query_params)
 
         self._upload_and_transport = self._blob._initiate_resumable_upload(

@@ -558,13 +558,17 @@ class Test__bucket_bound_hostname_url(unittest.TestCase):
 
 class Test__api_core_retry_to_resumable_media_retry(unittest.TestCase):
     def test_conflict(self):
-        from google.cloud.storage._helpers import _api_core_retry_to_resumable_media_retry
+        from google.cloud.storage._helpers import (
+            _api_core_retry_to_resumable_media_retry,
+        )
 
         with self.assertRaises(ValueError):
             _api_core_retry_to_resumable_media_retry(retry=DEFAULT_RETRY, num_retries=2)
 
     def test_retry(self):
-        from google.cloud.storage._helpers import _api_core_retry_to_resumable_media_retry
+        from google.cloud.storage._helpers import (
+            _api_core_retry_to_resumable_media_retry,
+        )
 
         retry_strategy = _api_core_retry_to_resumable_media_retry(retry=DEFAULT_RETRY)
         self.assertEqual(retry_strategy.max_sleep, DEFAULT_RETRY._maximum)
@@ -573,13 +577,19 @@ class Test__api_core_retry_to_resumable_media_retry(unittest.TestCase):
         self.assertEqual(retry_strategy.multiplier, DEFAULT_RETRY._multiplier)
 
     def test_num_retries(self):
-        from google.cloud.storage._helpers import _api_core_retry_to_resumable_media_retry
+        from google.cloud.storage._helpers import (
+            _api_core_retry_to_resumable_media_retry,
+        )
 
-        retry_strategy = _api_core_retry_to_resumable_media_retry(retry=None, num_retries=2)
+        retry_strategy = _api_core_retry_to_resumable_media_retry(
+            retry=None, num_retries=2
+        )
         self.assertEqual(retry_strategy.max_retries, 2)
 
     def test_none(self):
-        from google.cloud.storage._helpers import _api_core_retry_to_resumable_media_retry
+        from google.cloud.storage._helpers import (
+            _api_core_retry_to_resumable_media_retry,
+        )
 
         retry_strategy = _api_core_retry_to_resumable_media_retry(retry=None)
         self.assertEqual(retry_strategy.max_retries, 0)

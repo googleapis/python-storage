@@ -111,12 +111,16 @@ class TestBlobReaderBinary(unittest.TestCase):
 
         # Read a line. With chunk_size=10, expect three chunks downloaded.
         self.assertEqual(reader.readline(), TEST_BINARY_DATA[:27])
-        blob.download_as_bytes.assert_called_with(start=20, end=30, checksum=None, retry=DEFAULT_RETRY)
+        blob.download_as_bytes.assert_called_with(
+            start=20, end=30, checksum=None, retry=DEFAULT_RETRY
+        )
         self.assertEqual(blob.download_as_bytes.call_count, 3)
 
         # Read another line.
         self.assertEqual(reader.readline(), TEST_BINARY_DATA[27:])
-        blob.download_as_bytes.assert_called_with(start=50, end=60, checksum=None, retry=DEFAULT_RETRY)
+        blob.download_as_bytes.assert_called_with(
+            start=50, end=60, checksum=None, retry=DEFAULT_RETRY
+        )
         self.assertEqual(blob.download_as_bytes.call_count, 6)
 
         blob.size = len(TEST_BINARY_DATA)
@@ -125,7 +129,10 @@ class TestBlobReaderBinary(unittest.TestCase):
         # Read all lines. The readlines algorithm will attempt to read past the end of the last line once to verify there is no more to read.
         self.assertEqual(b"".join(reader.readlines()), TEST_BINARY_DATA)
         blob.download_as_bytes.assert_called_with(
-            start=len(TEST_BINARY_DATA), end=len(TEST_BINARY_DATA) + 10, checksum=None, retry=DEFAULT_RETRY
+            start=len(TEST_BINARY_DATA),
+            end=len(TEST_BINARY_DATA) + 10,
+            checksum=None,
+            retry=DEFAULT_RETRY,
         )
         self.assertEqual(blob.download_as_bytes.call_count, 13)
 
@@ -312,9 +319,7 @@ class TestBlobWriterBinary(unittest.TestCase):
             # gives us more control over close() for test purposes.
             chunk_size = 8  # Note: Real upload requires a multiple of 256KiB.
             writer = BlobWriter(
-                blob,
-                chunk_size=chunk_size,
-                content_type=PLAIN_CONTENT_TYPE,
+                blob, chunk_size=chunk_size, content_type=PLAIN_CONTENT_TYPE,
             )
 
         # The transmit_next_chunk method must actually consume bytes from the
@@ -336,8 +341,8 @@ class TestBlobWriterBinary(unittest.TestCase):
             blob.bucket.client,
             writer._buffer,
             PLAIN_CONTENT_TYPE,
-            None, # size
-            None, # num_retries
+            None,  # size
+            None,  # num_retries
             chunk_size=chunk_size,
             retry=None,
         )
@@ -388,8 +393,8 @@ class TestBlobWriterBinary(unittest.TestCase):
             blob.bucket.client,
             writer._buffer,
             PLAIN_CONTENT_TYPE,
-            None, # size
-            None, # num_retries
+            None,  # size
+            None,  # num_retries
             chunk_size=chunk_size,
             retry=DEFAULT_RETRY,
             if_metageneration_match=1,
@@ -441,8 +446,8 @@ class TestBlobWriterBinary(unittest.TestCase):
             blob.bucket.client,
             writer._buffer,
             PLAIN_CONTENT_TYPE,
-            None, # size
-            2, # num_retries
+            None,  # size
+            2,  # num_retries
             chunk_size=chunk_size,
             retry=None,
         )

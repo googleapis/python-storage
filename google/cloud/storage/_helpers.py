@@ -52,6 +52,7 @@ _NUM_RETRIES_MESSAGE = (
     "object, or None, instead."
 )
 
+
 def _get_storage_host():
     return os.environ.get(STORAGE_EMULATOR_ENV_VAR, _DEFAULT_STORAGE_HOST)
 
@@ -593,9 +594,13 @@ def _api_core_retry_to_resumable_media_retry(retry, num_retries=None):
         raise ValueError("num_retries and retry arguments are mutually exclusive")
 
     elif retry is not None:
-        return resumable_media.RetryStrategy(max_sleep=retry._maximum, max_cumulative_retry=retry._deadline, initial_delay=retry._initial, multiplier=retry._multiplier)
+        return resumable_media.RetryStrategy(
+            max_sleep=retry._maximum,
+            max_cumulative_retry=retry._deadline,
+            initial_delay=retry._initial,
+            multiplier=retry._multiplier,
+        )
     elif num_retries is not None:
         return resumable_media.RetryStrategy(max_retries=num_retries)
     else:
         return resumable_media.RetryStrategy(max_retries=0)
-

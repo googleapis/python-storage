@@ -1754,7 +1754,9 @@ class Blob(_PropertyMixin):
         upload_url = _add_query_parameters(base_url, name_value_pairs)
         upload = MultipartUpload(upload_url, headers=headers, checksum=checksum)
 
-        upload._retry_strategy = _api_core_retry_to_resumable_media_retry(retry, num_retries)
+        upload._retry_strategy = _api_core_retry_to_resumable_media_retry(
+            retry, num_retries
+        )
 
         response = upload.transmit(
             transport, data, object_metadata, content_type, timeout=timeout
@@ -1936,7 +1938,9 @@ class Blob(_PropertyMixin):
             upload_url, chunk_size, headers=headers, checksum=checksum
         )
 
-        upload._retry_strategy = _api_core_retry_to_resumable_media_retry(retry, num_retries)
+        upload._retry_strategy = _api_core_retry_to_resumable_media_retry(
+            retry, num_retries
+        )
 
         upload.initiate(
             transport,
@@ -2092,7 +2096,7 @@ class Blob(_PropertyMixin):
         if_metageneration_not_match,
         timeout=_DEFAULT_TIMEOUT,
         checksum=None,
-        retry=None
+        retry=None,
     ):
         """Determine an upload strategy and then perform the upload.
 
@@ -2192,7 +2196,10 @@ class Blob(_PropertyMixin):
             # arguments into query_params dictionaries. Media operations work
             # differently, so here we make a "fake" query_params to feed to the
             # ConditionalRetryPolicy.
-            query_params = {"ifGenerationMatch": if_generation_match, "ifMetagenerationMatch": if_metageneration_match}
+            query_params = {
+                "ifGenerationMatch": if_generation_match,
+                "ifMetagenerationMatch": if_metageneration_match,
+            }
             retry = retry.get_retry_policy_if_conditions_met(query_params=query_params)
 
         if size is not None and size <= _MAX_MULTIPART_SIZE:
@@ -2395,7 +2402,7 @@ class Blob(_PropertyMixin):
                 if_metageneration_not_match,
                 timeout=timeout,
                 checksum=checksum,
-                retry=retry
+                retry=retry,
             )
             self._set_properties(created_json)
         except resumable_media.InvalidResponse as exc:
@@ -3524,7 +3531,7 @@ class Blob(_PropertyMixin):
             "retry". For uploads only, the following additional arguments are
             supported: "content_type", "num_retries", "predefined_acl",
             "checksum". "num_retries" is supported for backwards-compatibility
-            reasons only; please use "retry" with a Retry object or 
+            reasons only; please use "retry" with a Retry object or
             ConditionalRetryPolicy instead.
 
         :returns: A 'BlobReader' or 'BlobWriter' from
