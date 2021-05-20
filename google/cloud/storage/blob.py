@@ -887,7 +887,7 @@ class Blob(_PropertyMixin):
         raw_download=False,
         timeout=_DEFAULT_TIMEOUT,
         checksum="md5",
-        retry=DEFAULT_RETRY,
+        retry=None,
     ):
         """Perform a download without any error handling.
 
@@ -954,6 +954,8 @@ class Blob(_PropertyMixin):
             to configure them.
         """
 
+        retry_strategy = _api_core_retry_to_resumable_media_retry(retry)
+
         if self.chunk_size is None:
             if raw_download:
                 klass = RawDownload
@@ -968,7 +970,7 @@ class Blob(_PropertyMixin):
                 end=end,
                 checksum=checksum,
             )
-            download._retry_strategy = _api_core_retry_to_resumable_media_retry(retry)
+            download._retry_strategy = retry_strategy
             response = download.consume(transport, timeout=timeout)
             self._extract_headers_from_download(response)
         else:
@@ -991,7 +993,7 @@ class Blob(_PropertyMixin):
                 end=end,
             )
 
-            download._retry_strategy = _api_core_retry_to_resumable_media_retry(retry)
+            download._retry_strategy = retry_strategy
             while not download.finished:
                 download.consume_next_chunk(transport, timeout=timeout)
 
@@ -2055,7 +2057,7 @@ class Blob(_PropertyMixin):
             stream,
             content_type,
             size,
-            retry,
+            num_retries,
             predefined_acl=predefined_acl,
             if_generation_match=if_generation_match,
             if_generation_not_match=if_generation_not_match,
@@ -2063,6 +2065,7 @@ class Blob(_PropertyMixin):
             if_metageneration_not_match=if_metageneration_not_match,
             timeout=timeout,
             checksum=checksum,
+            retry=retry,
         )
 
         while not upload.finished:

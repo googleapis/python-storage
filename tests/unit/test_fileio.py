@@ -19,6 +19,7 @@ import mock
 import io
 import string
 
+from google.cloud.storage._helpers import _NUM_RETRIES_MESSAGE
 from google.cloud.storage.fileio import BlobReader, BlobWriter, SlidingBuffer
 from google.api_core.exceptions import RequestRangeNotSatisfiable
 from google.cloud.storage.retry import DEFAULT_RETRY
@@ -401,7 +402,8 @@ class TestBlobWriterBinary(unittest.TestCase):
         writer.close()
         self.assertEqual(upload.transmit_next_chunk.call_count, 5)
 
-    def test_num_retries_only(self):
+    @mock.patch("warnings.warn")
+    def test_num_retries_only(self, mock_warn):
         blob = mock.Mock()
 
         upload = mock.Mock()
@@ -446,6 +448,9 @@ class TestBlobWriterBinary(unittest.TestCase):
         )
         upload.transmit_next_chunk.assert_called_with(transport)
         self.assertEqual(upload.transmit_next_chunk.call_count, 4)
+        mock_warn.assert_called_once_with(
+            _NUM_RETRIES_MESSAGE, DeprecationWarning, stacklevel=2
+        )
 
         # Write another byte, finalize and close.
         writer.write(TEST_BINARY_DATA[32:33])

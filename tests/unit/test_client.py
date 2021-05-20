@@ -29,6 +29,7 @@ from google.oauth2.service_account import Credentials
 from . import _read_local_json
 
 from google.cloud.storage.retry import DEFAULT_RETRY
+from google.cloud.storage.retry import DEFAULT_RETRY_IF_GENERATION_SPECIFIED
 
 
 _SERVICE_ACCOUNT_JSON = _read_local_json("url_signer_v4_test_account.json")
@@ -1130,6 +1131,7 @@ class TestClient(unittest.TestCase):
             False,
             checksum="md5",
             timeout=_DEFAULT_TIMEOUT,
+            retry=DEFAULT_RETRY,
         )
 
     def test_download_blob_to_file_with_uri(self):
@@ -1160,6 +1162,7 @@ class TestClient(unittest.TestCase):
             False,
             checksum="md5",
             timeout=_DEFAULT_TIMEOUT,
+            retry=DEFAULT_RETRY,
         )
 
     def test_download_blob_to_file_with_invalid_uri(self):
@@ -1171,7 +1174,7 @@ class TestClient(unittest.TestCase):
         with pytest.raises(ValueError, match="URI scheme must be gs"):
             client.download_blob_to_file("http://bucket_name/path/to/object", file_obj)
 
-    def _download_blob_to_file_helper(self, use_chunks, raw_download):
+    def _download_blob_to_file_helper(self, use_chunks, raw_download, expect_condition_fail=False, **extra_kwargs):
         from google.cloud.storage.blob import Blob
         from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 
@@ -1187,9 +1190,15 @@ class TestClient(unittest.TestCase):
 
         file_obj = io.BytesIO()
         if raw_download:
-            client.download_blob_to_file(blob, file_obj, raw_download=True)
+            client.download_blob_to_file(blob, file_obj, raw_download=True, **extra_kwargs)
         else:
-            client.download_blob_to_file(blob, file_obj)
+            client.download_blob_to_file(blob, file_obj, **extra_kwargs)
+
+        expected_retry = extra_kwargs.get("retry", DEFAULT_RETRY)
+        if expected_retry is DEFAULT_RETRY_IF_GENERATION_SPECIFIED and not expect_condition_fail:
+            expected_retry = DEFAULT_RETRY
+        elif expect_condition_fail:
+            expected_retry = None
 
         headers = {"accept-encoding": "gzip"}
         blob._do_download.assert_called_once_with(
@@ -1202,6 +1211,7 @@ class TestClient(unittest.TestCase):
             raw_download,
             checksum="md5",
             timeout=_DEFAULT_TIMEOUT,
+            retry=expected_retry,
         )
 
     def test_download_blob_to_file_wo_chunks_wo_raw(self):
@@ -1215,6 +1225,15 @@ class TestClient(unittest.TestCase):
 
     def test_download_blob_to_file_w_chunks_w_raw(self):
         self._download_blob_to_file_helper(use_chunks=True, raw_download=True)
+
+    def test_download_blob_to_file_w_no_retry(self):
+        self._download_blob_to_file_helper(use_chunks=True, raw_download=True, retry=None)
+
+    def test_download_blob_to_file_w_conditional_retry_pass(self):
+        self._download_blob_to_file_helper(use_chunks=True, raw_download=True, retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED, if_generation_match=1)
+
+    def test_download_blob_to_file_w_conditional_retry_fail(self):
+        self._download_blob_to_file_helper(use_chunks=True, raw_download=True, retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED, expect_condition_fail=True)
 
     def test_list_blobs(self):
         from google.cloud.storage.bucket import Bucket

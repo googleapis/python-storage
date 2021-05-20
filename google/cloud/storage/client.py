@@ -738,6 +738,7 @@ class Client(ClientWithProject):
                 raw_download,
                 timeout=timeout,
                 checksum=checksum,
+                retry=retry,
             )
         except resumable_media.InvalidResponse as exc:
             _raise_from_invalid_response(exc)

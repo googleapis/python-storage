@@ -996,7 +996,7 @@ class Test_Blob(unittest.TestCase):
         response.request = requests.Request("POST", "http://example.com").prepare()
         return response
 
-    def _do_download_helper_wo_chunks(self, w_range, raw_download, timeout=None):
+    def _do_download_helper_wo_chunks(self, w_range, raw_download, timeout=None, **extra_kwargs):
         blob_name = "blob-name"
         client = mock.Mock()
         bucket = _Bucket(client)
@@ -1020,6 +1020,8 @@ class Test_Blob(unittest.TestCase):
             expected_timeout = timeout
             timeout_kwarg = {"timeout": timeout}
 
+        extra_kwargs.update(timeout_kwarg)
+
         with patch as patched:
             if w_range:
                 blob._do_download(
@@ -1030,7 +1032,7 @@ class Test_Blob(unittest.TestCase):
                     start=1,
                     end=3,
                     raw_download=raw_download,
-                    **timeout_kwarg
+                    **extra_kwargs
                 )
             else:
                 blob._do_download(
@@ -1039,7 +1041,7 @@ class Test_Blob(unittest.TestCase):
                     download_url,
                     headers,
                     raw_download=raw_download,
-                    **timeout_kwarg
+                    **extra_kwargs
                 )
 
         if w_range:
@@ -1064,6 +1066,13 @@ class Test_Blob(unittest.TestCase):
         patched.return_value.consume.assert_called_once_with(
             transport, timeout=expected_timeout
         )
+
+        retry_strategy = patched.return_value._retry_strategy
+        retry = extra_kwargs.get("retry", None)
+        if retry is None:
+            self.assertEqual(retry_strategy.max_retries, 0)
+        else:
+            self.assertEqual(retry_strategy.max_sleep, retry._maximum)
 
     def test__do_download_wo_chunks_wo_range_wo_raw(self):
         self._do_download_helper_wo_chunks(w_range=False, raw_download=False)
@@ -1225,6 +1234,7 @@ class Test_Blob(unittest.TestCase):
             False,
             timeout=self._get_default_timeout(),
             checksum="md5",
+            retry=DEFAULT_RETRY,
         )
 
     def test_download_to_file_wo_media_link(self):
@@ -1255,6 +1265,7 @@ class Test_Blob(unittest.TestCase):
             False,
             timeout=self._get_default_timeout(),
             checksum="md5",
+            retry=DEFAULT_RETRY,
         )
 
     def test_download_to_file_w_generation_match(self):
@@ -1284,9 +1295,10 @@ class Test_Blob(unittest.TestCase):
             False,
             timeout=self._get_default_timeout(),
             checksum="md5",
+            retry=DEFAULT_RETRY
         )
 
-    def _download_to_file_helper(self, use_chunks, raw_download, timeout=None):
+    def _download_to_file_helper(self, use_chunks, raw_download, timeout=None, **extra_kwargs):
         blob_name = "blob-name"
         client = self._make_client()
         bucket = _Bucket(client)
@@ -1305,12 +1317,15 @@ class Test_Blob(unittest.TestCase):
             expected_timeout = timeout
             timeout_kwarg = {"timeout": timeout}
 
+        extra_kwargs.update(timeout_kwarg)
+
         file_obj = io.BytesIO()
         if raw_download:
-            blob.download_to_file(file_obj, raw_download=True, **timeout_kwarg)
+            blob.download_to_file(file_obj, raw_download=True, **extra_kwargs)
         else:
-            blob.download_to_file(file_obj, **timeout_kwarg)
+            blob.download_to_file(file_obj, **extra_kwargs)
 
+        expected_retry = extra_kwargs.get("retry", DEFAULT_RETRY)
         headers = {"accept-encoding": "gzip"}
         blob._do_download.assert_called_once_with(
             client._http,
@@ -1322,10 +1337,14 @@ class Test_Blob(unittest.TestCase):
             raw_download,
             timeout=expected_timeout,
             checksum="md5",
+            retry=expected_retry
         )
 
     def test_download_to_file_wo_chunks_wo_raw(self):
         self._download_to_file_helper(use_chunks=False, raw_download=False)
+
+    def test_download_to_file_wo_chunks_no_retry(self):
+        self._download_to_file_helper(use_chunks=False, raw_download=False, retry=None)
 
     def test_download_to_file_w_chunks_wo_raw(self):
         self._download_to_file_helper(use_chunks=True, raw_download=False)
@@ -1341,7 +1360,7 @@ class Test_Blob(unittest.TestCase):
             use_chunks=False, raw_download=False, timeout=9.58
         )
 
-    def _download_to_filename_helper(self, updated, raw_download, timeout=None):
+    def _download_to_filename_helper(self, updated, raw_download, timeout=None, **extra_kwargs):
         import os
         from google.cloud.storage._helpers import _convert_to_timestamp
         from google.cloud._testing import _NamedTemporaryFile
@@ -1359,10 +1378,10 @@ class Test_Blob(unittest.TestCase):
 
         with _NamedTemporaryFile() as temp:
             if timeout is None:
-                blob.download_to_filename(temp.name, raw_download=raw_download)
+                blob.download_to_filename(temp.name, raw_download=raw_download, **extra_kwargs)
             else:
                 blob.download_to_filename(
-                    temp.name, raw_download=raw_download, timeout=timeout,
+                    temp.name, raw_download=raw_download, timeout=timeout, **extra_kwargs
                 )
 
             if updated is None:
@@ -1377,6 +1396,8 @@ class Test_Blob(unittest.TestCase):
 
         expected_timeout = self._get_default_timeout() if timeout is None else timeout
 
+        expected_retry = extra_kwargs.get("retry", DEFAULT_RETRY)
+
         headers = {"accept-encoding": "gzip"}
         blob._do_download.assert_called_once_with(
             client._http,
@@ -1388,6 +1409,7 @@ class Test_Blob(unittest.TestCase):
             raw_download,
             timeout=expected_timeout,
             checksum="md5",
+            retry=expected_retry,
         )
         stream = blob._do_download.mock_calls[0].args[1]
         self.assertEqual(stream.name, temp.name)
@@ -1420,11 +1442,16 @@ class Test_Blob(unittest.TestCase):
             False,
             timeout=self._get_default_timeout(),
             checksum="md5",
+            retry=DEFAULT_RETRY,
         )
 
     def test_download_to_filename_w_updated_wo_raw(self):
         updated = "2014-12-06T13:13:50.690Z"
         self._download_to_filename_helper(updated=updated, raw_download=False)
+
+    def test_download_to_filename_w_updated_no_retry(self):
+        updated = "2014-12-06T13:13:50.690Z"
+        self._download_to_filename_helper(updated=updated, raw_download=False, retry=None)
 
     def test_download_to_filename_wo_updated_wo_raw(self):
         self._download_to_filename_helper(updated=None, raw_download=False)
@@ -1478,6 +1505,7 @@ class Test_Blob(unittest.TestCase):
             False,
             timeout=self._get_default_timeout(),
             checksum="md5",
+            retry=DEFAULT_RETRY,
         )
         stream = blob._do_download.mock_calls[0].args[1]
         self.assertEqual(stream.name, filename)
@@ -1513,11 +1541,12 @@ class Test_Blob(unittest.TestCase):
             False,
             timeout=self._get_default_timeout(),
             checksum="md5",
+            retry=DEFAULT_RETRY,
         )
         stream = blob._do_download.mock_calls[0].args[1]
         self.assertEqual(stream.name, temp.name)
 
-    def _download_as_bytes_helper(self, raw_download, timeout=None):
+    def _download_as_bytes_helper(self, raw_download, timeout=None, **extra_kwargs):
         blob_name = "blob-name"
         client = self._make_client()
         bucket = _Bucket(client)
@@ -1528,11 +1557,13 @@ class Test_Blob(unittest.TestCase):
 
         if timeout is None:
             expected_timeout = self._get_default_timeout()
-            fetched = blob.download_as_bytes(raw_download=raw_download)
+            fetched = blob.download_as_bytes(raw_download=raw_download, **extra_kwargs)
         else:
             expected_timeout = timeout
-            fetched = blob.download_as_bytes(raw_download=raw_download, timeout=timeout)
+            fetched = blob.download_as_bytes(raw_download=raw_download, timeout=timeout, **extra_kwargs)
         self.assertEqual(fetched, b"")
+
+        expected_retry = extra_kwargs.get("retry", DEFAULT_RETRY)
 
         headers = {"accept-encoding": "gzip"}
         blob._do_download.assert_called_once_with(
@@ -1545,6 +1576,7 @@ class Test_Blob(unittest.TestCase):
             raw_download,
             timeout=expected_timeout,
             checksum="md5",
+            retry=expected_retry,
         )
         stream = blob._do_download.mock_calls[0].args[1]
         self.assertIsInstance(stream, io.BytesIO)
@@ -1673,6 +1705,9 @@ class Test_Blob(unittest.TestCase):
     def test_download_as_bytes_wo_raw(self):
         self._download_as_bytes_helper(raw_download=False)
 
+    def test_download_as_bytes_no_retry(self):
+        self._download_as_bytes_helper(raw_download=False, retry=None)
+
     def test_download_as_bytes_w_raw(self):
         self._download_as_bytes_helper(raw_download=True)
 
@@ -1695,6 +1730,7 @@ class Test_Blob(unittest.TestCase):
         no_charset=False,
         expected_value=u"DEADBEEF",
         payload=None,
+        **extra_kwargs,
     ):
         if payload is None:
             if encoding is not None:
@@ -1745,9 +1781,13 @@ class Test_Blob(unittest.TestCase):
         else:
             kwargs["timeout"] = expected_timeout = timeout
 
+        kwargs.update(extra_kwargs)
+
         fetched = blob.download_as_text(**kwargs)
 
         self.assertEqual(fetched, expected_value)
+
+        expected_retry = extra_kwargs.get("retry", DEFAULT_RETRY)
 
         blob.download_as_bytes.assert_called_once_with(
             client=client,
@@ -1759,11 +1799,14 @@ class Test_Blob(unittest.TestCase):
             if_generation_not_match=if_generation_not_match,
             if_metageneration_match=if_metageneration_match,
             if_metageneration_not_match=if_metageneration_not_match,
-            retry=DEFAULT_RETRY,
+            retry=expected_retry,
         )
 
     def test_download_as_text_wo_raw(self):
         self._download_as_text_helper(raw_download=False)
+
+    def test_download_as_text_w_no_retry(self):
+        self._download_as_text_helper(raw_download=False, retry=None)
 
     def test_download_as_text_w_raw(self):
         self._download_as_text_helper(raw_download=True)
@@ -1860,6 +1903,33 @@ class Test_Blob(unittest.TestCase):
             "Use Blob.download_as_bytes() instead.",
             PendingDeprecationWarning,
             stacklevel=1,
+        )
+
+    def test_download_as_string_no_retry(self):
+        MEDIA_LINK = "http://example.com/media/"
+
+        client = self._make_client()
+        blob = self._make_one(
+            "blob-name", bucket=_Bucket(client), properties={"mediaLink": MEDIA_LINK}
+        )
+        client.download_blob_to_file = mock.Mock()
+
+        fetched = blob.download_as_string(retry=None)
+        self.assertEqual(fetched, b"")
+
+        client.download_blob_to_file.assert_called_once_with(
+            blob,
+            mock.ANY,
+            start=None,
+            end=None,
+            raw_download=False,
+            if_generation_match=None,
+            if_generation_not_match=None,
+            if_metageneration_match=None,
+            if_metageneration_not_match=None,
+            timeout=self._get_default_timeout(),
+            checksum="md5",
+            retry=None,
         )
 
     def test__get_content_type_explicit(self):
