@@ -2,9 +2,6 @@
   "extends": [
     "config:base",  ":preserveSemverRanges"
   ],
-  "ignoreDeps": [
-    "googleapis-common-protos"
-  ],
   "ignorePaths": [".pre-commit-config.yaml"],
   "pip_requirements": {
     "fileMatch": ["requirements-test.txt", "samples/[\\S/]*constraints.txt", "samples/[\\S/]*constraints-test.txt"]
