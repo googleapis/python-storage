@@ -472,14 +472,22 @@ def test_conformance_retry_strategy(test_data):
                 resources = _populate_resources(client, json_resources)
 
                 # Run retry tests on library methods.
-                _run_retry_test(host, id, func=function, resources=resources)
+                try:
+                    _run_retry_test(host, id, func=function, resources=resources)
+                except Exception as e:
+                    success_results = False
+                else:
+                    success_results = True
 
+                # Assert expected success for each scenario.
+                assert expect_success == success_results
+                    
                 # Verify that all instructions were used up during the test
 				# (indicates that the client sent the correct requests).
                 status_response = _check_retry_test(host, id)
                 if status_response:
                     test_complete = status_response["completed"]
-                    # assert test_complete == True
+                    assert test_complete == True
                 else:
                     print("do something")
 
