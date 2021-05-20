@@ -1348,18 +1348,14 @@ class Client(ClientWithProject):
         if fields is not None:
             extra_params["fields"] = fields
 
-        api_request = functools.partial(
-            self._connection.api_request, retry=retry, timeout=timeout
-        )
-
-        return page_iterator.HTTPIterator(
-            client=self,
-            api_request=api_request,
-            path="/b",
-            item_to_value=_item_to_bucket,
+        return self._list_resource(
+            "/b",
+            _item_to_bucket,
             page_token=page_token,
             max_results=max_results,
             extra_params=extra_params,
+            timeout=timeout,
+            retry=retry,
         )
 
     def create_hmac_key(

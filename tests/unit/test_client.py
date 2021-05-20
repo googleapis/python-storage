@@ -1595,170 +1595,90 @@ class TestClient(unittest.TestCase):
         )
 
     def test_list_buckets_wo_project(self):
-        CREDENTIALS = _make_credentials()
-        client = self._make_one(project=None, credentials=CREDENTIALS)
+        credentials = _make_credentials()
+        client = self._make_one(project=None, credentials=credentials)
 
         with self.assertRaises(ValueError):
             client.list_buckets()
 
-    def test_list_buckets_empty(self):
-        PROJECT = "PROJECT"
-        CREDENTIALS = _make_credentials()
-        client = self._make_one(project=PROJECT, credentials=CREDENTIALS)
+    def test_list_buckets_w_defaults(self):
+        from google.cloud.storage.client import _item_to_bucket
 
-        http = _make_requests_session([_make_json_response({})])
-        client._http_internal = http
+        project = "PROJECT"
+        credentials = _make_credentials()
+        client = self._make_one(project=project, credentials=credentials)
+        client._list_resource = mock.Mock(spec=[])
 
-        buckets = list(client.list_buckets())
+        iterator = client.list_buckets()
 
-        self.assertEqual(len(buckets), 0)
+        self.assertIs(iterator, client._list_resource.return_value)
 
-        http.request.assert_called_once_with(
-            method="GET",
-            url=mock.ANY,
-            data=mock.ANY,
-            headers=mock.ANY,
-            timeout=mock.ANY,
-        )
-        _, kwargs = http.request.call_args
-        scheme, netloc, path, qs, _ = urlparse.urlsplit(kwargs.get("url"))
-        self.assertEqual("%s://%s" % (scheme, netloc), client._connection.API_BASE_URL)
-        self.assertEqual(
-            path, "/".join(["", "storage", client._connection.API_VERSION, "b"])
-        )
-        parms = dict(urlparse.parse_qsl(qs))
-        self.assertEqual(parms["project"], PROJECT)
-        self.assertEqual(parms["projection"], "noAcl")
-
-    def test_list_buckets_explicit_project(self):
-        PROJECT = "PROJECT"
-        OTHER_PROJECT = "OTHER_PROJECT"
-        CREDENTIALS = _make_credentials()
-        client = self._make_one(project=PROJECT, credentials=CREDENTIALS)
-
-        http = _make_requests_session([_make_json_response({})])
-        client._http_internal = http
-
-        buckets = list(client.list_buckets(project=OTHER_PROJECT))
-
-        self.assertEqual(len(buckets), 0)
-
-        http.request.assert_called_once_with(
-            method="GET",
-            url=mock.ANY,
-            data=mock.ANY,
-            headers=mock.ANY,
-            timeout=mock.ANY,
-        )
-        _, kwargs = http.request.call_args
-        scheme, netloc, path, qs, _ = urlparse.urlsplit(kwargs.get("url"))
-        self.assertEqual("%s://%s" % (scheme, netloc), client._connection.API_BASE_URL)
-        self.assertEqual(
-            path, "/".join(["", "storage", client._connection.API_VERSION, "b"])
-        )
-        parms = dict(urlparse.parse_qsl(qs))
-        self.assertEqual(parms["project"], str(OTHER_PROJECT))
-        self.assertEqual(parms["projection"], "noAcl")
-
-    def test_list_buckets_non_empty(self):
-        PROJECT = "PROJECT"
-        CREDENTIALS = _make_credentials()
-        client = self._make_one(project=PROJECT, credentials=CREDENTIALS)
-
-        BUCKET_NAME = "bucket-name"
-
-        data = {"items": [{"name": BUCKET_NAME}]}
-        http = _make_requests_session([_make_json_response(data)])
-        client._http_internal = http
-
-        buckets = list(client.list_buckets())
-
-        self.assertEqual(len(buckets), 1)
-        self.assertEqual(buckets[0].name, BUCKET_NAME)
-
-        http.request.assert_called_once_with(
-            method="GET",
-            url=mock.ANY,
-            data=mock.ANY,
-            headers=mock.ANY,
+        expected_path = "/b"
+        expected_item_to_value = _item_to_bucket
+        expected_page_token = None
+        expected_max_results = None
+        expected_extra_params = {
+            "project": project,
+            "projection": "noAcl",
+        }
+        client._list_resource.assert_called_once_with(
+            expected_path,
+            expected_item_to_value,
+            page_token=expected_page_token,
+            max_results=expected_max_results,
+            extra_params=expected_extra_params,
             timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
         )
 
-    def test_list_buckets_all_arguments(self):
-        PROJECT = "foo-bar"
-        CREDENTIALS = _make_credentials()
-        client = self._make_one(project=PROJECT, credentials=CREDENTIALS)
+    def test_list_buckets_w_explicit(self):
+        from google.cloud.storage.client import _item_to_bucket
 
-        MAX_RESULTS = 10
-        PAGE_TOKEN = "ABCD"
-        PREFIX = "subfolder"
-        PROJECTION = "full"
-        FIELDS = "items/id,nextPageToken"
+        project = "foo-bar"
+        other_project = "OTHER_PROJECT"
+        max_results = 10
+        page_token = "ABCD"
+        prefix = "subfolder"
+        projection = "full"
+        fields = "items/id,nextPageToken"
+        credentials = _make_credentials()
+        client = self._make_one(project=project, credentials=credentials)
+        client._list_resource = mock.Mock(spec=[])
+        timeout = 42
+        retry = mock.Mock(spec=[])
 
-        data = {"items": []}
-        http = _make_requests_session([_make_json_response(data)])
-        client._http_internal = http
         iterator = client.list_buckets(
-            max_results=MAX_RESULTS,
-            page_token=PAGE_TOKEN,
-            prefix=PREFIX,
-            projection=PROJECTION,
-            fields=FIELDS,
-            timeout=42,
+            project=other_project,
+            max_results=max_results,
+            page_token=page_token,
+            prefix=prefix,
+            projection=projection,
+            fields=fields,
+            timeout=timeout,
+            retry=retry,
         )
-        buckets = list(iterator)
-        self.assertEqual(buckets, [])
-        http.request.assert_called_once_with(
-            method="GET", url=mock.ANY, data=mock.ANY, headers=mock.ANY, timeout=42
+
+        self.assertIs(iterator, client._list_resource.return_value)
+
+        expected_path = "/b"
+        expected_item_to_value = _item_to_bucket
+        expected_page_token = page_token
+        expected_max_results = max_results
+        expected_extra_params = {
+            "project": other_project,
+            "prefix": prefix,
+            "projection": projection,
+            "fields": fields,
+        }
+        client._list_resource.assert_called_once_with(
+            expected_path,
+            expected_item_to_value,
+            page_token=expected_page_token,
+            max_results=expected_max_results,
+            extra_params=expected_extra_params,
+            timeout=timeout,
+            retry=retry,
         )
-        _, kwargs = http.request.call_args
-        scheme, netloc, path, qs, _ = urlparse.urlsplit(kwargs.get("url"))
-        self.assertEqual("%s://%s" % (scheme, netloc), client._connection.API_BASE_URL)
-        self.assertEqual(
-            path, "/".join(["", "storage", client._connection.API_VERSION, "b"])
-        )
-        parms = dict(urlparse.parse_qsl(qs))
-        self.assertEqual(parms["project"], PROJECT)
-        self.assertEqual(parms["maxResults"], str(MAX_RESULTS))
-        self.assertEqual(parms["pageToken"], PAGE_TOKEN)
-        self.assertEqual(parms["prefix"], PREFIX)
-        self.assertEqual(parms["projection"], PROJECTION)
-        self.assertEqual(parms["fields"], FIELDS)
-
-    def test_list_buckets_page_empty_response(self):
-        from google.api_core import page_iterator
-
-        project = "PROJECT"
-        credentials = _make_credentials()
-        client = self._make_one(project=project, credentials=credentials)
-        iterator = client.list_buckets()
-        page = page_iterator.Page(iterator, (), None)
-        iterator._page = page
-        self.assertEqual(list(page), [])
-
-    def test_list_buckets_page_non_empty_response(self):
-        import six
-        from google.cloud.storage.bucket import Bucket
-
-        project = "PROJECT"
-        credentials = _make_credentials()
-        client = self._make_one(project=project, credentials=credentials)
-
-        blob_name = "bucket-name"
-        response = {"items": [{"name": blob_name}]}
-
-        def fake_response():
-            return response
-
-        iterator = client.list_buckets()
-        iterator._get_next_page_response = fake_response
-
-        page = six.next(iterator.pages)
-        self.assertEqual(page.num_items, 1)
-        bucket = six.next(page)
-        self.assertEqual(page.remaining, 0)
-        self.assertIsInstance(bucket, Bucket)
-        self.assertEqual(bucket.name, blob_name)
 
     def _create_hmac_key_helper(
         self, explicit_project=None, user_project=None, timeout=None, retry=None,
@@ -2297,33 +2217,6 @@ class TestClient(unittest.TestCase):
         )
         self.assertEqual(fields["x-goog-signature"], EXPECTED_SIGN)
         self.assertEqual(fields["policy"], EXPECTED_POLICY)
-
-    def test_list_buckets_retries_error(self):
-        PROJECT = "PROJECT"
-        CREDENTIALS = _make_credentials()
-        client = self._make_one(project=PROJECT, credentials=CREDENTIALS)
-
-        BUCKET_NAME = "bucket-name"
-
-        data = {"items": [{"name": BUCKET_NAME}]}
-        http = _make_requests_session(
-            [exceptions.InternalServerError("mock error"), _make_json_response(data)]
-        )
-        client._http_internal = http
-
-        buckets = list(client.list_buckets())
-
-        self.assertEqual(len(buckets), 1)
-        self.assertEqual(buckets[0].name, BUCKET_NAME)
-
-        call = mock.call(
-            method="GET",
-            url=mock.ANY,
-            data=mock.ANY,
-            headers=mock.ANY,
-            timeout=self._get_default_timeout(),
-        )
-        http.request.assert_has_calls([call, call])
 
 
 @pytest.mark.parametrize("test_data", _POST_POLICY_TESTS)
