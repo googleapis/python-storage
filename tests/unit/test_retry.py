@@ -25,7 +25,7 @@ import pytest
 import requests
 
 import http
-http.client.HTTPConnection.debuglevel=5
+# http.client.HTTPConnection.debuglevel=5
 
 class Test_should_retry(unittest.TestCase):
     def _call_fut(self, exc):
@@ -303,8 +303,8 @@ def reload_bucket(client, resource):
     bucket = Bucket(client, resource["bucket"]["name"])
     bucket.reload()
 
-def get_bucket(client, resource):
-    bucket_name = "bucket"      #resource["bucket"]["name"]
+def get_bucket(client, resources):
+    bucket_name = resources["bucket"].name
     client.get_bucket(bucket_name)
 
 # Method invocation mapping. Methods to retry. This is a map whose keys are a string describing a standard
@@ -333,24 +333,48 @@ method_mapping = {
 def _populate_resource_bucket(client, resources):
     bucket = client.bucket(uuid.uuid4().hex)
     client.create_bucket(bucket)
-    return bucket
+    resources["bucket"] = bucket
+
+def _populate_resource_object(client, resources):
+    bucket_name = resources["bucket"].name
+    bucket = client.get_bucket(bucket_name)
+    blob = bucket.blob(uuid.uuid4().hex)
+    blob.upload_from_string("hello world")
+    blob.reload()
+    resources["object"] = blob
+
+def _populate_resource_notification(client, resources):
+    bucket_name = resources["bucket"].name
+    bucket = client.get_bucket(bucket_name)
+    notification = bucket.notification()
+    notification.create()
+    notification.reload()
+    resources["notification"] = notification
     
 
 resource_mapping = {
     "BUCKET": _populate_resource_bucket,
+    "OBJECT": _populate_resource_object,
+    "NOTIFICATION": _populate_resource_notification,
 }
 
 
-def _populate_resource(client, json_resource):
-    resources = {}
+def _populate_resources(client, json_resource):
+    resources = {
+        "bucket": None,
+        "object": None,
+        "notification": None,
+        "hmac_key": None,
+    }
+
     for r in json_resource:
         try: 
             func = resource_mapping[r]
-            res = func(client, resources)
-            resources[r] = res
+            func(client, resources)
         except Exception as e:
             print("log warning here: {}".format(e))
 
+    return resources
 
 
 def _create_retry_test(method_name, instructions):
@@ -385,11 +409,11 @@ def _check_retry_test(id):
         # do something
         return None
 
-def _run_retry_test(client, id, func, resource=None):
-    # test_run_uri = _API_ACCESS_ENDPOINT + "/storage/v1/b?project=test"
-    # client = storage.Client(client_options={"api_endpoint": test_run_uri})
+def _run_retry_test(client, id, func, resources):
+    test_run_uri = _API_ACCESS_ENDPOINT + "/storage/v1/b?project=test"
+    client = storage.Client(client_options={"api_endpoint": test_run_uri})
     client._http.headers.update({"x-retry-test-id": id})
-    func(client=client, resource=resource)
+    func(client=client, resources=resources)
 
 
 def _delete_retry_test(id):
@@ -406,9 +430,7 @@ def test_conformance_retry_strategy(test_data):
     if _API_ACCESS_ENDPOINT == _DEFAULT_STORAGE_HOST:
         pytest.skip("This test must use the testbench emulator; set STORAGE_EMULATOR_HOST to run.")
 
-    test_run_uri = _API_ACCESS_ENDPOINT + "/storage/v1/b?project=test"
-    client = storage.Client(client_options={"api_endpoint": test_run_uri})
-
+    client = storage.Client()
     methods = test_data["methods"]
     cases = test_data["cases"]
     expect_success = test_data["expectSuccess"]
@@ -417,6 +439,7 @@ def test_conformance_retry_strategy(test_data):
             # Extract method name and instructions to create retry test.
             method_name = m["name"]
             instructions = c["instructions"]
+            json_resources = m["resources"]
 
             if method_name not in method_mapping:
                 # TODO(cathyo@): change to log warning
@@ -433,8 +456,11 @@ def test_conformance_retry_strategy(test_data):
                     print("Error creating retry test")
                     continue
 
-                # Run retry tests on library methods
-                _run_retry_test(client, id, func=function)
+                # Populate resources.
+                resources = _populate_resources(client, json_resources)
+
+                # Run retry tests on library methods.
+                _run_retry_test(client, id, func=function, resources=resources)
 
                 # Verify that all instructions were used up during the test
 				# (indicates that the client sent the correct requests).
