@@ -305,9 +305,22 @@ def reload_bucket(client, resource):
     bucket = Bucket(client, resource["bucket"]["name"])
     bucket.reload()
 
-def get_bucket(client, resources):
+def get_bucket(client, resources, preconditions):
     bucket_name = resources["bucket"].name
     client.get_bucket(bucket_name)
+
+def update_blob(client, resources, preconditions):
+    bucket_name = resources["bucket"].name
+    resource_blob = resources["object"]
+    bucket = client.bucket(bucket_name)
+    blob = bucket.blob(resource_blob.name)
+    metadata = {"foo": "bar"}
+    blob.metadata = metadata
+    if preconditions:
+        metageneration = resource_blob.metageneration
+        blob.patch(if_metageneration_match=metageneration)
+    else:
+        blob.patch()
 
 # Method invocation mapping. Methods to retry. This is a map whose keys are a string describing a standard
 # API call (e.g. storage.objects.get) and values are a list of functions which
@@ -328,7 +341,10 @@ method_mapping = {
     ],
     "storage.notification.create": [
         get_bucket
-    ]
+    ],
+    "storage.objects.patch": [
+        update_blob
+    ],
 }
 
 
@@ -419,11 +435,11 @@ def _check_retry_test(host, id):
         # do something
         return None
 
-def _run_retry_test(host, id, func, resources):
+def _run_retry_test(host, id, func, resources, preconditions):
     # Create client using x-retry-test-id header.
     client = storage.Client(client_options={"api_endpoint": host})
     client._http.headers.update({"x-retry-test-id": id})
-    func(client=client, resources=resources)
+    func(client=client, resources=resources, preconditions=preconditions)
 
 
 def _delete_retry_test(host, id):
@@ -446,6 +462,7 @@ def test_conformance_retry_strategy(test_data):
     methods = test_data["methods"]
     cases = test_data["cases"]
     expect_success = test_data["expectSuccess"]
+    precondition_provided = test_data["preconditionProvided"]
     for c in cases:
         for m in methods:
             # Extract method name and instructions to create retry test.
@@ -473,7 +490,7 @@ def test_conformance_retry_strategy(test_data):
 
                 # Run retry tests on library methods.
                 try:
-                    _run_retry_test(host, id, func=function, resources=resources)
+                    _run_retry_test(host, id, func=function, resources=resources, preconditions=precondition_provided)
                 except Exception as e:
                     success_results = False
                 else:
