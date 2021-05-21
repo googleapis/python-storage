@@ -298,36 +298,31 @@ _CONF_TEST_SERVICE_ACCOUNT_EMAIL = (
 ########################################################################################################################################
 
 
-def list_buckets():
-    from google.cloud import storage
+def list_buckets(client, resources, preconditions):
+    buckets = client.list_buckets()
+    for b in buckets:
+        break
 
-    client = storage.Client()
-    bucket = client.list_buckets()
+def list_blobs(client, resources, preconditions):
+    bucket_name = resources["bucket"].name
+    blobs = client.list_blobs(bucket_name)
+    for b in blobs:
+        break
 
+def get_blob(client, resources, preconditions):
+    bucket_name = resources["bucket"].name
+    blob_name = resources["object"].name
+    bucket = client.bucket(bucket_name)
+    bucket.get_blob(blob_name)
 
-def get_blob(client, resource):
-    from google.cloud import storage
-
-    client = storage.Client()
-    bucket = client.bucket(resource["bucket"]["name"])
-    bucket.get_blob(resource["object"]["name"])
-
-
-def download_blob_to_file(client, resource):
-    client.download_blob_to_file(
-        resource["object"]["name"], resource["file_handle"]
-    )  # file handle in resource?
-
-
-def reload_bucket(client, resource):
-    bucket = storage.Bucket(client, resource["bucket"]["name"])
+def reload_bucket(client, resources, preconditions):
+    bucket_name = resources["bucket"].name
+    bucket = client.bucket(bucket_name)
     bucket.reload()
-
 
 def get_bucket(client, resources, preconditions):
     bucket_name = resources["bucket"].name
     client.get_bucket(bucket_name)
-
 
 def update_blob(client, resources, preconditions):
     bucket_name = resources["bucket"].name
@@ -342,6 +337,57 @@ def update_blob(client, resources, preconditions):
     else:
         blob.patch()
 
+def create_bucket(client, resources, preconditions):
+    bucket = client.bucket(uuid.uuid4().hex)
+    client.create_bucket(bucket)
+
+# Q!!! upload_from_string did not retry. 
+def upload_from_string(client, resources, preconditions):
+    bucket_name = resources["bucket"].name
+    bucket = client.get_bucket(bucket_name)
+    blob = bucket.blob(uuid.uuid4().hex)
+    blob.upload_from_string("upload from string")
+
+def create_notification(client, resources, preconditions):
+    bucket_name = resources["bucket"].name
+    bucket = client.get_bucket(bucket_name)
+    notification = bucket.notification()
+    notification.create()
+
+def list_notifications(client, resources, preconditions):
+    bucket_name = resources["bucket"].name
+    bucket = client.get_bucket(bucket_name)
+    notifications = bucket.list_notifications()
+    for n in notifications:
+        break
+
+def get_notification(client, resources, preconditions):
+    bucket_name = resources["bucket"].name
+    notification_id = resources["notification"].notification_id
+    client.bucket(bucket_name).get_notification(notification_id)
+
+def delete_notification(client, resources, preconditions):
+    bucket_name = resources["bucket"].name
+    notification_id = resources["notification"].notification_id
+    notification = client.bucket(bucket_name).get_notification(notification_id)
+    notification.delete()
+
+# Q!!! are there hmacKeys retryable endpoints in the emulator?
+def list_hmac_keys(client, resources, preconditions):
+    hmac_keys = client.list_hmac_keys()
+    for k in hmac_keys:
+        break
+
+def delete_bucket(client, resources, preconditions):
+    bucket_name = resources["bucket"].name
+    bucket = client.bucket(bucket_name)
+    bucket.delete()
+
+def get_iam_policy(client, resources, preconditions):
+    bucket_name = resources["bucket"].name
+    bucket = client.bucket(bucket_name)
+    bucket.get_iam_policy()
+
 
 # Method invocation mapping. Methods to retry. This is a map whose keys are a string describing a standard
 # API call (e.g. storage.objects.get) and values are a list of functions which
@@ -349,13 +395,13 @@ def update_blob(client, resources, preconditions):
 # because multiple library methods may use the same call (e.g. get could be a
 # read or just a metadata get).
 method_mapping = {
-    "storage.bucket_acl.get": [],  # S1 start
+    "storage.bucket_acl.get": [],       # S1 start
     "storage.bucket_acl.list": [],
-    "storage.buckets.delete": [],
-    "storage.buckets.get": [get_bucket],
-    "storage.buckets.getIamPolicy": [],
-    "storage.buckets.insert": [],
-    "storage.buckets.list": [get_bucket, get_bucket],
+    "storage.buckets.delete": [delete_bucket],
+    "storage.buckets.get": [get_bucket, reload_bucket],
+    "storage.buckets.getIamPolicy": [get_iam_policy],
+    "storage.buckets.insert": [create_bucket],
+    "storage.buckets.list": [list_buckets],
     "storage.buckets.lockRententionPolicy": [],
     "storage.buckets.testIamPermission": [],
     "storage.default_object_acl.get": [],
@@ -363,15 +409,15 @@ method_mapping = {
     "storage.hmacKey.delete": [],
     "storage.hmacKey.list": [],
     "storage.hmacKey.get": [],
-    "storage.notification.delete": [],
-    "storage.notification.get": [],
-    "storage.notification.list": [],
+    "storage.notifications.delete": [delete_notification],
+    "storage.notifications.get": [get_notification],
+    "storage.notifications.list": [list_notifications],
     "storage.object_acl.get": [],
     "storage.object_acl.list": [],
-    "storage.objects.get": [get_bucket, get_bucket],
-    "storage.objects.list": [],
+    "storage.objects.get": [get_blob],
+    "storage.objects.list": [list_blobs],
     "storage.serviceaccount.get": [],  # S1 end
-    "storage.buckets.patch": [],  # S2 start
+    "storage.buckets.patch": [],       # S2 start
     "storage.buckets.setIamPolicy": [],
     "storage.buckets.update": [],
     "storage.hmacKey.update": [],
@@ -381,8 +427,8 @@ method_mapping = {
     "storage.objects.insert": [],
     "storage.objects.patch": [update_blob],
     "storage.objects.rewrite": [],
-    "storage.objects.update": [],  # S2 end
-    "storage.notification.create": [get_bucket],
+    "storage.objects.update": [],      # S2 end
+    "storage.notifications.insert": [create_notification],  # S4
 }
 
 ########################################################################################################################################

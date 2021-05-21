@@ -26,7 +26,53 @@
             ]
           },
           {
-            "name": "storage.buckets.get",
+            "name": "storage.buckets.list",
+            "resources": [
+              "BUCKET"
+            ]
+          },
+          {
+            "name": "storage.buckets.delete",
+            "resources": [
+              "BUCKET"
+            ]
+          },
+          {
+            "name": "storage.buckets.getIamPolicy",
+            "resources": [
+              "BUCKET"
+            ]
+          },
+          {
+            "name": "storage.notifications.list",
+            "resources": [
+              "BUCKET",
+              "NOTIFICATION"
+            ]
+          },
+          {
+            "name": "storage.notifications.get",
+            "resources": [
+              "BUCKET",
+              "NOTIFICATION"
+            ]
+          },
+          {
+            "name": "storage.notifications.delete",
+            "resources": [
+              "BUCKET",
+              "NOTIFICATION"
+            ]
+          },
+          {
+            "name": "storage.objects.get",
+            "resources": [
+              "BUCKET",
+              "OBJECT"
+            ]
+          },
+          {
+            "name": "storage.objects.list",
             "resources": [
               "BUCKET",
               "OBJECT"
@@ -65,14 +111,13 @@
         "cases": [
           {
             "instructions": [
-              "return-503",
               "return-503"
             ]
           }
         ],
         "methods": [
           {
-            "name": "storage.buckets.get",
+            "name": "storage.notifications.insert",
             "resources": [
               "BUCKET",
               "NOTIFICATION"
