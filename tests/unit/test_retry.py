@@ -303,11 +303,13 @@ def list_buckets(client, resources, preconditions):
     for b in buckets:
         break
 
+
 def list_blobs(client, resources, preconditions):
     bucket_name = resources["bucket"].name
     blobs = client.list_blobs(bucket_name)
     for b in blobs:
         break
+
 
 def get_blob(client, resources, preconditions):
     bucket_name = resources["bucket"].name
@@ -315,14 +317,17 @@ def get_blob(client, resources, preconditions):
     bucket = client.bucket(bucket_name)
     bucket.get_blob(blob_name)
 
+
 def reload_bucket(client, resources, preconditions):
     bucket_name = resources["bucket"].name
     bucket = client.bucket(bucket_name)
     bucket.reload()
 
+
 def get_bucket(client, resources, preconditions):
     bucket_name = resources["bucket"].name
     client.get_bucket(bucket_name)
+
 
 def update_blob(client, resources, preconditions):
     bucket_name = resources["bucket"].name
@@ -337,22 +342,26 @@ def update_blob(client, resources, preconditions):
     else:
         blob.patch()
 
+
 def create_bucket(client, resources, preconditions):
     bucket = client.bucket(uuid.uuid4().hex)
     client.create_bucket(bucket)
 
-# Q!!! upload_from_string did not retry. 
+
+# Q!!! upload_from_string did not retry.
 def upload_from_string(client, resources, preconditions):
     bucket_name = resources["bucket"].name
     bucket = client.get_bucket(bucket_name)
     blob = bucket.blob(uuid.uuid4().hex)
     blob.upload_from_string("upload from string")
 
+
 def create_notification(client, resources, preconditions):
     bucket_name = resources["bucket"].name
     bucket = client.get_bucket(bucket_name)
     notification = bucket.notification()
     notification.create()
+
 
 def list_notifications(client, resources, preconditions):
     bucket_name = resources["bucket"].name
@@ -361,10 +370,12 @@ def list_notifications(client, resources, preconditions):
     for n in notifications:
         break
 
+
 def get_notification(client, resources, preconditions):
     bucket_name = resources["bucket"].name
     notification_id = resources["notification"].notification_id
     client.bucket(bucket_name).get_notification(notification_id)
+
 
 def delete_notification(client, resources, preconditions):
     bucket_name = resources["bucket"].name
@@ -372,16 +383,19 @@ def delete_notification(client, resources, preconditions):
     notification = client.bucket(bucket_name).get_notification(notification_id)
     notification.delete()
 
+
 # Q!!! are there hmacKeys retryable endpoints in the emulator?
 def list_hmac_keys(client, resources, preconditions):
     hmac_keys = client.list_hmac_keys()
     for k in hmac_keys:
         break
 
+
 def delete_bucket(client, resources, preconditions):
     bucket_name = resources["bucket"].name
     bucket = client.bucket(bucket_name)
     bucket.delete()
+
 
 def get_iam_policy(client, resources, preconditions):
     bucket_name = resources["bucket"].name
@@ -395,7 +409,7 @@ def get_iam_policy(client, resources, preconditions):
 # because multiple library methods may use the same call (e.g. get could be a
 # read or just a metadata get).
 method_mapping = {
-    "storage.bucket_acl.get": [],       # S1 start
+    "storage.bucket_acl.get": [],  # S1 start
     "storage.bucket_acl.list": [],
     "storage.buckets.delete": [delete_bucket],
     "storage.buckets.get": [get_bucket, reload_bucket],
@@ -417,7 +431,7 @@ method_mapping = {
     "storage.objects.get": [get_blob],
     "storage.objects.list": [list_blobs],
     "storage.serviceaccount.get": [],  # S1 end
-    "storage.buckets.patch": [],       # S2 start
+    "storage.buckets.patch": [],  # S2 start
     "storage.buckets.setIamPolicy": [],
     "storage.buckets.update": [],
     "storage.hmacKey.update": [],
@@ -427,7 +441,7 @@ method_mapping = {
     "storage.objects.insert": [],
     "storage.objects.patch": [update_blob],
     "storage.objects.rewrite": [],
-    "storage.objects.update": [],      # S2 end
+    "storage.objects.update": [],  # S2 end
     "storage.notifications.insert": [create_notification],  # S4
 }
 
