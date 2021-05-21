@@ -25,7 +25,9 @@ import pytest
 import requests
 
 import http
+
 # http.client.HTTPConnection.debuglevel=5
+
 
 class Test_should_retry(unittest.TestCase):
     def _call_fut(self, exc):
@@ -277,37 +279,55 @@ def fake_service_account():
     global _FAKE_SERVICE_ACCOUNT
     # validate and set fake service account
 
+
 # ToDo: Confirm what are the credentials required. Can we use the same service account created for url_signer_v4_test_account? )
 # _SERVICE_ACCOUNT_JSON = _read_local_json("")
-_CONFORMANCE_TESTS = _read_local_json("retry_strategy_test_data.json")["retryStrategyTests"]
+_CONFORMANCE_TESTS = _read_local_json("retry_strategy_test_data.json")[
+    "retryStrategyTests"
+]
 # ToDo: Confirm the correct access endpoint.
 _API_ACCESS_ENDPOINT = _helpers._get_storage_host()
 _DEFAULT_STORAGE_HOST = u"https://storage.googleapis.com"
 _CONF_TEST_PROJECT_ID = "my-project-id"
-_CONF_TEST_SERVICE_ACCOUNT_EMAIL = "my-service-account@my-project-id.iam.gserviceaccount.com"
+_CONF_TEST_SERVICE_ACCOUNT_EMAIL = (
+    "my-service-account@my-project-id.iam.gserviceaccount.com"
+)
 
-# Library methods for mapping
+########################################################################################################################################
+### Library methods for mapping ########################################################################################################
+########################################################################################################################################
+
+
 def list_buckets():
     from google.cloud import storage
+
     client = storage.Client()
     bucket = client.list_buckets()
 
+
 def get_blob(client, resource):
     from google.cloud import storage
+
     client = storage.Client()
     bucket = client.bucket(resource["bucket"]["name"])
     bucket.get_blob(resource["object"]["name"])
 
+
 def download_blob_to_file(client, resource):
-    client.download_blob_to_file(resource["object"]["name"], resource["file_handle"]) #file handle in resource?
+    client.download_blob_to_file(
+        resource["object"]["name"], resource["file_handle"]
+    )  # file handle in resource?
+
 
 def reload_bucket(client, resource):
-    bucket = Bucket(client, resource["bucket"]["name"])
+    bucket = storage.Bucket(client, resource["bucket"]["name"])
     bucket.reload()
+
 
 def get_bucket(client, resources, preconditions):
     bucket_name = resources["bucket"].name
     client.get_bucket(bucket_name)
+
 
 def update_blob(client, resources, preconditions):
     bucket_name = resources["bucket"].name
@@ -322,36 +342,59 @@ def update_blob(client, resources, preconditions):
     else:
         blob.patch()
 
+
 # Method invocation mapping. Methods to retry. This is a map whose keys are a string describing a standard
 # API call (e.g. storage.objects.get) and values are a list of functions which
 # wrap library methods that implement these calls. There may be multiple values
 # because multiple library methods may use the same call (e.g. get could be a
 # read or just a metadata get).
 method_mapping = {
-    "storage.buckets.list": [
-        get_bucket,
-        get_bucket 
-    ],
-    "storage.objects.get": [
-        get_bucket,
-        get_bucket 
-    ],
-    "storage.buckets.get": [
-        get_bucket
-    ],
-    "storage.notification.create": [
-        get_bucket
-    ],
-    "storage.objects.patch": [
-        update_blob
-    ],
+    "storage.bucket_acl.get": [],  # S1 start
+    "storage.bucket_acl.list": [],
+    "storage.buckets.delete": [],
+    "storage.buckets.get": [get_bucket],
+    "storage.buckets.getIamPolicy": [],
+    "storage.buckets.insert": [],
+    "storage.buckets.list": [get_bucket, get_bucket],
+    "storage.buckets.lockRententionPolicy": [],
+    "storage.buckets.testIamPermission": [],
+    "storage.default_object_acl.get": [],
+    "storage.default_object_acl.list": [],
+    "storage.hmacKey.delete": [],
+    "storage.hmacKey.list": [],
+    "storage.hmacKey.get": [],
+    "storage.notification.delete": [],
+    "storage.notification.get": [],
+    "storage.notification.list": [],
+    "storage.object_acl.get": [],
+    "storage.object_acl.list": [],
+    "storage.objects.get": [get_bucket, get_bucket],
+    "storage.objects.list": [],
+    "storage.serviceaccount.get": [],  # S1 end
+    "storage.buckets.patch": [],  # S2 start
+    "storage.buckets.setIamPolicy": [],
+    "storage.buckets.update": [],
+    "storage.hmacKey.update": [],
+    "storage.objects.compose": [],
+    "storage.objects.copy": [],
+    "storage.objects.delete": [],
+    "storage.objects.insert": [],
+    "storage.objects.patch": [update_blob],
+    "storage.objects.rewrite": [],
+    "storage.objects.update": [],  # S2 end
+    "storage.notification.create": [get_bucket],
 }
+
+########################################################################################################################################
+### Helper Methods for Populating Resources ############################################################################################
+########################################################################################################################################
 
 
 def _populate_resource_bucket(client, resources):
     bucket = client.bucket(uuid.uuid4().hex)
     client.create_bucket(bucket)
     resources["bucket"] = bucket
+
 
 def _populate_resource_object(client, resources):
     bucket_name = resources["bucket"].name
@@ -361,6 +404,7 @@ def _populate_resource_object(client, resources):
     blob.reload()
     resources["object"] = blob
 
+
 def _populate_resource_notification(client, resources):
     bucket_name = resources["bucket"].name
     bucket = client.get_bucket(bucket_name)
@@ -369,13 +413,14 @@ def _populate_resource_notification(client, resources):
     notification.reload()
     resources["notification"] = notification
 
+
 def _populate_resource_hmackey(client, resources):
     hmac_key, secret = client.create_hmac_key(
-        service_account_email=_CONF_TEST_SERVICE_ACCOUNT_EMAIL, 
-        project_id=_CONF_TEST_PROJECT_ID
+        service_account_email=_CONF_TEST_SERVICE_ACCOUNT_EMAIL,
+        project_id=_CONF_TEST_PROJECT_ID,
     )
     resources["hmac_key"] = hmac_key
-    
+
 
 resource_mapping = {
     "BUCKET": _populate_resource_bucket,
@@ -394,7 +439,7 @@ def _populate_resources(client, json_resource):
     }
 
     for r in json_resource:
-        try: 
+        try:
             func = resource_mapping[r]
             func(client, resources)
         except Exception as e:
@@ -403,18 +448,19 @@ def _populate_resources(client, json_resource):
     return resources
 
 
+########################################################################################################################################
+### Helper Methods for Emulator Retry API ##############################################################################################
+########################################################################################################################################
+
+
 def _create_retry_test(host, method_name, instructions):
     import json
 
     preflight_post_uri = host + "/retry_test"
     headers = {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
     }
-    data_dict = {
-        'instructions': {
-            method_name: instructions
-        }
-    }
+    data_dict = {"instructions": {method_name: instructions}}
     data = json.dumps(data_dict)
     try:
         r = requests.post(preflight_post_uri, headers=headers, data=data)
@@ -435,6 +481,7 @@ def _check_retry_test(host, id):
         # do something
         return None
 
+
 def _run_retry_test(host, id, func, resources, preconditions):
     # Create client using x-retry-test-id header.
     client = storage.Client(client_options={"api_endpoint": host})
@@ -445,17 +492,24 @@ def _run_retry_test(host, id, func, resources, preconditions):
 def _delete_retry_test(host, id):
     status_get_uri = "{base}{retry}/{id}".format(base=host, retry="/retry_test", id=id)
     try:
-        r = requests.delete(status_get_uri)
+        requests.delete(status_get_uri)
     except Exception as e:
         print(e.args)
         # do something
+
+
+########################################################################################################################################
+### Run Conformance Tests for Retry Strategy ###########################################################################################
+########################################################################################################################################
 
 
 @pytest.mark.parametrize("test_data", _CONFORMANCE_TESTS)
 def test_conformance_retry_strategy(test_data):
     host = _API_ACCESS_ENDPOINT
     if host == _DEFAULT_STORAGE_HOST:
-        pytest.skip("This test must use the testbench emulator; set STORAGE_EMULATOR_HOST to run.")
+        pytest.skip(
+            "This test must use the testbench emulator; set STORAGE_EMULATOR_HOST to run."
+        )
 
     # Create client to use for setup steps.
     client = storage.Client()
@@ -490,17 +544,24 @@ def test_conformance_retry_strategy(test_data):
 
                 # Run retry tests on library methods.
                 try:
-                    _run_retry_test(host, id, func=function, resources=resources, preconditions=precondition_provided)
+                    _run_retry_test(
+                        host,
+                        id,
+                        func=function,
+                        resources=resources,
+                        preconditions=precondition_provided,
+                    )
                 except Exception as e:
+                    print(e)
                     success_results = False
                 else:
                     success_results = True
 
                 # Assert expected success for each scenario.
                 assert expect_success == success_results
-                    
+
                 # Verify that all instructions were used up during the test
-				# (indicates that the client sent the correct requests).
+                # (indicates that the client sent the correct requests).
                 status_response = _check_retry_test(host, id)
                 if status_response:
                     test_complete = status_response["completed"]
