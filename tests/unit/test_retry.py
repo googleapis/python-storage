@@ -24,8 +24,6 @@ import mock
 import pytest
 import requests
 
-import http
-
 # http.client.HTTPConnection.debuglevel=5
 
 
@@ -366,7 +364,9 @@ def get_notification(client, _, bucket, notification):
 
 
 def delete_notification(client, _, bucket, notification):
-    notification = client.bucket(bucket.name).get_notification(notification.notification_id)
+    notification = client.bucket(bucket.name).get_notification(
+        notification.notification_id
+    )
     notification.delete()
 
 
@@ -584,11 +584,7 @@ def test_conformance_retry_strategy(test_data):
                 # Run retry tests on library methods.
                 try:
                     _run_retry_test(
-                        host,
-                        id,
-                        function,
-                        precondition_provided,
-                        **resources
+                        host, id, function, precondition_provided, **resources
                     )
                 except Exception as e:
                     print(e)
@@ -604,7 +600,7 @@ def test_conformance_retry_strategy(test_data):
                 status_response = _check_retry_test(host, id)
                 if status_response:
                     test_complete = status_response["completed"]
-                    assert test_complete == True
+                    assert test_complete is True
                 else:
                     print("do something")
 
