@@ -298,108 +298,92 @@ _CONF_TEST_SERVICE_ACCOUNT_EMAIL = (
 ########################################################################################################################################
 
 
-def list_buckets(client, resources, preconditions):
+def list_buckets(client, _, _bucket):
     buckets = client.list_buckets()
     for b in buckets:
         break
 
 
-def list_blobs(client, resources, preconditions):
-    bucket_name = resources["bucket"].name
-    blobs = client.list_blobs(bucket_name)
+def list_blobs(client, _, bucket, _blob):
+    blobs = client.list_blobs(bucket.name)
     for b in blobs:
         break
 
 
-def get_blob(client, resources, preconditions):
-    bucket_name = resources["bucket"].name
-    blob_name = resources["object"].name
-    bucket = client.bucket(bucket_name)
-    bucket.get_blob(blob_name)
+def get_blob(client, _, bucket, object):
+    bucket = client.bucket(bucket.name)
+    bucket.get_blob(object.name)
 
 
-def reload_bucket(client, resources, preconditions):
-    bucket_name = resources["bucket"].name
-    bucket = client.bucket(bucket_name)
+def reload_bucket(client, _, bucket):
+    bucket = client.bucket(bucket.name)
     bucket.reload()
 
 
-def get_bucket(client, resources, preconditions):
-    bucket_name = resources["bucket"].name
-    client.get_bucket(bucket_name)
+def get_bucket(client, _, bucket):
+    client.get_bucket(bucket.name)
 
 
-def update_blob(client, resources, preconditions):
-    bucket_name = resources["bucket"].name
-    resource_blob = resources["object"]
-    bucket = client.bucket(bucket_name)
-    blob = bucket.blob(resource_blob.name)
+def update_blob(client, preconditions, bucket, object):
+    bucket = client.bucket(bucket.name)
+    blob = bucket.blob(object.name)
     metadata = {"foo": "bar"}
     blob.metadata = metadata
     if preconditions:
-        metageneration = resource_blob.metageneration
+        metageneration = object.metageneration
         blob.patch(if_metageneration_match=metageneration)
     else:
         blob.patch()
 
 
-def create_bucket(client, resources, preconditions):
+def create_bucket(client, _):
     bucket = client.bucket(uuid.uuid4().hex)
     client.create_bucket(bucket)
 
 
 # Q!!! upload_from_string did not retry.
-def upload_from_string(client, resources, preconditions):
-    bucket_name = resources["bucket"].name
-    bucket = client.get_bucket(bucket_name)
+def upload_from_string(client, _, bucket):
+    bucket = client.get_bucket(bucket.name)
     blob = bucket.blob(uuid.uuid4().hex)
     blob.upload_from_string("upload from string")
 
 
-def create_notification(client, resources, preconditions):
-    bucket_name = resources["bucket"].name
-    bucket = client.get_bucket(bucket_name)
+def create_notification(client, _, bucket):
+    bucket = client.get_bucket(bucket.name)
     notification = bucket.notification()
     notification.create()
 
 
-def list_notifications(client, resources, preconditions):
-    bucket_name = resources["bucket"].name
-    bucket = client.get_bucket(bucket_name)
+def list_notifications(client, _, bucket, _notification):
+    bucket = client.get_bucket(bucket.name)
     notifications = bucket.list_notifications()
     for n in notifications:
         break
 
 
-def get_notification(client, resources, preconditions):
-    bucket_name = resources["bucket"].name
-    notification_id = resources["notification"].notification_id
-    client.bucket(bucket_name).get_notification(notification_id)
+def get_notification(client, _, bucket, notification):
+    client.bucket(bucket.name).get_notification(notification.notification_id)
 
 
-def delete_notification(client, resources, preconditions):
-    bucket_name = resources["bucket"].name
-    notification_id = resources["notification"].notification_id
-    notification = client.bucket(bucket_name).get_notification(notification_id)
+def delete_notification(client, _, bucket, notification):
+    notification = client.bucket(bucket.name).get_notification(notification.notification_id)
     notification.delete()
 
 
 # Q!!! are there hmacKeys retryable endpoints in the emulator?
-def list_hmac_keys(client, resources, preconditions):
+def list_hmac_keys(client, _, _hmac_key):
     hmac_keys = client.list_hmac_keys()
     for k in hmac_keys:
         break
 
 
-def delete_bucket(client, resources, preconditions):
-    bucket_name = resources["bucket"].name
-    bucket = client.bucket(bucket_name)
+def delete_bucket(client, _, bucket):
+    bucket = client.bucket(bucket.name)
     bucket.delete()
 
 
-def get_iam_policy(client, resources, preconditions):
-    bucket_name = resources["bucket"].name
-    bucket = client.bucket(bucket_name)
+def get_iam_policy(client, _, bucket):
+    bucket = client.bucket(bucket.name)
     bucket.get_iam_policy()
 
 
@@ -491,12 +475,7 @@ resource_mapping = {
 
 
 def _populate_resources(client, json_resource):
-    resources = {
-        "bucket": None,
-        "object": None,
-        "notification": None,
-        "hmac_key": None,
-    }
+    resources = {}
 
     for r in json_resource:
         try:
@@ -542,11 +521,11 @@ def _check_retry_test(host, id):
         return None
 
 
-def _run_retry_test(host, id, func, resources, preconditions):
+def _run_retry_test(host, id, func, preconditions, **resources):
     # Create client using x-retry-test-id header.
     client = storage.Client(client_options={"api_endpoint": host})
     client._http.headers.update({"x-retry-test-id": id})
-    func(client=client, resources=resources, preconditions=preconditions)
+    func(client, preconditions, **resources)
 
 
 def _delete_retry_test(host, id):
@@ -607,9 +586,9 @@ def test_conformance_retry_strategy(test_data):
                     _run_retry_test(
                         host,
                         id,
-                        func=function,
-                        resources=resources,
-                        preconditions=precondition_provided,
+                        function,
+                        precondition_provided,
+                        **resources
                     )
                 except Exception as e:
                     print(e)

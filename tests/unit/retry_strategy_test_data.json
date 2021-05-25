@@ -38,6 +38,10 @@
             ]
           },
           {
+            "name": "storage.buckets.insert",
+            "resources": []
+          },
+          {
             "name": "storage.buckets.getIamPolicy",
             "resources": [
               "BUCKET"
@@ -119,8 +123,7 @@
           {
             "name": "storage.notifications.insert",
             "resources": [
-              "BUCKET",
-              "NOTIFICATION"
+              "BUCKET"
             ]
           }
         ],
