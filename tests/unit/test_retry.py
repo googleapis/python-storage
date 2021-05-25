@@ -317,85 +317,74 @@ _CONF_TEST_SERVICE_ACCOUNT_EMAIL = (
 ########################################################################################################################################
 
 
-def list_buckets(client, preconditions, bucket):
-    del preconditions, bucket   # Unused by api call.
+def list_buckets(client, _preconditions, **_):
     buckets = client.list_buckets()
     for b in buckets:
         break
 
 
-def list_blobs(client, preconditions, bucket, object):
-    del preconditions, object   # Unused by api call.
+def list_blobs(client, _preconditions, bucket, **_):
     blobs = client.list_blobs(bucket.name)
     for b in blobs:
         break
 
 
-def get_blob(client, preconditions, bucket, object):
-    del preconditions   # Unused by api call.
+def get_blob(client, _preconditions, bucket, object):
     bucket = client.bucket(bucket.name)
     bucket.get_blob(object.name)
 
 
-def reload_bucket(client, preconditions, bucket):
-    del preconditions   # Unused by api call.
+def reload_bucket(client, _preconditions, bucket):
     bucket = client.bucket(bucket.name)
     bucket.reload()
 
 
-def get_bucket(client, preconditions, bucket):
-    del preconditions   # Unused by api call.
+def get_bucket(client, _preconditions, bucket):
     client.get_bucket(bucket.name)
 
 
-def update_blob(client, preconditions, bucket, object):
+def update_blob(client, _preconditions, bucket, object):
     bucket = client.bucket(bucket.name)
     blob = bucket.blob(object.name)
     metadata = {"foo": "bar"}
     blob.metadata = metadata
-    if preconditions:
+    if _preconditions:
         metageneration = object.metageneration
         blob.patch(if_metageneration_match=metageneration)
     else:
         blob.patch()
 
 
-def create_bucket(client, preconditions):
-    del preconditions   # Unused by api call.
+def create_bucket(client, _preconditions):
     bucket = client.bucket(uuid.uuid4().hex)
     client.create_bucket(bucket)
 
 
 # Q!!! upload_from_string did not retry.
-def upload_from_string(client, preconditions, bucket):
-    del preconditions   # Unused by api call.
+def upload_from_string(client, _preconditions, bucket):
     bucket = client.get_bucket(bucket.name)
     blob = bucket.blob(uuid.uuid4().hex)
     blob.upload_from_string("upload from string")
 
 
-def create_notification(client, preconditions, bucket):
-    del preconditions   # Unused by api call.
+def create_notification(client, _preconditions, bucket):
     bucket = client.get_bucket(bucket.name)
     notification = bucket.notification()
     notification.create()
 
 
-def list_notifications(client, preconditions, bucket, notification):
-    del preconditions, notification   # Unused by api call.
+def list_notifications(client, _preconditions, bucket, **_):
     bucket = client.get_bucket(bucket.name)
     notifications = bucket.list_notifications()
     for n in notifications:
         break
 
 
-def get_notification(client, preconditions, bucket, notification):
-    del preconditions   # Unused by api call.
+def get_notification(client, _preconditions, bucket, notification):
     client.bucket(bucket.name).get_notification(notification.notification_id)
 
 
-def delete_notification(client, preconditions, bucket, notification):
-    del preconditions   # Unused by api call.
+def delete_notification(client, _preconditions, bucket, notification):
     notification = client.bucket(bucket.name).get_notification(
         notification.notification_id
     )
@@ -403,21 +392,18 @@ def delete_notification(client, preconditions, bucket, notification):
 
 
 # Q!!! are there hmacKeys retryable endpoints in the emulator?
-def list_hmac_keys(client, preconditions, hmac_key):
-    del preconditions, hmac_key   # Unused by api call.
+def list_hmac_keys(client, _preconditions, **_):
     hmac_keys = client.list_hmac_keys()
     for k in hmac_keys:
         break
 
 
-def delete_bucket(client, preconditions, bucket):
-    del preconditions   # Unused by api call.
+def delete_bucket(client, _preconditions, bucket):
     bucket = client.bucket(bucket.name)
     bucket.delete()
 
 
-def get_iam_policy(client, preconditions, bucket):
-    del preconditions   # Unused by api call.
+def get_iam_policy(client, _preconditions, bucket):
     bucket = client.bucket(bucket.name)
     bucket.get_iam_policy()
 
@@ -556,11 +542,11 @@ def _check_retry_test(host, id):
         return None
 
 
-def _run_retry_test(host, id, func, preconditions, **resources):
+def _run_retry_test(host, id, func, _preconditions, **resources):
     # Create client using x-retry-test-id header.
     client = storage.Client(client_options={"api_endpoint": host})
     client._http.headers.update({"x-retry-test-id": id})
-    func(client, preconditions, **resources)
+    func(client, _preconditions, **resources)
 
 
 def _delete_retry_test(host, id):
