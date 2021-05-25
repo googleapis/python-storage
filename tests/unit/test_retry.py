@@ -27,6 +27,14 @@ import requests
 # http.client.HTTPConnection.debuglevel=5
 
 
+try:
+    ConnectionError
+except NameError:
+    _HAS_STDLIB_CONNECTION_ERROR = False
+else:
+    _HAS_STDLIB_CONNECTION_ERROR = True
+
+
 class Test_should_retry(unittest.TestCase):
     def _call_fut(self, exc):
         from google.cloud.storage import retry
@@ -64,8 +72,21 @@ class Test_should_retry(unittest.TestCase):
         self.assertFalse(self._call_fut(exc))
 
     def test_w_requests_connection_error(self):
+        import requests
+
+        exc = requests.ConnectionError()
+        self.assertTrue(self._call_fut(exc))
+
+    def test_miss_w_stdlib_error(self):
         exc = ValueError("testing")
         self.assertFalse(self._call_fut(exc))
+
+    @unittest.skipUnless(
+        _HAS_STDLIB_CONNECTION_ERROR, "No builtin 'ConnectionError' in Python 2",
+    )
+    def test_w_stdlib_connection_error(self):
+        exc = ConnectionError()
+        self.assertTrue(self._call_fut(exc))
 
 
 class TestConditionalRetryPolicy(unittest.TestCase):
