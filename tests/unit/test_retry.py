@@ -317,29 +317,34 @@ _CONF_TEST_SERVICE_ACCOUNT_EMAIL = (
 ########################################################################################################################################
 
 
-def list_buckets(client, _, _bucket):
+def list_buckets(client, preconditions, bucket):
+    del preconditions, bucket   # Unused by api call.
     buckets = client.list_buckets()
     for b in buckets:
         break
 
 
-def list_blobs(client, _, bucket, _blob):
+def list_blobs(client, preconditions, bucket, object):
+    del preconditions, object   # Unused by api call.
     blobs = client.list_blobs(bucket.name)
     for b in blobs:
         break
 
 
-def get_blob(client, _, bucket, object):
+def get_blob(client, preconditions, bucket, object):
+    del preconditions   # Unused by api call.
     bucket = client.bucket(bucket.name)
     bucket.get_blob(object.name)
 
 
-def reload_bucket(client, _, bucket):
+def reload_bucket(client, preconditions, bucket):
+    del preconditions   # Unused by api call.
     bucket = client.bucket(bucket.name)
     bucket.reload()
 
 
-def get_bucket(client, _, bucket):
+def get_bucket(client, preconditions, bucket):
+    del preconditions   # Unused by api call.
     client.get_bucket(bucket.name)
 
 
@@ -355,36 +360,42 @@ def update_blob(client, preconditions, bucket, object):
         blob.patch()
 
 
-def create_bucket(client, _):
+def create_bucket(client, preconditions):
+    del preconditions   # Unused by api call.
     bucket = client.bucket(uuid.uuid4().hex)
     client.create_bucket(bucket)
 
 
 # Q!!! upload_from_string did not retry.
-def upload_from_string(client, _, bucket):
+def upload_from_string(client, preconditions, bucket):
+    del preconditions   # Unused by api call.
     bucket = client.get_bucket(bucket.name)
     blob = bucket.blob(uuid.uuid4().hex)
     blob.upload_from_string("upload from string")
 
 
-def create_notification(client, _, bucket):
+def create_notification(client, preconditions, bucket):
+    del preconditions   # Unused by api call.
     bucket = client.get_bucket(bucket.name)
     notification = bucket.notification()
     notification.create()
 
 
-def list_notifications(client, _, bucket, _notification):
+def list_notifications(client, preconditions, bucket, notification):
+    del preconditions, notification   # Unused by api call.
     bucket = client.get_bucket(bucket.name)
     notifications = bucket.list_notifications()
     for n in notifications:
         break
 
 
-def get_notification(client, _, bucket, notification):
+def get_notification(client, preconditions, bucket, notification):
+    del preconditions   # Unused by api call.
     client.bucket(bucket.name).get_notification(notification.notification_id)
 
 
-def delete_notification(client, _, bucket, notification):
+def delete_notification(client, preconditions, bucket, notification):
+    del preconditions   # Unused by api call.
     notification = client.bucket(bucket.name).get_notification(
         notification.notification_id
     )
@@ -392,18 +403,21 @@ def delete_notification(client, _, bucket, notification):
 
 
 # Q!!! are there hmacKeys retryable endpoints in the emulator?
-def list_hmac_keys(client, _, _hmac_key):
+def list_hmac_keys(client, preconditions, hmac_key):
+    del preconditions, hmac_key   # Unused by api call.
     hmac_keys = client.list_hmac_keys()
     for k in hmac_keys:
         break
 
 
-def delete_bucket(client, _, bucket):
+def delete_bucket(client, preconditions, bucket):
+    del preconditions   # Unused by api call.
     bucket = client.bucket(bucket.name)
     bucket.delete()
 
 
-def get_iam_policy(client, _, bucket):
+def get_iam_policy(client, preconditions, bucket):
+    del preconditions   # Unused by api call.
     bucket = client.bucket(bucket.name)
     bucket.get_iam_policy()
 

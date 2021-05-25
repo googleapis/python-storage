@@ -20,13 +20,13 @@
         ],
         "methods": [
           {
-            "name": "storage.buckets.get",
+            "name": "storage.buckets.list",
             "resources": [
               "BUCKET"
             ]
           },
           {
-            "name": "storage.buckets.list",
+            "name": "storage.buckets.get",
             "resources": [
               "BUCKET"
             ]
