@@ -408,6 +408,32 @@ def get_iam_policy(client, _preconditions, bucket):
     bucket.get_iam_policy()
 
 
+def test_iam_permissions(client, _preconditions, bucket):
+    bucket = client.bucket(bucket.name)
+    permissions = ["storage.buckets.get", "storage.buckets.create"]
+    bucket.test_iam_permissions(permissions)
+
+
+# Q: cannot find the corresponding endpoint in the Retry API
+def get_service_account_email(client, _preconditions):
+    client.get_service_account_email()
+
+
+# Q: not hitting the errors from the instructions
+def make_bucket_public(client, _preconditions, bucket):
+    bucket = client.bucket(bucket.name)
+    bucket.make_public()
+
+
+def delete_blob(client, _preconditions, bucket, object):
+    bucket = client.bucket(bucket.name)
+    if _preconditions:
+        generation = object.generation
+        bucket.delete_blob(object.name, if_generation_match=generation)
+    else:
+        bucket.delete_blob(object.name)
+
+
 # Method invocation mapping. Methods to retry. This is a map whose keys are a string describing a standard
 # API call (e.g. storage.objects.get) and values are a list of functions which
 # wrap library methods that implement these calls. There may be multiple values
@@ -422,7 +448,7 @@ method_mapping = {
     "storage.buckets.insert": [create_bucket],
     "storage.buckets.list": [list_buckets],
     "storage.buckets.lockRententionPolicy": [],
-    "storage.buckets.testIamPermission": [],
+    "storage.buckets.testIamPermission": [test_iam_permissions],
     "storage.default_object_acl.get": [],
     "storage.default_object_acl.list": [],
     "storage.hmacKey.delete": [],
@@ -442,7 +468,7 @@ method_mapping = {
     "storage.hmacKey.update": [],
     "storage.objects.compose": [],
     "storage.objects.copy": [],
-    "storage.objects.delete": [],
+    "storage.objects.delete": [delete_blob],
     "storage.objects.insert": [],
     "storage.objects.patch": [update_blob],
     "storage.objects.rewrite": [],

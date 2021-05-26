@@ -20,6 +20,12 @@
         ],
         "methods": [
           {
+            "name": "storage.buckets.testIamPermission",
+            "resources": [
+              "BUCKET"
+            ]
+          },
+          {
             "name": "storage.buckets.list",
             "resources": [
               "BUCKET"
@@ -98,6 +104,13 @@
           }
         ],
         "methods": [
+          {
+            "name": "storage.objects.delete",
+            "resources": [
+              "BUCKET",
+              "OBJECT"
+            ]
+          },
           {
             "name": "storage.objects.patch",
             "resources": [
