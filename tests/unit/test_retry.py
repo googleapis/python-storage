@@ -23,6 +23,7 @@ from . import _read_local_json
 import mock
 import pytest
 import requests
+import warnings
 
 # http.client.HTTPConnection.debuglevel=5
 
@@ -525,11 +526,8 @@ def _populate_resources(client, json_resource):
     resources = {}
 
     for r in json_resource:
-        try:
-            func = resource_mapping[r]
-            func(client, resources)
-        except Exception as e:
-            print("log warning here: {}".format(e))
+        func = resource_mapping[r]
+        func(client, resources)
 
     return resources
 
@@ -548,24 +546,14 @@ def _create_retry_test(host, method_name, instructions):
     }
     data_dict = {"instructions": {method_name: instructions}}
     data = json.dumps(data_dict)
-    try:
-        r = requests.post(preflight_post_uri, headers=headers, data=data)
-        return r.json()
-    except Exception as e:
-        print(e.args)
-        # do something
-        return None
+    r = requests.post(preflight_post_uri, headers=headers, data=data)
+    return r.json()
 
 
 def _check_retry_test(host, id):
     status_get_uri = "{base}{retry}/{id}".format(base=host, retry="/retry_test", id=id)
-    try:
-        r = requests.get(status_get_uri)
-        return r.json()
-    except Exception as e:
-        print(e.args)
-        # do something
-        return None
+    r = requests.get(status_get_uri)
+    return r.json()
 
 
 def _run_retry_test(host, id, func, _preconditions, **resources):
@@ -577,11 +565,7 @@ def _run_retry_test(host, id, func, _preconditions, **resources):
 
 def _delete_retry_test(host, id):
     status_get_uri = "{base}{retry}/{id}".format(base=host, retry="/retry_test", id=id)
-    try:
-        requests.delete(status_get_uri)
-    except Exception as e:
-        print(e.args)
-        # do something
+    requests.delete(status_get_uri)
 
 
 ########################################################################################################################################
@@ -611,22 +595,38 @@ def test_conformance_retry_strategy(test_data):
             json_resources = m["resources"]
 
             if method_name not in method_mapping:
-                # TODO(cathyo@): change to log warning
-                print("No tests for operation {}".format(method_name))
+                warnings.warn(
+                    "No tests for operation {}".format(method_name),
+                    UserWarning,
+                    stacklevel=1
+                )
                 continue
 
             for function in method_mapping[method_name]:
                 # Create the retry test in the emulator to handle instructions.
-                r = _create_retry_test(host, method_name, instructions)
-                if r:
+                try:
+                    r = _create_retry_test(host, method_name, instructions)
                     id = r["id"]
-                else:
-                    # TODO(cathyo@): change to log warning
-                    print("Error creating retry test")
+                except Exception as e:
+                    warnings.warn(
+                        "Error creating retry test for {}: {}".format(method_name, e),
+                        UserWarning,
+                        stacklevel=1
+                    )
                     continue
 
+
                 # Populate resources.
-                resources = _populate_resources(client, json_resources)
+                try:
+                    resources = _populate_resources(client, json_resources)
+                except Exception as e:
+                    warnings.warn(
+                        "Error populating resources for {}: {}".format(method_name, e),
+                        UserWarning,
+                        stacklevel=1
+                    )
+                    continue
+
 
                 # Run retry tests on library methods.
                 try:
@@ -634,22 +634,35 @@ def test_conformance_retry_strategy(test_data):
                         host, id, function, precondition_provided, **resources
                     )
                 except Exception as e:
+                    # Should we be catching specific exceptions
                     print(e)
                     success_results = False
                 else:
                     success_results = True
+
 
                 # Assert expected success for each scenario.
                 assert expect_success == success_results
 
                 # Verify that all instructions were used up during the test
                 # (indicates that the client sent the correct requests).
-                status_response = _check_retry_test(host, id)
-                if status_response:
-                    test_complete = status_response["completed"]
-                    assert test_complete is True
-                else:
-                    print("do something")
+                try:
+                    status_response = _check_retry_test(host, id)
+                    assert status_response["completed"] is True
+                except Exception as e:
+                    warnings.warn(
+                        "Error checking retry test status for {}: {}".format(method_name, e),
+                        UserWarning,
+                        stacklevel=1
+                    )
+
 
                 # Clean up and close out test in emulator.
-                _delete_retry_test(host, id)
+                try:
+                    _delete_retry_test(host, id)
+                except Exception as e:
+                    warnings.warn(
+                        "Error deleting retry test for {}: {}".format(method_name, e),
+                        UserWarning,
+                        stacklevel=1
+                    )
