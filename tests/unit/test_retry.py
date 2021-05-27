@@ -598,7 +598,7 @@ def test_conformance_retry_strategy(test_data):
         )
 
     # Create client to use for setup steps.
-    client = storage.Client()
+    client = storage.Client(client_options={"api_endpoint": host})
     methods = test_data["methods"]
     cases = test_data["cases"]
     expect_success = test_data["expectSuccess"]
