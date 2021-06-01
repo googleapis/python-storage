@@ -26,7 +26,6 @@ import warnings
 # http.client.HTTPConnection.debuglevel=5
 
 
-
 # ToDo: Confirm what are the credentials required. Can we use the same service account created for url_signer_v4_test_account?
 _FAKE_SERVICE_ACCOUNT = None
 
