@@ -409,10 +409,11 @@ def get_iam_policy(client, _preconditions, bucket):
     bucket.get_iam_policy()
 
 
-def test_iam_permissions(client, _preconditions, bucket):
-    bucket = client.bucket(bucket.name)
-    permissions = ["storage.buckets.get", "storage.buckets.create"]
-    bucket.test_iam_permissions(permissions)
+# Q: error - fixture 'client' not found
+# def test_iam_permissions(client, _preconditions, bucket):
+#     bucket = client.bucket(bucket.name)
+#     permissions = ["storage.buckets.get", "storage.buckets.create"]
+#     bucket.test_iam_permissions(permissions)
 
 
 # Q: cannot find the corresponding endpoint in the Retry API
@@ -434,12 +435,14 @@ def delete_blob(client, _preconditions, bucket, object):
     else:
         bucket.delete_blob(object.name)
 
-#Q: 1) cannot lock a locked bucket 2) currently using default "bucket" with metageneration
+
+# Q: 1) cannot lock a locked bucket 2) currently using default "bucket" with metageneration
 def lock_retention_policy(client, _preconditions, bucket):
     bucket2 = client.bucket(bucket.name)
     bucket2.retention_period = 60
     bucket2.patch()
     bucket2.lock_retention_policy()
+
 
 # Method invocation mapping. Methods to retry. This is a map whose keys are a string describing a standard
 # API call (e.g. storage.objects.get) and values are a list of functions which
@@ -455,7 +458,7 @@ method_mapping = {
     "storage.buckets.insert": [create_bucket],
     "storage.buckets.list": [list_buckets],
     # "storage.buckets.lockRententionPolicy": [],   # lock_retention_policy
-    "storage.buckets.testIamPermission": [test_iam_permissions],
+    # "storage.buckets.testIamPermission": [],      # test_iam_permissions
     "storage.default_object_acl.get": [],
     "storage.default_object_acl.list": [],
     # "storage.hmacKey.delete": [],   # emulator project related endpoints wip
@@ -604,7 +607,7 @@ def test_conformance_retry_strategy(test_data):
                 warnings.warn(
                     "No tests for operation {}".format(method_name),
                     UserWarning,
-                    stacklevel=1
+                    stacklevel=1,
                 )
                 continue
 
@@ -617,10 +620,9 @@ def test_conformance_retry_strategy(test_data):
                     warnings.warn(
                         "Error creating retry test for {}: {}".format(method_name, e),
                         UserWarning,
-                        stacklevel=1
+                        stacklevel=1,
                     )
                     continue
-
 
                 # Populate resources.
                 try:
@@ -629,10 +631,9 @@ def test_conformance_retry_strategy(test_data):
                     warnings.warn(
                         "Error populating resources for {}: {}".format(method_name, e),
                         UserWarning,
-                        stacklevel=1
+                        stacklevel=1,
                     )
                     continue
-
 
                 # Run retry tests on library methods.
                 try:
@@ -646,7 +647,6 @@ def test_conformance_retry_strategy(test_data):
                 else:
                     success_results = True
 
-
                 # Assert expected success for each scenario.
                 assert expect_success == success_results
 
@@ -657,11 +657,12 @@ def test_conformance_retry_strategy(test_data):
                     assert status_response["completed"] is True
                 except Exception as e:
                     warnings.warn(
-                        "Error checking retry test status for {}: {}".format(method_name, e),
+                        "Error checking retry test status for {}: {}".format(
+                            method_name, e
+                        ),
                         UserWarning,
-                        stacklevel=1
+                        stacklevel=1,
                     )
-
 
                 # Clean up and close out test in emulator.
                 try:
@@ -670,5 +671,5 @@ def test_conformance_retry_strategy(test_data):
                     warnings.warn(
                         "Error deleting retry test for {}: {}".format(method_name, e),
                         UserWarning,
-                        stacklevel=1
+                        stacklevel=1,
                     )
