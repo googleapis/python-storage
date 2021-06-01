@@ -434,6 +434,12 @@ def delete_blob(client, _preconditions, bucket, object):
     else:
         bucket.delete_blob(object.name)
 
+#Q: 1) cannot lock a locked bucket 2) currently using default "bucket" with metageneration
+def lock_retention_policy(client, _preconditions, bucket):
+    bucket2 = client.bucket(bucket.name)
+    bucket2.retention_period = 60
+    bucket2.patch()
+    bucket2.lock_retention_policy()
 
 # Method invocation mapping. Methods to retry. This is a map whose keys are a string describing a standard
 # API call (e.g. storage.objects.get) and values are a list of functions which
@@ -441,20 +447,20 @@ def delete_blob(client, _preconditions, bucket, object):
 # because multiple library methods may use the same call (e.g. get could be a
 # read or just a metadata get).
 method_mapping = {
-    "storage.bucket_acl.get": [],  # S1 start
-    "storage.bucket_acl.list": [],
+    # "storage.bucket_acl.get": [],  # S1 start # no library method mapped
+    # "storage.bucket_acl.list": [], # no library method mapped
     "storage.buckets.delete": [delete_bucket],
     "storage.buckets.get": [get_bucket, reload_bucket],
     "storage.buckets.getIamPolicy": [get_iam_policy],
     "storage.buckets.insert": [create_bucket],
     "storage.buckets.list": [list_buckets],
-    "storage.buckets.lockRententionPolicy": [],
+    # "storage.buckets.lockRententionPolicy": [],   # lock_retention_policy
     "storage.buckets.testIamPermission": [test_iam_permissions],
     "storage.default_object_acl.get": [],
     "storage.default_object_acl.list": [],
-    "storage.hmacKey.delete": [],
-    "storage.hmacKey.list": [],
-    "storage.hmacKey.get": [],
+    # "storage.hmacKey.delete": [],   # emulator project related endpoints wip
+    # "storage.hmacKey.list": [],     # emulator project related endpoints wip
+    # "storage.hmacKey.get": [],      # emulator project related endpoints wip
     "storage.notifications.delete": [delete_notification],
     "storage.notifications.get": [get_notification],
     "storage.notifications.list": [list_notifications],
@@ -462,7 +468,7 @@ method_mapping = {
     "storage.object_acl.list": [],
     "storage.objects.get": [get_blob],
     "storage.objects.list": [list_blobs],
-    "storage.serviceaccount.get": [],  # S1 end
+    # "storage.serviceaccount.get": [],  # S1 end # emulator project related endpoints wip
     "storage.buckets.patch": [],  # S2 start
     "storage.buckets.setIamPolicy": [],
     "storage.buckets.update": [],
