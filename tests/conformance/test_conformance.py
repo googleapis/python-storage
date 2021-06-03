@@ -86,7 +86,7 @@ def create_bucket(client, _preconditions):
 
 def upload_from_string(client, _preconditions, bucket):
     blob = client.bucket(bucket.name).blob(uuid.uuid4().hex)
-    if _preconditions:  
+    if _preconditions:
         blob.upload_from_string("upload from string", if_metageneration_match=0)
     else:
         blob.upload_from_string("upload from string")
@@ -176,9 +176,7 @@ def patch_bucket(client, _preconditions, bucket):
 def update_bucket(client, _preconditions, bucket):
     bucket = client.get_bucket("bucket")
     metageneration = bucket.metageneration
-    bucket._properties = {
-        "storageClass": "STANDARD"
-    }
+    bucket._properties = {"storageClass": "STANDARD"}
     if _preconditions:
         bucket.update(if_metageneration_match=metageneration)
     else:
@@ -202,38 +200,28 @@ def update_blob(client, _preconditions, bucket, object):
     else:
         blob.update()
 
+
 # Method invocation mapping. Methods to retry. This is a map whose keys are a string describing a standard
 # API call (e.g. storage.objects.get) and values are a list of functions which
 # wrap library methods that implement these calls. There may be multiple values
 # because multiple library methods may use the same call (e.g. get could be a
 # read or just a metadata get).
 method_mapping = {
-    # "storage.bucket_acl.get": [],  # S1 start # pending retry strategy added to ACL
-    # "storage.bucket_acl.list": [], # pending retry strategy added to ACL
-    "storage.buckets.delete": [delete_bucket],
+    "storage.buckets.delete": [delete_bucket],  # S1 start
     "storage.buckets.get": [get_bucket, reload_bucket],
     "storage.buckets.getIamPolicy": [get_iam_policy],
     "storage.buckets.insert": [create_bucket],
     "storage.buckets.list": [list_buckets],
-    "storage.buckets.lockRententionPolicy": [],   # lock_retention_policy
-    "storage.buckets.testIamPermission": [get_iam_permissions],      # test_iam_permissions
-    # "storage.default_object_acl.get": [],   # pending retry strategy added to ACL
-    # "storage.default_object_acl.list": [],  # pending retry strategy added to ACL
-    # "storage.hmacKey.delete": [],   # wip emulator project related endpoints
-    # "storage.hmacKey.list": [],     # wip emulator project related endpoints
-    # "storage.hmacKey.get": [],      # wip emulator project related endpoints
+    "storage.buckets.lockRententionPolicy": [],  # lock_retention_policy
+    "storage.buckets.testIamPermission": [get_iam_permissions],
     "storage.notifications.delete": [delete_notification],
     "storage.notifications.get": [get_notification],
     "storage.notifications.list": [list_notifications],
-    # "storage.object_acl.get": [],   # pending retry strategy added to ACL
-    # "storage.object_acl.list": [],  # pending retry strategy added to ACL
     "storage.objects.get": [get_blob],
-    "storage.objects.list": [list_blobs],
-    # "storage.serviceaccount.get": [],  # S1 end # wip emulator project related endpoints
+    "storage.objects.list": [list_blobs],  # S1 end
     "storage.buckets.patch": [patch_bucket],  # S2 start
     "storage.buckets.setIamPolicy": [],
     "storage.buckets.update": [update_bucket],
-    # "storage.hmacKey.update": [],   # wip emulator project related endpoints
     "storage.objects.compose": [],
     "storage.objects.copy": [],
     "storage.objects.delete": [delete_blob],
