@@ -79,28 +79,17 @@ def get_bucket(client, _preconditions, bucket):
     client.get_bucket(bucket.name)
 
 
-def update_blob(client, _preconditions, bucket, object):
-    bucket = client.bucket(bucket.name)
-    blob = bucket.blob(object.name)
-    metadata = {"foo": "bar"}
-    blob.metadata = metadata
-    if _preconditions:
-        metageneration = object.metageneration
-        blob.patch(if_metageneration_match=metageneration)
-    else:
-        blob.patch()
-
-
 def create_bucket(client, _preconditions):
     bucket = client.bucket(uuid.uuid4().hex)
     client.create_bucket(bucket)
 
 
-# Q!!! upload_from_string did not retry.
 def upload_from_string(client, _preconditions, bucket):
-    bucket = client.get_bucket(bucket.name)
-    blob = bucket.blob(uuid.uuid4().hex)
-    blob.upload_from_string("upload from string")
+    blob = client.bucket(bucket.name).blob(uuid.uuid4().hex)
+    if _preconditions:  
+        blob.upload_from_string("upload from string", if_metageneration_match=0)
+    else:
+        blob.upload_from_string("upload from string")
 
 
 def create_notification(client, _preconditions, bucket):
@@ -127,7 +116,6 @@ def delete_notification(client, _preconditions, bucket, notification):
     notification.delete()
 
 
-# Q!!! are there hmacKeys retryable endpoints in the emulator?
 def list_hmac_keys(client, _preconditions, **_):
     hmac_keys = client.list_hmac_keys()
     for k in hmac_keys:
@@ -144,19 +132,16 @@ def get_iam_policy(client, _preconditions, bucket):
     bucket.get_iam_policy()
 
 
-# Q: error - fixture 'client' not found
-# def test_iam_permissions(client, _preconditions, bucket):
-#     bucket = client.bucket(bucket.name)
-#     permissions = ["storage.buckets.get", "storage.buckets.create"]
-#     bucket.test_iam_permissions(permissions)
+def get_iam_permissions(client, _preconditions, bucket):
+    bucket = client.bucket(bucket.name)
+    permissions = ["storage.buckets.get", "storage.buckets.create"]
+    bucket.test_iam_permissions(permissions)
 
 
-# Q: cannot find the corresponding endpoint in the Retry API
 def get_service_account_email(client, _preconditions):
     client.get_service_account_email()
 
 
-# Q: not hitting the errors from the instructions
 def make_bucket_public(client, _preconditions, bucket):
     bucket = client.bucket(bucket.name)
     bucket.make_public()
@@ -171,7 +156,6 @@ def delete_blob(client, _preconditions, bucket, object):
         bucket.delete_blob(object.name)
 
 
-# Q: 1) cannot lock a locked bucket 2) currently using default "bucket" with metageneration
 def lock_retention_policy(client, _preconditions, bucket):
     bucket2 = client.bucket(bucket.name)
     bucket2.retention_period = 60
@@ -179,45 +163,84 @@ def lock_retention_policy(client, _preconditions, bucket):
     bucket2.lock_retention_policy()
 
 
+def patch_bucket(client, _preconditions, bucket):
+    bucket = client.get_bucket("bucket")
+    metageneration = bucket.metageneration
+    bucket.storage_class = "COLDLINE"
+    if _preconditions:
+        bucket.patch(if_metageneration_match=metageneration)
+    else:
+        bucket.patch()
+
+
+def update_bucket(client, _preconditions, bucket):
+    bucket = client.get_bucket("bucket")
+    metageneration = bucket.metageneration
+    bucket._properties = {
+        "storageClass": "STANDARD"
+    }
+    if _preconditions:
+        bucket.update(if_metageneration_match=metageneration)
+    else:
+        bucket.update()
+
+
+def patch_blob(client, _preconditions, bucket, object):
+    blob = client.bucket(bucket.name).blob(object.name)
+    blob.metadata = {"foo": "bar"}
+    if _preconditions:
+        blob.patch(if_metageneration_match=object.metageneration)
+    else:
+        blob.patch()
+
+
+def update_blob(client, _preconditions, bucket, object):
+    blob = client.bucket(bucket.name).blob(object.name)
+    blob.metadata = {"foo": "bar"}
+    if _preconditions:
+        blob.update(if_metageneration_match=object.metageneration)
+    else:
+        blob.update()
+
 # Method invocation mapping. Methods to retry. This is a map whose keys are a string describing a standard
 # API call (e.g. storage.objects.get) and values are a list of functions which
 # wrap library methods that implement these calls. There may be multiple values
 # because multiple library methods may use the same call (e.g. get could be a
 # read or just a metadata get).
 method_mapping = {
-    # "storage.bucket_acl.get": [],  # S1 start # no library method mapped
-    # "storage.bucket_acl.list": [], # no library method mapped
+    # "storage.bucket_acl.get": [],  # S1 start # pending retry strategy added to ACL
+    # "storage.bucket_acl.list": [], # pending retry strategy added to ACL
     "storage.buckets.delete": [delete_bucket],
     "storage.buckets.get": [get_bucket, reload_bucket],
     "storage.buckets.getIamPolicy": [get_iam_policy],
     "storage.buckets.insert": [create_bucket],
     "storage.buckets.list": [list_buckets],
-    # "storage.buckets.lockRententionPolicy": [],   # lock_retention_policy
-    # "storage.buckets.testIamPermission": [],      # test_iam_permissions
-    "storage.default_object_acl.get": [],
-    "storage.default_object_acl.list": [],
-    # "storage.hmacKey.delete": [],   # emulator project related endpoints wip
-    # "storage.hmacKey.list": [],     # emulator project related endpoints wip
-    # "storage.hmacKey.get": [],      # emulator project related endpoints wip
+    "storage.buckets.lockRententionPolicy": [],   # lock_retention_policy
+    "storage.buckets.testIamPermission": [get_iam_permissions],      # test_iam_permissions
+    # "storage.default_object_acl.get": [],   # pending retry strategy added to ACL
+    # "storage.default_object_acl.list": [],  # pending retry strategy added to ACL
+    # "storage.hmacKey.delete": [],   # wip emulator project related endpoints
+    # "storage.hmacKey.list": [],     # wip emulator project related endpoints
+    # "storage.hmacKey.get": [],      # wip emulator project related endpoints
     "storage.notifications.delete": [delete_notification],
     "storage.notifications.get": [get_notification],
     "storage.notifications.list": [list_notifications],
-    "storage.object_acl.get": [],
-    "storage.object_acl.list": [],
+    # "storage.object_acl.get": [],   # pending retry strategy added to ACL
+    # "storage.object_acl.list": [],  # pending retry strategy added to ACL
     "storage.objects.get": [get_blob],
     "storage.objects.list": [list_blobs],
-    # "storage.serviceaccount.get": [],  # S1 end # emulator project related endpoints wip
-    "storage.buckets.patch": [],  # S2 start
+    # "storage.serviceaccount.get": [],  # S1 end # wip emulator project related endpoints
+    "storage.buckets.patch": [patch_bucket],  # S2 start
     "storage.buckets.setIamPolicy": [],
-    "storage.buckets.update": [],
-    "storage.hmacKey.update": [],
+    "storage.buckets.update": [update_bucket],
+    # "storage.hmacKey.update": [],   # wip emulator project related endpoints
     "storage.objects.compose": [],
     "storage.objects.copy": [],
     "storage.objects.delete": [delete_blob],
-    "storage.objects.insert": [],
-    "storage.objects.patch": [update_blob],
+    "storage.objects.insert": [upload_from_string],
+    "storage.objects.patch": [patch_blob],
     "storage.objects.rewrite": [],
-    "storage.objects.update": [],  # S2 end
+    "storage.objects.update": [update_blob],  # S2 end
     "storage.notifications.insert": [create_notification],  # S4
 }
 
