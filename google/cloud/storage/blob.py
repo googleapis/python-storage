@@ -3009,6 +3009,7 @@ class Blob(_PropertyMixin):
         timeout=_DEFAULT_TIMEOUT,
         if_generation_match=None,
         if_metageneration_match=None,
+        if_source_generation_match=None,
         retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
     ):
         """Concatenate source blobs into this one.
@@ -3031,18 +3032,23 @@ class Blob(_PropertyMixin):
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
 
-        :type if_generation_match: list of long
+        :type if_generation_match: long
         :param if_generation_match:
             (Optional) Make the operation conditional on whether the blob's
             current generation matches the given value.  Setting to 0 makes the
             operation succeed only if there are no live versions of the blob.
-            The list must match ``sources`` item-to-item.
 
         :type if_metageneration_match: list of long
         :param if_metageneration_match:
             (Optional) Make the operation conditional on whether the blob's
             current metageneration matches the given value. The list must match
             ``sources`` item-to-item.
+
+        :type if_source_generation_match: list of long
+        :param if_source_generation_match:
+            (Optional) Make the operation conditional on whether the source blob's
+            current generation matches the given value.
+            The list must match ``sources`` item-to-item.
 
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
         :param retry: (Optional) How to retry the RPC. A None value will disable retries.
@@ -3053,37 +3059,32 @@ class Blob(_PropertyMixin):
             activates it only if certain conditions are met. This class exists to provide safe defaults
             for RPC calls that are not technically safe to retry normally (due to potential data
             duplication or other side-effects) but become safe to retry if a condition such as
-            if_metageneration_match is set.
+            if_generation_match is set.
 
             See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
             information on retry types and how to configure them.
 
         Example:
-            Compose blobs using generation match preconditions.
+            Compose blobs using source generation match preconditions.
 
             >>> from google.cloud import storage
             >>> client = storage.Client()
             >>> bucket = client.bucket("bucket-name")
 
             >>> blobs = [bucket.blob("blob-name-1"), bucket.blob("blob-name-2")]
-            >>> if_generation_match = [None] * len(blobs)
-            >>> if_generation_match[0] = "123"  # precondition for "blob-name-1"
+            >>> if_source_generation_match = [None] * len(blobs)
+            >>> if_source_generation_match[0] = "123"  # precondition for "blob-name-1"
 
             >>> composed_blob = bucket.blob("composed-name")
-            >>> composed_blob.compose(blobs, if_generation_match)
+            >>> composed_blob.compose(blobs, if_source_generation_match=if_source_generation_match)
         """
         sources_len = len(sources)
-        if if_generation_match is not None and len(if_generation_match) != sources_len:
-            raise ValueError(
-                "'if_generation_match' length must be the same as 'sources' length"
-            )
-
         if (
-            if_metageneration_match is not None
-            and len(if_metageneration_match) != sources_len
+            if_source_generation_match is not None
+            and len(if_source_generation_match) != sources_len
         ):
             raise ValueError(
-                "'if_metageneration_match' length must be the same as 'sources' length"
+                "'if_source_generation_match' length must be the same as 'sources' length"
             )
 
         client = self._require_client(client)
@@ -3092,22 +3093,23 @@ class Blob(_PropertyMixin):
         if self.user_project is not None:
             query_params["userProject"] = self.user_project
 
+        _add_generation_match_parameters(
+            query_params,
+            if_generation_match=if_generation_match,
+            if_metageneration_match=if_metageneration_match,
+        )
+
         source_objects = []
         for index, source in enumerate(sources):
             source_object = {"name": source.name}
+            source_object["generation"] = source.generation
 
             preconditions = {}
             if (
-                if_generation_match is not None
-                and if_generation_match[index] is not None
+                if_source_generation_match is not None
+                and if_source_generation_match[index] is not None
             ):
-                preconditions["ifGenerationMatch"] = if_generation_match[index]
-
-            if (
-                if_metageneration_match is not None
-                and if_metageneration_match[index] is not None
-            ):
-                preconditions["ifMetagenerationMatch"] = if_metageneration_match[index]
+                preconditions["ifGenerationMatch"] = if_source_generation_match[index]
 
             if preconditions:
                 source_object["objectPreconditions"] = preconditions
@@ -3228,7 +3230,7 @@ class Blob(_PropertyMixin):
             activates it only if certain conditions are met. This class exists to provide safe defaults
             for RPC calls that are not technically safe to retry normally (due to potential data
             duplication or other side-effects) but become safe to retry if a condition such as
-            if_metageneration_match is set.
+            if_generation_match is set.
 
             See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
             information on retry types and how to configure them.
