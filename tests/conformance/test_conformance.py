@@ -23,24 +23,11 @@ import pytest
 import requests
 import warnings
 
-# http.client.HTTPConnection.debuglevel=5
 
-
-# ToDo: Confirm what are the credentials required. Can we use the same service account created for url_signer_v4_test_account?
-_FAKE_SERVICE_ACCOUNT = None
-
-
-def fake_service_account():
-    global _FAKE_SERVICE_ACCOUNT
-    # validate and set fake service account
-
-
-# ToDo: Confirm what are the credentials required. Can we use the same service account created for url_signer_v4_test_account? )
-# _SERVICE_ACCOUNT_JSON = _read_local_json("")
 _CONFORMANCE_TESTS = _read_local_json("retry_strategy_test_data.json")[
     "retryStrategyTests"
 ]
-# ToDo: Confirm the correct access endpoint.
+
 _API_ACCESS_ENDPOINT = _helpers._get_storage_host()
 _DEFAULT_STORAGE_HOST = u"https://storage.googleapis.com"
 _CONF_TEST_PROJECT_ID = "my-project-id"
@@ -201,6 +188,47 @@ def update_blob(client, _preconditions, bucket, object):
         blob.update()
 
 
+def copy_blob(client, _preconditions, bucket, object):
+    bucket = client.bucket(bucket.name)
+    destination = client.bucket("bucket")
+    if _preconditions:
+        bucket.copy_blob(
+            object, destination, new_name=uuid.uuid4().hex, if_generation_match=0
+        )
+    else:
+        bucket.copy_blob(object, destination)
+
+
+def rename_blob(client, _preconditions, bucket, object):
+    bucket = client.bucket(bucket.name)
+    new_name = uuid.uuid4().hex
+    if _preconditions:
+        bucket.rename_blob(object, new_name, if_generation_match=0)
+    else:
+        bucket.rename_blob(object, new_name)
+
+
+def rewrite_blob(client, _preconditions, bucket, object):
+    new_blob = client.bucket(bucket.name).blob(uuid.uuid4().hex)
+    new_blob.metadata = {"foo": "bar"}
+    if _preconditions:
+        new_blob.rewrite(object, if_generation_match=0)
+    else:
+        new_blob.rewrite(object)
+
+
+def compose_blob(client, _preconditions, bucket, object):
+    blob = client.bucket(bucket.name).blob(object.name)
+    blob_2 = bucket.blob(uuid.uuid4().hex)
+    blob_2.upload_from_string("foo")
+    sources = [blob_2]
+
+    if _preconditions:
+        blob.compose(sources, if_generation_match=object.generation)
+    else:
+        blob.compose(sources)
+
+
 # Method invocation mapping. Methods to retry. This is a map whose keys are a string describing a standard
 # API call (e.g. storage.objects.get) and values are a list of functions which
 # wrap library methods that implement these calls. There may be multiple values
@@ -222,12 +250,12 @@ method_mapping = {
     "storage.buckets.patch": [patch_bucket],  # S2 start
     "storage.buckets.setIamPolicy": [],
     "storage.buckets.update": [update_bucket],
-    "storage.objects.compose": [],
-    "storage.objects.copy": [],
+    "storage.objects.compose": [],  # compose_blob
+    "storage.objects.copy": [copy_blob, rename_blob],
     "storage.objects.delete": [delete_blob],
     "storage.objects.insert": [upload_from_string],
     "storage.objects.patch": [patch_blob],
-    "storage.objects.rewrite": [],
+    "storage.objects.rewrite": [rewrite_blob],
     "storage.objects.update": [update_blob],  # S2 end
     "storage.notifications.insert": [create_notification],  # S4
 }
