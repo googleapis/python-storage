@@ -3498,7 +3498,10 @@ class Test_Blob(unittest.TestCase):
                 "path": "/b/name/o/%s/compose" % DESTINATION,
                 "query_params": {},
                 "data": {
-                    "sourceObjects": [{"name": source_1.name}, {"name": source_2.name}],
+                    "sourceObjects": [
+                        {"name": source_1.name, "generation": source_1.generation},
+                        {"name": source_2.name, "generation": source_2.generation},
+                    ],
                     "destination": {},
                 },
                 "_target_object": destination,
@@ -3535,7 +3538,10 @@ class Test_Blob(unittest.TestCase):
                 "path": "/b/name/o/%s/compose" % DESTINATION,
                 "query_params": {"userProject": USER_PROJECT},
                 "data": {
-                    "sourceObjects": [{"name": source_1.name}, {"name": source_2.name}],
+                    "sourceObjects": [
+                        {"name": source_1.name, "generation": source_1.generation},
+                        {"name": source_2.name, "generation": source_2.generation},
+                    ],
                     "destination": {"contentType": "text/plain"},
                 },
                 "_target_object": destination,
@@ -3573,7 +3579,10 @@ class Test_Blob(unittest.TestCase):
                 "path": "/b/name/o/%s/compose" % DESTINATION,
                 "query_params": {},
                 "data": {
-                    "sourceObjects": [{"name": source_1.name}, {"name": source_2.name}],
+                    "sourceObjects": [
+                        {"name": source_1.name, "generation": source_1.generation},
+                        {"name": source_2.name, "generation": source_2.generation},
+                    ],
                     "destination": {
                         "contentType": "text/plain",
                         "contentLanguage": "en-US",
@@ -3586,13 +3595,12 @@ class Test_Blob(unittest.TestCase):
             },
         )
 
-    def test_compose_w_generation_match(self):
+    def test_compose_w_source_generation_match(self):
         SOURCE_1 = "source-1"
         SOURCE_2 = "source-2"
         DESTINATION = "destination"
         RESOURCE = {}
-        GENERATION_NUMBERS = [6, 9]
-        METAGENERATION_NUMBERS = [7, 1]
+        SOURCE_GENERATION_NUMBERS = [6, 9]
 
         after = ({"status": http_client.OK}, RESOURCE)
         connection = _Connection(after)
@@ -3604,8 +3612,7 @@ class Test_Blob(unittest.TestCase):
         destination = self._make_one(DESTINATION, bucket=bucket)
         destination.compose(
             sources=[source_1, source_2],
-            if_generation_match=GENERATION_NUMBERS,
-            if_metageneration_match=METAGENERATION_NUMBERS,
+            if_source_generation_match=SOURCE_GENERATION_NUMBERS,
         )
 
         kw = connection._requested
@@ -3620,16 +3627,16 @@ class Test_Blob(unittest.TestCase):
                     "sourceObjects": [
                         {
                             "name": source_1.name,
+                            "generation": source_1.generation,
                             "objectPreconditions": {
-                                "ifGenerationMatch": GENERATION_NUMBERS[0],
-                                "ifMetagenerationMatch": METAGENERATION_NUMBERS[0],
+                                "ifGenerationMatch": SOURCE_GENERATION_NUMBERS[0],
                             },
                         },
                         {
                             "name": source_2.name,
+                            "generation": source_2.generation,
                             "objectPreconditions": {
-                                "ifGenerationMatch": GENERATION_NUMBERS[1],
-                                "ifMetagenerationMatch": METAGENERATION_NUMBERS[1],
+                                "ifGenerationMatch": SOURCE_GENERATION_NUMBERS[1]
                             },
                         },
                     ],
@@ -3641,12 +3648,11 @@ class Test_Blob(unittest.TestCase):
             },
         )
 
-    def test_compose_w_generation_match_bad_length(self):
+    def test_compose_w_source_generation_match_bad_length(self):
         SOURCE_1 = "source-1"
         SOURCE_2 = "source-2"
         DESTINATION = "destination"
-        GENERATION_NUMBERS = [6]
-        METAGENERATION_NUMBERS = [7]
+        SOURCE_GENERATION_NUMBERS = [6]
 
         after = ({"status": http_client.OK}, {})
         connection = _Connection(after)
@@ -3659,19 +3665,15 @@ class Test_Blob(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             destination.compose(
-                sources=[source_1, source_2], if_generation_match=GENERATION_NUMBERS
-            )
-        with self.assertRaises(ValueError):
-            destination.compose(
                 sources=[source_1, source_2],
-                if_metageneration_match=METAGENERATION_NUMBERS,
+                if_source_generation_match=SOURCE_GENERATION_NUMBERS,
             )
 
-    def test_compose_w_generation_match_nones(self):
+    def test_compose_w_source_generation_match_nones(self):
         SOURCE_1 = "source-1"
         SOURCE_2 = "source-2"
         DESTINATION = "destination"
-        GENERATION_NUMBERS = [6, None]
+        SOURCE_GENERATION_NUMBERS = [6, None]
 
         after = ({"status": http_client.OK}, {})
         connection = _Connection(after)
@@ -3682,7 +3684,8 @@ class Test_Blob(unittest.TestCase):
 
         destination = self._make_one(DESTINATION, bucket=bucket)
         destination.compose(
-            sources=[source_1, source_2], if_generation_match=GENERATION_NUMBERS
+            sources=[source_1, source_2],
+            if_source_generation_match=SOURCE_GENERATION_NUMBERS,
         )
 
         kw = connection._requested
@@ -3697,11 +3700,48 @@ class Test_Blob(unittest.TestCase):
                     "sourceObjects": [
                         {
                             "name": source_1.name,
+                            "generation": source_1.generation,
                             "objectPreconditions": {
-                                "ifGenerationMatch": GENERATION_NUMBERS[0]
+                                "ifGenerationMatch": SOURCE_GENERATION_NUMBERS[0]
                             },
                         },
-                        {"name": source_2.name},
+                        {"name": source_2.name, "generation": source_2.generation},
+                    ],
+                    "destination": {},
+                },
+                "_target_object": destination,
+                "timeout": self._get_default_timeout(),
+                "retry": DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+            },
+        )
+
+    def test_compose_w_generation_match(self):
+        SOURCE_1 = "source-1"
+        SOURCE_2 = "source-2"
+        DESTINATION = "destination"
+
+        after = ({"status": http_client.OK}, {})
+        connection = _Connection(after)
+        client = _Client(connection)
+        bucket = _Bucket(client=client)
+        source_1 = self._make_one(SOURCE_1, bucket=bucket)
+        source_2 = self._make_one(SOURCE_2, bucket=bucket)
+
+        destination = self._make_one(DESTINATION, bucket=bucket)
+        destination.compose(sources=[source_1, source_2], if_generation_match=1)
+
+        kw = connection._requested
+        self.assertEqual(len(kw), 1)
+        self.assertEqual(
+            kw[0],
+            {
+                "method": "POST",
+                "path": "/b/name/o/%s/compose" % DESTINATION,
+                "query_params": {"ifGenerationMatch": 1},
+                "data": {
+                    "sourceObjects": [
+                        {"name": source_1.name, "generation": source_1.generation},
+                        {"name": source_2.name, "generation": source_2.generation},
                     ],
                     "destination": {},
                 },
