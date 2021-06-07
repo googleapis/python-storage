@@ -3092,8 +3092,8 @@ class Blob(_PropertyMixin):
 
         :type if_source_generation_match: list of long
         :param if_source_generation_match:
-            (Optional) Make the operation conditional on whether the source blob's
-            current generation matches the given value.
+            (Optional) Make the operation conditional on whether the current generation
+            of each source blob matches the corresponding generation.
             The list must match ``sources`` item-to-item.
 
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
@@ -3125,13 +3125,6 @@ class Blob(_PropertyMixin):
             >>> composed_blob.compose(blobs, if_source_generation_match=if_source_generation_match)
         """
         sources_len = len(sources)
-        if (
-            if_source_generation_match is not None
-            and len(if_source_generation_match) != sources_len
-        ):
-            raise ValueError(
-                "'if_source_generation_match' length must be the same as 'sources' length"
-            )
 
         client = self._require_client(client)
         query_params = {}
@@ -3145,17 +3138,20 @@ class Blob(_PropertyMixin):
             if_metageneration_match=if_metageneration_match,
         )
 
+        if if_source_generation_match is None:
+            if_source_generation_match = [None] * sources_len
+        if len(if_source_generation_match) != sources_len:
+            raise ValueError(
+                "'if_source_generation_match' length must be the same as 'sources' length"
+            )
+
         source_objects = []
-        for index, source in enumerate(sources):
-            source_object = {"name": source.name}
-            source_object["generation"] = source.generation
+        for source, source_generation in zip(sources, if_source_generation_match):
+            source_object = {"name": source.name, "generation": source.generation}
 
             preconditions = {}
-            if (
-                if_source_generation_match is not None
-                and if_source_generation_match[index] is not None
-            ):
-                preconditions["ifGenerationMatch"] = if_source_generation_match[index]
+            if source_generation is not None:
+                preconditions["ifGenerationMatch"] = source_generation
 
             if preconditions:
                 source_object["objectPreconditions"] = preconditions
