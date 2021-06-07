@@ -233,7 +233,7 @@ class BucketNotification(object):
         self._properties.clear()
         self._properties.update(response)
 
-    def create(self, client=None, timeout=_DEFAULT_TIMEOUT, retry=DEFAULT_RETRY):
+    def create(self, client=None, timeout=_DEFAULT_TIMEOUT, retry=None):
         """API wrapper: create the notification.
 
         See:

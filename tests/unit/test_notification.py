@@ -278,7 +278,7 @@ class TestBucketNotification(unittest.TestCase):
             expected_data,
             query_params=expected_query_params,
             timeout=self._get_default_timeout(),
-            retry=DEFAULT_RETRY,
+            retry=None,
         )
 
     def test_create_w_explicit_client_w_timeout_w_retry(self):
