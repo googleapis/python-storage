@@ -614,7 +614,7 @@ class TestClient(unittest.TestCase):
             query_params=None,
             headers=None,
             timeout=self._get_default_timeout(),
-            retry=DEFAULT_RETRY,
+            retry=None,
             _target_object=None,
         )
 
