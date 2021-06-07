@@ -704,20 +704,19 @@ class Blob(_PropertyMixin):
         try:
             # We intentionally pass `_target_object=None` since fields=name
             # would limit the local properties.
-            client._connection.api_request(
-                method="GET",
-                path=self.path,
+            client._get_resource(
+                self.path,
                 query_params=query_params,
-                _target_object=None,
                 timeout=timeout,
                 retry=retry,
+                _target_object=None,
             )
+        except NotFound:
             # NOTE: This will not fail immediately in a batch. However, when
             #       Batch.finish() is called, the resulting `NotFound` will be
             #       raised.
-            return True
-        except NotFound:
             return False
+        return True
 
     def delete(
         self,
@@ -2829,13 +2828,12 @@ class Blob(_PropertyMixin):
         if requested_policy_version is not None:
             query_params["optionsRequestedPolicyVersion"] = requested_policy_version
 
-        info = client._connection.api_request(
-            method="GET",
-            path="%s/iam" % (self.path,),
+        info = client._get_resource(
+            "%s/iam" % (self.path,),
             query_params=query_params,
-            _target_object=None,
             timeout=timeout,
             retry=retry,
+            _target_object=None,
         )
         return Policy.from_api_repr(info)
 
@@ -2970,37 +2968,85 @@ class Blob(_PropertyMixin):
             query_params["userProject"] = self.user_project
 
         path = "%s/iam/testPermissions" % (self.path,)
-        resp = client._connection.api_request(
-            method="GET",
-            path=path,
+        resp = client._get_resource(
+            path,
             query_params=query_params,
             timeout=timeout,
             retry=retry,
+            _target_object=None,
         )
 
         return resp.get("permissions", [])
 
-    def make_public(self, client=None):
+    def make_public(
+        self, client=None, timeout=_DEFAULT_TIMEOUT, retry=DEFAULT_RETRY,
+    ):
         """Update blob's ACL, granting read access to anonymous users.
 
         :type client: :class:`~google.cloud.storage.client.Client` or
                       ``NoneType``
         :param client: (Optional) The client to use.  If not passed, falls back
                        to the ``client`` stored on the blob's bucket.
+
+        :type timeout: float or tuple
+        :param timeout: (Optional) The amount of time, in seconds, to wait
+            for the server response. The timeout applies to each underlying
+            request.
+
+            Can also be passed as a tuple (connect_timeout, read_timeout).
+            See :meth:`requests.Session.request` documentation for details.
+
+        :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
+        :param retry: (Optional) How to retry the RPC. A None value will disable retries.
+            A google.api_core.retry.Retry value will enable retries, and the object will
+            define retriable response codes and errors and configure backoff and timeout options.
+
+            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a Retry object and
+            activates it only if certain conditions are met. This class exists to provide safe defaults
+            for RPC calls that are not technically safe to retry normally (due to potential data
+            duplication or other side-effects) but become safe to retry if a condition such as
+            if_metageneration_match is set.
+
+            See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
+            information on retry types and how to configure them.
         """
         self.acl.all().grant_read()
-        self.acl.save(client=client)
+        self.acl.save(client=client, timeout=timeout, retry=retry)
 
-    def make_private(self, client=None):
+    def make_private(
+        self, client=None, timeout=_DEFAULT_TIMEOUT, retry=DEFAULT_RETRY,
+    ):
         """Update blob's ACL, revoking read access for anonymous users.
 
         :type client: :class:`~google.cloud.storage.client.Client` or
                       ``NoneType``
         :param client: (Optional) The client to use.  If not passed, falls back
                        to the ``client`` stored on the blob's bucket.
+
+        :type timeout: float or tuple
+        :param timeout: (Optional) The amount of time, in seconds, to wait
+            for the server response. The timeout applies to each underlying
+            request.
+
+            Can also be passed as a tuple (connect_timeout, read_timeout).
+            See :meth:`requests.Session.request` documentation for details.
+
+        :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
+        :param retry: (Optional) How to retry the RPC. A None value will disable retries.
+            A google.api_core.retry.Retry value will enable retries, and the object will
+            define retriable response codes and errors and configure backoff and timeout options.
+
+            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a Retry object and
+            activates it only if certain conditions are met. This class exists to provide safe defaults
+            for RPC calls that are not technically safe to retry normally (due to potential data
+            duplication or other side-effects) but become safe to retry if a condition such as
+            if_metageneration_match is set.
+
+            See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
+            information on retry types and how to configure them.
         """
         self.acl.all().revoke_read()
-        self.acl.save(client=client)
+        self.acl.save(client=client, timeout=timeout, retry=retry)
 
     def compose(
         self,

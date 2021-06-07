@@ -786,20 +786,19 @@ class Bucket(_PropertyMixin):
         try:
             # We intentionally pass `_target_object=None` since fields=name
             # would limit the local properties.
-            client._connection.api_request(
-                method="GET",
-                path=self.path,
+            client._get_resource(
+                self.path,
                 query_params=query_params,
-                _target_object=None,
                 timeout=timeout,
                 retry=retry,
+                _target_object=None,
             )
+        except NotFound:
             # NOTE: This will not fail immediately in a batch. However, when
             #       Batch.finish() is called, the resulting `NotFound` will be
             #       raised.
-            return True
-        except NotFound:
             return False
+        return True
 
     def create(
         self,
@@ -1066,9 +1065,9 @@ class Bucket(_PropertyMixin):
         # Call the superclass method.
         super(Bucket, self).patch(
             client=client,
-            timeout=timeout,
             if_metageneration_match=if_metageneration_match,
             if_metageneration_not_match=if_metageneration_not_match,
+            timeout=timeout,
             retry=retry,
         )
 
@@ -1994,7 +1993,7 @@ class Bucket(_PropertyMixin):
         )
 
         if not preserve_acl:
-            new_blob.acl.save(acl={}, client=client, timeout=timeout)
+            new_blob.acl.save(acl={}, client=client, timeout=timeout, retry=retry)
 
         new_blob._set_properties(copy_result)
         return new_blob
@@ -2882,13 +2881,12 @@ class Bucket(_PropertyMixin):
         if requested_policy_version is not None:
             query_params["optionsRequestedPolicyVersion"] = requested_policy_version
 
-        info = client._connection.api_request(
-            method="GET",
-            path="%s/iam" % (self.path,),
+        info = client._get_resource(
+            "%s/iam" % (self.path,),
             query_params=query_params,
-            _target_object=None,
             timeout=timeout,
             retry=retry,
+            _target_object=None,
         )
         return Policy.from_api_repr(info)
 
@@ -3008,12 +3006,12 @@ class Bucket(_PropertyMixin):
             query_params["userProject"] = self.user_project
 
         path = "%s/iam/testPermissions" % (self.path,)
-        resp = client._connection.api_request(
-            method="GET",
-            path=path,
+        resp = client._get_resource(
+            path,
             query_params=query_params,
             timeout=timeout,
             retry=retry,
+            _target_object=None,
         )
         return resp.get("permissions", [])
 
@@ -3070,7 +3068,7 @@ class Bucket(_PropertyMixin):
             for each blob.
         """
         self.acl.all().grant_read()
-        self.acl.save(client=client, timeout=timeout)
+        self.acl.save(client=client, timeout=timeout, retry=retry)
 
         if future:
             doa = self.default_object_acl
@@ -3101,7 +3099,7 @@ class Bucket(_PropertyMixin):
 
             for blob in blobs:
                 blob.acl.all().grant_read()
-                blob.acl.save(client=client, timeout=timeout)
+                blob.acl.save(client=client, timeout=timeout, retry=retry)
 
     def make_private(
         self,
@@ -3157,7 +3155,7 @@ class Bucket(_PropertyMixin):
             for each blob.
         """
         self.acl.all().revoke_read()
-        self.acl.save(client=client, timeout=timeout)
+        self.acl.save(client=client, timeout=timeout, retry=retry)
 
         if future:
             doa = self.default_object_acl
@@ -3188,7 +3186,7 @@ class Bucket(_PropertyMixin):
 
             for blob in blobs:
                 blob.acl.all().revoke_read()
-                blob.acl.save(client=client, timeout=timeout)
+                blob.acl.save(client=client, timeout=timeout, retry=retry)
 
     def generate_upload_policy(self, conditions, expiration=None, client=None):
         """Create a signed upload policy for uploading objects.
