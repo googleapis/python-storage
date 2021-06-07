@@ -1730,7 +1730,7 @@ class TestClient(unittest.TestCase):
             expected_timeout = kwargs["timeout"] = timeout
 
         if retry is None:
-            expected_retry = DEFAULT_RETRY
+            expected_retry = None
         else:
             expected_retry = kwargs["retry"] = retry
 

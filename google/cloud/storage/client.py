@@ -1348,7 +1348,7 @@ class Client(ClientWithProject):
         project_id=None,
         user_project=None,
         timeout=_DEFAULT_TIMEOUT,
-        retry=DEFAULT_RETRY,
+        retry=None,
     ):
         """Create an HMAC key for a service account.
 
