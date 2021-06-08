@@ -323,34 +323,33 @@ class TestHMACKeyMetadata(unittest.TestCase):
             retry=retry,
         )
 
-    def test_update_miss_no_project_set(self):
+    def test_update_miss_no_project_set_w_defaults(self):
         from google.cloud.exceptions import NotFound
 
+        project = "PROJECT"
         access_id = "ACCESS-ID"
-        connection = mock.Mock(spec=["api_request"])
-        connection.api_request.side_effect = NotFound("testing")
-        client = _Client(connection)
+        client = mock.Mock(spec=["_put_resource", "project"])
+        client._put_resource.side_effect = NotFound("testing")
+        client.project = project
         metadata = self._make_one(client)
         metadata._properties["accessId"] = access_id
         metadata.state = "INACTIVE"
 
         with self.assertRaises(NotFound):
-            metadata.update(timeout=42)
+            metadata.update()
 
-        expected_path = "/projects/{}/hmacKeys/{}".format(
-            client.DEFAULT_PROJECT, access_id
+        expected_path = "/projects/{}/hmacKeys/{}".format(project, access_id)
+        expected_data = {"state": "INACTIVE"}
+        expected_query_params = {}
+        client._put_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY_IF_ETAG_IN_JSON,
         )
-        expected_kwargs = {
-            "method": "PUT",
-            "path": expected_path,
-            "data": {"state": "INACTIVE"},
-            "query_params": {},
-            "timeout": 42,
-            "retry": DEFAULT_RETRY_IF_ETAG_IN_JSON,
-        }
-        connection.api_request.assert_called_once_with(**expected_kwargs)
 
-    def test_update_hit_w_project_set(self):
+    def test_update_hit_w_project_set_w_timeout_w_retry(self):
         project = "PROJECT-ID"
         access_id = "ACCESS-ID"
         user_project = "billed-project"
@@ -361,86 +360,90 @@ class TestHMACKeyMetadata(unittest.TestCase):
             "serviceAccountEmail": email,
             "state": "ACTIVE",
         }
-        connection = mock.Mock(spec=["api_request"])
-        connection.api_request.return_value = resource
-        client = _Client(connection)
+        client = mock.Mock(spec=["_put_resource"])
+        client._put_resource.return_value = resource
         metadata = self._make_one(client, user_project=user_project)
         metadata._properties["accessId"] = access_id
         metadata._properties["projectId"] = project
         metadata.state = "ACTIVE"
+        timeout = 42
+        retry = mock.Mock(spec=[])
 
-        metadata.update()
+        metadata.update(timeout=42, retry=retry)
 
         self.assertEqual(metadata._properties, resource)
 
         expected_path = "/projects/{}/hmacKeys/{}".format(project, access_id)
-        expected_kwargs = {
-            "method": "PUT",
-            "path": expected_path,
-            "data": {"state": "ACTIVE"},
-            "query_params": {"userProject": user_project},
-            "timeout": self._get_default_timeout(),
-            "retry": DEFAULT_RETRY_IF_ETAG_IN_JSON,
-        }
-        connection.api_request.assert_called_once_with(**expected_kwargs)
+        expected_data = {"state": "ACTIVE"}
+        expected_query_params = {"userProject": user_project}
+        client._put_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            timeout=timeout,
+            retry=retry,
+        )
 
     def test_delete_not_inactive(self):
-        metadata = self._make_one()
+        client = mock.Mock(spec=["_delete_resource", "project"])
+        client.project = "PROJECT"
+        metadata = self._make_one(client)
+
         for state in ("ACTIVE", "DELETED"):
             metadata._properties["state"] = state
 
             with self.assertRaises(ValueError):
                 metadata.delete()
 
-    def test_delete_miss_no_project_set(self):
+        client._delete_resource.assert_not_called()
+
+    def test_delete_miss_no_project_set_w_defaults(self):
         from google.cloud.exceptions import NotFound
 
         access_id = "ACCESS-ID"
-        connection = mock.Mock(spec=["api_request"])
-        connection.api_request.side_effect = NotFound("testing")
-        client = _Client(connection)
+        client = mock.Mock(spec=["_delete_resource", "project"])
+        client._delete_resource.side_effect = NotFound("testing")
+        client.project = "PROJECT"
         metadata = self._make_one(client)
         metadata._properties["accessId"] = access_id
         metadata.state = "INACTIVE"
 
         with self.assertRaises(NotFound):
-            metadata.delete(timeout=42)
+            metadata.delete()
 
-        expected_path = "/projects/{}/hmacKeys/{}".format(
-            client.DEFAULT_PROJECT, access_id
+        expected_path = "/projects/{}/hmacKeys/{}".format(client.project, access_id)
+        expected_query_params = {}
+        client._delete_resource.assert_called_once_with(
+            expected_path,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
         )
-        expected_kwargs = {
-            "method": "DELETE",
-            "path": expected_path,
-            "query_params": {},
-            "timeout": 42,
-            "retry": DEFAULT_RETRY,
-        }
-        connection.api_request.assert_called_once_with(**expected_kwargs)
 
-    def test_delete_hit_w_project_set(self):
+    def test_delete_hit_w_project_set_w_explicit_timeout_retry(self):
         project = "PROJECT-ID"
         access_id = "ACCESS-ID"
         user_project = "billed-project"
-        connection = mock.Mock(spec=["api_request"])
-        connection.api_request.return_value = {}
-        client = _Client(connection)
+        client = mock.Mock(spec=["_delete_resource", "project"])
+        client.project = "CLIENT-PROJECT"
+        client._delete_resource.return_value = {}
         metadata = self._make_one(client, user_project=user_project)
         metadata._properties["accessId"] = access_id
         metadata._properties["projectId"] = project
         metadata.state = "INACTIVE"
+        timeout = 42
+        retry = mock.Mock(spec=[])
 
-        metadata.delete()
+        metadata.delete(timeout=timeout, retry=retry)
 
         expected_path = "/projects/{}/hmacKeys/{}".format(project, access_id)
-        expected_kwargs = {
-            "method": "DELETE",
-            "path": expected_path,
-            "query_params": {"userProject": user_project},
-            "timeout": self._get_default_timeout(),
-            "retry": DEFAULT_RETRY,
-        }
-        connection.api_request.assert_called_once_with(**expected_kwargs)
+        expected_query_params = {"userProject": user_project}
+        client._delete_resource.assert_called_once_with(
+            expected_path,
+            query_params=expected_query_params,
+            timeout=timeout,
+            retry=retry,
+        )
 
 
 class _Client(object):
