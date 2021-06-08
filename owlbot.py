@@ -42,7 +42,7 @@ s.replace(
     "docs/conf.py",
     """\
 intersphinx_mapping = {
-    "python": ("https://python.readthedocs.org/en/latest/", None),
+    "python": \("https://python.readthedocs.org/en/latest/", None\),
 """,
     """\
 intersphinx_mapping = {
