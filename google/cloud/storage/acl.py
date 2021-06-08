@@ -85,6 +85,7 @@ when sending metadata for ACLs to the API.
 """
 
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
+from google.cloud.storage.retry import DEFAULT_RETRY
 
 
 class _ACLEntity(object):
@@ -206,6 +207,7 @@ class ACL(object):
 
     # Subclasses must override to provide these attributes (typically,
     # as properties).
+    client = None
     reload_path = None
     save_path = None
     user_project = None
@@ -430,7 +432,7 @@ class ACL(object):
             client = self.client
         return client
 
-    def reload(self, client=None, timeout=_DEFAULT_TIMEOUT):
+    def reload(self, client=None, timeout=_DEFAULT_TIMEOUT, retry=DEFAULT_RETRY):
         """Reload the ACL data from Cloud Storage.
 
         If :attr:`user_project` is set, bills the API request to that project.
@@ -445,6 +447,15 @@ class ACL(object):
 
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
+
+        :type retry: :class:`~google.api_core.retry.Retry`
+        :param retry: (Optional) How to retry the RPC.
+
+            A None value will disable retries.
+
+            A google.api_core.retry.Retry value will enable retries,
+            and the object will define retriable response codes and errors
+            and configure backoff and timeout options.
         """
         path = self.reload_path
         client = self._require_client(client)
@@ -455,10 +466,11 @@ class ACL(object):
 
         self.entities.clear()
 
-        found = client._connection.api_request(
-            method="GET", path=path, query_params=query_params, timeout=timeout,
+        found = client._get_resource(
+            path, query_params=query_params, timeout=timeout, retry=retry,
         )
         self.loaded = True
+
         for entry in found.get("items", ()):
             self.add_entity(self.entity_from_dict(entry))
 
@@ -483,8 +495,19 @@ class ACL(object):
 
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
+
+        :type retry: :class:`~google.api_core.retry.Retry`
+        :param retry: (Optional) How to retry the RPC.
+
+            A None value will disable retries.
+
+            A google.api_core.retry.Retry value will enable retries,
+            and the object will define retriable response codes and errors
+            and configure backoff and timeout options.
         """
+        client = self._require_client(client)
         query_params = {"projection": "full"}
+
         if predefined is not None:
             acl = []
             query_params[self._PREDEFINED_QUERY_PARAM] = predefined
@@ -493,18 +516,20 @@ class ACL(object):
             query_params["userProject"] = self.user_project
 
         path = self.save_path
-        client = self._require_client(client)
 
-        result = client._connection.api_request(
-            method="PATCH",
-            path=path,
-            data={self._URL_PATH_ELEM: list(acl)},
+        result = client._patch_resource(
+            path,
+            {self._URL_PATH_ELEM: list(acl)},
             query_params=query_params,
             timeout=timeout,
+            retry=None,
         )
+
         self.entities.clear()
+
         for entry in result.get(self._URL_PATH_ELEM, ()):
             self.add_entity(self.entity_from_dict(entry))
+
         self.loaded = True
 
     def save(self, acl=None, client=None, timeout=_DEFAULT_TIMEOUT):

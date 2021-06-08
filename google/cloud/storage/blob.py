@@ -704,20 +704,19 @@ class Blob(_PropertyMixin):
         try:
             # We intentionally pass `_target_object=None` since fields=name
             # would limit the local properties.
-            client._connection.api_request(
-                method="GET",
-                path=self.path,
+            client._get_resource(
+                self.path,
                 query_params=query_params,
-                _target_object=None,
                 timeout=timeout,
                 retry=retry,
+                _target_object=None,
             )
+        except NotFound:
             # NOTE: This will not fail immediately in a batch. However, when
             #       Batch.finish() is called, the resulting `NotFound` will be
             #       raised.
-            return True
-        except NotFound:
             return False
+        return True
 
     def delete(
         self,
@@ -2829,13 +2828,12 @@ class Blob(_PropertyMixin):
         if requested_policy_version is not None:
             query_params["optionsRequestedPolicyVersion"] = requested_policy_version
 
-        info = client._connection.api_request(
-            method="GET",
-            path="%s/iam" % (self.path,),
+        info = client._get_resource(
+            "%s/iam" % (self.path,),
             query_params=query_params,
-            _target_object=None,
             timeout=timeout,
             retry=retry,
+            _target_object=None,
         )
         return Policy.from_api_repr(info)
 
@@ -2900,16 +2898,16 @@ class Blob(_PropertyMixin):
         if self.user_project is not None:
             query_params["userProject"] = self.user_project
 
+        path = "{}/iam".format(self.path)
         resource = policy.to_api_repr()
         resource["resourceId"] = self.path
-        info = client._connection.api_request(
-            method="PUT",
-            path="%s/iam" % (self.path,),
+        info = client._put_resource(
+            path,
+            resource,
             query_params=query_params,
-            data=resource,
-            _target_object=None,
             timeout=timeout,
             retry=retry,
+            _target_object=None,
         )
         return Policy.from_api_repr(info)
 
@@ -2970,37 +2968,53 @@ class Blob(_PropertyMixin):
             query_params["userProject"] = self.user_project
 
         path = "%s/iam/testPermissions" % (self.path,)
-        resp = client._connection.api_request(
-            method="GET",
-            path=path,
+        resp = client._get_resource(
+            path,
             query_params=query_params,
             timeout=timeout,
             retry=retry,
+            _target_object=None,
         )
 
         return resp.get("permissions", [])
 
-    def make_public(self, client=None):
+    def make_public(self, client=None, timeout=_DEFAULT_TIMEOUT):
         """Update blob's ACL, granting read access to anonymous users.
 
         :type client: :class:`~google.cloud.storage.client.Client` or
                       ``NoneType``
         :param client: (Optional) The client to use.  If not passed, falls back
                        to the ``client`` stored on the blob's bucket.
+
+        :type timeout: float or tuple
+        :param timeout: (Optional) The amount of time, in seconds, to wait
+            for the server response. The timeout applies to each underlying
+            request.
+
+            Can also be passed as a tuple (connect_timeout, read_timeout).
+            See :meth:`requests.Session.request` documentation for details.
         """
         self.acl.all().grant_read()
-        self.acl.save(client=client)
+        self.acl.save(client=client, timeout=timeout)
 
-    def make_private(self, client=None):
+    def make_private(self, client=None, timeout=_DEFAULT_TIMEOUT):
         """Update blob's ACL, revoking read access for anonymous users.
 
         :type client: :class:`~google.cloud.storage.client.Client` or
                       ``NoneType``
         :param client: (Optional) The client to use.  If not passed, falls back
                        to the ``client`` stored on the blob's bucket.
+
+        :type timeout: float or tuple
+        :param timeout: (Optional) The amount of time, in seconds, to wait
+            for the server response. The timeout applies to each underlying
+            request.
+
+            Can also be passed as a tuple (connect_timeout, read_timeout).
+            See :meth:`requests.Session.request` documentation for details.
         """
         self.acl.all().revoke_read()
-        self.acl.save(client=client)
+        self.acl.save(client=client, timeout=timeout)
 
     def compose(
         self,
@@ -3118,14 +3132,13 @@ class Blob(_PropertyMixin):
             "sourceObjects": source_objects,
             "destination": self._properties.copy(),
         }
-        api_response = client._connection.api_request(
-            method="POST",
-            path=self.path + "/compose",
+        api_response = client._post_resource(
+            "{}/compose".format(self.path),
+            request,
             query_params=query_params,
-            data=request,
-            _target_object=self,
             timeout=timeout,
             retry=retry,
+            _target_object=self,
         )
         self._set_properties(api_response)
 
@@ -3269,15 +3282,15 @@ class Blob(_PropertyMixin):
             if_source_metageneration_not_match=if_source_metageneration_not_match,
         )
 
-        api_response = client._connection.api_request(
-            method="POST",
-            path=source.path + "/rewriteTo" + self.path,
+        path = "{}/rewriteTo{}".format(source.path, self.path)
+        api_response = client._post_resource(
+            path,
+            self._properties,
             query_params=query_params,
-            data=self._properties,
             headers=headers,
-            _target_object=self,
             timeout=timeout,
             retry=retry,
+            _target_object=self,
         )
         rewritten = int(api_response["totalBytesRewritten"])
         size = int(api_response["objectSize"])

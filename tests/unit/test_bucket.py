@@ -19,17 +19,9 @@ import mock
 import pytest
 
 from google.cloud.storage.retry import DEFAULT_RETRY
+from google.cloud.storage.retry import DEFAULT_RETRY_IF_ETAG_IN_JSON
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_GENERATION_SPECIFIED
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED
-
-
-def _make_connection(*responses):
-    import google.cloud.storage._http
-
-    mock_connection = mock.create_autospec(google.cloud.storage._http.Connection)
-    mock_connection.user_agent = "testing 1.2.3"
-    mock_connection.api_request.side_effect = list(responses)
-    return mock_connection
 
 
 def _create_signing_credentials():
@@ -650,95 +642,72 @@ class Test_Bucket(unittest.TestCase):
         bucket._user_project = USER_PROJECT
         self.assertEqual(bucket.user_project, USER_PROJECT)
 
-    def test_exists_miss(self):
+    def test_exists_miss_w_defaults(self):
         from google.cloud.exceptions import NotFound
 
-        class _FakeConnection(object):
+        bucket_name = "bucket-name"
+        client = mock.Mock(spec=["_get_resource"])
+        client._get_resource.side_effect = NotFound("testing")
+        bucket = self._make_one(client, name=bucket_name)
 
-            _called_with = []
+        self.assertFalse(bucket.exists())
 
-            @classmethod
-            def api_request(cls, *args, **kwargs):
-                cls._called_with.append((args, kwargs))
-                raise NotFound(args)
-
-        BUCKET_NAME = "bucket-name"
-        bucket = self._make_one(name=BUCKET_NAME)
-        client = _Client(_FakeConnection)
-        self.assertFalse(bucket.exists(client=client, timeout=42))
-        expected_called_kwargs = {
-            "method": "GET",
-            "path": bucket.path,
-            "query_params": {"fields": "name"},
-            "_target_object": None,
-            "timeout": 42,
-            "retry": DEFAULT_RETRY,
-        }
-        expected_cw = [((), expected_called_kwargs)]
-        self.assertEqual(_FakeConnection._called_with, expected_cw)
-
-    def test_exists_with_metageneration_match(self):
-        class _FakeConnection(object):
-
-            _called_with = []
-
-            @classmethod
-            def api_request(cls, *args, **kwargs):
-                cls._called_with.append((args, kwargs))
-                # exists() does not use the return value
-                return object()
-
-        BUCKET_NAME = "bucket-name"
-        METAGENERATION_NUMBER = 6
-
-        bucket = self._make_one(name=BUCKET_NAME)
-        client = _Client(_FakeConnection)
-        self.assertTrue(
-            bucket.exists(
-                client=client, timeout=42, if_metageneration_match=METAGENERATION_NUMBER
-            )
+        expected_query_params = {"fields": "name"}
+        client._get_resource.assert_called_once_with(
+            bucket.path,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
+            _target_object=None,
         )
-        expected_called_kwargs = {
-            "method": "GET",
-            "path": bucket.path,
-            "query_params": {
-                "fields": "name",
-                "ifMetagenerationMatch": METAGENERATION_NUMBER,
-            },
-            "_target_object": None,
-            "timeout": 42,
-            "retry": DEFAULT_RETRY,
+
+    def test_exists_w_metageneration_match_w_timeout(self):
+        bucket_name = "bucket-name"
+        metageneration_number = 6
+        timeout = 42
+        api_response = {"name": bucket_name}
+        client = mock.Mock(spec=["_get_resource"])
+        client._get_resource.return_value = api_response
+        bucket = self._make_one(client, name=bucket_name)
+
+        self.assertTrue(
+            bucket.exists(timeout=42, if_metageneration_match=metageneration_number)
+        )
+
+        expected_query_params = {
+            "fields": "name",
+            "ifMetagenerationMatch": metageneration_number,
         }
-        expected_cw = [((), expected_called_kwargs)]
-        self.assertEqual(_FakeConnection._called_with, expected_cw)
+        client._get_resource.assert_called_once_with(
+            bucket.path,
+            query_params=expected_query_params,
+            timeout=timeout,
+            retry=DEFAULT_RETRY,
+            _target_object=None,
+        )
 
-    def test_exists_hit_w_user_project(self):
-        USER_PROJECT = "user-project-123"
+    def test_exists_hit_w_user_project_w_retry_w_explicit_client(self):
+        bucket_name = "bucket-name"
+        user_project = "user-project-123"
+        retry = mock.Mock(spec=[])
+        api_response = {"name": bucket_name}
+        client = mock.Mock(spec=["_get_resource"])
+        client._get_resource.return_value = api_response
+        bucket = self._make_one(name=bucket_name, user_project=user_project)
 
-        class _FakeConnection(object):
+        self.assertTrue(bucket.exists(client=client, retry=retry))
 
-            _called_with = []
-
-            @classmethod
-            def api_request(cls, *args, **kwargs):
-                cls._called_with.append((args, kwargs))
-                # exists() does not use the return value
-                return object()
-
-        BUCKET_NAME = "bucket-name"
-        bucket = self._make_one(name=BUCKET_NAME, user_project=USER_PROJECT)
-        client = _Client(_FakeConnection)
-        self.assertTrue(bucket.exists(client=client))
-        expected_called_kwargs = {
-            "method": "GET",
-            "path": bucket.path,
-            "query_params": {"fields": "name", "userProject": USER_PROJECT},
-            "_target_object": None,
-            "timeout": self._get_default_timeout(),
-            "retry": DEFAULT_RETRY,
+        expected_query_params = {
+            "fields": "name",
+            "userProject": user_project,
         }
-        expected_cw = [((), expected_called_kwargs)]
-        self.assertEqual(_FakeConnection._called_with, expected_cw)
+        client._get_resource.assert_called_once_with(
+            bucket.path,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=retry,
+            _target_object=None,
+        )
 
     def test_acl_property(self):
         from google.cloud.storage.acl import BucketACL
@@ -765,671 +734,921 @@ class Test_Bucket(unittest.TestCase):
         bucket = self._make_one(name=NAME)
         self.assertEqual(bucket.path, "/b/%s" % NAME)
 
-    def test_get_blob_miss(self):
-        NAME = "name"
-        NONESUCH = "nonesuch"
-        connection = _Connection()
-        client = _Client(connection)
-        bucket = self._make_one(name=NAME)
-        result = bucket.get_blob(NONESUCH, client=client, timeout=42)
+    def test_get_blob_miss_w_defaults(self):
+        from google.cloud.exceptions import NotFound
+        from google.cloud.storage.blob import Blob
+
+        name = "name"
+        blob_name = "nonesuch"
+        client = mock.Mock(spec=["_get_resource"])
+        client._get_resource.side_effect = NotFound("testing")
+        bucket = self._make_one(client, name=name)
+
+        result = bucket.get_blob(blob_name)
+
         self.assertIsNone(result)
-        (kw,) = connection._requested
-        self.assertEqual(kw["method"], "GET")
-        self.assertEqual(kw["path"], "/b/%s/o/%s" % (NAME, NONESUCH))
-        self.assertEqual(kw["timeout"], 42)
+
+        expected_path = "/b/%s/o/%s" % (name, blob_name)
+        expected_query_params = {"projection": "noAcl"}
+        expected_headers = {}
+        client._get_resource.assert_called_once_with(
+            expected_path,
+            query_params=expected_query_params,
+            headers=expected_headers,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
+            _target_object=mock.ANY,
+        )
+
+        target = client._get_resource.call_args[1]["_target_object"]
+        self.assertIsInstance(target, Blob)
+        self.assertIs(target.bucket, bucket)
+        self.assertEqual(target.name, blob_name)
 
     def test_get_blob_hit_w_user_project(self):
-        NAME = "name"
-        BLOB_NAME = "blob-name"
-        USER_PROJECT = "user-project-123"
-        connection = _Connection({"name": BLOB_NAME})
-        client = _Client(connection)
-        bucket = self._make_one(name=NAME, user_project=USER_PROJECT)
-        blob = bucket.get_blob(BLOB_NAME, client=client)
+        from google.cloud.storage.blob import Blob
+
+        name = "name"
+        blob_name = "blob-name"
+        user_project = "user-project-123"
+        api_response = {"name": blob_name}
+        client = mock.Mock(spec=["_get_resource"])
+        client._get_resource.return_value = api_response
+        bucket = self._make_one(client, name=name, user_project=user_project)
+
+        blob = bucket.get_blob(blob_name, client=client)
+
+        self.assertIsInstance(blob, Blob)
         self.assertIs(blob.bucket, bucket)
-        self.assertEqual(blob.name, BLOB_NAME)
-        (kw,) = connection._requested
-        expected_qp = {"userProject": USER_PROJECT, "projection": "noAcl"}
-        self.assertEqual(kw["method"], "GET")
-        self.assertEqual(kw["path"], "/b/%s/o/%s" % (NAME, BLOB_NAME))
-        self.assertEqual(kw["query_params"], expected_qp)
-        self.assertEqual(kw["timeout"], self._get_default_timeout())
+        self.assertEqual(blob.name, blob_name)
 
-    def test_get_blob_hit_w_generation(self):
-        NAME = "name"
-        BLOB_NAME = "blob-name"
-        GENERATION = 1512565576797178
-        connection = _Connection({"name": BLOB_NAME, "generation": GENERATION})
-        client = _Client(connection)
-        bucket = self._make_one(name=NAME)
-        blob = bucket.get_blob(BLOB_NAME, client=client, generation=GENERATION)
+        expected_path = "/b/%s/o/%s" % (name, blob_name)
+        expected_query_params = {
+            "userProject": user_project,
+            "projection": "noAcl",
+        }
+        expected_headers = {}
+        client._get_resource.assert_called_once_with(
+            expected_path,
+            query_params=expected_query_params,
+            headers=expected_headers,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
+            _target_object=blob,
+        )
+
+    def test_get_blob_hit_w_generation_w_timeout(self):
+        from google.cloud.storage.blob import Blob
+
+        name = "name"
+        blob_name = "blob-name"
+        generation = 1512565576797178
+        timeout = 42
+        api_response = {"name": blob_name, "generation": generation}
+        client = mock.Mock(spec=["_get_resource"])
+        client._get_resource.return_value = api_response
+        bucket = self._make_one(client, name=name)
+
+        blob = bucket.get_blob(blob_name, generation=generation, timeout=timeout)
+
+        self.assertIsInstance(blob, Blob)
         self.assertIs(blob.bucket, bucket)
-        self.assertEqual(blob.name, BLOB_NAME)
-        self.assertEqual(blob.generation, GENERATION)
-        (kw,) = connection._requested
-        expected_qp = {"generation": GENERATION, "projection": "noAcl"}
-        self.assertEqual(kw["method"], "GET")
-        self.assertEqual(kw["path"], "/b/%s/o/%s" % (NAME, BLOB_NAME))
-        self.assertEqual(kw["query_params"], expected_qp)
-        self.assertEqual(kw["timeout"], self._get_default_timeout())
+        self.assertEqual(blob.name, blob_name)
+        self.assertEqual(blob.generation, generation)
 
-    def test_get_blob_w_generation_match(self):
-        NAME = "name"
-        BLOB_NAME = "blob-name"
-        GENERATION = 1512565576797178
+        expected_path = "/b/%s/o/%s" % (name, blob_name)
+        expected_query_params = {
+            "generation": generation,
+            "projection": "noAcl",
+        }
+        expected_headers = {}
+        client._get_resource.assert_called_once_with(
+            expected_path,
+            query_params=expected_query_params,
+            headers=expected_headers,
+            timeout=timeout,
+            retry=DEFAULT_RETRY,
+            _target_object=blob,
+        )
 
-        connection = _Connection({"name": BLOB_NAME, "generation": GENERATION})
-        client = _Client(connection)
-        bucket = self._make_one(name=NAME)
-        blob = bucket.get_blob(BLOB_NAME, client=client, if_generation_match=GENERATION)
+    def test_get_blob_w_generation_match_w_retry(self):
+        from google.cloud.storage.blob import Blob
 
+        name = "name"
+        blob_name = "blob-name"
+        generation = 1512565576797178
+        retry = mock.Mock(spec=[])
+        api_response = {"name": blob_name, "generation": generation}
+        client = mock.Mock(spec=["_get_resource"])
+        client._get_resource.return_value = api_response
+        bucket = self._make_one(client, name=name)
+
+        blob = bucket.get_blob(blob_name, if_generation_match=generation, retry=retry)
+
+        self.assertIsInstance(blob, Blob)
         self.assertIs(blob.bucket, bucket)
-        self.assertEqual(blob.name, BLOB_NAME)
-        self.assertEqual(blob.generation, GENERATION)
-        (kw,) = connection._requested
-        expected_qp = {"ifGenerationMatch": GENERATION, "projection": "noAcl"}
-        self.assertEqual(kw["method"], "GET")
-        self.assertEqual(kw["path"], "/b/%s/o/%s" % (NAME, BLOB_NAME))
-        self.assertEqual(kw["query_params"], expected_qp)
-        self.assertEqual(kw["timeout"], self._get_default_timeout())
+        self.assertEqual(blob.name, blob_name)
+        self.assertEqual(blob.generation, generation)
 
-    def test_get_blob_hit_with_kwargs(self):
+        expected_path = "/b/%s/o/%s" % (name, blob_name)
+        expected_query_params = {
+            "ifGenerationMatch": generation,
+            "projection": "noAcl",
+        }
+        expected_headers = {}
+        client._get_resource.assert_called_once_with(
+            expected_path,
+            query_params=expected_query_params,
+            headers=expected_headers,
+            timeout=self._get_default_timeout(),
+            retry=retry,
+            _target_object=blob,
+        )
+
+    def test_get_blob_hit_with_kwargs_w_explicit_client(self):
+        from google.cloud.storage.blob import Blob
         from google.cloud.storage.blob import _get_encryption_headers
 
-        NAME = "name"
-        BLOB_NAME = "blob-name"
-        CHUNK_SIZE = 1024 * 1024
-        KEY = b"01234567890123456789012345678901"  # 32 bytes
+        name = "name"
+        blob_name = "blob-name"
+        chunk_size = 1024 * 1024
+        key = b"01234567890123456789012345678901"  # 32 bytes
+        api_response = {"name": blob_name}
+        client = mock.Mock(spec=["_get_resource"])
+        client._get_resource.return_value = api_response
+        bucket = self._make_one(name=name)
 
-        connection = _Connection({"name": BLOB_NAME})
-        client = _Client(connection)
-        bucket = self._make_one(name=NAME)
         blob = bucket.get_blob(
-            BLOB_NAME, client=client, encryption_key=KEY, chunk_size=CHUNK_SIZE
+            blob_name, client=client, encryption_key=key, chunk_size=chunk_size
         )
+
+        self.assertIsInstance(blob, Blob)
         self.assertIs(blob.bucket, bucket)
-        self.assertEqual(blob.name, BLOB_NAME)
-        (kw,) = connection._requested
-        self.assertEqual(kw["method"], "GET")
-        self.assertEqual(kw["path"], "/b/%s/o/%s" % (NAME, BLOB_NAME))
-        self.assertEqual(kw["headers"], _get_encryption_headers(KEY))
-        self.assertEqual(kw["timeout"], self._get_default_timeout())
-        self.assertEqual(blob.chunk_size, CHUNK_SIZE)
-        self.assertEqual(blob._encryption_key, KEY)
+        self.assertEqual(blob.name, blob_name)
+        self.assertEqual(blob.chunk_size, chunk_size)
+        self.assertEqual(blob._encryption_key, key)
 
-    def test_list_blobs_defaults(self):
-        NAME = "name"
-        connection = _Connection({"items": []})
-        client = self._make_client()
-        client._base_connection = connection
-        bucket = self._make_one(client=client, name=NAME)
-        iterator = bucket.list_blobs()
-        blobs = list(iterator)
-        self.assertEqual(blobs, [])
-        (kw,) = connection._requested
-        self.assertEqual(kw["method"], "GET")
-        self.assertEqual(kw["path"], "/b/%s/o" % NAME)
-        self.assertEqual(kw["query_params"], {"projection": "noAcl"})
-        self.assertEqual(kw["timeout"], self._get_default_timeout())
-
-    def test_list_blobs_w_all_arguments_and_user_project(self):
-        NAME = "name"
-        USER_PROJECT = "user-project-123"
-        MAX_RESULTS = 10
-        PAGE_TOKEN = "ABCD"
-        PREFIX = "subfolder"
-        DELIMITER = "/"
-        START_OFFSET = "c"
-        END_OFFSET = "g"
-        INCLUDE_TRAILING_DELIMITER = True
-        VERSIONS = True
-        PROJECTION = "full"
-        FIELDS = "items/contentLanguage,nextPageToken"
-        EXPECTED = {
-            "maxResults": 10,
-            "pageToken": PAGE_TOKEN,
-            "prefix": PREFIX,
-            "delimiter": DELIMITER,
-            "startOffset": START_OFFSET,
-            "endOffset": END_OFFSET,
-            "includeTrailingDelimiter": INCLUDE_TRAILING_DELIMITER,
-            "versions": VERSIONS,
-            "projection": PROJECTION,
-            "fields": FIELDS,
-            "userProject": USER_PROJECT,
+        expected_path = "/b/%s/o/%s" % (name, blob_name)
+        expected_query_params = {
+            "projection": "noAcl",
         }
-        connection = _Connection({"items": []})
+        expected_headers = _get_encryption_headers(key)
+        client._get_resource.assert_called_once_with(
+            expected_path,
+            query_params=expected_query_params,
+            headers=expected_headers,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
+            _target_object=blob,
+        )
+
+    def test_list_blobs_w_defaults(self):
+        name = "name"
         client = self._make_client()
-        client._base_connection = connection
-        bucket = self._make_one(name=NAME, user_project=USER_PROJECT)
+        client.list_blobs = mock.Mock(spec=[])
+        bucket = self._make_one(client=client, name=name)
+
+        iterator = bucket.list_blobs()
+
+        self.assertIs(iterator, client.list_blobs.return_value)
+
+        expected_page_token = None
+        expected_max_results = None
+        expected_prefix = None
+        expected_delimiter = None
+        expected_start_offset = None
+        expected_end_offset = None
+        expected_include_trailing_delimiter = None
+        expected_versions = None
+        expected_projection = "noAcl"
+        expected_fields = None
+        client.list_blobs.assert_called_once_with(
+            bucket,
+            max_results=expected_max_results,
+            page_token=expected_page_token,
+            prefix=expected_prefix,
+            delimiter=expected_delimiter,
+            start_offset=expected_start_offset,
+            end_offset=expected_end_offset,
+            include_trailing_delimiter=expected_include_trailing_delimiter,
+            versions=expected_versions,
+            projection=expected_projection,
+            fields=expected_fields,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
+        )
+
+    def test_list_blobs_w_explicit(self):
+        name = "name"
+        max_results = 10
+        page_token = "ABCD"
+        prefix = "subfolder"
+        delimiter = "/"
+        start_offset = "c"
+        end_offset = "g"
+        include_trailing_delimiter = True
+        versions = True
+        projection = "full"
+        fields = "items/contentLanguage,nextPageToken"
+        bucket = self._make_one(client=None, name=name)
+        other_client = self._make_client()
+        other_client.list_blobs = mock.Mock(spec=[])
+        timeout = 42
+        retry = mock.Mock(spec=[])
+
         iterator = bucket.list_blobs(
-            max_results=MAX_RESULTS,
-            page_token=PAGE_TOKEN,
-            prefix=PREFIX,
-            delimiter=DELIMITER,
-            start_offset=START_OFFSET,
-            end_offset=END_OFFSET,
-            include_trailing_delimiter=INCLUDE_TRAILING_DELIMITER,
-            versions=VERSIONS,
-            projection=PROJECTION,
-            fields=FIELDS,
-            client=client,
-            timeout=42,
+            max_results=max_results,
+            page_token=page_token,
+            prefix=prefix,
+            delimiter=delimiter,
+            start_offset=start_offset,
+            end_offset=end_offset,
+            include_trailing_delimiter=include_trailing_delimiter,
+            versions=versions,
+            projection=projection,
+            fields=fields,
+            client=other_client,
+            timeout=timeout,
+            retry=retry,
         )
-        blobs = list(iterator)
-        self.assertEqual(blobs, [])
-        (kw,) = connection._requested
-        self.assertEqual(kw["method"], "GET")
-        self.assertEqual(kw["path"], "/b/%s/o" % NAME)
-        self.assertEqual(kw["query_params"], EXPECTED)
-        self.assertEqual(kw["timeout"], 42)
 
-    def test_list_notifications(self):
+        self.assertIs(iterator, other_client.list_blobs.return_value)
+
+        expected_page_token = page_token
+        expected_max_results = max_results
+        expected_prefix = prefix
+        expected_delimiter = delimiter
+        expected_start_offset = start_offset
+        expected_end_offset = end_offset
+        expected_include_trailing_delimiter = include_trailing_delimiter
+        expected_versions = versions
+        expected_projection = projection
+        expected_fields = fields
+        other_client.list_blobs.assert_called_once_with(
+            bucket,
+            max_results=expected_max_results,
+            page_token=expected_page_token,
+            prefix=expected_prefix,
+            delimiter=expected_delimiter,
+            start_offset=expected_start_offset,
+            end_offset=expected_end_offset,
+            include_trailing_delimiter=expected_include_trailing_delimiter,
+            versions=expected_versions,
+            projection=expected_projection,
+            fields=expected_fields,
+            timeout=timeout,
+            retry=retry,
+        )
+
+    def test_list_notifications_w_defaults(self):
+        from google.cloud.storage.bucket import _item_to_notification
+
+        bucket_name = "name"
+        client = self._make_client()
+        client._list_resource = mock.Mock(spec=[])
+        bucket = self._make_one(client=client, name=bucket_name)
+
+        iterator = bucket.list_notifications()
+
+        self.assertIs(iterator, client._list_resource.return_value)
+        self.assertIs(iterator.bucket, bucket)
+
+        expected_path = "/b/{}/notificationConfigs".format(bucket_name)
+        expected_item_to_value = _item_to_notification
+        client._list_resource.assert_called_once_with(
+            expected_path,
+            expected_item_to_value,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
+        )
+
+    def test_list_notifications_w_explicit(self):
+        from google.cloud.storage.bucket import _item_to_notification
+
+        bucket_name = "name"
+        other_client = self._make_client()
+        other_client._list_resource = mock.Mock(spec=[])
+        bucket = self._make_one(client=None, name=bucket_name)
+        timeout = 42
+        retry = mock.Mock(spec=[])
+
+        iterator = bucket.list_notifications(
+            client=other_client, timeout=timeout, retry=retry,
+        )
+
+        self.assertIs(iterator, other_client._list_resource.return_value)
+        self.assertIs(iterator.bucket, bucket)
+
+        expected_path = "/b/{}/notificationConfigs".format(bucket_name)
+        expected_item_to_value = _item_to_notification
+        other_client._list_resource.assert_called_once_with(
+            expected_path, expected_item_to_value, timeout=timeout, retry=retry,
+        )
+
+    def test_get_notification_miss_w_defaults(self):
+        from google.cloud.exceptions import NotFound
+
+        project = "my-project-123"
+        name = "name"
+        notification_id = "1"
+
+        client = mock.Mock(spec=["_get_resource", "project"])
+        client._get_resource.side_effect = NotFound("testing")
+        client.project = project
+        bucket = self._make_one(client=client, name=name)
+
+        with self.assertRaises(NotFound):
+            bucket.get_notification(notification_id=notification_id)
+
+        expected_path = "/b/{}/notificationConfigs/{}".format(name, notification_id)
+        expected_query_params = {}
+        client._get_resource.assert_called_once_with(
+            expected_path,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
+        )
+
+    def test_get_notification_hit_w_explicit_w_user_project(self):
         from google.cloud.storage.notification import BucketNotification
-        from google.cloud.storage.notification import _TOPIC_REF_FMT
-        from google.cloud.storage.notification import (
-            JSON_API_V1_PAYLOAD_FORMAT,
-            NONE_PAYLOAD_FORMAT,
-        )
-
-        NAME = "name"
-
-        topic_refs = [("my-project-123", "topic-1"), ("other-project-456", "topic-2")]
-
-        resources = [
-            {
-                "topic": _TOPIC_REF_FMT.format(*topic_refs[0]),
-                "id": "1",
-                "etag": "DEADBEEF",
-                "selfLink": "https://example.com/notification/1",
-                "payload_format": NONE_PAYLOAD_FORMAT,
-            },
-            {
-                "topic": _TOPIC_REF_FMT.format(*topic_refs[1]),
-                "id": "2",
-                "etag": "FACECABB",
-                "selfLink": "https://example.com/notification/2",
-                "payload_format": JSON_API_V1_PAYLOAD_FORMAT,
-            },
-        ]
-        connection = _Connection({"items": resources})
-        client = _Client(connection)
-        bucket = self._make_one(client=client, name=NAME)
-
-        notifications = list(bucket.list_notifications(timeout=42))
-
-        req_args = client._connection._requested[0]
-        self.assertEqual(req_args.get("timeout"), 42)
-
-        self.assertEqual(len(notifications), len(resources))
-        for notification, resource, topic_ref in zip(
-            notifications, resources, topic_refs
-        ):
-            self.assertIsInstance(notification, BucketNotification)
-            self.assertEqual(notification.topic_project, topic_ref[0])
-            self.assertEqual(notification.topic_name, topic_ref[1])
-            self.assertEqual(notification.notification_id, resource["id"])
-            self.assertEqual(notification.etag, resource["etag"])
-            self.assertEqual(notification.self_link, resource["selfLink"])
-            self.assertEqual(
-                notification.custom_attributes, resource.get("custom_attributes")
-            )
-            self.assertEqual(notification.event_types, resource.get("event_types"))
-            self.assertEqual(
-                notification.blob_name_prefix, resource.get("blob_name_prefix")
-            )
-            self.assertEqual(
-                notification.payload_format, resource.get("payload_format")
-            )
-
-    def test_get_notification(self):
         from google.cloud.storage.notification import _TOPIC_REF_FMT
         from google.cloud.storage.notification import JSON_API_V1_PAYLOAD_FORMAT
 
-        NAME = "name"
-        ETAG = "FACECABB"
-        NOTIFICATION_ID = "1"
-        SELF_LINK = "https://example.com/notification/1"
-        resources = {
+        project = "my-project-123"
+        user_project = "user-project-456"
+        name = "name"
+        etag = "FACECABB"
+        notification_id = "1"
+        self_link = "https://example.com/notification/1"
+        api_response = {
             "topic": _TOPIC_REF_FMT.format("my-project-123", "topic-1"),
-            "id": NOTIFICATION_ID,
-            "etag": ETAG,
-            "selfLink": SELF_LINK,
+            "id": notification_id,
+            "etag": etag,
+            "selfLink": self_link,
             "payload_format": JSON_API_V1_PAYLOAD_FORMAT,
         }
+        timeout = 42
+        retry = mock.Mock(spec=[])
+        client = mock.Mock(spec=["_get_resource", "project"])
+        client._get_resource.return_value = api_response
+        client.project = project
+        bucket = self._make_one(client=client, name=name, user_project=user_project)
 
-        connection = _make_connection(resources)
-        client = _Client(connection, project="my-project-123")
-        bucket = self._make_one(client=client, name=NAME)
-        notification = bucket.get_notification(notification_id=NOTIFICATION_ID)
+        notification = bucket.get_notification(
+            notification_id=notification_id, timeout=timeout, retry=retry,
+        )
 
-        self.assertEqual(notification.notification_id, NOTIFICATION_ID)
-        self.assertEqual(notification.etag, ETAG)
-        self.assertEqual(notification.self_link, SELF_LINK)
+        self.assertIsInstance(notification, BucketNotification)
+        self.assertEqual(notification.notification_id, notification_id)
+        self.assertEqual(notification.etag, etag)
+        self.assertEqual(notification.self_link, self_link)
         self.assertIsNone(notification.custom_attributes)
         self.assertIsNone(notification.event_types)
         self.assertIsNone(notification.blob_name_prefix)
         self.assertEqual(notification.payload_format, JSON_API_V1_PAYLOAD_FORMAT)
 
-    def test_get_notification_miss(self):
+        expected_path = "/b/{}/notificationConfigs/{}".format(name, notification_id)
+        expected_query_params = {"userProject": user_project}
+        client._get_resource.assert_called_once_with(
+            expected_path,
+            query_params=expected_query_params,
+            timeout=timeout,
+            retry=retry,
+        )
+
+    def test_delete_miss_w_defaults(self):
         from google.cloud.exceptions import NotFound
 
-        response = NotFound("testing")
-        connection = _make_connection(response)
-        client = _Client(connection, project="my-project-123")
-        bucket = self._make_one(client=client, name="name")
+        name = "name"
+        client = mock.Mock(spec=["_delete_resource"])
+        client._delete_resource.side_effect = NotFound("testing")
+        bucket = self._make_one(client=client, name=name)
+
         with self.assertRaises(NotFound):
-            bucket.get_notification(notification_id="1")
+            bucket.delete()
 
-    def test_delete_miss(self):
+        expected_query_params = {}
+        client._delete_resource.assert_called_once_with(
+            bucket.path,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
+            _target_object=None,
+        )
+
+    def test_delete_hit_w_metageneration_match_w_explicit_client(self):
+        name = "name"
+        metageneration_number = 6
+        client = mock.Mock(spec=["_delete_resource"])
+        client._delete_resource.return_value = None
+        bucket = self._make_one(client=None, name=name)
+
+        result = bucket.delete(
+            client=client, if_metageneration_match=metageneration_number,
+        )
+
+        self.assertIsNone(result)
+
+        expected_query_params = {"ifMetagenerationMatch": metageneration_number}
+        client._delete_resource.assert_called_once_with(
+            bucket.path,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
+            _target_object=None,
+        )
+
+    def test_delete_hit_w_force_w_user_project_w_explicit_timeout_retry(self):
+        name = "name"
+        user_project = "user-project-123"
+        client = mock.Mock(spec=["_delete_resource"])
+        client._delete_resource.return_value = None
+        bucket = self._make_one(client=client, name=name, user_project=user_project)
+        bucket.list_blobs = mock.Mock(return_value=iter([]))
+        bucket.delete_blobs = mock.Mock(return_value=None)
+        timeout = 42
+        retry = mock.Mock(spec=[])
+
+        result = bucket.delete(force=True, timeout=timeout, retry=retry)
+
+        self.assertIsNone(result)
+
+        bucket.list_blobs.assert_called_once_with(
+            max_results=bucket._MAX_OBJECTS_FOR_ITERATION + 1,
+            client=client,
+            timeout=timeout,
+            retry=retry,
+        )
+
+        bucket.delete_blobs.assert_called_once_with(
+            [], on_error=mock.ANY, client=client, timeout=timeout, retry=retry,
+        )
+
+        expected_query_params = {"userProject": user_project}
+        client._delete_resource.assert_called_once_with(
+            bucket.path,
+            query_params=expected_query_params,
+            timeout=timeout,
+            retry=retry,
+            _target_object=None,
+        )
+
+    def test_delete_hit_w_force_delete_blobs(self):
+        name = "name"
+        client = mock.Mock(spec=["_delete_resource"])
+        client._delete_resource.return_value = None
+        bucket = self._make_one(client=client, name=name)
+        blobs = [mock.Mock(spec=[]), mock.Mock(spec=[])]
+        bucket.list_blobs = mock.Mock(return_value=iter(blobs))
+        bucket.delete_blobs = mock.Mock(return_value=None)
+
+        result = bucket.delete(force=True)
+
+        self.assertIsNone(result)
+
+        bucket.list_blobs.assert_called_once_with(
+            max_results=bucket._MAX_OBJECTS_FOR_ITERATION + 1,
+            client=client,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
+        )
+
+        bucket.delete_blobs.assert_called_once_with(
+            blobs,
+            on_error=mock.ANY,
+            client=client,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
+        )
+
+        expected_query_params = {}
+        client._delete_resource.assert_called_once_with(
+            bucket.path,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
+            _target_object=None,
+        )
+
+    def test_delete_w_force_w_user_project_w_miss_on_blob(self):
         from google.cloud.exceptions import NotFound
 
-        NAME = "name"
-        connection = _Connection()
-        client = _Client(connection)
-        bucket = self._make_one(client=client, name=NAME)
-        self.assertRaises(NotFound, bucket.delete)
-        expected_cw = [
-            {
-                "method": "DELETE",
-                "path": bucket.path,
-                "query_params": {},
-                "_target_object": None,
-                "timeout": self._get_default_timeout(),
-                "retry": DEFAULT_RETRY,
-            }
-        ]
-        self.assertEqual(connection._deleted_buckets, expected_cw)
+        name = "name"
+        blob_name = "blob-name"
+        client = mock.Mock(spec=["_delete_resource"])
+        client._delete_resource.return_value = None
+        bucket = self._make_one(client=client, name=name)
+        blob = mock.Mock(spec=["name"])
+        blob.name = blob_name
+        blobs = [blob]
+        bucket.list_blobs = mock.Mock(return_value=iter(blobs))
+        bucket.delete_blob = mock.Mock(side_effect=NotFound("testing"))
 
-    def test_delete_hit_with_user_project(self):
-        NAME = "name"
-        USER_PROJECT = "user-project-123"
-        GET_BLOBS_RESP = {"items": []}
-        connection = _Connection(GET_BLOBS_RESP)
-        connection._delete_bucket = True
-        client = self._make_client()
-        client._base_connection = connection
-        bucket = self._make_one(client=client, name=NAME, user_project=USER_PROJECT)
-        result = bucket.delete(force=True, timeout=42)
-        self.assertIsNone(result)
-        expected_cw = [
-            {
-                "method": "DELETE",
-                "path": bucket.path,
-                "_target_object": None,
-                "query_params": {"userProject": USER_PROJECT},
-                "timeout": 42,
-                "retry": DEFAULT_RETRY,
-            }
-        ]
-        self.assertEqual(connection._deleted_buckets, expected_cw)
-
-    def test_delete_force_delete_blobs(self):
-        NAME = "name"
-        BLOB_NAME1 = "blob-name1"
-        BLOB_NAME2 = "blob-name2"
-        GET_BLOBS_RESP = {"items": [{"name": BLOB_NAME1}, {"name": BLOB_NAME2}]}
-        DELETE_BLOB1_RESP = DELETE_BLOB2_RESP = {}
-        connection = _Connection(GET_BLOBS_RESP, DELETE_BLOB1_RESP, DELETE_BLOB2_RESP)
-        connection._delete_bucket = True
-        client = self._make_client()
-        client._base_connection = connection
-        bucket = self._make_one(client=client, name=NAME)
         result = bucket.delete(force=True)
+
         self.assertIsNone(result)
-        expected_cw = [
-            {
-                "method": "DELETE",
-                "path": bucket.path,
-                "query_params": {},
-                "_target_object": None,
-                "timeout": self._get_default_timeout(),
-                "retry": DEFAULT_RETRY,
-            }
-        ]
-        self.assertEqual(connection._deleted_buckets, expected_cw)
 
-    def test_delete_with_metageneration_match(self):
-        NAME = "name"
-        BLOB_NAME1 = "blob-name1"
-        BLOB_NAME2 = "blob-name2"
-        GET_BLOBS_RESP = {"items": [{"name": BLOB_NAME1}, {"name": BLOB_NAME2}]}
-        DELETE_BLOB1_RESP = DELETE_BLOB2_RESP = {}
-        METAGENERATION_NUMBER = 6
+        bucket.delete_blob.assert_called_once_with(
+            blob_name,
+            client=client,
+            if_generation_match=None,
+            if_generation_not_match=None,
+            if_metageneration_match=None,
+            if_metageneration_not_match=None,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
+        )
 
-        connection = _Connection(GET_BLOBS_RESP, DELETE_BLOB1_RESP, DELETE_BLOB2_RESP)
-        connection._delete_bucket = True
-        client = _Client(connection)
-        bucket = self._make_one(client=client, name=NAME)
-        result = bucket.delete(if_metageneration_match=METAGENERATION_NUMBER)
-        self.assertIsNone(result)
-        expected_cw = [
-            {
-                "method": "DELETE",
-                "path": bucket.path,
-                "query_params": {"ifMetagenerationMatch": METAGENERATION_NUMBER},
-                "_target_object": None,
-                "timeout": self._get_default_timeout(),
-                "retry": DEFAULT_RETRY,
-            }
-        ]
-        self.assertEqual(connection._deleted_buckets, expected_cw)
+        expected_query_params = {}
+        client._delete_resource.assert_called_once_with(
+            bucket.path,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
+            _target_object=None,
+        )
 
-    def test_delete_force_miss_blobs(self):
-        NAME = "name"
-        BLOB_NAME = "blob-name1"
-        GET_BLOBS_RESP = {"items": [{"name": BLOB_NAME}]}
-        # Note the connection does not have a response for the blob.
-        connection = _Connection(GET_BLOBS_RESP)
-        connection._delete_bucket = True
-        client = self._make_client()
-        client._base_connection = connection
-        bucket = self._make_one(client=client, name=NAME)
-        result = bucket.delete(force=True)
-        self.assertIsNone(result)
-        expected_cw = [
-            {
-                "method": "DELETE",
-                "path": bucket.path,
-                "query_params": {},
-                "_target_object": None,
-                "timeout": self._get_default_timeout(),
-                "retry": DEFAULT_RETRY,
-            }
-        ]
-        self.assertEqual(connection._deleted_buckets, expected_cw)
-
-    def test_delete_too_many(self):
-        NAME = "name"
-        BLOB_NAME1 = "blob-name1"
-        BLOB_NAME2 = "blob-name2"
-        GET_BLOBS_RESP = {"items": [{"name": BLOB_NAME1}, {"name": BLOB_NAME2}]}
-        connection = _Connection(GET_BLOBS_RESP)
-        connection._delete_bucket = True
-        client = self._make_client()
-        client._base_connection = connection
-        bucket = self._make_one(client=client, name=NAME)
-
+    def test_delete_w_too_many(self):
+        name = "name"
+        blob_name1 = "blob-name1"
+        blob_name2 = "blob-name2"
+        client = mock.Mock(spec=["_delete_resource"])
+        client._delete_resource.return_value = None
+        bucket = self._make_one(client=client, name=name)
+        blob1 = mock.Mock(spec=["name"])
+        blob1.name = blob_name1
+        blob2 = mock.Mock(spec=["name"])
+        blob2.name = blob_name2
+        blobs = [blob1, blob2]
+        bucket.list_blobs = mock.Mock(return_value=iter(blobs))
+        bucket.delete_blobs = mock.Mock()
         # Make the Bucket refuse to delete with 2 objects.
         bucket._MAX_OBJECTS_FOR_ITERATION = 1
-        self.assertRaises(ValueError, bucket.delete, force=True)
-        self.assertEqual(connection._deleted_buckets, [])
 
-    def test_delete_blob_miss(self):
+        with self.assertRaises(ValueError):
+            bucket.delete(force=True)
+
+        bucket.delete_blobs.assert_not_called()
+
+    def test_delete_blob_miss_w_defaults(self):
         from google.cloud.exceptions import NotFound
 
-        NAME = "name"
-        NONESUCH = "nonesuch"
-        connection = _Connection()
-        client = _Client(connection)
-        bucket = self._make_one(client=client, name=NAME)
-        self.assertRaises(NotFound, bucket.delete_blob, NONESUCH)
-        (kw,) = connection._requested
-        self.assertEqual(kw["method"], "DELETE")
-        self.assertEqual(kw["path"], "/b/%s/o/%s" % (NAME, NONESUCH))
-        self.assertEqual(kw["query_params"], {})
-        self.assertEqual(kw["timeout"], self._get_default_timeout())
+        name = "name"
+        blob_name = "nonesuch"
+        client = mock.Mock(spec=["_delete_resource"])
+        client._delete_resource.side_effect = NotFound("testing")
+        bucket = self._make_one(client=client, name=name)
 
-    def test_delete_blob_hit_with_user_project(self):
-        NAME = "name"
-        BLOB_NAME = "blob-name"
-        USER_PROJECT = "user-project-123"
-        connection = _Connection({})
-        client = _Client(connection)
-        bucket = self._make_one(client=client, name=NAME, user_project=USER_PROJECT)
-        result = bucket.delete_blob(BLOB_NAME, timeout=42)
+        with self.assertRaises(NotFound):
+            bucket.delete_blob(blob_name)
+
+        expected_path = "/b/%s/o/%s" % (name, blob_name)
+        expected_query_params = {}
+        client._delete_resource.assert_called_once_with(
+            expected_path,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+            _target_object=None,
+        )
+
+    def test_delete_blob_hit_w_user_project_w_timeout(self):
+        name = "name"
+        blob_name = "blob-name"
+        user_project = "user-project-123"
+        client = mock.Mock(spec=["_delete_resource"])
+        client._delete_resource.return_value = None
+        bucket = self._make_one(client=client, name=name, user_project=user_project)
+        timeout = 42
+
+        result = bucket.delete_blob(blob_name, timeout=timeout)
+
         self.assertIsNone(result)
-        (kw,) = connection._requested
-        self.assertEqual(kw["method"], "DELETE")
-        self.assertEqual(kw["path"], "/b/%s/o/%s" % (NAME, BLOB_NAME))
-        self.assertEqual(kw["query_params"], {"userProject": USER_PROJECT})
-        self.assertEqual(kw["timeout"], 42)
-        self.assertEqual(kw["retry"], DEFAULT_RETRY_IF_GENERATION_SPECIFIED)
 
-    def test_delete_blob_hit_with_generation(self):
-        NAME = "name"
-        BLOB_NAME = "blob-name"
-        GENERATION = 1512565576797178
-        connection = _Connection({})
-        client = _Client(connection)
-        bucket = self._make_one(client=client, name=NAME)
-        result = bucket.delete_blob(BLOB_NAME, generation=GENERATION)
+        expected_path = "/b/%s/o/%s" % (name, blob_name)
+        expected_query_params = {"userProject": user_project}
+        client._delete_resource.assert_called_once_with(
+            expected_path,
+            query_params=expected_query_params,
+            timeout=timeout,
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+            _target_object=None,
+        )
+
+    def test_delete_blob_hit_w_generation_w_retry(self):
+        name = "name"
+        blob_name = "blob-name"
+        generation = 1512565576797178
+        client = mock.Mock(spec=["_delete_resource"])
+        client._delete_resource.return_value = None
+        bucket = self._make_one(client=client, name=name)
+        retry = mock.Mock(spec=[])
+
+        result = bucket.delete_blob(blob_name, generation=generation, retry=retry)
+
         self.assertIsNone(result)
-        (kw,) = connection._requested
-        self.assertEqual(kw["method"], "DELETE")
-        self.assertEqual(kw["path"], "/b/%s/o/%s" % (NAME, BLOB_NAME))
-        self.assertEqual(kw["query_params"], {"generation": GENERATION})
-        self.assertEqual(kw["timeout"], self._get_default_timeout())
-        self.assertEqual(kw["retry"], DEFAULT_RETRY_IF_GENERATION_SPECIFIED)
 
-    def test_delete_blob_with_generation_match(self):
-        NAME = "name"
-        BLOB_NAME = "blob-name"
-        GENERATION = 6
-        METAGENERATION = 9
+        expected_path = "/b/%s/o/%s" % (name, blob_name)
+        expected_query_params = {"generation": generation}
+        client._delete_resource.assert_called_once_with(
+            expected_path,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=retry,
+            _target_object=None,
+        )
 
-        connection = _Connection({})
-        client = _Client(connection)
-        bucket = self._make_one(client=client, name=NAME)
+    def test_delete_blob_hit_w_generation_match(self):
+        name = "name"
+        blob_name = "blob-name"
+        generation = 6
+        metageneration = 9
+        client = mock.Mock(spec=["_delete_resource"])
+        client._delete_resource.return_value = None
+        bucket = self._make_one(client=client, name=name)
+
         result = bucket.delete_blob(
-            BLOB_NAME,
-            if_generation_match=GENERATION,
-            if_metageneration_match=METAGENERATION,
+            blob_name,
+            if_generation_match=generation,
+            if_metageneration_match=metageneration,
         )
 
         self.assertIsNone(result)
-        (kw,) = connection._requested
-        self.assertEqual(kw["method"], "DELETE")
-        self.assertEqual(kw["path"], "/b/%s/o/%s" % (NAME, BLOB_NAME))
-        self.assertEqual(
-            kw["query_params"],
-            {"ifGenerationMatch": GENERATION, "ifMetagenerationMatch": METAGENERATION},
+
+        expected_path = "/b/%s/o/%s" % (name, blob_name)
+        expected_query_params = {
+            "ifGenerationMatch": generation,
+            "ifMetagenerationMatch": metageneration,
+        }
+        client._delete_resource.assert_called_once_with(
+            expected_path,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+            _target_object=None,
         )
-        self.assertEqual(kw["timeout"], self._get_default_timeout())
-        self.assertEqual(kw["retry"], DEFAULT_RETRY_IF_GENERATION_SPECIFIED)
 
     def test_delete_blobs_empty(self):
-        NAME = "name"
-        connection = _Connection()
-        client = _Client(connection)
-        bucket = self._make_one(client=client, name=NAME)
+        name = "name"
+        bucket = self._make_one(client=None, name=name)
+        bucket.delete_blob = mock.Mock()
+
         bucket.delete_blobs([])
-        self.assertEqual(connection._requested, [])
 
-    def test_delete_blobs_hit_w_user_project(self):
-        NAME = "name"
-        BLOB_NAME = "blob-name"
-        USER_PROJECT = "user-project-123"
-        connection = _Connection({})
-        client = _Client(connection)
-        bucket = self._make_one(client=client, name=NAME, user_project=USER_PROJECT)
-        bucket.delete_blobs([BLOB_NAME], timeout=42)
-        kw = connection._requested
-        self.assertEqual(len(kw), 1)
-        self.assertEqual(kw[0]["method"], "DELETE")
-        self.assertEqual(kw[0]["path"], "/b/%s/o/%s" % (NAME, BLOB_NAME))
-        self.assertEqual(kw[0]["query_params"], {"userProject": USER_PROJECT})
-        self.assertEqual(kw[0]["timeout"], 42)
-        self.assertEqual(kw[0]["retry"], DEFAULT_RETRY_IF_GENERATION_SPECIFIED)
+        bucket.delete_blob.assert_not_called()
 
-    def test_delete_blobs_w_generation_match(self):
-        NAME = "name"
-        BLOB_NAME = "blob-name"
-        BLOB_NAME2 = "blob-name2"
-        GENERATION_NUMBER = 6
-        GENERATION_NUMBER2 = 9
+    def test_delete_blobs_hit_w_explicit_client_w_timeout(self):
+        name = "name"
+        blob_name = "blob-name"
+        client = mock.Mock(spec=[])
+        bucket = self._make_one(client=None, name=name)
+        bucket.delete_blob = mock.Mock()
+        timeout = 42
 
-        connection = _Connection({}, {})
-        client = _Client(connection)
-        bucket = self._make_one(client=client, name=NAME)
-        bucket.delete_blobs(
-            [BLOB_NAME, BLOB_NAME2],
-            timeout=42,
-            if_generation_match=[GENERATION_NUMBER, GENERATION_NUMBER2],
+        bucket.delete_blobs([blob_name], client=client, timeout=timeout)
+
+        bucket.delete_blob.assert_called_once_with(
+            blob_name,
+            client=client,
+            if_generation_match=None,
+            if_generation_not_match=None,
+            if_metageneration_match=None,
+            if_metageneration_not_match=None,
+            timeout=timeout,
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
         )
-        kw = connection._requested
-        self.assertEqual(len(kw), 2)
-
-        self.assertEqual(kw[0]["method"], "DELETE")
-        self.assertEqual(kw[0]["path"], "/b/%s/o/%s" % (NAME, BLOB_NAME))
-        self.assertEqual(kw[0]["timeout"], 42)
-        self.assertEqual(
-            kw[0]["query_params"], {"ifGenerationMatch": GENERATION_NUMBER}
-        )
-        self.assertEqual(kw[0]["retry"], DEFAULT_RETRY_IF_GENERATION_SPECIFIED)
-        self.assertEqual(kw[1]["method"], "DELETE")
-        self.assertEqual(kw[1]["path"], "/b/%s/o/%s" % (NAME, BLOB_NAME2))
-        self.assertEqual(kw[1]["timeout"], 42)
-        self.assertEqual(
-            kw[1]["query_params"], {"ifGenerationMatch": GENERATION_NUMBER2}
-        )
-        self.assertEqual(kw[1]["retry"], DEFAULT_RETRY_IF_GENERATION_SPECIFIED)
 
     def test_delete_blobs_w_generation_match_wrong_len(self):
-        NAME = "name"
-        BLOB_NAME = "blob-name"
-        BLOB_NAME2 = "blob-name2"
-        GENERATION_NUMBER = 6
+        name = "name"
+        blob_name = "blob-name"
+        blob_name2 = "blob-name2"
+        generation_number = 6
+        bucket = self._make_one(client=None, name=name)
+        bucket.delete_blob = mock.Mock()
 
-        connection = _Connection()
-        client = _Client(connection)
-        bucket = self._make_one(client=client, name=NAME)
         with self.assertRaises(ValueError):
             bucket.delete_blobs(
-                [BLOB_NAME, BLOB_NAME2],
-                timeout=42,
-                if_generation_not_match=[GENERATION_NUMBER],
+                [blob_name, blob_name2], if_generation_not_match=[generation_number],
             )
 
-    def test_delete_blobs_w_generation_match_none(self):
-        NAME = "name"
-        BLOB_NAME = "blob-name"
-        BLOB_NAME2 = "blob-name2"
-        GENERATION_NUMBER = 6
-        GENERATION_NUMBER2 = None
+        bucket.delete_blob.assert_not_called()
 
-        connection = _Connection({}, {})
-        client = _Client(connection)
-        bucket = self._make_one(client=client, name=NAME)
+    def test_delete_blobs_w_generation_match_w_retry(self):
+        name = "name"
+        blob_name = "blob-name"
+        blob_name2 = "blob-name2"
+        generation_number = 6
+        generation_number2 = 9
+        client = mock.Mock(spec=[])
+        bucket = self._make_one(client=client, name=name)
+        bucket.delete_blob = mock.Mock()
+        retry = mock.Mock(spec=[])
+
         bucket.delete_blobs(
-            [BLOB_NAME, BLOB_NAME2],
-            timeout=42,
-            if_generation_match=[GENERATION_NUMBER, GENERATION_NUMBER2],
+            [blob_name, blob_name2],
+            if_generation_match=[generation_number, generation_number2],
+            retry=retry,
         )
-        kw = connection._requested
-        self.assertEqual(len(kw), 2)
 
-        self.assertEqual(kw[0]["method"], "DELETE")
-        self.assertEqual(kw[0]["path"], "/b/%s/o/%s" % (NAME, BLOB_NAME))
-        self.assertEqual(kw[0]["timeout"], 42)
-        self.assertEqual(
-            kw[0]["query_params"], {"ifGenerationMatch": GENERATION_NUMBER}
+        call_1 = mock.call(
+            blob_name,
+            client=None,
+            if_generation_match=generation_number,
+            if_generation_not_match=None,
+            if_metageneration_match=None,
+            if_metageneration_not_match=None,
+            timeout=self._get_default_timeout(),
+            retry=retry,
         )
-        self.assertEqual(kw[0]["retry"], DEFAULT_RETRY_IF_GENERATION_SPECIFIED)
-        self.assertEqual(kw[1]["method"], "DELETE")
-        self.assertEqual(kw[1]["path"], "/b/%s/o/%s" % (NAME, BLOB_NAME2))
-        self.assertEqual(kw[1]["timeout"], 42)
-        self.assertEqual(kw[1]["query_params"], {})
-        self.assertEqual(kw[1]["retry"], DEFAULT_RETRY_IF_GENERATION_SPECIFIED)
+        call_2 = mock.call(
+            blob_name2,
+            client=None,
+            if_generation_match=generation_number2,
+            if_generation_not_match=None,
+            if_metageneration_match=None,
+            if_metageneration_not_match=None,
+            timeout=self._get_default_timeout(),
+            retry=retry,
+        )
+        bucket.delete_blob.assert_has_calls([call_1, call_2])
 
-    def test_delete_blobs_miss_no_on_error(self):
+    def test_delete_blobs_w_generation_match_none(self):
+        name = "name"
+        blob_name = "blob-name"
+        blob_name2 = "blob-name2"
+        generation_number = 6
+        generation_number2 = None
+        client = mock.Mock(spec=[])
+        bucket = self._make_one(client=client, name=name)
+        bucket.delete_blob = mock.Mock()
+
+        bucket.delete_blobs(
+            [blob_name, blob_name2],
+            if_generation_match=[generation_number, generation_number2],
+        )
+
+        call_1 = mock.call(
+            blob_name,
+            client=None,
+            if_generation_match=generation_number,
+            if_generation_not_match=None,
+            if_metageneration_match=None,
+            if_metageneration_not_match=None,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+        )
+        call_2 = mock.call(
+            blob_name2,
+            client=None,
+            if_generation_match=None,
+            if_generation_not_match=None,
+            if_metageneration_match=None,
+            if_metageneration_not_match=None,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+        )
+        bucket.delete_blob.assert_has_calls([call_1, call_2])
+
+    def test_delete_blobs_miss_wo_on_error(self):
         from google.cloud.exceptions import NotFound
 
-        NAME = "name"
-        BLOB_NAME = "blob-name"
-        NONESUCH = "nonesuch"
-        connection = _Connection({})
-        client = _Client(connection)
-        bucket = self._make_one(client=client, name=NAME)
-        self.assertRaises(NotFound, bucket.delete_blobs, [BLOB_NAME, NONESUCH])
-        kw = connection._requested
-        self.assertEqual(len(kw), 2)
-        self.assertEqual(kw[0]["method"], "DELETE")
-        self.assertEqual(kw[0]["path"], "/b/%s/o/%s" % (NAME, BLOB_NAME))
-        self.assertEqual(kw[0]["timeout"], self._get_default_timeout())
-        self.assertEqual(kw[0]["retry"], DEFAULT_RETRY_IF_GENERATION_SPECIFIED)
-        self.assertEqual(kw[1]["method"], "DELETE")
-        self.assertEqual(kw[1]["path"], "/b/%s/o/%s" % (NAME, NONESUCH))
-        self.assertEqual(kw[1]["timeout"], self._get_default_timeout())
-        self.assertEqual(kw[1]["retry"], DEFAULT_RETRY_IF_GENERATION_SPECIFIED)
+        name = "name"
+        blob_name = "blob-name"
+        blob_name2 = "nonesuch"
+        client = mock.Mock(spec=[])
+        bucket = self._make_one(client=client, name=name)
+        bucket.delete_blob = mock.Mock()
+        bucket.delete_blob.side_effect = [None, NotFound("testing")]
+
+        with self.assertRaises(NotFound):
+            bucket.delete_blobs([blob_name, blob_name2])
+
+        call_1 = mock.call(
+            blob_name,
+            client=None,
+            if_generation_match=None,
+            if_generation_not_match=None,
+            if_metageneration_match=None,
+            if_metageneration_not_match=None,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+        )
+        call_2 = mock.call(
+            blob_name2,
+            client=None,
+            if_generation_match=None,
+            if_generation_not_match=None,
+            if_metageneration_match=None,
+            if_metageneration_not_match=None,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+        )
+        bucket.delete_blob.assert_has_calls([call_1, call_2])
 
     def test_delete_blobs_miss_w_on_error(self):
-        NAME = "name"
-        BLOB_NAME = "blob-name"
-        NONESUCH = "nonesuch"
-        connection = _Connection({})
-        client = _Client(connection)
-        bucket = self._make_one(client=client, name=NAME)
+        from google.cloud.exceptions import NotFound
+
+        name = "name"
+        blob_name = "blob-name"
+        blob_name2 = "nonesuch"
+        client = mock.Mock(spec=[])
+        bucket = self._make_one(client=client, name=name)
+        bucket.delete_blob = mock.Mock()
+        bucket.delete_blob.side_effect = [None, NotFound("testing")]
+
         errors = []
-        bucket.delete_blobs([BLOB_NAME, NONESUCH], errors.append)
-        self.assertEqual(errors, [NONESUCH])
-        kw = connection._requested
-        self.assertEqual(len(kw), 2)
-        self.assertEqual(kw[0]["method"], "DELETE")
-        self.assertEqual(kw[0]["path"], "/b/%s/o/%s" % (NAME, BLOB_NAME))
-        self.assertEqual(kw[0]["timeout"], self._get_default_timeout())
-        self.assertEqual(kw[0]["retry"], DEFAULT_RETRY_IF_GENERATION_SPECIFIED)
-        self.assertEqual(kw[1]["method"], "DELETE")
-        self.assertEqual(kw[1]["path"], "/b/%s/o/%s" % (NAME, NONESUCH))
-        self.assertEqual(kw[1]["timeout"], self._get_default_timeout())
-        self.assertEqual(kw[1]["retry"], DEFAULT_RETRY_IF_GENERATION_SPECIFIED)
+        bucket.delete_blobs([blob_name, blob_name2], on_error=errors.append)
 
-    def test_reload_bucket_w_metageneration_match(self):
-        NAME = "name"
-        METAGENERATION_NUMBER = 9
+        self.assertEqual(errors, [blob_name2])
 
-        connection = _Connection({})
-        client = _Client(connection)
-        bucket = self._make_one(client=client, name=NAME)
+        call_1 = mock.call(
+            blob_name,
+            client=None,
+            if_generation_match=None,
+            if_generation_not_match=None,
+            if_metageneration_match=None,
+            if_metageneration_not_match=None,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+        )
+        call_2 = mock.call(
+            blob_name2,
+            client=None,
+            if_generation_match=None,
+            if_generation_not_match=None,
+            if_metageneration_match=None,
+            if_metageneration_not_match=None,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+        )
+        bucket.delete_blob.assert_has_calls([call_1, call_2])
 
-        bucket.reload(if_metageneration_match=METAGENERATION_NUMBER)
+    def test_reload_w_metageneration_match(self):
+        name = "name"
+        metageneration_number = 9
+        api_response = {"name": name}
+        client = mock.Mock(spec=["_get_resource"])
+        client._get_resource.return_value = api_response
+        bucket = self._make_one(client, name=name)
 
-        self.assertEqual(len(connection._requested), 1)
-        req = connection._requested[0]
-        self.assertEqual(req["method"], "GET")
-        self.assertEqual(req["path"], "/b/%s" % NAME)
-        self.assertEqual(req["timeout"], self._get_default_timeout())
-        self.assertEqual(
-            req["query_params"],
-            {"projection": "noAcl", "ifMetagenerationMatch": METAGENERATION_NUMBER},
+        bucket.reload(if_metageneration_match=metageneration_number)
+
+        expected_path = "/b/%s" % (name,)
+        expected_query_params = {
+            "projection": "noAcl",
+            "ifMetagenerationMatch": metageneration_number,
+        }
+        expected_headers = {}
+        client._get_resource.assert_called_once_with(
+            expected_path,
+            query_params=expected_query_params,
+            headers=expected_headers,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
+            _target_object=bucket,
         )
 
-    def test_reload_bucket_w_generation_match(self):
-        connection = _Connection({})
+    def test_reload_w_generation_match(self):
+        connection = _Connection()
         client = _Client(connection)
         bucket = self._make_one(client=client, name="name")
 
         with self.assertRaises(TypeError):
             bucket.reload(if_generation_match=6)
 
-    def test_update_bucket_w_metageneration_match(self):
-        NAME = "name"
-        METAGENERATION_NUMBER = 9
+    def test_update_w_metageneration_match(self):
+        name = "name"
+        metageneration_number = 9
+        client = mock.Mock(spec=["_put_resource"])
+        client._put_resource.return_value = {}
+        bucket = self._make_one(client=client, name=name)
 
-        connection = _Connection({})
-        client = _Client(connection)
-        bucket = self._make_one(client=client, name=NAME)
+        bucket.update(if_metageneration_match=metageneration_number)
 
-        bucket.update(if_metageneration_match=METAGENERATION_NUMBER)
-
-        self.assertEqual(len(connection._requested), 1)
-        req = connection._requested[0]
-        self.assertEqual(req["method"], "PUT")
-        self.assertEqual(req["path"], "/b/%s" % NAME)
-        self.assertEqual(req["timeout"], self._get_default_timeout())
-        self.assertEqual(
-            req["query_params"],
-            {"projection": "full", "ifMetagenerationMatch": METAGENERATION_NUMBER},
+        expected_query_params = {
+            "projection": "full",
+            "ifMetagenerationMatch": metageneration_number,
+        }
+        client._put_resource.assert_called_once_with(
+            bucket.path,
+            bucket._properties,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
+            _target_object=bucket,
         )
-        self.assertEqual(req["retry"], DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED)
 
-    def test_update_bucket_w_generation_match(self):
-        connection = _Connection({})
-        client = _Client(connection)
-        bucket = self._make_one(client=client, name="name")
+    def test_update_w_generation_match(self):
+        name = "name"
+        generation_number = 6
+        client = mock.Mock(spec=["_put_resource"])
+        client._put_resource.return_value = {}
+        bucket = self._make_one(client=client, name=name)
 
         with self.assertRaises(TypeError):
-            bucket.update(if_generation_match=6)
+            bucket.update(if_generation_match=generation_number)
+
+        client._put_resource.assert_not_called()
 
     @staticmethod
     def _make_blob(bucket_name, blob_name):
@@ -1441,277 +1660,287 @@ class Test_Bucket(unittest.TestCase):
         return blob
 
     def test_copy_blobs_wo_name(self):
-        SOURCE = "source"
-        DEST = "dest"
-        BLOB_NAME = "blob-name"
-        connection = _Connection({})
-        client = _Client(connection)
-        source = self._make_one(client=client, name=SOURCE)
-        dest = self._make_one(client=client, name=DEST)
-        blob = self._make_blob(SOURCE, BLOB_NAME)
+        source_name = "source"
+        dest_name = "dest"
+        blob_name = "blob-name"
+        api_response = {}
+        client = mock.Mock(spec=["_post_resource"])
+        client._post_resource.return_value = api_response
+        source = self._make_one(client=client, name=source_name)
+        dest = self._make_one(client=client, name=dest_name)
+        blob = self._make_blob(source_name, blob_name)
 
-        new_blob = source.copy_blob(blob, dest, timeout=42)
-
-        self.assertIs(new_blob.bucket, dest)
-        self.assertEqual(new_blob.name, BLOB_NAME)
-
-        (kw,) = connection._requested
-        COPY_PATH = "/b/{}/o/{}/copyTo/b/{}/o/{}".format(
-            SOURCE, BLOB_NAME, DEST, BLOB_NAME
-        )
-        self.assertEqual(kw["method"], "POST")
-        self.assertEqual(kw["path"], COPY_PATH)
-        self.assertEqual(kw["query_params"], {})
-        self.assertEqual(kw["timeout"], 42)
-        self.assertEqual(kw["retry"], DEFAULT_RETRY_IF_GENERATION_SPECIFIED)
-
-    def test_copy_blobs_source_generation(self):
-        SOURCE = "source"
-        DEST = "dest"
-        BLOB_NAME = "blob-name"
-        GENERATION = 1512565576797178
-
-        connection = _Connection({})
-        client = _Client(connection)
-        source = self._make_one(client=client, name=SOURCE)
-        dest = self._make_one(client=client, name=DEST)
-        blob = self._make_blob(SOURCE, BLOB_NAME)
-
-        new_blob = source.copy_blob(blob, dest, source_generation=GENERATION)
+        new_blob = source.copy_blob(blob, dest)
 
         self.assertIs(new_blob.bucket, dest)
-        self.assertEqual(new_blob.name, BLOB_NAME)
+        self.assertEqual(new_blob.name, blob_name)
 
-        (kw,) = connection._requested
-        COPY_PATH = "/b/{}/o/{}/copyTo/b/{}/o/{}".format(
-            SOURCE, BLOB_NAME, DEST, BLOB_NAME
+        expected_path = "/b/{}/o/{}/copyTo/b/{}/o/{}".format(
+            source_name, blob_name, dest_name, blob_name
         )
-        self.assertEqual(kw["method"], "POST")
-        self.assertEqual(kw["path"], COPY_PATH)
-        self.assertEqual(kw["query_params"], {"sourceGeneration": GENERATION})
-        self.assertEqual(kw["timeout"], self._get_default_timeout())
-        self.assertEqual(kw["retry"], DEFAULT_RETRY_IF_GENERATION_SPECIFIED)
+        expected_data = None
+        expected_query_params = {}
+        client._post_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+            _target_object=new_blob,
+        )
 
-    def test_copy_blobs_w_generation_match(self):
-        SOURCE = "source"
-        DEST = "dest"
-        BLOB_NAME = "blob-name"
-        GENERATION_NUMBER = 6
-        SOURCE_GENERATION_NUMBER = 9
+    def test_copy_blob_w_source_generation_w_timeout(self):
+        source_name = "source"
+        dest_name = "dest"
+        blob_name = "blob-name"
+        generation = 1512565576797178
+        api_response = {}
+        client = mock.Mock(spec=["_post_resource"])
+        client._post_resource.return_value = api_response
+        source = self._make_one(client=client, name=source_name)
+        dest = self._make_one(client=client, name=dest_name)
+        blob = self._make_blob(source_name, blob_name)
+        timeout = 42
 
-        connection = _Connection({})
-        client = _Client(connection)
-        source = self._make_one(client=client, name=SOURCE)
-        dest = self._make_one(client=client, name=DEST)
-        blob = self._make_blob(SOURCE, BLOB_NAME)
+        new_blob = source.copy_blob(
+            blob, dest, source_generation=generation, timeout=timeout,
+        )
+
+        self.assertIs(new_blob.bucket, dest)
+        self.assertEqual(new_blob.name, blob_name)
+
+        expected_path = "/b/{}/o/{}/copyTo/b/{}/o/{}".format(
+            source_name, blob_name, dest_name, blob_name
+        )
+        expected_data = None
+        expected_query_params = {"sourceGeneration": generation}
+        client._post_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            timeout=timeout,
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+            _target_object=new_blob,
+        )
+
+    def test_copy_blob_w_generation_match_w_retry(self):
+        source_name = "source"
+        dest_name = "dest"
+        blob_name = "blob-name"
+        generation_number = 6
+        source_generation_number = 9
+        api_response = {}
+        client = mock.Mock(spec=["_post_resource"])
+        client._post_resource.return_value = api_response
+        source = self._make_one(client=client, name=source_name)
+        dest = self._make_one(client=client, name=dest_name)
+        blob = self._make_blob(source_name, blob_name)
+        retry = mock.Mock(spec=[])
 
         new_blob = source.copy_blob(
             blob,
             dest,
-            if_generation_match=GENERATION_NUMBER,
-            if_source_generation_match=SOURCE_GENERATION_NUMBER,
+            if_generation_match=generation_number,
+            if_source_generation_match=source_generation_number,
+            retry=retry,
         )
         self.assertIs(new_blob.bucket, dest)
-        self.assertEqual(new_blob.name, BLOB_NAME)
+        self.assertEqual(new_blob.name, blob_name)
 
-        (kw,) = connection._requested
-        COPY_PATH = "/b/{}/o/{}/copyTo/b/{}/o/{}".format(
-            SOURCE, BLOB_NAME, DEST, BLOB_NAME
+        expected_path = "/b/{}/o/{}/copyTo/b/{}/o/{}".format(
+            source_name, blob_name, dest_name, blob_name
         )
-        self.assertEqual(kw["method"], "POST")
-        self.assertEqual(kw["path"], COPY_PATH)
-        self.assertEqual(
-            kw["query_params"],
-            {
-                "ifGenerationMatch": GENERATION_NUMBER,
-                "ifSourceGenerationMatch": SOURCE_GENERATION_NUMBER,
-            },
+        expected_data = None
+        expected_query_params = {
+            "ifGenerationMatch": generation_number,
+            "ifSourceGenerationMatch": source_generation_number,
+        }
+        client._post_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=retry,
+            _target_object=new_blob,
         )
-        self.assertEqual(kw["timeout"], self._get_default_timeout())
-        self.assertEqual(kw["retry"], DEFAULT_RETRY_IF_GENERATION_SPECIFIED)
 
-    def test_copy_blobs_preserve_acl(self):
+    def test_copy_blob_w_preserve_acl_false_w_explicit_client(self):
         from google.cloud.storage.acl import ObjectACL
 
-        SOURCE = "source"
-        DEST = "dest"
-        BLOB_NAME = "blob-name"
-        NEW_NAME = "new_name"
-
-        connection = _Connection({}, {})
-        client = _Client(connection)
-        source = self._make_one(client=client, name=SOURCE)
-        dest = self._make_one(client=client, name=DEST)
-        blob = self._make_blob(SOURCE, BLOB_NAME)
+        source_name = "source"
+        dest_name = "dest"
+        blob_name = "blob-name"
+        new_name = "new_name"
+        post_api_response = {}
+        patch_api_response = {}
+        client = mock.Mock(spec=["_post_resource", "_patch_resource"])
+        client._post_resource.return_value = post_api_response
+        client._patch_resource.return_value = patch_api_response
+        source = self._make_one(client=None, name=source_name)
+        dest = self._make_one(client=None, name=dest_name)
+        blob = self._make_blob(source_name, blob_name)
 
         new_blob = source.copy_blob(
-            blob, dest, NEW_NAME, client=client, preserve_acl=False
+            blob, dest, new_name, client=client, preserve_acl=False
         )
 
         self.assertIs(new_blob.bucket, dest)
-        self.assertEqual(new_blob.name, NEW_NAME)
+        self.assertEqual(new_blob.name, new_name)
         self.assertIsInstance(new_blob.acl, ObjectACL)
 
-        kw1, kw2 = connection._requested
-        COPY_PATH = "/b/{}/o/{}/copyTo/b/{}/o/{}".format(
-            SOURCE, BLOB_NAME, DEST, NEW_NAME
+        expected_copy_path = "/b/{}/o/{}/copyTo/b/{}/o/{}".format(
+            source_name, blob_name, dest_name, new_name
         )
-        NEW_BLOB_PATH = "/b/{}/o/{}".format(DEST, NEW_NAME)
+        expected_copy_data = None
+        expected_copy_query_params = {}
+        client._post_resource.assert_called_once_with(
+            expected_copy_path,
+            expected_copy_data,
+            query_params=expected_copy_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+            _target_object=new_blob,
+        )
 
-        self.assertEqual(kw1["method"], "POST")
-        self.assertEqual(kw1["path"], COPY_PATH)
-        self.assertEqual(kw1["query_params"], {})
-        self.assertEqual(kw1["timeout"], self._get_default_timeout())
-        self.assertEqual(kw1["retry"], DEFAULT_RETRY_IF_GENERATION_SPECIFIED)
+        expected_patch_path = "/b/{}/o/{}".format(dest_name, new_name)
+        expected_patch_data = {"acl": []}
+        expected_patch_query_params = {"projection": "full"}
+        client._patch_resource.assert_called_once_with(
+            expected_patch_path,
+            expected_patch_data,
+            query_params=expected_patch_query_params,
+            timeout=self._get_default_timeout(),
+            retry=None,
+        )
 
-        self.assertEqual(kw2["method"], "PATCH")
-        self.assertEqual(kw2["path"], NEW_BLOB_PATH)
-        self.assertEqual(kw2["query_params"], {"projection": "full"})
-        self.assertEqual(kw2["timeout"], self._get_default_timeout())
+    def test_copy_blob_w_name_and_user_project(self):
+        source_name = "source"
+        dest_name = "dest"
+        blob_name = "blob-name"
+        new_name = "new_name"
+        user_project = "user-project-123"
+        api_response = {}
+        client = mock.Mock(spec=["_post_resource"])
+        client._post_resource.return_value = api_response
+        source = self._make_one(
+            client=client, name=source_name, user_project=user_project
+        )
+        dest = self._make_one(client=client, name=dest_name)
+        blob = self._make_blob(source_name, blob_name)
 
-    def test_copy_blobs_w_name_and_user_project(self):
-        SOURCE = "source"
-        DEST = "dest"
-        BLOB_NAME = "blob-name"
-        NEW_NAME = "new_name"
-        USER_PROJECT = "user-project-123"
-        connection = _Connection({})
-        client = _Client(connection)
-        source = self._make_one(client=client, name=SOURCE, user_project=USER_PROJECT)
-        dest = self._make_one(client=client, name=DEST)
-        blob = self._make_blob(SOURCE, BLOB_NAME)
-
-        new_blob = source.copy_blob(blob, dest, NEW_NAME)
+        new_blob = source.copy_blob(blob, dest, new_name)
 
         self.assertIs(new_blob.bucket, dest)
-        self.assertEqual(new_blob.name, NEW_NAME)
+        self.assertEqual(new_blob.name, new_name)
 
-        COPY_PATH = "/b/{}/o/{}/copyTo/b/{}/o/{}".format(
-            SOURCE, BLOB_NAME, DEST, NEW_NAME
+        expected_path = "/b/{}/o/{}/copyTo/b/{}/o/{}".format(
+            source_name, blob_name, dest_name, new_name
         )
-        (kw,) = connection._requested
-        self.assertEqual(kw["method"], "POST")
-        self.assertEqual(kw["path"], COPY_PATH)
-        self.assertEqual(kw["query_params"], {"userProject": USER_PROJECT})
-        self.assertEqual(kw["timeout"], self._get_default_timeout())
-        self.assertEqual(kw["retry"], DEFAULT_RETRY_IF_GENERATION_SPECIFIED)
-
-    def test_rename_blob(self):
-        BUCKET_NAME = "BUCKET_NAME"
-        BLOB_NAME = "blob-name"
-        NEW_BLOB_NAME = "new-blob-name"
-        DATA = {"name": NEW_BLOB_NAME}
-        connection = _Connection(DATA)
-        client = _Client(connection)
-        bucket = self._make_one(client=client, name=BUCKET_NAME)
-        blob = self._make_blob(BUCKET_NAME, BLOB_NAME)
-
-        renamed_blob = bucket.rename_blob(
-            blob, NEW_BLOB_NAME, client=client, timeout=42
-        )
-
-        self.assertIs(renamed_blob.bucket, bucket)
-        self.assertEqual(renamed_blob.name, NEW_BLOB_NAME)
-
-        COPY_PATH = "/b/{}/o/{}/copyTo/b/{}/o/{}".format(
-            BUCKET_NAME, BLOB_NAME, BUCKET_NAME, NEW_BLOB_NAME
-        )
-        (kw,) = connection._requested
-        self.assertEqual(kw["method"], "POST")
-        self.assertEqual(kw["path"], COPY_PATH)
-        self.assertEqual(kw["query_params"], {})
-        self.assertEqual(kw["timeout"], 42)
-        self.assertEqual(kw["retry"], DEFAULT_RETRY_IF_GENERATION_SPECIFIED)
-
-        blob.delete.assert_called_once_with(
-            client=client,
-            timeout=42,
-            if_generation_match=None,
-            if_generation_not_match=None,
-            if_metageneration_match=None,
-            if_metageneration_not_match=None,
+        expected_data = None
+        expected_query_params = {"userProject": user_project}
+        client._post_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
             retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+            _target_object=new_blob,
         )
 
-    def test_rename_blob_with_generation_match(self):
-        BUCKET_NAME = "BUCKET_NAME"
-        BLOB_NAME = "blob-name"
-        NEW_BLOB_NAME = "new-blob-name"
-        DATA = {"name": NEW_BLOB_NAME}
-        GENERATION_NUMBER = 6
-        SOURCE_GENERATION_NUMBER = 7
-        SOURCE_METAGENERATION_NUMBER = 9
+    def _rename_blob_helper(self, explicit_client=False, same_name=False, **kw):
+        bucket_name = "BUCKET_NAME"
+        blob_name = "blob-name"
 
-        connection = _Connection(DATA)
-        client = _Client(connection)
-        bucket = self._make_one(client=client, name=BUCKET_NAME)
-        blob = self._make_blob(BUCKET_NAME, BLOB_NAME)
+        if same_name:
+            new_blob_name = blob_name
+        else:
+            new_blob_name = "new-blob-name"
 
-        renamed_blob = bucket.rename_blob(
+        client = mock.Mock(spec=[])
+        kw = kw.copy()
+
+        if explicit_client:
+            bucket = self._make_one(client=None, name=bucket_name)
+            expected_client = kw["client"] = client
+        else:
+            bucket = self._make_one(client=client, name=bucket_name)
+            expected_client = None
+
+        expected_i_g_m = kw.get("if_generation_match")
+        expected_i_g_n_m = kw.get("if_generation_not_match")
+        expected_i_m_m = kw.get("if_metageneration_match")
+        expected_i_m_n_m = kw.get("if_metageneration_not_match")
+        expected_i_s_g_m = kw.get("if_source_generation_match")
+        expected_i_s_g_n_m = kw.get("if_source_generation_not_match")
+        expected_i_s_m_m = kw.get("if_source_metageneration_match")
+        expected_i_s_m_n_m = kw.get("if_source_metageneration_not_match")
+        expected_timeout = kw.get("timeout", self._get_default_timeout())
+        expected_retry = kw.get("retry", DEFAULT_RETRY_IF_GENERATION_SPECIFIED)
+
+        bucket.copy_blob = mock.Mock(spec=[])
+        blob = self._make_blob(bucket_name, blob_name)
+
+        renamed_blob = bucket.rename_blob(blob, new_blob_name, **kw)
+
+        self.assertIs(renamed_blob, bucket.copy_blob.return_value)
+
+        bucket.copy_blob.assert_called_once_with(
             blob,
-            NEW_BLOB_NAME,
-            client=client,
-            timeout=42,
-            if_generation_match=GENERATION_NUMBER,
-            if_source_generation_match=SOURCE_GENERATION_NUMBER,
-            if_source_metageneration_not_match=SOURCE_METAGENERATION_NUMBER,
+            bucket,
+            new_blob_name,
+            client=expected_client,
+            if_generation_match=expected_i_g_m,
+            if_generation_not_match=expected_i_g_n_m,
+            if_metageneration_match=expected_i_m_m,
+            if_metageneration_not_match=expected_i_m_n_m,
+            if_source_generation_match=expected_i_s_g_m,
+            if_source_generation_not_match=expected_i_s_g_n_m,
+            if_source_metageneration_match=expected_i_s_m_m,
+            if_source_metageneration_not_match=expected_i_s_m_n_m,
+            timeout=expected_timeout,
+            retry=expected_retry,
         )
 
-        self.assertIs(renamed_blob.bucket, bucket)
-        self.assertEqual(renamed_blob.name, NEW_BLOB_NAME)
+        if same_name:
+            blob.delete.assert_not_called()
+        else:
+            blob.delete.assert_called_once_with(
+                client=expected_client,
+                if_generation_match=expected_i_s_g_m,
+                if_generation_not_match=expected_i_s_g_n_m,
+                if_metageneration_match=expected_i_s_m_m,
+                if_metageneration_not_match=expected_i_s_m_n_m,
+                timeout=expected_timeout,
+                retry=expected_retry,
+            )
 
-        COPY_PATH = "/b/{}/o/{}/copyTo/b/{}/o/{}".format(
-            BUCKET_NAME, BLOB_NAME, BUCKET_NAME, NEW_BLOB_NAME
-        )
-        (kw,) = connection._requested
-        self.assertEqual(kw["method"], "POST")
-        self.assertEqual(kw["path"], COPY_PATH)
-        self.assertEqual(
-            kw["query_params"],
-            {
-                "ifGenerationMatch": GENERATION_NUMBER,
-                "ifSourceGenerationMatch": SOURCE_GENERATION_NUMBER,
-                "ifSourceMetagenerationNotMatch": SOURCE_METAGENERATION_NUMBER,
-            },
-        )
-        self.assertEqual(kw["timeout"], 42)
-        self.assertEqual(kw["retry"], DEFAULT_RETRY_IF_GENERATION_SPECIFIED)
+    def test_rename_blob_w_defaults(self):
+        self._rename_blob_helper()
 
-        blob.delete.assert_called_once_with(
-            client=client,
-            timeout=42,
-            if_generation_match=SOURCE_GENERATION_NUMBER,
-            if_generation_not_match=None,
-            if_metageneration_match=None,
-            if_metageneration_not_match=SOURCE_METAGENERATION_NUMBER,
-            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+    def test_rename_blob_w_explicit_client(self):
+        self._rename_blob_helper(explicit_client=True)
+
+    def test_rename_blob_w_generation_match(self):
+        generation_number = 6
+        source_generation_number = 7
+        source_metageneration_number = 9
+
+        self._rename_blob_helper(
+            if_generation_match=generation_number,
+            if_source_generation_match=source_generation_number,
+            if_source_metageneration_not_match=source_metageneration_number,
         )
+
+    def test_rename_blob_w_timeout(self):
+        timeout = 42
+        self._rename_blob_helper(timeout=timeout)
+
+    def test_rename_blob_w_retry(self):
+        retry = mock.Mock(spec={})
+        self._rename_blob_helper(retry=retry)
 
     def test_rename_blob_to_itself(self):
-        BUCKET_NAME = "BUCKET_NAME"
-        BLOB_NAME = "blob-name"
-        DATA = {"name": BLOB_NAME}
-        connection = _Connection(DATA)
-        client = _Client(connection)
-        bucket = self._make_one(client=client, name=BUCKET_NAME)
-        blob = self._make_blob(BUCKET_NAME, BLOB_NAME)
-
-        renamed_blob = bucket.rename_blob(blob, BLOB_NAME)
-
-        self.assertIs(renamed_blob.bucket, bucket)
-        self.assertEqual(renamed_blob.name, BLOB_NAME)
-
-        COPY_PATH = "/b/{}/o/{}/copyTo/b/{}/o/{}".format(
-            BUCKET_NAME, BLOB_NAME, BUCKET_NAME, BLOB_NAME
-        )
-        (kw,) = connection._requested
-        self.assertEqual(kw["method"], "POST")
-        self.assertEqual(kw["path"], COPY_PATH)
-        self.assertEqual(kw["query_params"], {})
-        self.assertEqual(kw["timeout"], self._get_default_timeout())
-        self.assertEqual(kw["retry"], DEFAULT_RETRY_IF_GENERATION_SPECIFIED)
-
-        blob.delete.assert_not_called()
+        self._rename_blob_helper(same_name=True)
 
     def test_etag(self):
         ETAG = "ETAG"
@@ -2012,23 +2241,39 @@ class Test_Bucket(unittest.TestCase):
         self.assertEqual(bucket.labels, {"color": "red"})
 
         # Make sure that a patch call correctly removes the flavor label.
-        client = mock.NonCallableMock(spec=("_connection",))
-        client._connection = mock.NonCallableMock(spec=("api_request",))
+        client = mock.Mock(spec=["_patch_resource"])
+        client._patch_resource.return_value = {}
+
         bucket.patch(client=client)
-        client._connection.api_request.assert_called()
-        _, _, kwargs = client._connection.api_request.mock_calls[0]
-        self.assertEqual(len(kwargs["data"]["labels"]), 2)
-        self.assertEqual(kwargs["data"]["labels"]["color"], "red")
-        self.assertIsNone(kwargs["data"]["labels"]["flavor"])
-        self.assertEqual(kwargs["timeout"], self._get_default_timeout())
+
+        expected_patch_data = {
+            "labels": {"color": "red", "flavor": None},
+        }
+        expected_query_params = {"projection": "full"}
+        client._patch_resource.assert_called_once_with(
+            bucket.path,
+            expected_patch_data,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
+            _target_object=bucket,
+        )
 
         # A second patch call should be a no-op for labels.
-        client._connection.api_request.reset_mock()
+        client._patch_resource.reset_mock()
+
         bucket.patch(client=client, timeout=42)
-        client._connection.api_request.assert_called()
-        _, _, kwargs = client._connection.api_request.mock_calls[0]
-        self.assertNotIn("labels", kwargs["data"])
-        self.assertEqual(kwargs["timeout"], 42)
+
+        expected_patch_data = {}
+        expected_query_params = {"projection": "full"}
+        client._patch_resource.assert_called_once_with(
+            bucket.path,
+            expected_patch_data,
+            query_params=expected_query_params,
+            timeout=42,
+            retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
+            _target_object=bucket,
+        )
 
     def test_location_type_getter_unset(self):
         bucket = self._make_one()
@@ -2309,23 +2554,22 @@ class Test_Bucket(unittest.TestCase):
         self.assertEqual(bucket.versioning_enabled, True)
 
     @mock.patch("warnings.warn")
-    def test_create_deprecated(self, mock_warn):
-        PROJECT = "PROJECT"
-        BUCKET_NAME = "bucket-name"
-        DATA = {"name": BUCKET_NAME}
-        connection = _make_connection(DATA)
-        client = self._make_client(project=PROJECT)
-        client._base_connection = connection
+    def test_create_w_defaults_deprecated(self, mock_warn):
+        bucket_name = "bucket-name"
+        api_response = {"name": bucket_name}
+        client = mock.Mock(spec=["create_bucket"])
+        client.create_bucket.return_value = api_response
+        bucket = self._make_one(client=client, name=bucket_name)
 
-        bucket = self._make_one(client=client, name=BUCKET_NAME)
         bucket.create()
 
-        connection.api_request.assert_called_once_with(
-            method="POST",
-            path="/b",
-            query_params={"project": PROJECT},
-            data=DATA,
-            _target_object=bucket,
+        client.create_bucket.assert_called_once_with(
+            bucket_or_name=bucket,
+            project=None,
+            user_project=None,
+            location=None,
+            predefined_acl=None,
+            predefined_default_object_acl=None,
             timeout=self._get_default_timeout(),
             retry=DEFAULT_RETRY,
         )
@@ -2338,26 +2582,40 @@ class Test_Bucket(unittest.TestCase):
         )
 
     @mock.patch("warnings.warn")
-    def test_create_w_user_project(self, mock_warn):
-        PROJECT = "PROJECT"
-        BUCKET_NAME = "bucket-name"
-        DATA = {"name": BUCKET_NAME}
-        connection = _make_connection(DATA)
-        client = self._make_client(project=PROJECT)
-        client._base_connection = connection
+    def test_create_w_explicit_deprecated(self, mock_warn):
+        project = "PROJECT"
+        location = "eu"
+        user_project = "USER_PROJECT"
+        bucket_name = "bucket-name"
+        predefined_acl = "authenticatedRead"
+        predefined_default_object_acl = "bucketOwnerFullControl"
+        api_response = {"name": bucket_name}
+        client = mock.Mock(spec=["create_bucket"])
+        client.create_bucket.return_value = api_response
+        bucket = self._make_one(client=None, name=bucket_name)
+        bucket._user_project = user_project
+        timeout = 42
+        retry = mock.Mock(spec=[])
 
-        bucket = self._make_one(client=client, name=BUCKET_NAME)
-        bucket._user_project = "USER_PROJECT"
-        bucket.create()
+        bucket.create(
+            client=client,
+            project=project,
+            location=location,
+            predefined_acl=predefined_acl,
+            predefined_default_object_acl=predefined_default_object_acl,
+            timeout=timeout,
+            retry=retry,
+        )
 
-        connection.api_request.assert_called_once_with(
-            method="POST",
-            path="/b",
-            query_params={"project": PROJECT, "userProject": "USER_PROJECT"},
-            data=DATA,
-            _target_object=bucket,
-            timeout=self._get_default_timeout(),
-            retry=DEFAULT_RETRY,
+        client.create_bucket.assert_called_once_with(
+            bucket_or_name=bucket,
+            project=project,
+            user_project=user_project,
+            location=location,
+            predefined_acl=predefined_acl,
+            predefined_default_object_acl=predefined_default_object_acl,
+            timeout=timeout,
+            retry=retry,
         )
 
         mock_warn.assert_called_with(
@@ -2415,345 +2673,400 @@ class Test_Bucket(unittest.TestCase):
         bucket.disable_website()
         self.assertEqual(bucket._properties, UNSET)
 
-    def test_get_iam_policy(self):
+    def test_get_iam_policy_defaults(self):
         from google.cloud.storage.iam import STORAGE_OWNER_ROLE
         from google.cloud.storage.iam import STORAGE_EDITOR_ROLE
         from google.cloud.storage.iam import STORAGE_VIEWER_ROLE
         from google.api_core.iam import Policy
 
-        NAME = "name"
-        PATH = "/b/%s" % (NAME,)
-        ETAG = "DEADBEEF"
-        VERSION = 1
-        OWNER1 = "user:phred@example.com"
-        OWNER2 = "group:cloud-logs@google.com"
-        EDITOR1 = "domain:google.com"
-        EDITOR2 = "user:phred@example.com"
-        VIEWER1 = "serviceAccount:1234-abcdef@service.example.com"
-        VIEWER2 = "user:phred@example.com"
-        RETURNED = {
-            "resourceId": PATH,
-            "etag": ETAG,
-            "version": VERSION,
+        bucket_name = "name"
+        path = "/b/%s" % (bucket_name,)
+        etag = "DEADBEEF"
+        version = 1
+        owner1 = "user:phred@example.com"
+        owner2 = "group:cloud-logs@google.com"
+        editor1 = "domain:google.com"
+        editor2 = "user:phred@example.com"
+        viewer1 = "serviceAccount:1234-abcdef@service.example.com"
+        viewer2 = "user:phred@example.com"
+        api_response = {
+            "resourceId": path,
+            "etag": etag,
+            "version": version,
             "bindings": [
-                {"role": STORAGE_OWNER_ROLE, "members": [OWNER1, OWNER2]},
-                {"role": STORAGE_EDITOR_ROLE, "members": [EDITOR1, EDITOR2]},
-                {"role": STORAGE_VIEWER_ROLE, "members": [VIEWER1, VIEWER2]},
+                {"role": STORAGE_OWNER_ROLE, "members": [owner1, owner2]},
+                {"role": STORAGE_EDITOR_ROLE, "members": [editor1, editor2]},
+                {"role": STORAGE_VIEWER_ROLE, "members": [viewer1, viewer2]},
             ],
         }
-        EXPECTED = {
-            binding["role"]: set(binding["members"]) for binding in RETURNED["bindings"]
+        expected_policy = {
+            binding["role"]: set(binding["members"])
+            for binding in api_response["bindings"]
         }
-        connection = _Connection(RETURNED)
-        client = _Client(connection, None)
-        bucket = self._make_one(client=client, name=NAME)
-
-        policy = bucket.get_iam_policy(timeout=42)
-
-        self.assertIsInstance(policy, Policy)
-        self.assertEqual(policy.etag, RETURNED["etag"])
-        self.assertEqual(policy.version, RETURNED["version"])
-        self.assertEqual(dict(policy), EXPECTED)
-
-        kw = connection._requested
-        self.assertEqual(len(kw), 1)
-        self.assertEqual(kw[0]["method"], "GET")
-        self.assertEqual(kw[0]["path"], "%s/iam" % (PATH,))
-        self.assertEqual(kw[0]["query_params"], {})
-        self.assertEqual(kw[0]["timeout"], 42)
-
-    def test_get_iam_policy_w_user_project(self):
-        from google.api_core.iam import Policy
-
-        NAME = "name"
-        USER_PROJECT = "user-project-123"
-        PATH = "/b/%s" % (NAME,)
-        ETAG = "DEADBEEF"
-        VERSION = 1
-        RETURNED = {
-            "resourceId": PATH,
-            "etag": ETAG,
-            "version": VERSION,
-            "bindings": [],
-        }
-        EXPECTED = {}
-        connection = _Connection(RETURNED)
-        client = _Client(connection, None)
-        bucket = self._make_one(client=client, name=NAME, user_project=USER_PROJECT)
+        client = mock.Mock(spec=["_get_resource"])
+        client._get_resource.return_value = api_response
+        bucket = self._make_one(client=client, name=bucket_name)
 
         policy = bucket.get_iam_policy()
 
         self.assertIsInstance(policy, Policy)
-        self.assertEqual(policy.etag, RETURNED["etag"])
-        self.assertEqual(policy.version, RETURNED["version"])
-        self.assertEqual(dict(policy), EXPECTED)
+        self.assertEqual(policy.etag, api_response["etag"])
+        self.assertEqual(policy.version, api_response["version"])
+        self.assertEqual(dict(policy), expected_policy)
 
-        kw = connection._requested
-        self.assertEqual(len(kw), 1)
-        self.assertEqual(kw[0]["method"], "GET")
-        self.assertEqual(kw[0]["path"], "%s/iam" % (PATH,))
-        self.assertEqual(kw[0]["query_params"], {"userProject": USER_PROJECT})
-        self.assertEqual(kw[0]["timeout"], self._get_default_timeout())
+        expected_path = "/b/%s/iam" % (bucket_name,)
+        expected_query_params = {}
+        client._get_resource.assert_called_once_with(
+            expected_path,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
+            _target_object=None,
+        )
 
-    def test_get_iam_policy_w_requested_policy_version(self):
-        from google.cloud.storage.iam import STORAGE_OWNER_ROLE
+    def test_get_iam_policy_w_user_project_w_timeout(self):
+        from google.api_core.iam import Policy
 
-        NAME = "name"
-        PATH = "/b/%s" % (NAME,)
-        ETAG = "DEADBEEF"
-        VERSION = 1
-        OWNER1 = "user:phred@example.com"
-        OWNER2 = "group:cloud-logs@google.com"
-        RETURNED = {
-            "resourceId": PATH,
-            "etag": ETAG,
-            "version": VERSION,
-            "bindings": [{"role": STORAGE_OWNER_ROLE, "members": [OWNER1, OWNER2]}],
+        bucket_name = "name"
+        timeout = 42
+        user_project = "user-project-123"
+        path = "/b/%s" % (bucket_name,)
+        etag = "DEADBEEF"
+        version = 1
+        api_response = {
+            "resourceId": path,
+            "etag": etag,
+            "version": version,
+            "bindings": [],
         }
-        connection = _Connection(RETURNED)
-        client = _Client(connection, None)
-        bucket = self._make_one(client=client, name=NAME)
+        expected_policy = {}
+        client = mock.Mock(spec=["_get_resource"])
+        client._get_resource.return_value = api_response
+        bucket = self._make_one(
+            client=client, name=bucket_name, user_project=user_project
+        )
 
-        policy = bucket.get_iam_policy(requested_policy_version=3)
+        policy = bucket.get_iam_policy(timeout=timeout)
 
-        self.assertEqual(policy.version, VERSION)
+        self.assertIsInstance(policy, Policy)
+        self.assertEqual(policy.etag, api_response["etag"])
+        self.assertEqual(policy.version, api_response["version"])
+        self.assertEqual(dict(policy), expected_policy)
 
-        kw = connection._requested
-        self.assertEqual(len(kw), 1)
-        self.assertEqual(kw[0]["method"], "GET")
-        self.assertEqual(kw[0]["path"], "%s/iam" % (PATH,))
-        self.assertEqual(kw[0]["query_params"], {"optionsRequestedPolicyVersion": 3})
-        self.assertEqual(kw[0]["timeout"], self._get_default_timeout())
+        expected_path = "/b/%s/iam" % (bucket_name,)
+        expected_query_params = {"userProject": user_project}
+        client._get_resource.assert_called_once_with(
+            expected_path,
+            query_params=expected_query_params,
+            timeout=timeout,
+            retry=DEFAULT_RETRY,
+            _target_object=None,
+        )
 
-    def test_set_iam_policy(self):
+    def test_get_iam_policy_w_requested_policy_version_w_retry(self):
+        from google.cloud.storage.iam import STORAGE_OWNER_ROLE
+
+        bucket_name = "name"
+        path = "/b/%s" % (bucket_name,)
+        etag = "DEADBEEF"
+        version = 3
+        owner1 = "user:phred@example.com"
+        owner2 = "group:cloud-logs@google.com"
+        api_response = {
+            "resourceId": path,
+            "etag": etag,
+            "version": version,
+            "bindings": [{"role": STORAGE_OWNER_ROLE, "members": [owner1, owner2]}],
+        }
+        retry = mock.Mock(spec=[])
+        client = mock.Mock(spec=["_get_resource"])
+        client._get_resource.return_value = api_response
+        bucket = self._make_one(client=client, name=bucket_name)
+
+        policy = bucket.get_iam_policy(requested_policy_version=3, retry=retry)
+
+        self.assertEqual(policy.version, version)
+
+        expected_path = "/b/%s/iam" % (bucket_name,)
+        expected_query_params = {"optionsRequestedPolicyVersion": version}
+        client._get_resource.assert_called_once_with(
+            expected_path,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=retry,
+            _target_object=None,
+        )
+
+    def test_set_iam_policy_w_defaults(self):
         import operator
         from google.cloud.storage.iam import STORAGE_OWNER_ROLE
         from google.cloud.storage.iam import STORAGE_EDITOR_ROLE
         from google.cloud.storage.iam import STORAGE_VIEWER_ROLE
         from google.api_core.iam import Policy
 
-        NAME = "name"
-        PATH = "/b/%s" % (NAME,)
-        ETAG = "DEADBEEF"
-        VERSION = 1
-        OWNER1 = "user:phred@example.com"
-        OWNER2 = "group:cloud-logs@google.com"
-        EDITOR1 = "domain:google.com"
-        EDITOR2 = "user:phred@example.com"
-        VIEWER1 = "serviceAccount:1234-abcdef@service.example.com"
-        VIEWER2 = "user:phred@example.com"
-        BINDINGS = [
-            {"role": STORAGE_OWNER_ROLE, "members": [OWNER1, OWNER2]},
-            {"role": STORAGE_EDITOR_ROLE, "members": [EDITOR1, EDITOR2]},
-            {"role": STORAGE_VIEWER_ROLE, "members": [VIEWER1, VIEWER2]},
+        name = "name"
+        etag = "DEADBEEF"
+        version = 1
+        owner1 = "user:phred@example.com"
+        owner2 = "group:cloud-logs@google.com"
+        editor1 = "domain:google.com"
+        editor2 = "user:phred@example.com"
+        viewer1 = "serviceAccount:1234-abcdef@service.example.com"
+        viewer2 = "user:phred@example.com"
+        bindings = [
+            {"role": STORAGE_OWNER_ROLE, "members": [owner1, owner2]},
+            {"role": STORAGE_EDITOR_ROLE, "members": [editor1, editor2]},
+            {"role": STORAGE_VIEWER_ROLE, "members": [viewer1, viewer2]},
         ]
-        RETURNED = {"etag": ETAG, "version": VERSION, "bindings": BINDINGS}
         policy = Policy()
-        for binding in BINDINGS:
+        for binding in bindings:
             policy[binding["role"]] = binding["members"]
 
-        connection = _Connection(RETURNED)
-        client = _Client(connection, None)
-        bucket = self._make_one(client=client, name=NAME)
-
-        returned = bucket.set_iam_policy(policy, timeout=42)
-
-        self.assertEqual(returned.etag, ETAG)
-        self.assertEqual(returned.version, VERSION)
-        self.assertEqual(dict(returned), dict(policy))
-
-        kw = connection._requested
-        self.assertEqual(len(kw), 1)
-        self.assertEqual(kw[0]["method"], "PUT")
-        self.assertEqual(kw[0]["path"], "%s/iam" % (PATH,))
-        self.assertEqual(kw[0]["query_params"], {})
-        self.assertEqual(kw[0]["timeout"], 42)
-        sent = kw[0]["data"]
-        self.assertEqual(sent["resourceId"], PATH)
-        self.assertEqual(len(sent["bindings"]), len(BINDINGS))
-        key = operator.itemgetter("role")
-        for found, expected in zip(
-            sorted(sent["bindings"], key=key), sorted(BINDINGS, key=key)
-        ):
-            self.assertEqual(found["role"], expected["role"])
-            self.assertEqual(sorted(found["members"]), sorted(expected["members"]))
-
-    def test_set_iam_policy_w_user_project(self):
-        import operator
-        from google.cloud.storage.iam import STORAGE_OWNER_ROLE
-        from google.cloud.storage.iam import STORAGE_EDITOR_ROLE
-        from google.cloud.storage.iam import STORAGE_VIEWER_ROLE
-        from google.api_core.iam import Policy
-
-        NAME = "name"
-        USER_PROJECT = "user-project-123"
-        PATH = "/b/%s" % (NAME,)
-        ETAG = "DEADBEEF"
-        VERSION = 1
-        OWNER1 = "user:phred@example.com"
-        OWNER2 = "group:cloud-logs@google.com"
-        EDITOR1 = "domain:google.com"
-        EDITOR2 = "user:phred@example.com"
-        VIEWER1 = "serviceAccount:1234-abcdef@service.example.com"
-        VIEWER2 = "user:phred@example.com"
-        BINDINGS = [
-            {"role": STORAGE_OWNER_ROLE, "members": [OWNER1, OWNER2]},
-            {"role": STORAGE_EDITOR_ROLE, "members": [EDITOR1, EDITOR2]},
-            {"role": STORAGE_VIEWER_ROLE, "members": [VIEWER1, VIEWER2]},
-        ]
-        RETURNED = {"etag": ETAG, "version": VERSION, "bindings": BINDINGS}
-        policy = Policy()
-        for binding in BINDINGS:
-            policy[binding["role"]] = binding["members"]
-
-        connection = _Connection(RETURNED)
-        client = _Client(connection, None)
-        bucket = self._make_one(client=client, name=NAME, user_project=USER_PROJECT)
+        api_response = {"etag": etag, "version": version, "bindings": bindings}
+        client = mock.Mock(spec=["_put_resource"])
+        client._put_resource.return_value = api_response
+        bucket = self._make_one(client=client, name=name)
 
         returned = bucket.set_iam_policy(policy)
 
-        self.assertEqual(returned.etag, ETAG)
-        self.assertEqual(returned.version, VERSION)
+        self.assertEqual(returned.etag, etag)
+        self.assertEqual(returned.version, version)
         self.assertEqual(dict(returned), dict(policy))
 
-        kw = connection._requested
-        self.assertEqual(len(kw), 1)
-        self.assertEqual(kw[0]["method"], "PUT")
-        self.assertEqual(kw[0]["path"], "%s/iam" % (PATH,))
-        self.assertEqual(kw[0]["query_params"], {"userProject": USER_PROJECT})
-        self.assertEqual(kw[0]["timeout"], self._get_default_timeout())
-        sent = kw[0]["data"]
-        self.assertEqual(sent["resourceId"], PATH)
-        self.assertEqual(len(sent["bindings"]), len(BINDINGS))
+        expected_path = "%s/iam" % (bucket.path,)
+        expected_data = {
+            "resourceId": bucket.path,
+            "bindings": mock.ANY,
+        }
+        expected_query_params = {}
+        client._put_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY_IF_ETAG_IN_JSON,
+            _target_object=None,
+        )
+
+        sent_bindings = client._put_resource.call_args.args[1]["bindings"]
         key = operator.itemgetter("role")
         for found, expected in zip(
-            sorted(sent["bindings"], key=key), sorted(BINDINGS, key=key)
+            sorted(sent_bindings, key=key), sorted(bindings, key=key)
         ):
             self.assertEqual(found["role"], expected["role"])
             self.assertEqual(sorted(found["members"]), sorted(expected["members"]))
 
-    def test_test_iam_permissions(self):
-        from google.cloud.storage.iam import STORAGE_OBJECTS_LIST
-        from google.cloud.storage.iam import STORAGE_BUCKETS_GET
-        from google.cloud.storage.iam import STORAGE_BUCKETS_UPDATE
+    def test_set_iam_policy_w_user_project_w_expl_client_w_timeout_retry(self):
+        import operator
+        from google.cloud.storage.iam import STORAGE_OWNER_ROLE
+        from google.cloud.storage.iam import STORAGE_EDITOR_ROLE
+        from google.cloud.storage.iam import STORAGE_VIEWER_ROLE
+        from google.api_core.iam import Policy
 
-        NAME = "name"
-        PATH = "/b/%s" % (NAME,)
-        PERMISSIONS = [
-            STORAGE_OBJECTS_LIST,
-            STORAGE_BUCKETS_GET,
-            STORAGE_BUCKETS_UPDATE,
+        name = "name"
+        user_project = "user-project-123"
+        etag = "DEADBEEF"
+        version = 1
+        owner1 = "user:phred@example.com"
+        owner2 = "group:cloud-logs@google.com"
+        editor1 = "domain:google.com"
+        editor2 = "user:phred@example.com"
+        viewer1 = "serviceAccount:1234-abcdef@service.example.com"
+        viewer2 = "user:phred@example.com"
+        bindings = [
+            {"role": STORAGE_OWNER_ROLE, "members": [owner1, owner2]},
+            {"role": STORAGE_EDITOR_ROLE, "members": [editor1, editor2]},
+            {"role": STORAGE_VIEWER_ROLE, "members": [viewer1, viewer2]},
         ]
-        ALLOWED = PERMISSIONS[1:]
-        RETURNED = {"permissions": ALLOWED}
-        connection = _Connection(RETURNED)
-        client = _Client(connection, None)
-        bucket = self._make_one(client=client, name=NAME)
+        policy = Policy()
+        for binding in bindings:
+            policy[binding["role"]] = binding["members"]
 
-        allowed = bucket.test_iam_permissions(PERMISSIONS, timeout=42)
+        api_response = {"etag": etag, "version": version, "bindings": bindings}
+        client = mock.Mock(spec=["_put_resource"])
+        client._put_resource.return_value = api_response
+        bucket = self._make_one(client=None, name=name, user_project=user_project)
+        timeout = 42
+        retry = mock.Mock(spec=[])
 
-        self.assertEqual(allowed, ALLOWED)
-
-        kw = connection._requested
-        self.assertEqual(len(kw), 1)
-        self.assertEqual(kw[0]["method"], "GET")
-        self.assertEqual(kw[0]["path"], "%s/iam/testPermissions" % (PATH,))
-        self.assertEqual(kw[0]["query_params"], {"permissions": PERMISSIONS})
-        self.assertEqual(kw[0]["timeout"], 42)
-
-    def test_test_iam_permissions_w_user_project(self):
-        from google.cloud.storage.iam import STORAGE_OBJECTS_LIST
-        from google.cloud.storage.iam import STORAGE_BUCKETS_GET
-        from google.cloud.storage.iam import STORAGE_BUCKETS_UPDATE
-
-        NAME = "name"
-        USER_PROJECT = "user-project-123"
-        PATH = "/b/%s" % (NAME,)
-        PERMISSIONS = [
-            STORAGE_OBJECTS_LIST,
-            STORAGE_BUCKETS_GET,
-            STORAGE_BUCKETS_UPDATE,
-        ]
-        ALLOWED = PERMISSIONS[1:]
-        RETURNED = {"permissions": ALLOWED}
-        connection = _Connection(RETURNED)
-        client = _Client(connection, None)
-        bucket = self._make_one(client=client, name=NAME, user_project=USER_PROJECT)
-
-        allowed = bucket.test_iam_permissions(PERMISSIONS)
-
-        self.assertEqual(allowed, ALLOWED)
-
-        kw = connection._requested
-        self.assertEqual(len(kw), 1)
-        self.assertEqual(kw[0]["method"], "GET")
-        self.assertEqual(kw[0]["path"], "%s/iam/testPermissions" % (PATH,))
-        self.assertEqual(
-            kw[0]["query_params"],
-            {"permissions": PERMISSIONS, "userProject": USER_PROJECT},
+        returned = bucket.set_iam_policy(
+            policy, client=client, timeout=timeout, retry=retry
         )
-        self.assertEqual(kw[0]["timeout"], self._get_default_timeout())
+
+        self.assertEqual(returned.etag, etag)
+        self.assertEqual(returned.version, version)
+        self.assertEqual(dict(returned), dict(policy))
+
+        expected_path = "%s/iam" % (bucket.path,)
+        expected_data = {
+            "resourceId": bucket.path,
+            "bindings": mock.ANY,
+        }
+        expected_query_params = {"userProject": user_project}
+        client._put_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            timeout=timeout,
+            retry=retry,
+            _target_object=None,
+        )
+
+        sent_bindings = client._put_resource.call_args.args[1]["bindings"]
+        key = operator.itemgetter("role")
+        for found, expected in zip(
+            sorted(sent_bindings, key=key), sorted(bindings, key=key)
+        ):
+            self.assertEqual(found["role"], expected["role"])
+            self.assertEqual(sorted(found["members"]), sorted(expected["members"]))
+
+    def test_test_iam_permissions_defaults(self):
+        from google.cloud.storage.iam import STORAGE_OBJECTS_LIST
+        from google.cloud.storage.iam import STORAGE_BUCKETS_GET
+        from google.cloud.storage.iam import STORAGE_BUCKETS_UPDATE
+
+        name = "name"
+        permissions = [
+            STORAGE_OBJECTS_LIST,
+            STORAGE_BUCKETS_GET,
+            STORAGE_BUCKETS_UPDATE,
+        ]
+        expected = permissions[1:]
+        api_response = {"permissions": expected}
+        client = mock.Mock(spec=["_get_resource"])
+        client._get_resource.return_value = api_response
+        bucket = self._make_one(client=client, name=name)
+
+        found = bucket.test_iam_permissions(permissions)
+
+        self.assertEqual(found, expected)
+
+        expected_path = "/b/%s/iam/testPermissions" % (name,)
+        expected_query_params = {}
+        expected_query_params = {"permissions": permissions}
+        client._get_resource.assert_called_once_with(
+            expected_path,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
+            _target_object=None,
+        )
+
+    def test_test_iam_permissions_w_user_project_w_timeout_w_retry(self):
+        from google.cloud.storage.iam import STORAGE_OBJECTS_LIST
+        from google.cloud.storage.iam import STORAGE_BUCKETS_GET
+        from google.cloud.storage.iam import STORAGE_BUCKETS_UPDATE
+
+        name = "name"
+        user_project = "user-project-123"
+        timeout = 42
+        retry = mock.Mock(spec=[])
+        permissions = [
+            STORAGE_OBJECTS_LIST,
+            STORAGE_BUCKETS_GET,
+            STORAGE_BUCKETS_UPDATE,
+        ]
+        expected = permissions[1:]
+        api_response = {"permissions": expected}
+        client = mock.Mock(spec=["_get_resource"])
+        client._get_resource.return_value = api_response
+        bucket = self._make_one(client=client, name=name, user_project=user_project)
+
+        found = bucket.test_iam_permissions(permissions, timeout=timeout, retry=retry)
+
+        self.assertEqual(found, expected)
+
+        expected_path = "/b/%s/iam/testPermissions" % (name,)
+        expected_query_params = {
+            "permissions": permissions,
+            "userProject": user_project,
+        }
+        client._get_resource.assert_called_once_with(
+            expected_path,
+            query_params=expected_query_params,
+            timeout=timeout,
+            retry=retry,
+            _target_object=None,
+        )
 
     def test_make_public_defaults(self):
         from google.cloud.storage.acl import _ACLEntity
 
-        NAME = "name"
+        name = "name"
         permissive = [{"entity": "allUsers", "role": _ACLEntity.READER_ROLE}]
-        after = {"acl": permissive, "defaultObjectAcl": []}
-        connection = _Connection(after)
-        client = _Client(connection)
-        bucket = self._make_one(client=client, name=NAME)
+        api_response = {"acl": permissive, "defaultObjectAcl": []}
+        client = mock.Mock(spec=["_patch_resource"])
+        client._patch_resource.return_value = api_response
+        bucket = self._make_one(client=client, name=name)
         bucket.acl.loaded = True
         bucket.default_object_acl.loaded = True
+
         bucket.make_public()
+
         self.assertEqual(list(bucket.acl), permissive)
         self.assertEqual(list(bucket.default_object_acl), [])
-        kw = connection._requested
-        self.assertEqual(len(kw), 1)
-        self.assertEqual(kw[0]["method"], "PATCH")
-        self.assertEqual(kw[0]["path"], "/b/%s" % NAME)
-        self.assertEqual(kw[0]["data"], {"acl": after["acl"]})
-        self.assertEqual(kw[0]["query_params"], {"projection": "full"})
-        self.assertEqual(kw[0]["timeout"], self._get_default_timeout())
+
+        expected_path = bucket.path
+        expected_data = {"acl": permissive}
+        expected_query_params = {"projection": "full"}
+        client._patch_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=None,
+        )
 
     def _make_public_w_future_helper(self, default_object_acl_loaded=True):
         from google.cloud.storage.acl import _ACLEntity
 
-        NAME = "name"
+        name = "name"
+        get_api_response = {"items": []}
         permissive = [{"entity": "allUsers", "role": _ACLEntity.READER_ROLE}]
-        after1 = {"acl": permissive, "defaultObjectAcl": []}
-        after2 = {"acl": permissive, "defaultObjectAcl": permissive}
-        if default_object_acl_loaded:
-            num_requests = 2
-            connection = _Connection(after1, after2)
-        else:
-            num_requests = 3
-            # We return the same value for default_object_acl.reload()
-            # to consume.
-            connection = _Connection(after1, after1, after2)
-        client = _Client(connection)
-        bucket = self._make_one(client=client, name=NAME)
+        acl_patched_response = {"acl": permissive, "defaultObjectAcl": []}
+        dac_patched_response = {"acl": permissive, "defaultObjectAcl": permissive}
+        client = mock.Mock(spec=["_get_resource", "_patch_resource"])
+        client._get_resource.return_value = get_api_response
+        client._patch_resource.side_effect = [
+            acl_patched_response,
+            dac_patched_response,
+        ]
+
+        bucket = self._make_one(client=client, name=name)
         bucket.acl.loaded = True
         bucket.default_object_acl.loaded = default_object_acl_loaded
+
         bucket.make_public(future=True)
+
         self.assertEqual(list(bucket.acl), permissive)
         self.assertEqual(list(bucket.default_object_acl), permissive)
-        kw = connection._requested
-        self.assertEqual(len(kw), num_requests)
-        self.assertEqual(kw[0]["method"], "PATCH")
-        self.assertEqual(kw[0]["path"], "/b/%s" % NAME)
-        self.assertEqual(kw[0]["data"], {"acl": permissive})
-        self.assertEqual(kw[0]["query_params"], {"projection": "full"})
-        self.assertEqual(kw[0]["timeout"], self._get_default_timeout())
+
+        self.assertEqual(len(client._patch_resource.call_args_list), 2)
+        expected_acl_data = {"acl": permissive}
+        expected_dac_data = {"defaultObjectAcl": permissive}
+        expected_kw = {
+            "query_params": {"projection": "full"},
+            "timeout": self._get_default_timeout(),
+            "retry": None,
+        }
+        client._patch_resource.assert_has_calls(
+            [
+                ((bucket.path, expected_acl_data), expected_kw),
+                ((bucket.path, expected_dac_data), expected_kw),
+            ]
+        )
+
         if not default_object_acl_loaded:
-            self.assertEqual(kw[1]["method"], "GET")
-            self.assertEqual(kw[1]["path"], "/b/%s/defaultObjectAcl" % NAME)
-        # Last could be 1 or 2 depending on `default_object_acl_loaded`.
-        self.assertEqual(kw[-1]["method"], "PATCH")
-        self.assertEqual(kw[-1]["path"], "/b/%s" % NAME)
-        self.assertEqual(kw[-1]["data"], {"defaultObjectAcl": permissive})
-        self.assertEqual(kw[-1]["query_params"], {"projection": "full"})
-        self.assertEqual(kw[-1]["timeout"], self._get_default_timeout())
+            expected_path = "/b/%s/defaultObjectAcl" % (name,)
+            expected_query_params = {}
+            client._get_resource.assert_called_once_with(
+                expected_path,
+                query_params=expected_query_params,
+                timeout=self._get_default_timeout(),
+                retry=DEFAULT_RETRY,
+            )
+        else:
+            client._get_resource.assert_not_called()
 
     def test_make_public_w_future(self):
         self._make_public_w_future_helper(default_object_acl_loaded=True)
@@ -2789,119 +3102,153 @@ class Test_Bucket(unittest.TestCase):
                     (self._bucket, self._name, self._granted, client, timeout)
                 )
 
-        def item_to_blob(self, item):
-            return _Blob(self.bucket, item["name"])
-
-        NAME = "name"
-        BLOB_NAME = "blob-name"
+        name = "name"
+        blob_name = "blob-name"
         permissive = [{"entity": "allUsers", "role": _ACLEntity.READER_ROLE}]
-        after = {"acl": permissive, "defaultObjectAcl": []}
-        connection = _Connection(after, {"items": [{"name": BLOB_NAME}]})
-        client = self._make_client()
-        client._base_connection = connection
-        bucket = self._make_one(client=client, name=NAME)
+
+        patch_acl_response = {"acl": permissive, "defaultObjectAcl": []}
+        client = mock.Mock(spec=["list_blobs", "_patch_resource"])
+        client._patch_resource.return_value = patch_acl_response
+
+        bucket = self._make_one(client=client, name=name)
         bucket.acl.loaded = True
         bucket.default_object_acl.loaded = True
 
-        with mock.patch("google.cloud.storage.client._item_to_blob", new=item_to_blob):
-            bucket.make_public(recursive=True, timeout=42, retry=DEFAULT_RETRY)
+        list_blobs_response = iter([_Blob(bucket, blob_name)])
+        client.list_blobs.return_value = list_blobs_response
+
+        timeout = 42
+
+        bucket.make_public(recursive=True, timeout=timeout)
 
         self.assertEqual(list(bucket.acl), permissive)
         self.assertEqual(list(bucket.default_object_acl), [])
-        self.assertEqual(_saved, [(bucket, BLOB_NAME, True, None, 42)])
-        kw = connection._requested
-        self.assertEqual(len(kw), 2)
-        self.assertEqual(kw[0]["method"], "PATCH")
-        self.assertEqual(kw[0]["path"], "/b/%s" % NAME)
-        self.assertEqual(kw[0]["data"], {"acl": permissive})
-        self.assertEqual(kw[0]["query_params"], {"projection": "full"})
-        self.assertEqual(kw[0]["timeout"], 42)
-        self.assertEqual(kw[1]["method"], "GET")
-        self.assertEqual(kw[1]["path"], "/b/%s/o" % NAME)
-        self.assertEqual(kw[1]["retry"], DEFAULT_RETRY)
-        max_results = bucket._MAX_OBJECTS_FOR_ITERATION + 1
-        self.assertEqual(
-            kw[1]["query_params"], {"maxResults": max_results, "projection": "full"}
+        self.assertEqual(_saved, [(bucket, blob_name, True, None, timeout)])
+
+        expected_patch_data = {"acl": permissive}
+        expected_patch_query_params = {"projection": "full"}
+        client._patch_resource.assert_called_once_with(
+            bucket.path,
+            expected_patch_data,
+            query_params=expected_patch_query_params,
+            timeout=timeout,
+            retry=None,
         )
-        self.assertEqual(kw[1]["timeout"], 42)
+        client.list_blobs.assert_called_once()
 
     def test_make_public_recursive_too_many(self):
         from google.cloud.storage.acl import _ACLEntity
 
-        PERMISSIVE = [{"entity": "allUsers", "role": _ACLEntity.READER_ROLE}]
-        AFTER = {"acl": PERMISSIVE, "defaultObjectAcl": []}
+        permissive = [{"entity": "allUsers", "role": _ACLEntity.READER_ROLE}]
 
-        NAME = "name"
-        BLOB_NAME1 = "blob-name1"
-        BLOB_NAME2 = "blob-name2"
-        GET_BLOBS_RESP = {"items": [{"name": BLOB_NAME1}, {"name": BLOB_NAME2}]}
-        connection = _Connection(AFTER, GET_BLOBS_RESP)
-        client = self._make_client()
-        client._base_connection = connection
-        bucket = self._make_one(client=client, name=NAME)
+        name = "name"
+        blob1 = mock.Mock(spec=[])
+        blob2 = mock.Mock(spec=[])
+        patch_acl_response = {"acl": permissive, "defaultObjectAcl": []}
+        list_blobs_response = iter([blob1, blob2])
+        client = mock.Mock(spec=["list_blobs", "_patch_resource"])
+        client.list_blobs.return_value = list_blobs_response
+        client._patch_resource.return_value = patch_acl_response
+        bucket = self._make_one(client=client, name=name)
         bucket.acl.loaded = True
         bucket.default_object_acl.loaded = True
 
         # Make the Bucket refuse to make_public with 2 objects.
         bucket._MAX_OBJECTS_FOR_ITERATION = 1
-        self.assertRaises(ValueError, bucket.make_public, recursive=True)
+
+        with self.assertRaises(ValueError):
+            bucket.make_public(recursive=True)
+
+        expected_path = bucket.path
+        expected_data = {"acl": permissive}
+        expected_query_params = {"projection": "full"}
+        client._patch_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=None,
+        )
+
+        client.list_blobs.assert_called_once()
 
     def test_make_private_defaults(self):
-        NAME = "name"
+        name = "name"
         no_permissions = []
-        after = {"acl": no_permissions, "defaultObjectAcl": []}
-        connection = _Connection(after)
-        client = _Client(connection)
-        bucket = self._make_one(client=client, name=NAME)
+        api_response = {"acl": no_permissions, "defaultObjectAcl": []}
+        client = mock.Mock(spec=["_patch_resource"])
+        client._patch_resource.return_value = api_response
+        bucket = self._make_one(client=client, name=name)
         bucket.acl.loaded = True
         bucket.default_object_acl.loaded = True
+
         bucket.make_private()
+
         self.assertEqual(list(bucket.acl), no_permissions)
         self.assertEqual(list(bucket.default_object_acl), [])
-        kw = connection._requested
-        self.assertEqual(len(kw), 1)
-        self.assertEqual(kw[0]["method"], "PATCH")
-        self.assertEqual(kw[0]["path"], "/b/%s" % NAME)
-        self.assertEqual(kw[0]["data"], {"acl": after["acl"]})
-        self.assertEqual(kw[0]["query_params"], {"projection": "full"})
-        self.assertEqual(kw[0]["timeout"], self._get_default_timeout())
+
+        expected_path = bucket.path
+        expected_data = {"acl": no_permissions}
+        expected_query_params = {"projection": "full"}
+        client._patch_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=None,
+        )
 
     def _make_private_w_future_helper(self, default_object_acl_loaded=True):
-        NAME = "name"
+        name = "name"
         no_permissions = []
-        after1 = {"acl": no_permissions, "defaultObjectAcl": []}
-        after2 = {"acl": no_permissions, "defaultObjectAcl": no_permissions}
-        if default_object_acl_loaded:
-            num_requests = 2
-            connection = _Connection(after1, after2)
-        else:
-            num_requests = 3
-            # We return the same value for default_object_acl.reload()
-            # to consume.
-            connection = _Connection(after1, after1, after2)
-        client = _Client(connection)
-        bucket = self._make_one(client=client, name=NAME)
+        get_api_response = {"items": []}
+        acl_patched_response = {"acl": no_permissions, "defaultObjectAcl": []}
+        dac_patched_response = {
+            "acl": no_permissions,
+            "defaultObjectAcl": no_permissions,
+        }
+        client = mock.Mock(spec=["_get_resource", "_patch_resource"])
+        client._get_resource.return_value = get_api_response
+        client._patch_resource.side_effect = [
+            acl_patched_response,
+            dac_patched_response,
+        ]
+
+        bucket = self._make_one(client=client, name=name)
         bucket.acl.loaded = True
         bucket.default_object_acl.loaded = default_object_acl_loaded
+
         bucket.make_private(future=True)
+
         self.assertEqual(list(bucket.acl), no_permissions)
         self.assertEqual(list(bucket.default_object_acl), no_permissions)
-        kw = connection._requested
-        self.assertEqual(len(kw), num_requests)
-        self.assertEqual(kw[0]["method"], "PATCH")
-        self.assertEqual(kw[0]["path"], "/b/%s" % NAME)
-        self.assertEqual(kw[0]["data"], {"acl": no_permissions})
-        self.assertEqual(kw[0]["query_params"], {"projection": "full"})
-        self.assertEqual(kw[0]["timeout"], self._get_default_timeout())
+
+        self.assertEqual(len(client._patch_resource.call_args_list), 2)
+        expected_acl_data = {"acl": no_permissions}
+        expected_dac_data = {"defaultObjectAcl": no_permissions}
+        expected_kw = {
+            "query_params": {"projection": "full"},
+            "timeout": self._get_default_timeout(),
+            "retry": None,
+        }
+        client._patch_resource.assert_has_calls(
+            [
+                ((bucket.path, expected_acl_data), expected_kw),
+                ((bucket.path, expected_dac_data), expected_kw),
+            ]
+        )
+
         if not default_object_acl_loaded:
-            self.assertEqual(kw[1]["method"], "GET")
-            self.assertEqual(kw[1]["path"], "/b/%s/defaultObjectAcl" % NAME)
-        # Last could be 1 or 2 depending on `default_object_acl_loaded`.
-        self.assertEqual(kw[-1]["method"], "PATCH")
-        self.assertEqual(kw[-1]["path"], "/b/%s" % NAME)
-        self.assertEqual(kw[-1]["data"], {"defaultObjectAcl": no_permissions})
-        self.assertEqual(kw[-1]["query_params"], {"projection": "full"})
-        self.assertEqual(kw[-1]["timeout"], self._get_default_timeout())
+            expected_path = "/b/%s/defaultObjectAcl" % (name,)
+            expected_query_params = {}
+            client._get_resource.assert_called_once_with(
+                expected_path,
+                query_params=expected_query_params,
+                timeout=self._get_default_timeout(),
+                retry=DEFAULT_RETRY,
+            )
+        else:
+            client._get_resource.assert_not_called()
 
     def test_make_private_w_future(self):
         self._make_private_w_future_helper(default_object_acl_loaded=True)
@@ -2935,59 +3282,74 @@ class Test_Bucket(unittest.TestCase):
                     (self._bucket, self._name, self._granted, client, timeout)
                 )
 
-        def item_to_blob(self, item):
-            return _Blob(self.bucket, item["name"])
-
-        NAME = "name"
-        BLOB_NAME = "blob-name"
+        name = "name"
+        blob_name = "blob-name"
         no_permissions = []
-        after = {"acl": no_permissions, "defaultObjectAcl": []}
-        connection = _Connection(after, {"items": [{"name": BLOB_NAME}]})
-        client = self._make_client()
-        client._base_connection = connection
-        bucket = self._make_one(client=client, name=NAME)
+
+        patch_acl_response = {"acl": no_permissions, "defaultObjectAcl": []}
+        client = mock.Mock(spec=["list_blobs", "_patch_resource"])
+        client._patch_resource.return_value = patch_acl_response
+
+        bucket = self._make_one(client=client, name=name)
         bucket.acl.loaded = True
         bucket.default_object_acl.loaded = True
 
-        with mock.patch("google.cloud.storage.client._item_to_blob", new=item_to_blob):
-            bucket.make_private(recursive=True, timeout=42, retry=DEFAULT_RETRY)
+        list_blobs_response = iter([_Blob(bucket, blob_name)])
+        client.list_blobs.return_value = list_blobs_response
+
+        timeout = 42
+
+        bucket.make_private(recursive=True, timeout=42)
+
         self.assertEqual(list(bucket.acl), no_permissions)
         self.assertEqual(list(bucket.default_object_acl), [])
-        self.assertEqual(_saved, [(bucket, BLOB_NAME, False, None, 42)])
-        kw = connection._requested
-        self.assertEqual(len(kw), 2)
-        self.assertEqual(kw[0]["method"], "PATCH")
-        self.assertEqual(kw[0]["path"], "/b/%s" % NAME)
-        self.assertEqual(kw[0]["data"], {"acl": no_permissions})
-        self.assertEqual(kw[0]["query_params"], {"projection": "full"})
-        self.assertEqual(kw[0]["timeout"], 42)
-        self.assertEqual(kw[1]["method"], "GET")
-        self.assertEqual(kw[1]["path"], "/b/%s/o" % NAME)
-        self.assertEqual(kw[1]["retry"], DEFAULT_RETRY)
-        max_results = bucket._MAX_OBJECTS_FOR_ITERATION + 1
-        self.assertEqual(
-            kw[1]["query_params"], {"maxResults": max_results, "projection": "full"}
+        self.assertEqual(_saved, [(bucket, blob_name, False, None, timeout)])
+
+        expected_patch_data = {"acl": no_permissions}
+        expected_patch_query_params = {"projection": "full"}
+        client._patch_resource.assert_called_once_with(
+            bucket.path,
+            expected_patch_data,
+            query_params=expected_patch_query_params,
+            timeout=timeout,
+            retry=None,
         )
-        self.assertEqual(kw[1]["timeout"], 42)
+
+        client.list_blobs.assert_called_once()
 
     def test_make_private_recursive_too_many(self):
-        NO_PERMISSIONS = []
-        AFTER = {"acl": NO_PERMISSIONS, "defaultObjectAcl": []}
+        no_permissions = []
 
-        NAME = "name"
-        BLOB_NAME1 = "blob-name1"
-        BLOB_NAME2 = "blob-name2"
-        GET_BLOBS_RESP = {"items": [{"name": BLOB_NAME1}, {"name": BLOB_NAME2}]}
-        connection = _Connection(AFTER, GET_BLOBS_RESP)
-        client = self._make_client()
-        client._base_connection = connection
-        bucket = self._make_one(client=client, name=NAME)
+        name = "name"
+        blob1 = mock.Mock(spec=[])
+        blob2 = mock.Mock(spec=[])
+        patch_acl_response = {"acl": no_permissions, "defaultObjectAcl": []}
+        list_blobs_response = iter([blob1, blob2])
+        client = mock.Mock(spec=["list_blobs", "_patch_resource"])
+        client.list_blobs.return_value = list_blobs_response
+        client._patch_resource.return_value = patch_acl_response
+        bucket = self._make_one(client=client, name=name)
         bucket.acl.loaded = True
         bucket.default_object_acl.loaded = True
 
         # Make the Bucket refuse to make_private with 2 objects.
         bucket._MAX_OBJECTS_FOR_ITERATION = 1
-        self.assertRaises(ValueError, bucket.make_private, recursive=True)
+
+        with self.assertRaises(ValueError):
+            bucket.make_private(recursive=True)
+
+        expected_path = bucket.path
+        expected_data = {"acl": no_permissions}
+        expected_query_params = {"projection": "full"}
+        client._patch_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=None,
+        )
+
+        client.list_blobs.assert_called_once()
 
     def test_page_empty_response(self):
         from google.api_core import page_iterator
@@ -3143,10 +3505,7 @@ class Test_Bucket(unittest.TestCase):
             bucket.generate_upload_policy([])
 
     def test_lock_retention_policy_no_policy_set(self):
-        credentials = object()
-        connection = _Connection()
-        connection.credentials = credentials
-        client = _Client(connection)
+        client = mock.Mock(spec=["_post_resource"])
         name = "name"
         bucket = self._make_one(client=client, name=name)
         bucket._properties["metageneration"] = 1234
@@ -3154,11 +3513,10 @@ class Test_Bucket(unittest.TestCase):
         with self.assertRaises(ValueError):
             bucket.lock_retention_policy()
 
+        client._post_resource.assert_not_called()
+
     def test_lock_retention_policy_no_metageneration(self):
-        credentials = object()
-        connection = _Connection()
-        connection.credentials = credentials
-        client = _Client(connection)
+        client = mock.Mock(spec=["_post_resource"])
         name = "name"
         bucket = self._make_one(client=client, name=name)
         bucket._properties["retentionPolicy"] = {
@@ -3169,11 +3527,10 @@ class Test_Bucket(unittest.TestCase):
         with self.assertRaises(ValueError):
             bucket.lock_retention_policy()
 
+        client._post_resource.assert_not_called()
+
     def test_lock_retention_policy_already_locked(self):
-        credentials = object()
-        connection = _Connection()
-        connection.credentials = credentials
-        client = _Client(connection)
+        client = mock.Mock(spec=["_post_resource"])
         name = "name"
         bucket = self._make_one(client=client, name=name)
         bucket._properties["metageneration"] = 1234
@@ -3186,69 +3543,88 @@ class Test_Bucket(unittest.TestCase):
         with self.assertRaises(ValueError):
             bucket.lock_retention_policy()
 
-    def test_lock_retention_policy_ok(self):
+        client._post_resource.assert_not_called()
+
+    def test_lock_retention_policy_ok_w_timeout_w_retry(self):
         name = "name"
-        response = {
+        effective_time = "2018-03-01T16:46:27.123456Z"
+        one_hundred_days = 86400 * 100  # seconds in 100 days
+        metageneration = 1234
+        api_response = {
             "name": name,
-            "metageneration": 1235,
+            "metageneration": metageneration + 1,
             "retentionPolicy": {
-                "effectiveTime": "2018-03-01T16:46:27.123456Z",
+                "effectiveTime": effective_time,
                 "isLocked": True,
-                "retentionPeriod": 86400 * 100,  # 100 days
+                "retentionPeriod": one_hundred_days,
             },
         }
-        credentials = object()
-        connection = _Connection(response)
-        connection.credentials = credentials
-        client = _Client(connection)
+        metageneration = 1234
+        client = mock.Mock(spec=["_post_resource"])
+        client._post_resource.return_value = api_response
         bucket = self._make_one(client=client, name=name)
-        bucket._properties["metageneration"] = 1234
+        bucket._properties["metageneration"] = metageneration
         bucket._properties["retentionPolicy"] = {
-            "effectiveTime": "2018-03-01T16:46:27.123456Z",
-            "retentionPeriod": 86400 * 100,  # 100 days
+            "effectiveTime": effective_time,
+            "retentionPeriod": one_hundred_days,
         }
+        timeout = 42
+        retry = mock.Mock(spec=[])
 
-        bucket.lock_retention_policy(timeout=42)
+        bucket.lock_retention_policy(timeout=timeout, retry=retry)
 
-        (kw,) = connection._requested
-        self.assertEqual(kw["method"], "POST")
-        self.assertEqual(kw["path"], "/b/{}/lockRetentionPolicy".format(name))
-        self.assertEqual(kw["query_params"], {"ifMetagenerationMatch": 1234})
-        self.assertEqual(kw["timeout"], 42)
+        expected_path = "/b/{}/lockRetentionPolicy".format(name)
+        expected_data = None
+        expected_query_params = {"ifMetagenerationMatch": metageneration}
+        client._post_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            timeout=timeout,
+            retry=retry,
+            _target_object=bucket,
+        )
 
     def test_lock_retention_policy_w_user_project(self):
         name = "name"
         user_project = "user-project-123"
-        response = {
+        metageneration = 1234
+        effective_time = "2018-03-01T16:46:27.123456Z"
+        one_hundred_days = 86400 * 100  # seconds in 100 days
+        api_response = {
             "name": name,
-            "metageneration": 1235,
+            "metageneration": metageneration + 1,
             "retentionPolicy": {
-                "effectiveTime": "2018-03-01T16:46:27.123456Z",
+                "effectiveTime": effective_time,
                 "isLocked": True,
-                "retentionPeriod": 86400 * 100,  # 100 days
+                "retentionPeriod": one_hundred_days,
             },
         }
-        credentials = object()
-        connection = _Connection(response)
-        connection.credentials = credentials
-        client = _Client(connection)
+        client = mock.Mock(spec=["_post_resource"])
+        client._post_resource.return_value = api_response
         bucket = self._make_one(client=client, name=name, user_project=user_project)
         bucket._properties["metageneration"] = 1234
         bucket._properties["retentionPolicy"] = {
-            "effectiveTime": "2018-03-01T16:46:27.123456Z",
-            "retentionPeriod": 86400 * 100,  # 100 days
+            "effectiveTime": effective_time,
+            "retentionPeriod": one_hundred_days,
         }
 
         bucket.lock_retention_policy()
 
-        (kw,) = connection._requested
-        self.assertEqual(kw["method"], "POST")
-        self.assertEqual(kw["path"], "/b/{}/lockRetentionPolicy".format(name))
-        self.assertEqual(
-            kw["query_params"],
-            {"ifMetagenerationMatch": 1234, "userProject": user_project},
+        expected_path = "/b/{}/lockRetentionPolicy".format(name)
+        expected_data = None
+        expected_query_params = {
+            "ifMetagenerationMatch": metageneration,
+            "userProject": user_project,
+        }
+        client._post_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
+            _target_object=bucket,
         )
-        self.assertEqual(kw["timeout"], self._get_default_timeout())
 
     def test_generate_signed_url_w_invalid_version(self):
         expiration = "2014-10-16T20:34:37.000Z"
@@ -3481,50 +3857,51 @@ class Test_Bucket(unittest.TestCase):
         self._generate_signed_url_v4_helper(bucket_bound_hostname="cdn.example.com")
 
 
+class Test__item_to_notification(unittest.TestCase):
+    def _call_fut(self, iterator, item):
+        from google.cloud.storage.bucket import _item_to_notification
+
+        return _item_to_notification(iterator, item)
+
+    def test_it(self):
+        from google.cloud.storage.notification import BucketNotification
+        from google.cloud.storage.notification import _TOPIC_REF_FMT
+        from google.cloud.storage.notification import NONE_PAYLOAD_FORMAT
+
+        iterator = mock.Mock(spec=["bucket"])
+        project = "my-project-123"
+        topic = "topic-1"
+        item = {
+            "topic": _TOPIC_REF_FMT.format(project, topic),
+            "id": "1",
+            "etag": "DEADBEEF",
+            "selfLink": "https://example.com/notification/1",
+            "payload_format": NONE_PAYLOAD_FORMAT,
+        }
+
+        notification = self._call_fut(iterator, item)
+
+        self.assertIsInstance(notification, BucketNotification)
+        self.assertIs(notification._bucket, iterator.bucket)
+        self.assertEqual(notification._topic_name, topic)
+        self.assertEqual(notification._topic_project, project)
+        self.assertEqual(notification._properties, item)
+
+
 class _Connection(object):
-    _delete_bucket = False
+    credentials = None
 
-    def __init__(self, *responses):
-        self._responses = responses
-        self._requested = []
-        self._deleted_buckets = []
-        self.credentials = None
+    def __init__(self):
+        pass
 
-    @staticmethod
-    def _is_bucket_path(path):
-        # Now just ensure the path only has /b/ and one more segment.
-        return path.startswith("/b/") and path.count("/") == 2
-
-    def api_request(self, **kw):
-        from google.cloud.exceptions import NotFound
-
-        self._requested.append(kw)
-
-        method = kw.get("method")
-        path = kw.get("path", "")
-        if method == "DELETE" and self._is_bucket_path(path):
-            self._deleted_buckets.append(kw)
-            if self._delete_bucket:
-                return
-            else:
-                raise NotFound("miss")
-
-        try:
-            response, self._responses = self._responses[0], self._responses[1:]
-        except IndexError:
-            raise NotFound("miss")
-        else:
-            return response
+    def api_request(self, **kw):  # pragma: NO COVER
+        pass
 
 
 class _Client(object):
     def __init__(self, connection, project=None):
         self._base_connection = connection
         self.project = project
-
-    @property
-    def _connection(self):
-        return self._base_connection
 
     @property
     def _credentials(self):
