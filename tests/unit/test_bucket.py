@@ -37,6 +37,79 @@ def _create_signing_credentials():
     return credentials
 
 
+class Test__blobs_page_start(unittest.TestCase):
+    @staticmethod
+    def _call_fut(iterator, page, response):
+        from google.cloud.storage.bucket import _blobs_page_start
+
+        return _blobs_page_start(iterator, page, response)
+
+    def test_wo_any_prefixes(self):
+        iterator = mock.Mock(spec=["prefixes"], prefixes=set())
+        page = mock.Mock(spec=["prefixes"])
+        response = {}
+
+        self._call_fut(iterator, page, response)
+
+        self.assertEqual(page.prefixes, ())
+        self.assertEqual(iterator.prefixes, set())
+
+    def test_w_prefixes(self):
+        iterator_prefixes = set(["foo/", "qux/"])
+        iterator = mock.Mock(spec=["prefixes"], prefixes=iterator_prefixes)
+        page = mock.Mock(spec=["prefixes"])
+        page_prefixes = ["foo/", "bar/", "baz/"]
+        response = {"prefixes": page_prefixes}
+
+        self._call_fut(iterator, page, response)
+
+        self.assertEqual(page.prefixes, tuple(page_prefixes))
+        self.assertEqual(iterator.prefixes, iterator_prefixes.union(page_prefixes))
+
+
+class Test__item_to_blob(unittest.TestCase):
+    @staticmethod
+    def _call_fut(iterator, item):
+        from google.cloud.storage.bucket import _item_to_blob
+
+        return _item_to_blob(iterator, item)
+
+    def test_wo_extra_properties(self):
+        from google.cloud.storage.blob import Blob
+
+        blob_name = "blob-name"
+        bucket = mock.Mock(spec=[])
+        iterator = mock.Mock(spec=["bucket"], bucket=bucket)
+        item = {"name": blob_name}
+
+        blob = self._call_fut(iterator, item)
+
+        self.assertIsInstance(blob, Blob)
+        self.assertIs(blob.bucket, bucket)
+        self.assertEqual(blob.name, blob_name)
+        self.assertEqual(blob._properties, item)
+
+    def test_w_extra_properties(self):
+        from google.cloud.storage.blob import Blob
+
+        blob_name = "blob-name"
+        bucket = mock.Mock(spec=[])
+        iterator = mock.Mock(spec=["bucket"], bucket=bucket)
+        item = {
+            "name": blob_name,
+            "generation": 123,
+            "contentType": "text/plain",
+            "contentLanguage": "en-US",
+        }
+
+        blob = self._call_fut(iterator, item)
+
+        self.assertIsInstance(blob, Blob)
+        self.assertIs(blob.bucket, bucket)
+        self.assertEqual(blob.name, blob_name)
+        self.assertEqual(blob._properties, item)
+
+
 class Test_LifecycleRuleConditions(unittest.TestCase):
     @staticmethod
     def _get_target_class():
