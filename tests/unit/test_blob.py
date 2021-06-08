@@ -3813,8 +3813,7 @@ class Test_Blob(unittest.TestCase):
         destination = self._make_one(destination_name, bucket=bucket)
 
         destination.compose(
-            sources=[source_1, source_2],
-            if_metageneration_match=metageneration_number,
+            sources=[source_1, source_2], if_metageneration_match=metageneration_number,
         )
 
         expected_path = "/b/name/o/%s/compose" % destination_name
