@@ -3048,19 +3048,29 @@ class Blob(_PropertyMixin):
 
         :type if_generation_match: long
         :param if_generation_match:
-            (Optional) Make the operation conditional on whether the blob's
-            current generation matches the given value.  Setting to 0 makes the
-            operation succeed only if there are no live versions of the blob.
+            (Optional) Makes the operation conditional on whether the
+            destination object's current generation matches the given value.
+            Setting to 0 makes the operation succeed only if there are no live
+            versions of the object.
 
-        :type if_metageneration_match: list of long
+            If a list of long is passed in, makes the operation conditional on whether the
+            current generation of each source blob matches the corresponding generation.
+            The list must match ``sources`` item-to-item.
+            (Deprecated: type if_generation_match: list of long will be removed in a future release.
+            Use if_source_generation_match instead.)
+
+        :type if_metageneration_match: long
         :param if_metageneration_match:
-            (Optional) Make the operation conditional on whether the blob's
-            current metageneration matches the given value. The list must match
-            ``sources`` item-to-item.
+            (Optional) Makes the operation conditional on whether the
+            destination object's current metageneration matches the given
+            value.
+
+            If a list of long is passed in, no match operation will be performed.
+            (Deprecated: type if_metageneration_match: list of long will be removed in a future release.)
 
         :type if_source_generation_match: list of long
         :param if_source_generation_match:
-            (Optional) Make the operation conditional on whether the current generation
+            (Optional) Makes the operation conditional on whether the current generation
             of each source blob matches the corresponding generation.
             The list must match ``sources`` item-to-item.
 
@@ -3093,18 +3103,36 @@ class Blob(_PropertyMixin):
             >>> composed_blob.compose(blobs, if_source_generation_match=if_source_generation_match)
         """
         sources_len = len(sources)
-
         client = self._require_client(client)
         query_params = {}
 
-        if self.user_project is not None:
-            query_params["userProject"] = self.user_project
+        if isinstance(if_generation_match, list):
+            warnings.warn(
+                "if_generation_match: type list is deprecated and will be removed in future."
+                "Use if_source_generation_match instead.",
+                PendingDeprecationWarning,
+                stacklevel=1,
+            )
 
-        _add_generation_match_parameters(
-            query_params,
-            if_generation_match=if_generation_match,
-            if_metageneration_match=if_metageneration_match,
-        )
+            if if_source_generation_match is not None:
+                raise ValueError(
+                    "Use if_generation_match to match the generation of the destination object."
+                    "Use if_source_generation_match to match source objects generations."
+                )
+
+            # if_generation_match: type list is deprecated. Instead use if_source_generation_match.
+            if_source_generation_match = if_generation_match
+            if_generation_match = None
+
+        if isinstance(if_metageneration_match, list):
+            warnings.warn(
+                "if_metageneration_match matches the given value to the destination object's metageneration."
+                "Please pass in a single value (type long).",
+                PendingDeprecationWarning,
+                stacklevel=1,
+            )
+
+            if_metageneration_match = None
 
         if if_source_generation_match is None:
             if_source_generation_match = [None] * sources_len
@@ -3130,6 +3158,16 @@ class Blob(_PropertyMixin):
             "sourceObjects": source_objects,
             "destination": self._properties.copy(),
         }
+
+        if self.user_project is not None:
+            query_params["userProject"] = self.user_project
+
+        _add_generation_match_parameters(
+            query_params,
+            if_generation_match=if_generation_match,
+            if_metageneration_match=if_metageneration_match,
+        )
+
         api_response = client._post_resource(
             "{}/compose".format(self.path),
             request,
