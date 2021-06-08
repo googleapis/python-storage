@@ -19,13 +19,30 @@ from google.cloud.storage import _helpers
 import mock
 
 
+try:
+    ConnectionError
+except NameError:
+    _HAS_STDLIB_CONNECTION_ERROR = False
+else:
+    _HAS_STDLIB_CONNECTION_ERROR = True
+
+
 class Test_should_retry(unittest.TestCase):
     def _call_fut(self, exc):
         from google.cloud.storage import retry
 
         return retry._should_retry(exc)
 
-    def test_w_retryable_types(self):
+    def test_w_retryable_transport_error(self):
+        from google.cloud.storage import retry
+        from google.auth.exceptions import TransportError as eTransportError
+        from requests import ConnectionError as rConnectionError
+
+        caught_exc = rConnectionError("Remote end closed connection unexpected")
+        exc = eTransportError(caught_exc)
+        self.assertTrue(retry._should_retry(exc))
+
+    def test_w_wrapped_type(self):
         from google.cloud.storage import retry
 
         for exc_type in retry._RETRYABLE_TYPES:
@@ -47,8 +64,21 @@ class Test_should_retry(unittest.TestCase):
         self.assertFalse(self._call_fut(exc))
 
     def test_w_requests_connection_error(self):
+        import requests
+
+        exc = requests.ConnectionError()
+        self.assertTrue(self._call_fut(exc))
+
+    def test_miss_w_stdlib_error(self):
         exc = ValueError("testing")
         self.assertFalse(self._call_fut(exc))
+
+    @unittest.skipUnless(
+        _HAS_STDLIB_CONNECTION_ERROR, "No builtin 'ConnectionError' in Python 2",
+    )
+    def test_w_stdlib_connection_error(self):
+        exc = ConnectionError()
+        self.assertTrue(self._call_fut(exc))
 
 
 class TestConditionalRetryPolicy(unittest.TestCase):

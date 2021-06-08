@@ -222,12 +222,8 @@ class HMACKeyMetadata(object):
             if self.user_project is not None:
                 qs_params["userProject"] = self.user_project
 
-            self._client._connection.api_request(
-                method="GET",
-                path=self.path,
-                query_params=qs_params,
-                timeout=timeout,
-                retry=retry,
+            self._client._get_resource(
+                self.path, query_params=qs_params, timeout=timeout, retry=retry,
             )
         except NotFound:
             return False
@@ -266,12 +262,8 @@ class HMACKeyMetadata(object):
         if self.user_project is not None:
             qs_params["userProject"] = self.user_project
 
-        self._properties = self._client._connection.api_request(
-            method="GET",
-            path=self.path,
-            query_params=qs_params,
-            timeout=timeout,
-            retry=retry,
+        self._properties = self._client._get_resource(
+            self.path, query_params=qs_params, timeout=timeout, retry=retry,
         )
 
     def update(self, timeout=_DEFAULT_TIMEOUT, retry=DEFAULT_RETRY_IF_ETAG_IN_JSON):
@@ -306,13 +298,8 @@ class HMACKeyMetadata(object):
             qs_params["userProject"] = self.user_project
 
         payload = {"state": self.state}
-        self._properties = self._client._connection.api_request(
-            method="PUT",
-            path=self.path,
-            data=payload,
-            query_params=qs_params,
-            timeout=timeout,
-            retry=retry,
+        self._properties = self._client._put_resource(
+            self.path, payload, query_params=qs_params, timeout=timeout, retry=retry,
         )
 
     def delete(self, timeout=_DEFAULT_TIMEOUT, retry=DEFAULT_RETRY):
@@ -349,10 +336,6 @@ class HMACKeyMetadata(object):
         if self.user_project is not None:
             qs_params["userProject"] = self.user_project
 
-        self._client._connection.api_request(
-            method="DELETE",
-            path=self.path,
-            query_params=qs_params,
-            timeout=timeout,
-            retry=retry,
+        self._client._delete_resource(
+            self.path, query_params=qs_params, timeout=timeout, retry=retry,
         )

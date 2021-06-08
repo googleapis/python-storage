@@ -27,6 +27,7 @@ import six
 from six.moves import http_client
 
 from google.cloud.storage.retry import DEFAULT_RETRY
+from google.cloud.storage.retry import DEFAULT_RETRY_IF_ETAG_IN_JSON
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_GENERATION_SPECIFIED
 
 
@@ -261,6 +262,42 @@ class Test_Blob(unittest.TestCase):
         acl = blob.acl
         self.assertIsInstance(acl, ObjectACL)
         self.assertIs(acl, blob._acl)
+
+    def test_encryption_key_getter(self):
+        BLOB_NAME = "blob-name"
+        BUCKET = object()
+        blob = self._make_one(BLOB_NAME, bucket=BUCKET)
+        self.assertIsNone(blob.encryption_key)
+        VALUE = object()
+        blob._encryption_key = VALUE
+        self.assertIs(blob.encryption_key, VALUE)
+
+    def test_encryption_key_setter(self):
+        BLOB_NAME = "blob-name"
+        BUCKET = object()
+        blob = self._make_one(BLOB_NAME, bucket=BUCKET)
+        self.assertIsNone(blob._encryption_key)
+        key = b"12345678901234567890123456789012"
+        blob.encryption_key = key
+        self.assertEqual(blob._encryption_key, key)
+
+    def test_kms_key_name_getter(self):
+        BLOB_NAME = "blob-name"
+        BUCKET = object()
+        blob = self._make_one(BLOB_NAME, bucket=BUCKET)
+        self.assertIsNone(blob.kms_key_name)
+        VALUE = object()
+        blob._patch_property("kmsKeyName", VALUE)
+        self.assertIs(blob.kms_key_name, VALUE)
+
+    def test_kms_key_name_setter(self):
+        BLOB_NAME = "blob-name"
+        BUCKET = object()
+        blob = self._make_one(BLOB_NAME, bucket=BUCKET)
+        self.assertIsNone(blob._properties.get("kmsKeyName"))
+        kms_key_name = "cryptoKeys/test-key"
+        blob.kms_key_name = kms_key_name
+        self.assertEqual(blob._properties.get("kmsKeyName"), kms_key_name)
 
     def test_path_bad_bucket(self):
         fake_bucket = object()
@@ -652,117 +689,109 @@ class Test_Blob(unittest.TestCase):
         credentials = object()
         self._generate_signed_url_v4_helper(credentials=credentials)
 
-    def test_exists_miss(self):
-        NONESUCH = "nonesuch"
-        not_found_response = ({"status": http_client.NOT_FOUND}, b"")
-        connection = _Connection(not_found_response)
-        client = _Client(connection)
+    def test_exists_miss_w_defaults(self):
+        from google.cloud.exceptions import NotFound
+
+        blob_name = "nonesuch"
+        client = mock.Mock(spec=["_get_resource"])
+        client._get_resource.side_effect = NotFound("testing")
         bucket = _Bucket(client)
-        blob = self._make_one(NONESUCH, bucket=bucket)
-        self.assertFalse(blob.exists(timeout=42))
-        self.assertEqual(len(connection._requested), 1)
-        self.assertEqual(
-            connection._requested[0],
-            {
-                "method": "GET",
-                "path": "/b/name/o/{}".format(NONESUCH),
-                "query_params": {"fields": "name"},
-                "_target_object": None,
-                "timeout": 42,
-                "retry": DEFAULT_RETRY,
-            },
+        blob = self._make_one(blob_name, bucket=bucket)
+
+        self.assertFalse(blob.exists())
+
+        expected_query_params = {"fields": "name"}
+        client._get_resource.assert_called_once_with(
+            blob.path,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
+            _target_object=None,
         )
 
-    def test_exists_hit_w_user_project(self):
-        BLOB_NAME = "blob-name"
-        USER_PROJECT = "user-project-123"
-        found_response = ({"status": http_client.OK}, b"")
-        connection = _Connection(found_response)
-        client = _Client(connection)
-        bucket = _Bucket(client, user_project=USER_PROJECT)
-        blob = self._make_one(BLOB_NAME, bucket=bucket)
-        bucket._blobs[BLOB_NAME] = 1
-        self.assertTrue(blob.exists())
-        self.assertEqual(len(connection._requested), 1)
-        self.assertEqual(
-            connection._requested[0],
-            {
-                "method": "GET",
-                "path": "/b/name/o/{}".format(BLOB_NAME),
-                "query_params": {"fields": "name", "userProject": USER_PROJECT},
-                "_target_object": None,
-                "timeout": self._get_default_timeout(),
-                "retry": DEFAULT_RETRY,
-            },
+    def test_exists_hit_w_user_project_w_timeout(self):
+        blob_name = "blob-name"
+        user_project = "user-project-123"
+        timeout = 42
+        api_response = {"name": blob_name}
+        client = mock.Mock(spec=["_get_resource"])
+        client._get_resource.return_value = api_response
+        bucket = _Bucket(client, user_project=user_project)
+        blob = self._make_one(blob_name, bucket=bucket)
+
+        self.assertTrue(blob.exists(timeout=timeout))
+
+        expected_query_params = {"fields": "name", "userProject": user_project}
+        client._get_resource.assert_called_once_with(
+            blob.path,
+            query_params=expected_query_params,
+            timeout=timeout,
+            retry=DEFAULT_RETRY,
+            _target_object=None,
         )
 
-    def test_exists_hit_w_generation(self):
-        BLOB_NAME = "blob-name"
-        GENERATION = 123456
-        found_response = ({"status": http_client.OK}, b"")
-        connection = _Connection(found_response)
-        client = _Client(connection)
+    def test_exists_hit_w_generation_w_retry(self):
+        blob_name = "blob-name"
+        generation = 123456
+        api_response = {"name": blob_name}
+        retry = mock.Mock(spec=[])
+        client = mock.Mock(spec=["_get_resource"])
+        client._get_resource.return_value = api_response
         bucket = _Bucket(client)
-        blob = self._make_one(BLOB_NAME, bucket=bucket, generation=GENERATION)
-        bucket._blobs[BLOB_NAME] = 1
-        self.assertTrue(blob.exists())
-        self.assertEqual(len(connection._requested), 1)
-        self.assertEqual(
-            connection._requested[0],
-            {
-                "method": "GET",
-                "path": "/b/name/o/{}".format(BLOB_NAME),
-                "query_params": {"fields": "name", "generation": GENERATION},
-                "_target_object": None,
-                "timeout": self._get_default_timeout(),
-                "retry": DEFAULT_RETRY,
-            },
+        blob = self._make_one(blob_name, bucket=bucket, generation=generation)
+
+        self.assertTrue(blob.exists(retry=retry))
+
+        expected_query_params = {"fields": "name", "generation": generation}
+        client._get_resource.assert_called_once_with(
+            blob.path,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=retry,
+            _target_object=None,
         )
 
     def test_exists_w_generation_match(self):
-        BLOB_NAME = "blob-name"
-        GENERATION_NUMBER = 123456
-        METAGENERATION_NUMBER = 6
-
-        found_response = ({"status": http_client.OK}, b"")
-        connection = _Connection(found_response)
-        client = _Client(connection)
+        blob_name = "blob-name"
+        generation_number = 123456
+        metageneration_number = 6
+        api_response = {"name": blob_name}
+        client = mock.Mock(spec=["_get_resource"])
+        client._get_resource.return_value = api_response
         bucket = _Bucket(client)
-        blob = self._make_one(BLOB_NAME, bucket=bucket)
-        bucket._blobs[BLOB_NAME] = 1
+        blob = self._make_one(blob_name, bucket=bucket)
+
         self.assertTrue(
             blob.exists(
-                if_generation_match=GENERATION_NUMBER,
-                if_metageneration_match=METAGENERATION_NUMBER,
+                if_generation_match=generation_number,
+                if_metageneration_match=metageneration_number,
+                retry=None,
             )
         )
-        self.assertEqual(len(connection._requested), 1)
-        self.assertEqual(
-            connection._requested[0],
-            {
-                "method": "GET",
-                "path": "/b/name/o/{}".format(BLOB_NAME),
-                "query_params": {
-                    "fields": "name",
-                    "ifGenerationMatch": GENERATION_NUMBER,
-                    "ifMetagenerationMatch": METAGENERATION_NUMBER,
-                },
-                "_target_object": None,
-                "timeout": self._get_default_timeout(),
-                "retry": DEFAULT_RETRY,
-            },
+
+        expected_query_params = {
+            "fields": "name",
+            "ifGenerationMatch": generation_number,
+            "ifMetagenerationMatch": metageneration_number,
+        }
+        client._get_resource.assert_called_once_with(
+            blob.path,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=None,
+            _target_object=None,
         )
 
     def test_delete_wo_generation(self):
         BLOB_NAME = "blob-name"
-        not_found_response = ({"status": http_client.NOT_FOUND}, b"")
-        connection = _Connection(not_found_response)
+        connection = _Connection()  # no requests will be made
         client = _Client(connection)
         bucket = _Bucket(client)
         blob = self._make_one(BLOB_NAME, bucket=bucket)
         bucket._blobs[BLOB_NAME] = 1
+
         blob.delete()
-        self.assertFalse(blob.exists())
+
         self.assertEqual(
             bucket._deleted,
             [
@@ -783,14 +812,14 @@ class Test_Blob(unittest.TestCase):
     def test_delete_w_generation(self):
         BLOB_NAME = "blob-name"
         GENERATION = 123456
-        not_found_response = ({"status": http_client.NOT_FOUND}, b"")
-        connection = _Connection(not_found_response)
+        connection = _Connection()  # no requests will be made
         client = _Client(connection)
         bucket = _Bucket(client)
         blob = self._make_one(BLOB_NAME, bucket=bucket, generation=GENERATION)
         bucket._blobs[BLOB_NAME] = 1
+
         blob.delete(timeout=42)
-        self.assertFalse(blob.exists())
+
         self.assertEqual(
             bucket._deleted,
             [
@@ -811,14 +840,14 @@ class Test_Blob(unittest.TestCase):
     def test_delete_w_generation_match(self):
         BLOB_NAME = "blob-name"
         GENERATION = 123456
-        not_found_response = ({"status": http_client.NOT_FOUND}, b"")
-        connection = _Connection(not_found_response)
+        connection = _Connection()  # no requests will be made
         client = _Client(connection)
         bucket = _Bucket(client)
         blob = self._make_one(BLOB_NAME, bucket=bucket, generation=GENERATION)
         bucket._blobs[BLOB_NAME] = 1
+
         blob.delete(timeout=42, if_generation_match=GENERATION)
-        self.assertFalse(blob.exists())
+
         self.assertEqual(
             bucket._deleted,
             [
@@ -3110,139 +3139,128 @@ class Test_Blob(unittest.TestCase):
         self.assertIn(message, exc_info.exception.message)
         self.assertEqual(exc_info.exception.errors, [])
 
-    def test_get_iam_policy(self):
+    def test_get_iam_policy_defaults(self):
         from google.cloud.storage.iam import STORAGE_OWNER_ROLE
         from google.cloud.storage.iam import STORAGE_EDITOR_ROLE
         from google.cloud.storage.iam import STORAGE_VIEWER_ROLE
         from google.api_core.iam import Policy
 
-        BLOB_NAME = "blob-name"
-        PATH = "/b/name/o/%s" % (BLOB_NAME,)
-        ETAG = "DEADBEEF"
-        VERSION = 1
-        OWNER1 = "user:phred@example.com"
-        OWNER2 = "group:cloud-logs@google.com"
-        EDITOR1 = "domain:google.com"
-        EDITOR2 = "user:phred@example.com"
-        VIEWER1 = "serviceAccount:1234-abcdef@service.example.com"
-        VIEWER2 = "user:phred@example.com"
-        RETURNED = {
-            "resourceId": PATH,
-            "etag": ETAG,
-            "version": VERSION,
+        blob_name = "blob-name"
+        path = "/b/name/o/%s" % (blob_name,)
+        etag = "DEADBEEF"
+        version = 1
+        owner1 = "user:phred@example.com"
+        owner2 = "group:cloud-logs@google.com"
+        editor1 = "domain:google.com"
+        editor2 = "user:phred@example.com"
+        viewer1 = "serviceAccount:1234-abcdef@service.example.com"
+        viewer2 = "user:phred@example.com"
+        api_response = {
+            "resourceId": path,
+            "etag": etag,
+            "version": version,
             "bindings": [
-                {"role": STORAGE_OWNER_ROLE, "members": [OWNER1, OWNER2]},
-                {"role": STORAGE_EDITOR_ROLE, "members": [EDITOR1, EDITOR2]},
-                {"role": STORAGE_VIEWER_ROLE, "members": [VIEWER1, VIEWER2]},
+                {"role": STORAGE_OWNER_ROLE, "members": [owner1, owner2]},
+                {"role": STORAGE_EDITOR_ROLE, "members": [editor1, editor2]},
+                {"role": STORAGE_VIEWER_ROLE, "members": [viewer1, viewer2]},
             ],
         }
-        after = ({"status": http_client.OK}, RETURNED)
-        EXPECTED = {
-            binding["role"]: set(binding["members"]) for binding in RETURNED["bindings"]
+        expected_policy = {
+            binding["role"]: set(binding["members"])
+            for binding in api_response["bindings"]
         }
-        connection = _Connection(after)
-        client = _Client(connection)
+        client = mock.Mock(spec=["_get_resource"])
+        client._get_resource.return_value = api_response
         bucket = _Bucket(client=client)
-        blob = self._make_one(BLOB_NAME, bucket=bucket)
+        blob = self._make_one(blob_name, bucket=bucket)
+
+        policy = blob.get_iam_policy()
+
+        self.assertIsInstance(policy, Policy)
+        self.assertEqual(policy.etag, api_response["etag"])
+        self.assertEqual(policy.version, api_response["version"])
+        self.assertEqual(dict(policy), expected_policy)
+
+        expected_path = "%s/iam" % (path,)
+        expected_query_params = {}
+        client._get_resource.assert_called_once_with(
+            expected_path,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
+            _target_object=None,
+        )
+
+    def test_get_iam_policy_w_user_project_w_timeout(self):
+        from google.api_core.iam import Policy
+
+        blob_name = "blob-name"
+        user_project = "user-project-123"
+        timeout = 42
+        path = "/b/name/o/%s" % (blob_name,)
+        etag = "DEADBEEF"
+        version = 1
+        api_response = {
+            "resourceId": path,
+            "etag": etag,
+            "version": version,
+            "bindings": [],
+        }
+        expected_policy = {}
+        client = mock.Mock(spec=["_get_resource"])
+        client._get_resource.return_value = api_response
+        bucket = _Bucket(client=client, user_project=user_project)
+        blob = self._make_one(blob_name, bucket=bucket)
 
         policy = blob.get_iam_policy(timeout=42)
 
         self.assertIsInstance(policy, Policy)
-        self.assertEqual(policy.etag, RETURNED["etag"])
-        self.assertEqual(policy.version, RETURNED["version"])
-        self.assertEqual(dict(policy), EXPECTED)
+        self.assertEqual(policy.etag, api_response["etag"])
+        self.assertEqual(policy.version, api_response["version"])
+        self.assertEqual(dict(policy), expected_policy)
 
-        kw = connection._requested
-        self.assertEqual(len(kw), 1)
-        self.assertEqual(
-            kw[0],
-            {
-                "method": "GET",
-                "path": "%s/iam" % (PATH,),
-                "query_params": {},
-                "_target_object": None,
-                "timeout": 42,
-                "retry": DEFAULT_RETRY,
-            },
+        expected_path = "%s/iam" % (path,)
+        expected_query_params = {"userProject": user_project}
+        client._get_resource.assert_called_once_with(
+            expected_path,
+            query_params=expected_query_params,
+            timeout=timeout,
+            retry=DEFAULT_RETRY,
+            _target_object=None,
         )
 
     def test_get_iam_policy_w_requested_policy_version(self):
         from google.cloud.storage.iam import STORAGE_OWNER_ROLE
 
-        BLOB_NAME = "blob-name"
-        PATH = "/b/name/o/%s" % (BLOB_NAME,)
-        ETAG = "DEADBEEF"
-        VERSION = 1
-        OWNER1 = "user:phred@example.com"
-        OWNER2 = "group:cloud-logs@google.com"
-        RETURNED = {
-            "resourceId": PATH,
-            "etag": ETAG,
-            "version": VERSION,
-            "bindings": [{"role": STORAGE_OWNER_ROLE, "members": [OWNER1, OWNER2]}],
+        blob_name = "blob-name"
+        path = "/b/name/o/%s" % (blob_name,)
+        etag = "DEADBEEF"
+        version = 3
+        owner1 = "user:phred@example.com"
+        owner2 = "group:cloud-logs@google.com"
+        api_response = {
+            "resourceId": path,
+            "etag": etag,
+            "version": version,
+            "bindings": [{"role": STORAGE_OWNER_ROLE, "members": [owner1, owner2]}],
         }
-        after = ({"status": http_client.OK}, RETURNED)
-        connection = _Connection(after)
-        client = _Client(connection)
+        client = mock.Mock(spec=["_get_resource"])
+        client._get_resource.return_value = api_response
         bucket = _Bucket(client=client)
-        blob = self._make_one(BLOB_NAME, bucket=bucket)
+        blob = self._make_one(blob_name, bucket=bucket)
 
-        blob.get_iam_policy(requested_policy_version=3)
+        policy = blob.get_iam_policy(requested_policy_version=version)
 
-        kw = connection._requested
-        self.assertEqual(len(kw), 1)
-        self.assertEqual(
-            kw[0],
-            {
-                "method": "GET",
-                "path": "%s/iam" % (PATH,),
-                "query_params": {"optionsRequestedPolicyVersion": 3},
-                "_target_object": None,
-                "timeout": self._get_default_timeout(),
-                "retry": DEFAULT_RETRY,
-            },
-        )
+        self.assertEqual(policy.version, version)
 
-    def test_get_iam_policy_w_user_project(self):
-        from google.api_core.iam import Policy
-
-        BLOB_NAME = "blob-name"
-        USER_PROJECT = "user-project-123"
-        PATH = "/b/name/o/%s" % (BLOB_NAME,)
-        ETAG = "DEADBEEF"
-        VERSION = 1
-        RETURNED = {
-            "resourceId": PATH,
-            "etag": ETAG,
-            "version": VERSION,
-            "bindings": [],
-        }
-        after = ({"status": http_client.OK}, RETURNED)
-        EXPECTED = {}
-        connection = _Connection(after)
-        client = _Client(connection)
-        bucket = _Bucket(client=client, user_project=USER_PROJECT)
-        blob = self._make_one(BLOB_NAME, bucket=bucket)
-
-        policy = blob.get_iam_policy()
-
-        self.assertIsInstance(policy, Policy)
-        self.assertEqual(policy.etag, RETURNED["etag"])
-        self.assertEqual(policy.version, RETURNED["version"])
-        self.assertEqual(dict(policy), EXPECTED)
-
-        kw = connection._requested
-        self.assertEqual(len(kw), 1)
-        self.assertEqual(
-            kw[0],
-            {
-                "method": "GET",
-                "path": "%s/iam" % (PATH,),
-                "query_params": {"userProject": USER_PROJECT},
-                "_target_object": None,
-                "timeout": self._get_default_timeout(),
-                "retry": DEFAULT_RETRY,
-            },
+        expected_path = "%s/iam" % (path,)
+        expected_query_params = {"optionsRequestedPolicyVersion": version}
+        client._get_resource.assert_called_once_with(
+            expected_path,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
+            _target_object=None,
         )
 
     def test_set_iam_policy(self):
@@ -3252,928 +3270,1073 @@ class Test_Blob(unittest.TestCase):
         from google.cloud.storage.iam import STORAGE_VIEWER_ROLE
         from google.api_core.iam import Policy
 
-        BLOB_NAME = "blob-name"
-        PATH = "/b/name/o/%s" % (BLOB_NAME,)
-        ETAG = "DEADBEEF"
-        VERSION = 1
-        OWNER1 = "user:phred@example.com"
-        OWNER2 = "group:cloud-logs@google.com"
-        EDITOR1 = "domain:google.com"
-        EDITOR2 = "user:phred@example.com"
-        VIEWER1 = "serviceAccount:1234-abcdef@service.example.com"
-        VIEWER2 = "user:phred@example.com"
-        BINDINGS = [
-            {"role": STORAGE_OWNER_ROLE, "members": [OWNER1, OWNER2]},
-            {"role": STORAGE_EDITOR_ROLE, "members": [EDITOR1, EDITOR2]},
-            {"role": STORAGE_VIEWER_ROLE, "members": [VIEWER1, VIEWER2]},
+        blob_name = "blob-name"
+        path = "/b/name/o/%s" % (blob_name,)
+        etag = "DEADBEEF"
+        version = 1
+        owner1 = "user:phred@example.com"
+        owner2 = "group:cloud-logs@google.com"
+        editor1 = "domain:google.com"
+        editor2 = "user:phred@example.com"
+        viewer1 = "serviceAccount:1234-abcdef@service.example.com"
+        viewer2 = "user:phred@example.com"
+        bindings = [
+            {"role": STORAGE_OWNER_ROLE, "members": [owner1, owner2]},
+            {"role": STORAGE_EDITOR_ROLE, "members": [editor1, editor2]},
+            {"role": STORAGE_VIEWER_ROLE, "members": [viewer1, viewer2]},
         ]
-        RETURNED = {"etag": ETAG, "version": VERSION, "bindings": BINDINGS}
-        after = ({"status": http_client.OK}, RETURNED)
+        api_response = {"etag": etag, "version": version, "bindings": bindings}
         policy = Policy()
-        for binding in BINDINGS:
+        for binding in bindings:
             policy[binding["role"]] = binding["members"]
 
-        connection = _Connection(after)
-        client = _Client(connection)
+        client = mock.Mock(spec=["_put_resource"])
+        client._put_resource.return_value = api_response
         bucket = _Bucket(client=client)
-        blob = self._make_one(BLOB_NAME, bucket=bucket)
+        blob = self._make_one(blob_name, bucket=bucket)
 
-        returned = blob.set_iam_policy(policy, timeout=42)
+        returned = blob.set_iam_policy(policy)
 
-        self.assertEqual(returned.etag, ETAG)
-        self.assertEqual(returned.version, VERSION)
+        self.assertEqual(returned.etag, etag)
+        self.assertEqual(returned.version, version)
         self.assertEqual(dict(returned), dict(policy))
 
-        kw = connection._requested
-        self.assertEqual(len(kw), 1)
-        self.assertEqual(kw[0]["method"], "PUT")
-        self.assertEqual(kw[0]["path"], "%s/iam" % (PATH,))
-        self.assertEqual(kw[0]["query_params"], {})
-        self.assertEqual(kw[0]["timeout"], 42)
-        sent = kw[0]["data"]
-        self.assertEqual(sent["resourceId"], PATH)
-        self.assertEqual(len(sent["bindings"]), len(BINDINGS))
+        expected_path = "%s/iam" % (path,)
+        expected_data = {
+            "resourceId": path,
+            "bindings": mock.ANY,
+        }
+        expected_query_params = {}
+        client._put_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY_IF_ETAG_IN_JSON,
+            _target_object=None,
+        )
+
+        sent_bindings = client._put_resource.call_args.args[1]["bindings"]
         key = operator.itemgetter("role")
         for found, expected in zip(
-            sorted(sent["bindings"], key=key), sorted(BINDINGS, key=key)
+            sorted(sent_bindings, key=key), sorted(bindings, key=key)
         ):
             self.assertEqual(found["role"], expected["role"])
             self.assertEqual(sorted(found["members"]), sorted(expected["members"]))
 
-    def test_set_iam_policy_w_user_project(self):
+    def test_set_iam_policy_w_user_project_w_explicit_client_w_timeout_retry(self):
         from google.api_core.iam import Policy
 
-        BLOB_NAME = "blob-name"
-        USER_PROJECT = "user-project-123"
-        PATH = "/b/name/o/%s" % (BLOB_NAME,)
-        ETAG = "DEADBEEF"
-        VERSION = 1
-        BINDINGS = []
-        RETURNED = {"etag": ETAG, "version": VERSION, "bindings": BINDINGS}
-        after = ({"status": http_client.OK}, RETURNED)
+        blob_name = "blob-name"
+        user_project = "user-project-123"
+        path = "/b/name/o/%s" % (blob_name,)
+        etag = "DEADBEEF"
+        version = 1
+        bindings = []
         policy = Policy()
 
-        connection = _Connection(after)
-        client = _Client(connection)
-        bucket = _Bucket(client=client, user_project=USER_PROJECT)
-        blob = self._make_one(BLOB_NAME, bucket=bucket)
+        api_response = {"etag": etag, "version": version, "bindings": bindings}
+        client = mock.Mock(spec=["_put_resource"])
+        client._put_resource.return_value = api_response
+        bucket = _Bucket(client=None, user_project=user_project)
+        blob = self._make_one(blob_name, bucket=bucket)
+        timeout = 42
+        retry = mock.Mock(spec=[])
 
-        returned = blob.set_iam_policy(policy)
+        returned = blob.set_iam_policy(
+            policy, client=client, timeout=timeout, retry=retry,
+        )
 
-        self.assertEqual(returned.etag, ETAG)
-        self.assertEqual(returned.version, VERSION)
+        self.assertEqual(returned.etag, etag)
+        self.assertEqual(returned.version, version)
         self.assertEqual(dict(returned), dict(policy))
 
-        kw = connection._requested
-        self.assertEqual(len(kw), 1)
-        self.assertEqual(kw[0]["method"], "PUT")
-        self.assertEqual(kw[0]["path"], "%s/iam" % (PATH,))
-        self.assertEqual(kw[0]["query_params"], {"userProject": USER_PROJECT})
-        self.assertEqual(kw[0]["data"], {"resourceId": PATH})
-
-    def test_test_iam_permissions(self):
-        from google.cloud.storage.iam import STORAGE_OBJECTS_LIST
-        from google.cloud.storage.iam import STORAGE_BUCKETS_GET
-        from google.cloud.storage.iam import STORAGE_BUCKETS_UPDATE
-
-        BLOB_NAME = "blob-name"
-        PATH = "/b/name/o/%s" % (BLOB_NAME,)
-        PERMISSIONS = [
-            STORAGE_OBJECTS_LIST,
-            STORAGE_BUCKETS_GET,
-            STORAGE_BUCKETS_UPDATE,
-        ]
-        ALLOWED = PERMISSIONS[1:]
-        RETURNED = {"permissions": ALLOWED}
-        after = ({"status": http_client.OK}, RETURNED)
-        connection = _Connection(after)
-        client = _Client(connection)
-        bucket = _Bucket(client=client)
-        blob = self._make_one(BLOB_NAME, bucket=bucket)
-
-        allowed = blob.test_iam_permissions(PERMISSIONS, timeout=42)
-
-        self.assertEqual(allowed, ALLOWED)
-
-        kw = connection._requested
-        self.assertEqual(len(kw), 1)
-        self.assertEqual(kw[0]["method"], "GET")
-        self.assertEqual(kw[0]["path"], "%s/iam/testPermissions" % (PATH,))
-        self.assertEqual(kw[0]["query_params"], {"permissions": PERMISSIONS})
-        self.assertEqual(kw[0]["timeout"], 42)
-
-    def test_test_iam_permissions_w_user_project(self):
-        from google.cloud.storage.iam import STORAGE_OBJECTS_LIST
-        from google.cloud.storage.iam import STORAGE_BUCKETS_GET
-        from google.cloud.storage.iam import STORAGE_BUCKETS_UPDATE
-
-        BLOB_NAME = "blob-name"
-        USER_PROJECT = "user-project-123"
-        PATH = "/b/name/o/%s" % (BLOB_NAME,)
-        PERMISSIONS = [
-            STORAGE_OBJECTS_LIST,
-            STORAGE_BUCKETS_GET,
-            STORAGE_BUCKETS_UPDATE,
-        ]
-        ALLOWED = PERMISSIONS[1:]
-        RETURNED = {"permissions": ALLOWED}
-        after = ({"status": http_client.OK}, RETURNED)
-        connection = _Connection(after)
-        client = _Client(connection)
-        bucket = _Bucket(client=client, user_project=USER_PROJECT)
-        blob = self._make_one(BLOB_NAME, bucket=bucket)
-
-        allowed = blob.test_iam_permissions(PERMISSIONS)
-
-        self.assertEqual(allowed, ALLOWED)
-
-        kw = connection._requested
-        self.assertEqual(len(kw), 1)
-        self.assertEqual(kw[0]["method"], "GET")
-        self.assertEqual(kw[0]["path"], "%s/iam/testPermissions" % (PATH,))
-        self.assertEqual(
-            kw[0]["query_params"],
-            {"permissions": PERMISSIONS, "userProject": USER_PROJECT},
+        expected_path = "%s/iam" % (path,)
+        expected_data = {  # bindings omitted
+            "resourceId": path,
+        }
+        expected_query_params = {"userProject": user_project}
+        client._put_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            timeout=timeout,
+            retry=retry,
+            _target_object=None,
         )
-        self.assertEqual(kw[0]["timeout"], self._get_default_timeout())
 
-    def test_make_public(self):
+    def test_test_iam_permissions_defaults(self):
+        from google.cloud.storage.iam import STORAGE_OBJECTS_LIST
+        from google.cloud.storage.iam import STORAGE_BUCKETS_GET
+        from google.cloud.storage.iam import STORAGE_BUCKETS_UPDATE
+
+        blob_name = "blob-name"
+        permissions = [
+            STORAGE_OBJECTS_LIST,
+            STORAGE_BUCKETS_GET,
+            STORAGE_BUCKETS_UPDATE,
+        ]
+        expected = permissions[1:]
+        api_response = {"permissions": expected}
+        client = mock.Mock(spec=["_get_resource"])
+        client._get_resource.return_value = api_response
+        bucket = _Bucket(client=client)
+        blob = self._make_one(blob_name, bucket=bucket)
+
+        found = blob.test_iam_permissions(permissions)
+
+        self.assertEqual(found, expected)
+
+        expected_path = "/b/name/o/%s/iam/testPermissions" % (blob_name,)
+        expected_query_params = {"permissions": permissions}
+        client._get_resource.assert_called_once_with(
+            expected_path,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
+            _target_object=None,
+        )
+
+    def test_test_iam_permissions_w_user_project_w_timeout_w_retry(self):
+        from google.cloud.storage.iam import STORAGE_OBJECTS_LIST
+        from google.cloud.storage.iam import STORAGE_BUCKETS_GET
+        from google.cloud.storage.iam import STORAGE_BUCKETS_UPDATE
+
+        blob_name = "blob-name"
+        user_project = "user-project-123"
+        timeout = 42
+        retry = mock.Mock(spec=[])
+        permissions = [
+            STORAGE_OBJECTS_LIST,
+            STORAGE_BUCKETS_GET,
+            STORAGE_BUCKETS_UPDATE,
+        ]
+        expected = permissions[1:]
+        api_response = {"permissions": expected}
+        client = mock.Mock(spec=["_get_resource"])
+        client._get_resource.return_value = api_response
+        bucket = _Bucket(client=client, user_project=user_project)
+        blob = self._make_one(blob_name, bucket=bucket)
+
+        found = blob.test_iam_permissions(permissions, timeout=timeout, retry=retry)
+
+        self.assertEqual(found, expected)
+
+        expected_path = "/b/name/o/%s/iam/testPermissions" % (blob_name,)
+        expected_query_params = {
+            "permissions": permissions,
+            "userProject": user_project,
+        }
+        client._get_resource.assert_called_once_with(
+            expected_path,
+            query_params=expected_query_params,
+            timeout=timeout,
+            retry=retry,
+            _target_object=None,
+        )
+
+    def test_make_public_w_defaults(self):
         from google.cloud.storage.acl import _ACLEntity
 
-        BLOB_NAME = "blob-name"
+        blob_name = "blob-name"
         permissive = [{"entity": "allUsers", "role": _ACLEntity.READER_ROLE}]
-        after = ({"status": http_client.OK}, {"acl": permissive})
-        connection = _Connection(after)
-        client = _Client(connection)
+        api_response = {"acl": permissive}
+        client = mock.Mock(spec=["_patch_resource"])
+        client._patch_resource.return_value = api_response
         bucket = _Bucket(client=client)
-        blob = self._make_one(BLOB_NAME, bucket=bucket)
+        blob = self._make_one(blob_name, bucket=bucket)
         blob.acl.loaded = True
-        blob.make_public()
-        self.assertEqual(list(blob.acl), permissive)
-        kw = connection._requested
-        self.assertEqual(len(kw), 1)
-        self.assertEqual(kw[0]["method"], "PATCH")
-        self.assertEqual(kw[0]["path"], "/b/name/o/%s" % BLOB_NAME)
-        self.assertEqual(kw[0]["data"], {"acl": permissive})
-        self.assertEqual(kw[0]["query_params"], {"projection": "full"})
 
-    def test_make_private(self):
-        BLOB_NAME = "blob-name"
-        no_permissions = []
-        after = ({"status": http_client.OK}, {"acl": no_permissions})
-        connection = _Connection(after)
-        client = _Client(connection)
+        blob.make_public()
+
+        self.assertEqual(list(blob.acl), permissive)
+
+        expected_patch_data = {"acl": permissive}
+        expected_query_params = {"projection": "full"}
+        client._patch_resource.assert_called_once_with(
+            blob.path,
+            expected_patch_data,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=None,
+        )
+
+    def test_make_public_w_timeout(self):
+        from google.cloud.storage.acl import _ACLEntity
+
+        blob_name = "blob-name"
+        permissive = [{"entity": "allUsers", "role": _ACLEntity.READER_ROLE}]
+        api_response = {"acl": permissive}
+        client = mock.Mock(spec=["_patch_resource"])
+        client._patch_resource.return_value = api_response
         bucket = _Bucket(client=client)
-        blob = self._make_one(BLOB_NAME, bucket=bucket)
+        blob = self._make_one(blob_name, bucket=bucket)
         blob.acl.loaded = True
+        timeout = 42
+
+        blob.make_public(timeout=timeout)
+
+        self.assertEqual(list(blob.acl), permissive)
+
+        expected_patch_data = {"acl": permissive}
+        expected_query_params = {"projection": "full"}
+        client._patch_resource.assert_called_once_with(
+            blob.path,
+            expected_patch_data,
+            query_params=expected_query_params,
+            timeout=timeout,
+            retry=None,
+        )
+
+    def test_make_private_w_defaults(self):
+        blob_name = "blob-name"
+        no_permissions = []
+        api_response = {"acl": no_permissions}
+        client = mock.Mock(spec=["_patch_resource"])
+        client._patch_resource.return_value = api_response
+        bucket = _Bucket(client=client)
+        blob = self._make_one(blob_name, bucket=bucket)
+        blob.acl.loaded = True
+
         blob.make_private()
+
         self.assertEqual(list(blob.acl), no_permissions)
-        kw = connection._requested
-        self.assertEqual(len(kw), 1)
-        self.assertEqual(kw[0]["method"], "PATCH")
-        self.assertEqual(kw[0]["path"], "/b/name/o/%s" % BLOB_NAME)
-        self.assertEqual(kw[0]["data"], {"acl": no_permissions})
-        self.assertEqual(kw[0]["query_params"], {"projection": "full"})
+
+        expected_patch_data = {"acl": no_permissions}
+        expected_query_params = {"projection": "full"}
+        client._patch_resource.assert_called_once_with(
+            blob.path,
+            expected_patch_data,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=None,
+        )
+
+    def test_make_private_w_timeout(self):
+        blob_name = "blob-name"
+        no_permissions = []
+        api_response = {"acl": no_permissions}
+        client = mock.Mock(spec=["_patch_resource"])
+        client._patch_resource.return_value = api_response
+        bucket = _Bucket(client=client)
+        blob = self._make_one(blob_name, bucket=bucket)
+        blob.acl.loaded = True
+        timeout = 42
+
+        blob.make_private(timeout=timeout)
+
+        self.assertEqual(list(blob.acl), no_permissions)
+
+        expected_patch_data = {"acl": no_permissions}
+        expected_query_params = {"projection": "full"}
+        client._patch_resource.assert_called_once_with(
+            blob.path,
+            expected_patch_data,
+            query_params=expected_query_params,
+            timeout=timeout,
+            retry=None,
+        )
 
     def test_compose_wo_content_type_set(self):
-        SOURCE_1 = "source-1"
-        SOURCE_2 = "source-2"
-        DESTINATION = "destination"
-        RESOURCE = {}
-        after = ({"status": http_client.OK}, RESOURCE)
-        connection = _Connection(after)
-        client = _Client(connection)
+        source_1_name = "source-1"
+        source_2_name = "source-2"
+        destination_name = "destination"
+        api_response = {}
+        client = mock.Mock(spec=["_post_resource"])
+        client._post_resource.return_value = api_response
         bucket = _Bucket(client=client)
-        source_1 = self._make_one(SOURCE_1, bucket=bucket)
-        source_2 = self._make_one(SOURCE_2, bucket=bucket)
-        destination = self._make_one(DESTINATION, bucket=bucket)
+        source_1 = self._make_one(source_1_name, bucket=bucket)
+        source_2 = self._make_one(source_2_name, bucket=bucket)
+        destination = self._make_one(destination_name, bucket=bucket)
         # no destination.content_type set
 
         destination.compose(sources=[source_1, source_2])
 
         self.assertIsNone(destination.content_type)
 
-        kw = connection._requested
-        self.assertEqual(len(kw), 1)
-        self.assertEqual(
-            kw[0],
-            {
-                "method": "POST",
-                "path": "/b/name/o/%s/compose" % DESTINATION,
-                "query_params": {},
-                "data": {
-                    "sourceObjects": [{"name": source_1.name}, {"name": source_2.name}],
-                    "destination": {},
-                },
-                "_target_object": destination,
-                "timeout": self._get_default_timeout(),
-                "retry": DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
-            },
+        expected_path = "/b/name/o/%s/compose" % destination_name
+        expected_data = {
+            "sourceObjects": [{"name": source_1_name}, {"name": source_2_name}],
+            "destination": {},
+        }
+        expected_query_params = {}
+        client._post_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+            _target_object=destination,
         )
 
-    def test_compose_minimal_w_user_project(self):
-        SOURCE_1 = "source-1"
-        SOURCE_2 = "source-2"
-        DESTINATION = "destination"
-        RESOURCE = {"etag": "DEADBEEF"}
-        USER_PROJECT = "user-project-123"
-        after = ({"status": http_client.OK}, RESOURCE)
-        connection = _Connection(after)
-        client = _Client(connection)
-        bucket = _Bucket(client=client, user_project=USER_PROJECT)
-        source_1 = self._make_one(SOURCE_1, bucket=bucket)
-        source_2 = self._make_one(SOURCE_2, bucket=bucket)
-        destination = self._make_one(DESTINATION, bucket=bucket)
+    def test_compose_minimal_w_user_project_w_timeout(self):
+        source_1_name = "source-1"
+        source_2_name = "source-2"
+        destination_name = "destination"
+        api_response = {"etag": "DEADBEEF"}
+        user_project = "user-project-123"
+        client = mock.Mock(spec=["_post_resource"])
+        client._post_resource.return_value = api_response
+        bucket = _Bucket(client=client, user_project=user_project)
+        source_1 = self._make_one(source_1_name, bucket=bucket)
+        source_2 = self._make_one(source_2_name, bucket=bucket)
+        destination = self._make_one(destination_name, bucket=bucket)
         destination.content_type = "text/plain"
+        timeout = 42
 
-        destination.compose(sources=[source_1, source_2], timeout=42)
+        destination.compose(sources=[source_1, source_2], timeout=timeout)
 
         self.assertEqual(destination.etag, "DEADBEEF")
 
-        kw = connection._requested
-        self.assertEqual(len(kw), 1)
-        self.assertEqual(
-            kw[0],
-            {
-                "method": "POST",
-                "path": "/b/name/o/%s/compose" % DESTINATION,
-                "query_params": {"userProject": USER_PROJECT},
-                "data": {
-                    "sourceObjects": [{"name": source_1.name}, {"name": source_2.name}],
-                    "destination": {"contentType": "text/plain"},
-                },
-                "_target_object": destination,
-                "timeout": 42,
-                "retry": DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
-            },
+        expected_path = "/b/name/o/%s/compose" % destination_name
+        expected_data = {
+            "sourceObjects": [{"name": source_1_name}, {"name": source_2_name}],
+            "destination": {"contentType": "text/plain"},
+        }
+        expected_query_params = {"userProject": user_project}
+        client._post_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            timeout=timeout,
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+            _target_object=destination,
         )
 
-    def test_compose_w_additional_property_changes(self):
-        SOURCE_1 = "source-1"
-        SOURCE_2 = "source-2"
-        DESTINATION = "destination"
-        RESOURCE = {"etag": "DEADBEEF"}
-        after = ({"status": http_client.OK}, RESOURCE)
-        connection = _Connection(after)
-        client = _Client(connection)
+    def test_compose_w_additional_property_changes_w_retry(self):
+        source_1_name = "source-1"
+        source_2_name = "source-2"
+        destination_name = "destination"
+        api_response = {"etag": "DEADBEEF"}
+        client = mock.Mock(spec=["_post_resource"])
+        client._post_resource.return_value = api_response
         bucket = _Bucket(client=client)
-        source_1 = self._make_one(SOURCE_1, bucket=bucket)
-        source_2 = self._make_one(SOURCE_2, bucket=bucket)
-        destination = self._make_one(DESTINATION, bucket=bucket)
+        source_1 = self._make_one(source_1_name, bucket=bucket)
+        source_2 = self._make_one(source_2_name, bucket=bucket)
+        destination = self._make_one(destination_name, bucket=bucket)
         destination.content_type = "text/plain"
         destination.content_language = "en-US"
         destination.metadata = {"my-key": "my-value"}
+        retry = mock.Mock(spec=[])
 
-        destination.compose(sources=[source_1, source_2])
+        destination.compose(sources=[source_1, source_2], retry=retry)
 
         self.assertEqual(destination.etag, "DEADBEEF")
 
-        kw = connection._requested
-        self.assertEqual(len(kw), 1)
-        self.assertEqual(
-            kw[0],
-            {
-                "method": "POST",
-                "path": "/b/name/o/%s/compose" % DESTINATION,
-                "query_params": {},
-                "data": {
-                    "sourceObjects": [{"name": source_1.name}, {"name": source_2.name}],
-                    "destination": {
-                        "contentType": "text/plain",
-                        "contentLanguage": "en-US",
-                        "metadata": {"my-key": "my-value"},
-                    },
-                },
-                "_target_object": destination,
-                "timeout": self._get_default_timeout(),
-                "retry": DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+        expected_path = "/b/name/o/%s/compose" % destination_name
+        expected_data = {
+            "sourceObjects": [{"name": source_1_name}, {"name": source_2_name}],
+            "destination": {
+                "contentType": "text/plain",
+                "contentLanguage": "en-US",
+                "metadata": {"my-key": "my-value"},
             },
+        }
+        expected_query_params = {}
+        client._post_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=retry,
+            _target_object=destination,
         )
 
     def test_compose_w_generation_match(self):
-        SOURCE_1 = "source-1"
-        SOURCE_2 = "source-2"
-        DESTINATION = "destination"
-        RESOURCE = {}
-        GENERATION_NUMBERS = [6, 9]
-        METAGENERATION_NUMBERS = [7, 1]
+        source_1_name = "source-1"
+        source_2_name = "source-2"
+        destination_name = "destination"
+        api_response = {}
+        generation_numbers = [6, 9]
+        metageneration_numbers = [7, 1]
 
-        after = ({"status": http_client.OK}, RESOURCE)
-        connection = _Connection(after)
-        client = _Client(connection)
+        client = mock.Mock(spec=["_post_resource"])
+        client._post_resource.return_value = api_response
         bucket = _Bucket(client=client)
-        source_1 = self._make_one(SOURCE_1, bucket=bucket)
-        source_2 = self._make_one(SOURCE_2, bucket=bucket)
+        source_1 = self._make_one(source_1_name, bucket=bucket)
+        source_2 = self._make_one(source_2_name, bucket=bucket)
 
-        destination = self._make_one(DESTINATION, bucket=bucket)
+        destination = self._make_one(destination_name, bucket=bucket)
         destination.compose(
             sources=[source_1, source_2],
-            if_generation_match=GENERATION_NUMBERS,
-            if_metageneration_match=METAGENERATION_NUMBERS,
+            if_generation_match=generation_numbers,
+            if_metageneration_match=metageneration_numbers,
         )
 
-        kw = connection._requested
-        self.assertEqual(len(kw), 1)
-        self.assertEqual(
-            kw[0],
-            {
-                "method": "POST",
-                "path": "/b/name/o/%s/compose" % DESTINATION,
-                "query_params": {},
-                "data": {
-                    "sourceObjects": [
-                        {
-                            "name": source_1.name,
-                            "objectPreconditions": {
-                                "ifGenerationMatch": GENERATION_NUMBERS[0],
-                                "ifMetagenerationMatch": METAGENERATION_NUMBERS[0],
-                            },
-                        },
-                        {
-                            "name": source_2.name,
-                            "objectPreconditions": {
-                                "ifGenerationMatch": GENERATION_NUMBERS[1],
-                                "ifMetagenerationMatch": METAGENERATION_NUMBERS[1],
-                            },
-                        },
-                    ],
-                    "destination": {},
+        expected_path = "/b/name/o/%s/compose" % destination_name
+        expected_data = {
+            "sourceObjects": [
+                {
+                    "name": source_1_name,
+                    "objectPreconditions": {
+                        "ifGenerationMatch": generation_numbers[0],
+                        "ifMetagenerationMatch": metageneration_numbers[0],
+                    },
                 },
-                "_target_object": destination,
-                "timeout": self._get_default_timeout(),
-                "retry": DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
-            },
+                {
+                    "name": source_2_name,
+                    "objectPreconditions": {
+                        "ifGenerationMatch": generation_numbers[1],
+                        "ifMetagenerationMatch": metageneration_numbers[1],
+                    },
+                },
+            ],
+            "destination": {},
+        }
+        expected_query_params = {}
+        client._post_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+            _target_object=destination,
         )
 
     def test_compose_w_generation_match_bad_length(self):
-        SOURCE_1 = "source-1"
-        SOURCE_2 = "source-2"
-        DESTINATION = "destination"
-        GENERATION_NUMBERS = [6]
-        METAGENERATION_NUMBERS = [7]
-
-        after = ({"status": http_client.OK}, {})
-        connection = _Connection(after)
-        client = _Client(connection)
+        source_1_name = "source-1"
+        source_2_name = "source-2"
+        destination_name = "destination"
+        generation_numbers = [6]
+        client = mock.Mock(spec=["_post_resource"])
         bucket = _Bucket(client=client)
-        source_1 = self._make_one(SOURCE_1, bucket=bucket)
-        source_2 = self._make_one(SOURCE_2, bucket=bucket)
+        source_1 = self._make_one(source_1_name, bucket=bucket)
+        source_2 = self._make_one(source_2_name, bucket=bucket)
 
-        destination = self._make_one(DESTINATION, bucket=bucket)
+        destination = self._make_one(destination_name, bucket=bucket)
 
         with self.assertRaises(ValueError):
             destination.compose(
-                sources=[source_1, source_2], if_generation_match=GENERATION_NUMBERS
+                sources=[source_1, source_2], if_generation_match=generation_numbers
             )
+
+        client._post_resource.assert_not_called()
+
+    def test_compose_w_metageneration_match_bad_length(self):
+        source_1_name = "source-1"
+        source_2_name = "source-2"
+        destination_name = "destination"
+        metageneration_numbers = [7]
+        client = mock.Mock(spec=["_post_resource"])
+        bucket = _Bucket(client=client)
+        source_1 = self._make_one(source_1_name, bucket=bucket)
+        source_2 = self._make_one(source_2_name, bucket=bucket)
+        destination = self._make_one(destination_name, bucket=bucket)
+
         with self.assertRaises(ValueError):
             destination.compose(
                 sources=[source_1, source_2],
-                if_metageneration_match=METAGENERATION_NUMBERS,
+                if_metageneration_match=metageneration_numbers,
             )
 
+        client._post_resource.assert_not_called()
+
     def test_compose_w_generation_match_nones(self):
-        SOURCE_1 = "source-1"
-        SOURCE_2 = "source-2"
-        DESTINATION = "destination"
-        GENERATION_NUMBERS = [6, None]
-
-        after = ({"status": http_client.OK}, {})
-        connection = _Connection(after)
-        client = _Client(connection)
+        source_1_name = "source-1"
+        source_2_name = "source-2"
+        destination_name = "destination"
+        generation_numbers = [6, None]
+        api_response = {}
+        client = mock.Mock(spec=["_post_resource"])
+        client._post_resource.return_value = api_response
         bucket = _Bucket(client=client)
-        source_1 = self._make_one(SOURCE_1, bucket=bucket)
-        source_2 = self._make_one(SOURCE_2, bucket=bucket)
+        source_1 = self._make_one(source_1_name, bucket=bucket)
+        source_2 = self._make_one(source_2_name, bucket=bucket)
+        destination = self._make_one(destination_name, bucket=bucket)
 
-        destination = self._make_one(DESTINATION, bucket=bucket)
         destination.compose(
-            sources=[source_1, source_2], if_generation_match=GENERATION_NUMBERS
+            sources=[source_1, source_2], if_generation_match=generation_numbers
         )
 
-        kw = connection._requested
-        self.assertEqual(len(kw), 1)
-        self.assertEqual(
-            kw[0],
-            {
-                "method": "POST",
-                "path": "/b/name/o/%s/compose" % DESTINATION,
-                "query_params": {},
-                "data": {
-                    "sourceObjects": [
-                        {
-                            "name": source_1.name,
-                            "objectPreconditions": {
-                                "ifGenerationMatch": GENERATION_NUMBERS[0]
-                            },
-                        },
-                        {"name": source_2.name},
-                    ],
-                    "destination": {},
+        expected_path = "/b/name/o/%s/compose" % destination_name
+        expected_data = {
+            "sourceObjects": [
+                {
+                    "name": source_1_name,
+                    "objectPreconditions": {
+                        "ifGenerationMatch": generation_numbers[0],
+                    },
                 },
-                "_target_object": destination,
-                "timeout": self._get_default_timeout(),
-                "retry": DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
-            },
+                {"name": source_2_name},
+            ],
+            "destination": {},
+        }
+        expected_query_params = {}
+        client._post_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+            _target_object=destination,
         )
 
-    def test_rewrite_response_without_resource(self):
-        SOURCE_BLOB = "source"
-        DEST_BLOB = "dest"
-        DEST_BUCKET = "other-bucket"
-        TOKEN = "TOKEN"
-        RESPONSE = {
-            "totalBytesRewritten": 33,
-            "objectSize": 42,
+    def test_rewrite_w_response_wo_resource(self):
+        source_name = "source"
+        dest_name = "dest"
+        other_bucket_name = "other-bucket"
+        bytes_rewritten = 33
+        object_size = 52
+        rewrite_token = "TOKEN"
+        api_response = {
+            "totalBytesRewritten": bytes_rewritten,
+            "objectSize": object_size,
             "done": False,
-            "rewriteToken": TOKEN,
+            "rewriteToken": rewrite_token,
         }
-        response = ({"status": http_client.OK}, RESPONSE)
-        connection = _Connection(response)
-        client = _Client(connection)
+        client = mock.Mock(spec=["_post_resource"])
+        client._post_resource.return_value = api_response
         source_bucket = _Bucket(client=client)
-        source_blob = self._make_one(SOURCE_BLOB, bucket=source_bucket)
-        dest_bucket = _Bucket(client=client, name=DEST_BUCKET)
-        dest_blob = self._make_one(DEST_BLOB, bucket=dest_bucket)
+        source_blob = self._make_one(source_name, bucket=source_bucket)
+        dest_bucket = _Bucket(client=client, name=other_bucket_name)
+        dest_blob = self._make_one(dest_name, bucket=dest_bucket)
 
         token, rewritten, size = dest_blob.rewrite(source_blob)
 
-        self.assertEqual(token, TOKEN)
-        self.assertEqual(rewritten, 33)
-        self.assertEqual(size, 42)
+        self.assertEqual(token, rewrite_token)
+        self.assertEqual(rewritten, bytes_rewritten)
+        self.assertEqual(size, object_size)
 
-    def test_rewrite_w_generations(self):
-        SOURCE_BLOB = "source"
-        SOURCE_GENERATION = 42
-        DEST_BLOB = "dest"
-        DEST_BUCKET = "other-bucket"
-        DEST_GENERATION = 43
-        TOKEN = "TOKEN"
-        RESPONSE = {
-            "totalBytesRewritten": 33,
-            "objectSize": 42,
+        expected_path = "/b/%s/o/%s/rewriteTo/b/%s/o/%s" % (
+            source_bucket.name,
+            source_name,
+            other_bucket_name,
+            dest_name,
+        )
+        expected_data = {}
+        expected_query_params = {}
+        expected_headers = {}
+        client._post_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            headers=expected_headers,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+            _target_object=dest_blob,
+        )
+
+    def test_rewrite_w_generations_w_timeout(self):
+        source_name = "source"
+        source_generation = 22
+        dest_name = "dest"
+        other_bucket_name = "other-bucket"
+        dest_generation = 23
+        bytes_rewritten = 33
+        object_size = 52
+        rewrite_token = "TOKEN"
+        api_response = {
+            "totalBytesRewritten": bytes_rewritten,
+            "objectSize": object_size,
             "done": False,
-            "rewriteToken": TOKEN,
+            "rewriteToken": rewrite_token,
         }
-        response = ({"status": http_client.OK}, RESPONSE)
-        connection = _Connection(response)
-        client = _Client(connection)
+        client = mock.Mock(spec=["_post_resource"])
+        client._post_resource.return_value = api_response
         source_bucket = _Bucket(client=client)
         source_blob = self._make_one(
-            SOURCE_BLOB, bucket=source_bucket, generation=SOURCE_GENERATION
+            source_name, bucket=source_bucket, generation=source_generation
         )
-        dest_bucket = _Bucket(client=client, name=DEST_BUCKET)
+        dest_bucket = _Bucket(client=client, name=other_bucket_name)
         dest_blob = self._make_one(
-            DEST_BLOB, bucket=dest_bucket, generation=DEST_GENERATION
+            dest_name, bucket=dest_bucket, generation=dest_generation
+        )
+        timeout = 42
+
+        token, rewritten, size = dest_blob.rewrite(source_blob, timeout=timeout)
+
+        self.assertEqual(token, rewrite_token)
+        self.assertEqual(rewritten, bytes_rewritten)
+        self.assertEqual(size, object_size)
+
+        expected_path = "/b/%s/o/%s/rewriteTo/b/%s/o/%s" % (
+            source_bucket.name,
+            source_name,
+            other_bucket_name,
+            dest_name,
+        )
+        expected_data = {"generation": dest_generation}
+        expected_query_params = {"sourceGeneration": source_generation}
+        expected_headers = {}
+        client._post_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            headers=expected_headers,
+            timeout=timeout,
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+            _target_object=dest_blob,
         )
 
-        token, rewritten, size = dest_blob.rewrite(source_blob, timeout=42)
-
-        self.assertEqual(token, TOKEN)
-        self.assertEqual(rewritten, 33)
-        self.assertEqual(size, 42)
-
-        (kw,) = connection._requested
-        self.assertEqual(kw["method"], "POST")
-        self.assertEqual(
-            kw["path"],
-            "/b/%s/o/%s/rewriteTo/b/%s/o/%s"
-            % (
-                (source_bucket.name, source_blob.name, dest_bucket.name, dest_blob.name)
-            ),
-        )
-        self.assertEqual(kw["query_params"], {"sourceGeneration": SOURCE_GENERATION})
-        self.assertEqual(kw["timeout"], 42)
-
-    def test_rewrite_w_generation_match(self):
-        SOURCE_BLOB = "source"
-        SOURCE_GENERATION_NUMBER = 42
-        DEST_BLOB = "dest"
-        DEST_BUCKET = "other-bucket"
-        DEST_GENERATION_NUMBER = 16
-        TOKEN = "TOKEN"
-        RESPONSE = {
-            "totalBytesRewritten": 33,
-            "objectSize": 42,
+    def test_rewrite_w_generation_match_w_retry(self):
+        source_name = "source"
+        source_generation = 42
+        dest_name = "dest"
+        other_bucket_name = "other-bucket"
+        dest_generation = 16
+        bytes_rewritten = 33
+        object_size = 52
+        rewrite_token = "TOKEN"
+        api_response = {
+            "totalBytesRewritten": bytes_rewritten,
+            "objectSize": object_size,
             "done": False,
-            "rewriteToken": TOKEN,
+            "rewriteToken": rewrite_token,
         }
-        response = ({"status": http_client.OK}, RESPONSE)
-        connection = _Connection(response)
-        client = _Client(connection)
+        client = mock.Mock(spec=["_post_resource"])
+        client._post_resource.return_value = api_response
         source_bucket = _Bucket(client=client)
         source_blob = self._make_one(
-            SOURCE_BLOB, bucket=source_bucket, generation=SOURCE_GENERATION_NUMBER
+            source_name, bucket=source_bucket, generation=source_generation
         )
-        dest_bucket = _Bucket(client=client, name=DEST_BUCKET)
+        dest_bucket = _Bucket(client=client, name=other_bucket_name)
         dest_blob = self._make_one(
-            DEST_BLOB, bucket=dest_bucket, generation=DEST_GENERATION_NUMBER
+            dest_name, bucket=dest_bucket, generation=dest_generation
         )
+        retry = mock.Mock(spec=[])
+
         token, rewritten, size = dest_blob.rewrite(
             source_blob,
-            timeout=42,
             if_generation_match=dest_blob.generation,
             if_source_generation_match=source_blob.generation,
+            retry=retry,
         )
-        (kw,) = connection._requested
-        self.assertEqual(kw["method"], "POST")
-        self.assertEqual(
-            kw["path"],
-            "/b/%s/o/%s/rewriteTo/b/%s/o/%s"
-            % (
-                (source_bucket.name, source_blob.name, dest_bucket.name, dest_blob.name)
-            ),
+
+        self.assertEqual(token, rewrite_token)
+        self.assertEqual(rewritten, bytes_rewritten)
+        self.assertEqual(size, object_size)
+
+        expected_path = "/b/%s/o/%s/rewriteTo/b/%s/o/%s" % (
+            source_bucket.name,
+            source_name,
+            other_bucket_name,
+            dest_name,
         )
-        self.assertEqual(
-            kw["query_params"],
-            {
-                "ifSourceGenerationMatch": SOURCE_GENERATION_NUMBER,
-                "ifGenerationMatch": DEST_GENERATION_NUMBER,
-                "sourceGeneration": SOURCE_GENERATION_NUMBER,
-            },
+        expected_data = {"generation": dest_generation}
+        expected_query_params = {
+            "ifSourceGenerationMatch": source_generation,
+            "ifGenerationMatch": dest_generation,
+            "sourceGeneration": source_generation,
+        }
+        expected_headers = {}
+        client._post_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            headers=expected_headers,
+            timeout=self._get_default_timeout(),
+            retry=retry,
+            _target_object=dest_blob,
         )
-        self.assertEqual(kw["timeout"], 42)
 
     def test_rewrite_other_bucket_other_name_no_encryption_partial(self):
-        SOURCE_BLOB = "source"
-        DEST_BLOB = "dest"
-        DEST_BUCKET = "other-bucket"
-        TOKEN = "TOKEN"
-        RESPONSE = {
-            "totalBytesRewritten": 33,
-            "objectSize": 42,
+        source_name = "source"
+        dest_name = "dest"
+        other_bucket_name = "other-bucket"
+        bytes_rewritten = 33
+        object_size = 52
+        rewrite_token = "TOKEN"
+        api_response = {
+            "totalBytesRewritten": bytes_rewritten,
+            "objectSize": object_size,
             "done": False,
-            "rewriteToken": TOKEN,
-            "resource": {"etag": "DEADBEEF"},
+            "rewriteToken": rewrite_token,
         }
-        response = ({"status": http_client.OK}, RESPONSE)
-        connection = _Connection(response)
-        client = _Client(connection)
+        client = mock.Mock(spec=["_post_resource"])
+        client._post_resource.return_value = api_response
         source_bucket = _Bucket(client=client)
-        source_blob = self._make_one(SOURCE_BLOB, bucket=source_bucket)
-        dest_bucket = _Bucket(client=client, name=DEST_BUCKET)
-        dest_blob = self._make_one(DEST_BLOB, bucket=dest_bucket)
+        source_blob = self._make_one(source_name, bucket=source_bucket)
+        dest_bucket = _Bucket(client=client, name=other_bucket_name)
+        dest_blob = self._make_one(dest_name, bucket=dest_bucket)
 
         token, rewritten, size = dest_blob.rewrite(source_blob)
 
-        self.assertEqual(token, TOKEN)
-        self.assertEqual(rewritten, 33)
-        self.assertEqual(size, 42)
+        self.assertEqual(token, rewrite_token)
+        self.assertEqual(rewritten, bytes_rewritten)
+        self.assertEqual(size, object_size)
 
-        kw = connection._requested
-        self.assertEqual(len(kw), 1)
-        self.assertEqual(kw[0]["method"], "POST")
-        PATH = "/b/name/o/%s/rewriteTo/b/%s/o/%s" % (
-            SOURCE_BLOB,
-            DEST_BUCKET,
-            DEST_BLOB,
+        expected_path = "/b/name/o/%s/rewriteTo/b/%s/o/%s" % (
+            source_name,
+            other_bucket_name,
+            dest_name,
         )
-        self.assertEqual(kw[0]["path"], PATH)
-        self.assertEqual(kw[0]["query_params"], {})
-        SENT = {}
-        self.assertEqual(kw[0]["data"], SENT)
-        self.assertEqual(kw[0]["timeout"], self._get_default_timeout())
-
-        headers = {key.title(): str(value) for key, value in kw[0]["headers"].items()}
-        self.assertNotIn("X-Goog-Copy-Source-Encryption-Algorithm", headers)
-        self.assertNotIn("X-Goog-Copy-Source-Encryption-Key", headers)
-        self.assertNotIn("X-Goog-Copy-Source-Encryption-Key-Sha256", headers)
-        self.assertNotIn("X-Goog-Encryption-Algorithm", headers)
-        self.assertNotIn("X-Goog-Encryption-Key", headers)
-        self.assertNotIn("X-Goog-Encryption-Key-Sha256", headers)
+        expected_query_params = {}
+        expected_data = {}
+        expected_headers = {}
+        client._post_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            headers=expected_headers,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+            _target_object=dest_blob,
+        )
 
     def test_rewrite_same_name_no_old_key_new_key_done_w_user_project(self):
-        KEY = b"01234567890123456789012345678901"  # 32 bytes
-        KEY_B64 = base64.b64encode(KEY).rstrip().decode("ascii")
-        KEY_HASH = hashlib.sha256(KEY).digest()
-        KEY_HASH_B64 = base64.b64encode(KEY_HASH).rstrip().decode("ascii")
-        BLOB_NAME = "blob"
-        USER_PROJECT = "user-project-123"
-        RESPONSE = {
-            "totalBytesRewritten": 42,
-            "objectSize": 42,
+        blob_name = "blob"
+        user_project = "user-project-123"
+        key = b"01234567890123456789012345678901"  # 32 bytes
+        key_b64 = base64.b64encode(key).rstrip().decode("ascii")
+        key_hash = hashlib.sha256(key).digest()
+        key_hash_b64 = base64.b64encode(key_hash).rstrip().decode("ascii")
+        bytes_rewritten = object_size = 52
+        api_response = {
+            "totalBytesRewritten": bytes_rewritten,
+            "objectSize": object_size,
             "done": True,
             "resource": {"etag": "DEADBEEF"},
         }
-        response = ({"status": http_client.OK}, RESPONSE)
-        connection = _Connection(response)
-        client = _Client(connection)
-        bucket = _Bucket(client=client, user_project=USER_PROJECT)
-        plain = self._make_one(BLOB_NAME, bucket=bucket)
-        encrypted = self._make_one(BLOB_NAME, bucket=bucket, encryption_key=KEY)
+        client = mock.Mock(spec=["_post_resource"])
+        client._post_resource.return_value = api_response
+        bucket = _Bucket(client=client, user_project=user_project)
+        plain = self._make_one(blob_name, bucket=bucket)
+        encrypted = self._make_one(blob_name, bucket=bucket, encryption_key=key)
 
         token, rewritten, size = encrypted.rewrite(plain)
 
         self.assertIsNone(token)
-        self.assertEqual(rewritten, 42)
-        self.assertEqual(size, 42)
+        self.assertEqual(rewritten, bytes_rewritten)
+        self.assertEqual(size, object_size)
 
-        kw = connection._requested
-        self.assertEqual(len(kw), 1)
-        self.assertEqual(kw[0]["method"], "POST")
-        PATH = "/b/name/o/%s/rewriteTo/b/name/o/%s" % (BLOB_NAME, BLOB_NAME)
-        self.assertEqual(kw[0]["path"], PATH)
-        self.assertEqual(kw[0]["query_params"], {"userProject": USER_PROJECT})
-        SENT = {}
-        self.assertEqual(kw[0]["data"], SENT)
-        self.assertEqual(kw[0]["timeout"], self._get_default_timeout())
-
-        headers = {key.title(): str(value) for key, value in kw[0]["headers"].items()}
-        self.assertNotIn("X-Goog-Copy-Source-Encryption-Algorithm", headers)
-        self.assertNotIn("X-Goog-Copy-Source-Encryption-Key", headers)
-        self.assertNotIn("X-Goog-Copy-Source-Encryption-Key-Sha256", headers)
-        self.assertEqual(headers["X-Goog-Encryption-Algorithm"], "AES256")
-        self.assertEqual(headers["X-Goog-Encryption-Key"], KEY_B64)
-        self.assertEqual(headers["X-Goog-Encryption-Key-Sha256"], KEY_HASH_B64)
+        expected_path = "/b/name/o/%s/rewriteTo/b/name/o/%s" % (blob_name, blob_name)
+        expected_query_params = {"userProject": user_project}
+        expected_data = {}
+        expected_headers = {
+            "X-Goog-Encryption-Algorithm": "AES256",
+            "X-Goog-Encryption-Key": key_b64,
+            "X-Goog-Encryption-Key-Sha256": key_hash_b64,
+        }
+        client._post_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            headers=expected_headers,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+            _target_object=encrypted,
+        )
 
     def test_rewrite_same_name_no_key_new_key_w_token(self):
-        SOURCE_KEY = b"01234567890123456789012345678901"  # 32 bytes
-        SOURCE_KEY_B64 = base64.b64encode(SOURCE_KEY).rstrip().decode("ascii")
-        SOURCE_KEY_HASH = hashlib.sha256(SOURCE_KEY).digest()
-        SOURCE_KEY_HASH_B64 = base64.b64encode(SOURCE_KEY_HASH).rstrip().decode("ascii")
-        DEST_KEY = b"90123456789012345678901234567890"  # 32 bytes
-        DEST_KEY_B64 = base64.b64encode(DEST_KEY).rstrip().decode("ascii")
-        DEST_KEY_HASH = hashlib.sha256(DEST_KEY).digest()
-        DEST_KEY_HASH_B64 = base64.b64encode(DEST_KEY_HASH).rstrip().decode("ascii")
-        BLOB_NAME = "blob"
-        TOKEN = "TOKEN"
-        RESPONSE = {
-            "totalBytesRewritten": 42,
-            "objectSize": 42,
+        blob_name = "blob"
+        source_key = b"01234567890123456789012345678901"  # 32 bytes
+        source_key_b64 = base64.b64encode(source_key).rstrip().decode("ascii")
+        source_key_hash = hashlib.sha256(source_key).digest()
+        source_key_hash_b64 = base64.b64encode(source_key_hash).rstrip().decode("ascii")
+        dest_key = b"90123456789012345678901234567890"  # 32 bytes
+        dest_key_b64 = base64.b64encode(dest_key).rstrip().decode("ascii")
+        dest_key_hash = hashlib.sha256(dest_key).digest()
+        dest_key_hash_b64 = base64.b64encode(dest_key_hash).rstrip().decode("ascii")
+        previous_token = "TOKEN"
+        bytes_rewritten = object_size = 52
+        api_response = {
+            "totalBytesRewritten": bytes_rewritten,
+            "objectSize": object_size,
             "done": True,
             "resource": {"etag": "DEADBEEF"},
         }
-        response = ({"status": http_client.OK}, RESPONSE)
-        connection = _Connection(response)
-        client = _Client(connection)
+        client = mock.Mock(spec=["_post_resource"])
+        client._post_resource.return_value = api_response
         bucket = _Bucket(client=client)
-        source = self._make_one(BLOB_NAME, bucket=bucket, encryption_key=SOURCE_KEY)
-        dest = self._make_one(BLOB_NAME, bucket=bucket, encryption_key=DEST_KEY)
+        source = self._make_one(blob_name, bucket=bucket, encryption_key=source_key)
+        dest = self._make_one(blob_name, bucket=bucket, encryption_key=dest_key)
 
-        token, rewritten, size = dest.rewrite(source, token=TOKEN)
+        token, rewritten, size = dest.rewrite(source, token=previous_token)
 
         self.assertIsNone(token)
-        self.assertEqual(rewritten, 42)
-        self.assertEqual(size, 42)
+        self.assertEqual(rewritten, bytes_rewritten)
+        self.assertEqual(size, object_size)
 
-        kw = connection._requested
-        self.assertEqual(len(kw), 1)
-        self.assertEqual(kw[0]["method"], "POST")
-        PATH = "/b/name/o/%s/rewriteTo/b/name/o/%s" % (BLOB_NAME, BLOB_NAME)
-        self.assertEqual(kw[0]["path"], PATH)
-        self.assertEqual(kw[0]["query_params"], {"rewriteToken": TOKEN})
-        SENT = {}
-        self.assertEqual(kw[0]["data"], SENT)
-        self.assertEqual(kw[0]["timeout"], self._get_default_timeout())
-
-        headers = {key.title(): str(value) for key, value in kw[0]["headers"].items()}
-        self.assertEqual(headers["X-Goog-Copy-Source-Encryption-Algorithm"], "AES256")
-        self.assertEqual(headers["X-Goog-Copy-Source-Encryption-Key"], SOURCE_KEY_B64)
-        self.assertEqual(
-            headers["X-Goog-Copy-Source-Encryption-Key-Sha256"], SOURCE_KEY_HASH_B64
+        expected_path = "/b/name/o/%s/rewriteTo/b/name/o/%s" % (blob_name, blob_name)
+        expected_data = {}
+        expected_query_params = {"rewriteToken": previous_token}
+        expected_headers = {
+            "X-Goog-Copy-Source-Encryption-Algorithm": "AES256",
+            "X-Goog-Copy-Source-Encryption-Key": source_key_b64,
+            "X-Goog-Copy-Source-Encryption-Key-Sha256": source_key_hash_b64,
+            "X-Goog-Encryption-Algorithm": "AES256",
+            "X-Goog-Encryption-Key": dest_key_b64,
+            "X-Goog-Encryption-Key-Sha256": dest_key_hash_b64,
+        }
+        client._post_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            headers=expected_headers,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+            _target_object=dest,
         )
-        self.assertEqual(headers["X-Goog-Encryption-Algorithm"], "AES256")
-        self.assertEqual(headers["X-Goog-Encryption-Key"], DEST_KEY_B64)
-        self.assertEqual(headers["X-Goog-Encryption-Key-Sha256"], DEST_KEY_HASH_B64)
 
     def test_rewrite_same_name_w_old_key_new_kms_key(self):
-        SOURCE_KEY = b"01234567890123456789012345678901"  # 32 bytes
-        SOURCE_KEY_B64 = base64.b64encode(SOURCE_KEY).rstrip().decode("ascii")
-        SOURCE_KEY_HASH = hashlib.sha256(SOURCE_KEY).digest()
-        SOURCE_KEY_HASH_B64 = base64.b64encode(SOURCE_KEY_HASH).rstrip().decode("ascii")
-        DEST_KMS_RESOURCE = (
+        blob_name = "blob"
+        source_key = b"01234567890123456789012345678901"  # 32 bytes
+        source_key_b64 = base64.b64encode(source_key).rstrip().decode("ascii")
+        source_key_hash = hashlib.sha256(source_key).digest()
+        source_key_hash_b64 = base64.b64encode(source_key_hash).rstrip().decode("ascii")
+        dest_kms_resource = (
             "projects/test-project-123/"
             "locations/us/"
             "keyRings/test-ring/"
             "cryptoKeys/test-key"
         )
-        BLOB_NAME = "blob"
-        RESPONSE = {
-            "totalBytesRewritten": 42,
-            "objectSize": 42,
+        bytes_rewritten = object_size = 42
+        api_response = {
+            "totalBytesRewritten": bytes_rewritten,
+            "objectSize": object_size,
             "done": True,
             "resource": {"etag": "DEADBEEF"},
         }
-        response = ({"status": http_client.OK}, RESPONSE)
-        connection = _Connection(response)
-        client = _Client(connection)
+        client = mock.Mock(spec=["_post_resource"])
+        client._post_resource.return_value = api_response
         bucket = _Bucket(client=client)
-        source = self._make_one(BLOB_NAME, bucket=bucket, encryption_key=SOURCE_KEY)
-        dest = self._make_one(BLOB_NAME, bucket=bucket, kms_key_name=DEST_KMS_RESOURCE)
+        source = self._make_one(blob_name, bucket=bucket, encryption_key=source_key)
+        dest = self._make_one(blob_name, bucket=bucket, kms_key_name=dest_kms_resource)
 
         token, rewritten, size = dest.rewrite(source)
 
         self.assertIsNone(token)
-        self.assertEqual(rewritten, 42)
-        self.assertEqual(size, 42)
+        self.assertEqual(rewritten, bytes_rewritten)
+        self.assertEqual(size, object_size)
 
-        kw = connection._requested
-        self.assertEqual(len(kw), 1)
-        self.assertEqual(kw[0]["method"], "POST")
-        PATH = "/b/name/o/%s/rewriteTo/b/name/o/%s" % (BLOB_NAME, BLOB_NAME)
-        self.assertEqual(kw[0]["path"], PATH)
-        self.assertEqual(
-            kw[0]["query_params"], {"destinationKmsKeyName": DEST_KMS_RESOURCE}
-        )
-        self.assertEqual(kw[0]["timeout"], self._get_default_timeout())
-        SENT = {"kmsKeyName": DEST_KMS_RESOURCE}
-        self.assertEqual(kw[0]["data"], SENT)
-
-        headers = {key.title(): str(value) for key, value in kw[0]["headers"].items()}
-        self.assertEqual(headers["X-Goog-Copy-Source-Encryption-Algorithm"], "AES256")
-        self.assertEqual(headers["X-Goog-Copy-Source-Encryption-Key"], SOURCE_KEY_B64)
-        self.assertEqual(
-            headers["X-Goog-Copy-Source-Encryption-Key-Sha256"], SOURCE_KEY_HASH_B64
+        expected_path = "/b/name/o/%s/rewriteTo/b/name/o/%s" % (blob_name, blob_name)
+        expected_data = {"kmsKeyName": dest_kms_resource}
+        expected_query_params = {"destinationKmsKeyName": dest_kms_resource}
+        expected_headers = {
+            "X-Goog-Copy-Source-Encryption-Algorithm": "AES256",
+            "X-Goog-Copy-Source-Encryption-Key": source_key_b64,
+            "X-Goog-Copy-Source-Encryption-Key-Sha256": source_key_hash_b64,
+        }
+        client._post_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            headers=expected_headers,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+            _target_object=dest,
         )
 
     def test_update_storage_class_invalid(self):
-        BLOB_NAME = "blob-name"
+        blob_name = "blob-name"
         bucket = _Bucket()
-        blob = self._make_one(BLOB_NAME, bucket=bucket)
+        blob = self._make_one(blob_name, bucket=bucket)
+        blob.rewrite = mock.Mock(spec=[])
+
         with self.assertRaises(ValueError):
             blob.update_storage_class(u"BOGUS")
 
-    def test_update_storage_class_large_file(self):
-        BLOB_NAME = "blob-name"
-        STORAGE_CLASS = u"NEARLINE"
-        TOKEN = "TOKEN"
-        INCOMPLETE_RESPONSE = {
-            "totalBytesRewritten": 42,
-            "objectSize": 84,
-            "done": False,
-            "rewriteToken": TOKEN,
-            "resource": {"storageClass": STORAGE_CLASS},
-        }
-        COMPLETE_RESPONSE = {
-            "totalBytesRewritten": 84,
-            "objectSize": 84,
-            "done": True,
-            "resource": {"storageClass": STORAGE_CLASS},
-        }
-        response_1 = ({"status": http_client.OK}, INCOMPLETE_RESPONSE)
-        response_2 = ({"status": http_client.OK}, COMPLETE_RESPONSE)
-        connection = _Connection(response_1, response_2)
-        client = _Client(connection)
+        blob.rewrite.assert_not_called()
+
+    def _update_storage_class_multi_pass_helper(self, **kw):
+        blob_name = "blob-name"
+        storage_class = u"NEARLINE"
+        rewrite_token = "TOKEN"
+        bytes_rewritten = 42
+        object_size = 84
+        client = mock.Mock(spec=[])
         bucket = _Bucket(client=client)
-        blob = self._make_one(BLOB_NAME, bucket=bucket)
+        blob = self._make_one(blob_name, bucket=bucket)
+        blob.rewrite = mock.Mock(spec=[])
+        blob.rewrite.side_effect = [
+            (rewrite_token, bytes_rewritten, object_size),
+            (None, object_size, object_size),
+        ]
 
-        blob.update_storage_class("NEARLINE")
+        expected_i_g_m = kw.get("if_generation_match")
+        expected_i_g_n_m = kw.get("if_generation_not_match")
+        expected_i_m_m = kw.get("if_metageneration_match")
+        expected_i_m_n_m = kw.get("if_metageneration_not_match")
+        expected_i_s_g_m = kw.get("if_source_generation_match")
+        expected_i_s_g_n_m = kw.get("if_source_generation_not_match")
+        expected_i_s_m_m = kw.get("if_source_metageneration_match")
+        expected_i_s_m_n_m = kw.get("if_source_metageneration_not_match")
+        expected_timeout = kw.get("timeout", self._get_default_timeout())
+        expected_retry = kw.get("retry", DEFAULT_RETRY_IF_GENERATION_SPECIFIED)
 
-        self.assertEqual(blob.storage_class, "NEARLINE")
+        blob.update_storage_class(storage_class, **kw)
 
-    def test_update_storage_class_with_custom_timeout(self):
-        BLOB_NAME = "blob-name"
-        STORAGE_CLASS = u"NEARLINE"
-        TOKEN = "TOKEN"
-        INCOMPLETE_RESPONSE = {
-            "totalBytesRewritten": 42,
-            "objectSize": 84,
-            "done": False,
-            "rewriteToken": TOKEN,
-            "resource": {"storageClass": STORAGE_CLASS},
-        }
-        COMPLETE_RESPONSE = {
-            "totalBytesRewritten": 84,
-            "objectSize": 84,
-            "done": True,
-            "resource": {"storageClass": STORAGE_CLASS},
-        }
-        response_1 = ({"status": http_client.OK}, INCOMPLETE_RESPONSE)
-        response_2 = ({"status": http_client.OK}, COMPLETE_RESPONSE)
-        connection = _Connection(response_1, response_2)
-        client = _Client(connection)
-        bucket = _Bucket(client=client)
-        blob = self._make_one(BLOB_NAME, bucket=bucket)
+        self.assertEqual(blob.storage_class, storage_class)
 
-        blob.update_storage_class("NEARLINE", timeout=9.58)
-
-        self.assertEqual(blob.storage_class, "NEARLINE")
-
-        kw = connection._requested
-        self.assertEqual(len(kw), 2)
-
-        for kw_item in kw:
-            self.assertIn("timeout", kw_item)
-            self.assertEqual(kw_item["timeout"], 9.58)
-
-    def test_update_storage_class_wo_encryption_key(self):
-        BLOB_NAME = "blob-name"
-        STORAGE_CLASS = u"NEARLINE"
-        RESPONSE = {
-            "totalBytesRewritten": 42,
-            "objectSize": 42,
-            "done": True,
-            "resource": {"storageClass": STORAGE_CLASS},
-        }
-        response = ({"status": http_client.OK}, RESPONSE)
-        connection = _Connection(response)
-        client = _Client(connection)
-        bucket = _Bucket(client=client)
-        blob = self._make_one(BLOB_NAME, bucket=bucket)
-
-        blob.update_storage_class("NEARLINE")
-
-        self.assertEqual(blob.storage_class, "NEARLINE")
-
-        kw = connection._requested
-        self.assertEqual(len(kw), 1)
-        self.assertEqual(kw[0]["method"], "POST")
-        PATH = "/b/name/o/%s/rewriteTo/b/name/o/%s" % (BLOB_NAME, BLOB_NAME)
-        self.assertEqual(kw[0]["path"], PATH)
-        self.assertEqual(kw[0]["query_params"], {})
-        SENT = {"storageClass": STORAGE_CLASS}
-        self.assertEqual(kw[0]["data"], SENT)
-
-        headers = {key.title(): str(value) for key, value in kw[0]["headers"].items()}
-        # Blob has no key, and therefore the relevant headers are not sent.
-        self.assertNotIn("X-Goog-Copy-Source-Encryption-Algorithm", headers)
-        self.assertNotIn("X-Goog-Copy-Source-Encryption-Key", headers)
-        self.assertNotIn("X-Goog-Copy-Source-Encryption-Key-Sha256", headers)
-        self.assertNotIn("X-Goog-Encryption-Algorithm", headers)
-        self.assertNotIn("X-Goog-Encryption-Key", headers)
-        self.assertNotIn("X-Goog-Encryption-Key-Sha256", headers)
-
-    def test_update_storage_class_w_encryption_key_w_user_project(self):
-        BLOB_NAME = "blob-name"
-        BLOB_KEY = b"01234567890123456789012345678901"  # 32 bytes
-        BLOB_KEY_B64 = base64.b64encode(BLOB_KEY).rstrip().decode("ascii")
-        BLOB_KEY_HASH = hashlib.sha256(BLOB_KEY).digest()
-        BLOB_KEY_HASH_B64 = base64.b64encode(BLOB_KEY_HASH).rstrip().decode("ascii")
-        STORAGE_CLASS = u"NEARLINE"
-        USER_PROJECT = "user-project-123"
-        RESPONSE = {
-            "totalBytesRewritten": 42,
-            "objectSize": 42,
-            "done": True,
-            "resource": {"storageClass": STORAGE_CLASS},
-        }
-        response = ({"status": http_client.OK}, RESPONSE)
-        connection = _Connection(response)
-        client = _Client(connection)
-        bucket = _Bucket(client=client, user_project=USER_PROJECT)
-        blob = self._make_one(BLOB_NAME, bucket=bucket, encryption_key=BLOB_KEY)
-
-        blob.update_storage_class("NEARLINE")
-
-        self.assertEqual(blob.storage_class, "NEARLINE")
-
-        kw = connection._requested
-        self.assertEqual(len(kw), 1)
-        self.assertEqual(kw[0]["method"], "POST")
-        PATH = "/b/name/o/%s/rewriteTo/b/name/o/%s" % (BLOB_NAME, BLOB_NAME)
-        self.assertEqual(kw[0]["path"], PATH)
-        self.assertEqual(kw[0]["query_params"], {"userProject": USER_PROJECT})
-        SENT = {"storageClass": STORAGE_CLASS}
-        self.assertEqual(kw[0]["data"], SENT)
-
-        headers = {key.title(): str(value) for key, value in kw[0]["headers"].items()}
-        # Blob has key, and therefore the relevant headers are sent.
-        self.assertEqual(headers["X-Goog-Copy-Source-Encryption-Algorithm"], "AES256")
-        self.assertEqual(headers["X-Goog-Copy-Source-Encryption-Key"], BLOB_KEY_B64)
-        self.assertEqual(
-            headers["X-Goog-Copy-Source-Encryption-Key-Sha256"], BLOB_KEY_HASH_B64
+        call1 = mock.call(
+            blob,
+            if_generation_match=expected_i_g_m,
+            if_generation_not_match=expected_i_g_n_m,
+            if_metageneration_match=expected_i_m_m,
+            if_metageneration_not_match=expected_i_m_n_m,
+            if_source_generation_match=expected_i_s_g_m,
+            if_source_generation_not_match=expected_i_s_g_n_m,
+            if_source_metageneration_match=expected_i_s_m_m,
+            if_source_metageneration_not_match=expected_i_s_m_n_m,
+            timeout=expected_timeout,
+            retry=expected_retry,
         )
-        self.assertEqual(headers["X-Goog-Encryption-Algorithm"], "AES256")
-        self.assertEqual(headers["X-Goog-Encryption-Key"], BLOB_KEY_B64)
-        self.assertEqual(headers["X-Goog-Encryption-Key-Sha256"], BLOB_KEY_HASH_B64)
+        call2 = mock.call(
+            blob,
+            token=rewrite_token,
+            if_generation_match=expected_i_g_m,
+            if_generation_not_match=expected_i_g_n_m,
+            if_metageneration_match=expected_i_m_m,
+            if_metageneration_not_match=expected_i_m_n_m,
+            if_source_generation_match=expected_i_s_g_m,
+            if_source_generation_not_match=expected_i_s_g_n_m,
+            if_source_metageneration_match=expected_i_s_m_m,
+            if_source_metageneration_not_match=expected_i_s_m_n_m,
+            timeout=expected_timeout,
+            retry=expected_retry,
+        )
+        blob.rewrite.assert_has_calls([call1, call2])
 
-    def test_update_storage_class_w_generation_match(self):
-        BLOB_NAME = "blob-name"
-        STORAGE_CLASS = u"NEARLINE"
-        GENERATION_NUMBER = 6
-        SOURCE_GENERATION_NUMBER = 9
-        RESPONSE = {
-            "totalBytesRewritten": 42,
-            "objectSize": 42,
-            "done": True,
-            "resource": {"storageClass": STORAGE_CLASS},
-        }
-        response = ({"status": http_client.OK}, RESPONSE)
-        connection = _Connection(response)
-        client = _Client(connection)
-        bucket = _Bucket(client=client)
-        blob = self._make_one(BLOB_NAME, bucket=bucket)
+    def test_update_storage_class_multi_pass_w_defaults(self):
+        self._update_storage_class_multi_pass_helper()
 
-        blob.update_storage_class(
-            "NEARLINE",
-            if_generation_match=GENERATION_NUMBER,
-            if_source_generation_match=SOURCE_GENERATION_NUMBER,
+    def test_update_storage_class_multi_pass_w_i_g_m(self):
+        generation = 16
+        self._update_storage_class_multi_pass_helper(if_generation_match=generation)
+
+    def test_update_storage_class_multi_pass_w_i_g_n_m(self):
+        generation = 16
+        self._update_storage_class_multi_pass_helper(if_generation_not_match=generation)
+
+    def test_update_storage_class_multi_pass_w_i_m_m(self):
+        metageneration = 16
+        self._update_storage_class_multi_pass_helper(
+            if_metageneration_match=metageneration,
         )
 
-        self.assertEqual(blob.storage_class, "NEARLINE")
-
-        kw = connection._requested
-        self.assertEqual(len(kw), 1)
-        self.assertEqual(kw[0]["method"], "POST")
-        PATH = "/b/name/o/%s/rewriteTo/b/name/o/%s" % (BLOB_NAME, BLOB_NAME)
-        self.assertEqual(kw[0]["path"], PATH)
-        self.assertEqual(
-            kw[0]["query_params"],
-            {
-                "ifGenerationMatch": GENERATION_NUMBER,
-                "ifSourceGenerationMatch": SOURCE_GENERATION_NUMBER,
-            },
+    def test_update_storage_class_multi_pass_w_i_m_n_m(self):
+        metageneration = 16
+        self._update_storage_class_multi_pass_helper(
+            if_metageneration_not_match=metageneration,
         )
-        SENT = {"storageClass": STORAGE_CLASS}
-        self.assertEqual(kw[0]["data"], SENT)
+
+    def test_update_storage_class_multi_pass_w_i_s_g_m(self):
+        generation = 16
+        self._update_storage_class_multi_pass_helper(
+            if_source_generation_match=generation
+        )
+
+    def test_update_storage_class_multi_pass_w_i_s_g_n_m(self):
+        generation = 16
+        self._update_storage_class_multi_pass_helper(
+            if_source_generation_not_match=generation
+        )
+
+    def test_update_storage_class_multi_pass_w_i_s_m_m(self):
+        metageneration = 16
+        self._update_storage_class_multi_pass_helper(
+            if_source_metageneration_match=metageneration,
+        )
+
+    def test_update_storage_class_multi_pass_w_i_s_m_n_m(self):
+        metageneration = 16
+        self._update_storage_class_multi_pass_helper(
+            if_source_metageneration_not_match=metageneration,
+        )
+
+    def test_update_storage_class_multi_pass_w_timeout(self):
+        timeout = 42
+        self._update_storage_class_multi_pass_helper(timeout=timeout)
+
+    def test_update_storage_class_multi_pass_w_retry(self):
+        retry = mock.Mock(spec=[])
+        self._update_storage_class_multi_pass_helper(retry=retry)
+
+    def _update_storage_class_single_pass_helper(self, **kw):
+        blob_name = "blob-name"
+        storage_class = u"NEARLINE"
+        object_size = 84
+        client = mock.Mock(spec=[])
+        bucket = _Bucket(client=client)
+        blob = self._make_one(blob_name, bucket=bucket)
+        blob.rewrite = mock.Mock(spec=[])
+        blob.rewrite.return_value = (None, object_size, object_size)
+
+        expected_i_g_m = kw.get("if_generation_match")
+        expected_i_g_n_m = kw.get("if_generation_not_match")
+        expected_i_m_m = kw.get("if_metageneration_match")
+        expected_i_m_n_m = kw.get("if_metageneration_not_match")
+        expected_i_s_g_m = kw.get("if_source_generation_match")
+        expected_i_s_g_n_m = kw.get("if_source_generation_not_match")
+        expected_i_s_m_m = kw.get("if_source_metageneration_match")
+        expected_i_s_m_n_m = kw.get("if_source_metageneration_not_match")
+        expected_timeout = kw.get("timeout", self._get_default_timeout())
+        expected_retry = kw.get("retry", DEFAULT_RETRY_IF_GENERATION_SPECIFIED)
+
+        blob.update_storage_class(storage_class, **kw)
+
+        self.assertEqual(blob.storage_class, storage_class)
+
+        blob.rewrite.assert_called_once_with(
+            blob,
+            if_generation_match=expected_i_g_m,
+            if_generation_not_match=expected_i_g_n_m,
+            if_metageneration_match=expected_i_m_m,
+            if_metageneration_not_match=expected_i_m_n_m,
+            if_source_generation_match=expected_i_s_g_m,
+            if_source_generation_not_match=expected_i_s_g_n_m,
+            if_source_metageneration_match=expected_i_s_m_m,
+            if_source_metageneration_not_match=expected_i_s_m_n_m,
+            timeout=expected_timeout,
+            retry=expected_retry,
+        )
+
+    def test_update_storage_class_single_pass_w_defaults(self):
+        self._update_storage_class_single_pass_helper()
+
+    def test_update_storage_class_single_pass_w_i_g_m(self):
+        generation = 16
+        self._update_storage_class_single_pass_helper(if_generation_match=generation)
+
+    def test_update_storage_class_single_pass_w_i_g_n_m(self):
+        generation = 16
+        self._update_storage_class_single_pass_helper(
+            if_generation_not_match=generation
+        )
+
+    def test_update_storage_class_single_pass_w_i_m_m(self):
+        metageneration = 16
+        self._update_storage_class_single_pass_helper(
+            if_metageneration_match=metageneration,
+        )
+
+    def test_update_storage_class_single_pass_w_i_m_n_m(self):
+        metageneration = 16
+        self._update_storage_class_single_pass_helper(
+            if_metageneration_not_match=metageneration,
+        )
+
+    def test_update_storage_class_single_pass_w_i_s_g_m(self):
+        generation = 16
+        self._update_storage_class_single_pass_helper(
+            if_source_generation_match=generation
+        )
+
+    def test_update_storage_class_single_pass_w_i_s_g_n_m(self):
+        generation = 16
+        self._update_storage_class_single_pass_helper(
+            if_source_generation_not_match=generation
+        )
+
+    def test_update_storage_class_single_pass_w_i_s_m_m(self):
+        metageneration = 16
+        self._update_storage_class_single_pass_helper(
+            if_source_metageneration_match=metageneration,
+        )
+
+    def test_update_storage_class_single_pass_w_i_s_m_n_m(self):
+        metageneration = 16
+        self._update_storage_class_single_pass_helper(
+            if_source_metageneration_not_match=metageneration,
+        )
+
+    def test_update_storage_class_single_pass_w_timeout(self):
+        timeout = 42
+        self._update_storage_class_single_pass_helper(timeout=timeout)
+
+    def test_update_storage_class_single_pass_w_retry(self):
+        retry = mock.Mock(spec=[])
+        self._update_storage_class_single_pass_helper(retry=retry)
 
     def test_cache_control_getter(self):
         BLOB_NAME = "blob-name"
@@ -4673,6 +4836,40 @@ class Test_Blob(unittest.TestCase):
         self.assertEqual(blob.name, "b")
         self.assertEqual(blob.bucket.name, "buckets.example.com")
 
+    def test_open(self):
+        from io import TextIOWrapper
+        from google.cloud.storage.fileio import BlobReader
+        from google.cloud.storage.fileio import BlobWriter
+
+        blob_name = "blob-name"
+        client = self._make_client()
+        bucket = _Bucket(client)
+        blob = self._make_one(blob_name, bucket=bucket)
+
+        f = blob.open("r")
+        self.assertEqual(type(f), TextIOWrapper)
+        self.assertEqual(type(f.buffer), BlobReader)
+        f = blob.open("rt")
+        self.assertEqual(type(f), TextIOWrapper)
+        self.assertEqual(type(f.buffer), BlobReader)
+        f = blob.open("rb")
+        self.assertEqual(type(f), BlobReader)
+        f = blob.open("w")
+        self.assertEqual(type(f), TextIOWrapper)
+        self.assertEqual(type(f.buffer), BlobWriter)
+        f = blob.open("wt")
+        self.assertEqual(type(f), TextIOWrapper)
+        self.assertEqual(type(f.buffer), BlobWriter)
+        f = blob.open("wb")
+        self.assertEqual(type(f), BlobWriter)
+
+        with self.assertRaises(NotImplementedError):
+            blob.open("a")
+        with self.assertRaises(ValueError):
+            blob.open("rb", encoding="utf-8")
+        with self.assertRaises(ValueError):
+            blob.open("wb", encoding="utf-8")
+
 
 class Test__quote(unittest.TestCase):
     @staticmethod
@@ -4818,23 +5015,8 @@ class _Connection(object):
     USER_AGENT = "testing 1.2.3"
     credentials = object()
 
-    def __init__(self, *responses):
-        self._responses = responses[:]
-        self._requested = []
-        self._signed = []
-
-    def _respond(self, **kw):
-        self._requested.append(kw)
-        response, self._responses = self._responses[0], self._responses[1:]
-        return response
-
-    def api_request(self, **kw):
-        from google.cloud.exceptions import NotFound
-
-        info, content = self._respond(**kw)
-        if info.get("status") == http_client.NOT_FOUND:
-            raise NotFound(info)
-        return content
+    def __init__(self):
+        pass
 
 
 class _Bucket(object):
@@ -4881,10 +5063,6 @@ class _Bucket(object):
 class _Client(object):
     def __init__(self, connection):
         self._base_connection = connection
-
-    @property
-    def _connection(self):
-        return self._base_connection
 
     @property
     def _credentials(self):

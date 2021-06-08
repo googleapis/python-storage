@@ -215,14 +215,13 @@ class _PropertyMixin(object):
             if_metageneration_match=if_metageneration_match,
             if_metageneration_not_match=if_metageneration_not_match,
         )
-        api_response = client._connection.api_request(
-            method="GET",
-            path=self.path,
+        api_response = client._get_resource(
+            self.path,
             query_params=query_params,
             headers=self._encryption_headers(),
-            _target_object=self,
             timeout=timeout,
             retry=retry,
+            _target_object=self,
         )
         self._set_properties(api_response)
 
@@ -332,10 +331,9 @@ class _PropertyMixin(object):
         update_properties = {key: self._properties[key] for key in self._changes}
 
         # Make the API call.
-        api_response = client._connection.api_request(
-            method="PATCH",
-            path=self.path,
-            data=update_properties,
+        api_response = client._patch_resource(
+            self.path,
+            update_properties,
             query_params=query_params,
             _target_object=self,
             timeout=timeout,
@@ -418,14 +416,13 @@ class _PropertyMixin(object):
             if_metageneration_not_match=if_metageneration_not_match,
         )
 
-        api_response = client._connection.api_request(
-            method="PUT",
-            path=self.path,
-            data=self._properties,
+        api_response = client._put_resource(
+            self.path,
+            self._properties,
             query_params=query_params,
-            _target_object=self,
             timeout=timeout,
             retry=retry,
+            _target_object=self,
         )
         self._set_properties(api_response)
 

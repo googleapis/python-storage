@@ -30,6 +30,7 @@ import cgi
 import copy
 import hashlib
 from io import BytesIO
+from io import TextIOWrapper
 import logging
 import mimetypes
 import os
@@ -78,6 +79,8 @@ from google.cloud.storage.constants import STANDARD_STORAGE_CLASS
 from google.cloud.storage.retry import DEFAULT_RETRY
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_ETAG_IN_JSON
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_GENERATION_SPECIFIED
+from google.cloud.storage.fileio import BlobReader
+from google.cloud.storage.fileio import BlobWriter
 
 
 _API_ACCESS_ENDPOINT = "https://storage.googleapis.com"
@@ -144,7 +147,9 @@ class Blob(_PropertyMixin):
     :type chunk_size: int
     :param chunk_size:
         (Optional) The size of a chunk of data whenever iterating (in bytes).
-        This must be a multiple of 256 KB per the API specification.
+        This must be a multiple of 256 KB per the API specification. If not
+        specified, the chunk_size of the blob itself is used. If that is not
+        specified, a default value of 40 MB is used.
 
     :type encryption_key: bytes
     :param encryption_key:
@@ -249,6 +254,31 @@ class Blob(_PropertyMixin):
             )
         self._chunk_size = value
 
+    @property
+    def encryption_key(self):
+        """Retrieve the customer-supplied encryption key for the object.
+
+        :rtype: bytes or ``NoneType``
+        :returns:
+            The encryption key or ``None`` if no customer-supplied encryption key was used,
+            or the blob's resource has not been loaded from the server.
+        """
+        return self._encryption_key
+
+    @encryption_key.setter
+    def encryption_key(self, value):
+        """Set the blob's encryption key.
+
+        See https://cloud.google.com/storage/docs/encryption#customer-supplied
+
+        To perform a key rotation for an encrypted blob, use :meth:`rewrite`.
+        See https://cloud.google.com/storage/docs/encryption/using-customer-supplied-keys?hl=ca#rotating
+
+        :type value: bytes
+        :param value: 32 byte encryption key for customer-supplied encryption.
+        """
+        self._encryption_key = value
+
     @staticmethod
     def path_helper(bucket_path, blob_name):
         """Relative URL path for a blob.
@@ -342,25 +372,25 @@ class Blob(_PropertyMixin):
     def from_string(cls, uri, client=None):
         """Get a constructor for blob object by URI.
 
-         :type uri: str
-         :param uri: The blob uri pass to get blob object.
+        :type uri: str
+        :param uri: The blob uri pass to get blob object.
 
         :type client: :class:`~google.cloud.storage.client.Client`
         :param client:
             (Optional) The client to use.  If not passed, falls back to the
             ``client`` stored on the blob's bucket.
 
-         :rtype: :class:`google.cloud.storage.blob.Blob`
-         :returns: The blob object created.
+        :rtype: :class:`google.cloud.storage.blob.Blob`
+        :returns: The blob object created.
 
-         Example:
-            Get a constructor for blob object by URI..
+        Example:
+            Get a constructor for blob object by URI.
 
             >>> from google.cloud import storage
             >>> from google.cloud.storage.blob import Blob
             >>> client = storage.Client()
             >>> blob = Blob.from_string("gs://bucket/object")
-         """
+        """
         from google.cloud.storage.bucket import Bucket
 
         scheme, netloc, path, query, frag = urlsplit(uri)
@@ -674,20 +704,19 @@ class Blob(_PropertyMixin):
         try:
             # We intentionally pass `_target_object=None` since fields=name
             # would limit the local properties.
-            client._connection.api_request(
-                method="GET",
-                path=self.path,
+            client._get_resource(
+                self.path,
                 query_params=query_params,
-                _target_object=None,
                 timeout=timeout,
                 retry=retry,
+                _target_object=None,
             )
+        except NotFound:
             # NOTE: This will not fail immediately in a batch. However, when
             #       Batch.finish() is called, the resulting `NotFound` will be
             #       raised.
-            return True
-        except NotFound:
             return False
+        return True
 
     def delete(
         self,
@@ -2799,13 +2828,12 @@ class Blob(_PropertyMixin):
         if requested_policy_version is not None:
             query_params["optionsRequestedPolicyVersion"] = requested_policy_version
 
-        info = client._connection.api_request(
-            method="GET",
-            path="%s/iam" % (self.path,),
+        info = client._get_resource(
+            "%s/iam" % (self.path,),
             query_params=query_params,
-            _target_object=None,
             timeout=timeout,
             retry=retry,
+            _target_object=None,
         )
         return Policy.from_api_repr(info)
 
@@ -2870,16 +2898,16 @@ class Blob(_PropertyMixin):
         if self.user_project is not None:
             query_params["userProject"] = self.user_project
 
+        path = "{}/iam".format(self.path)
         resource = policy.to_api_repr()
         resource["resourceId"] = self.path
-        info = client._connection.api_request(
-            method="PUT",
-            path="%s/iam" % (self.path,),
+        info = client._put_resource(
+            path,
+            resource,
             query_params=query_params,
-            data=resource,
-            _target_object=None,
             timeout=timeout,
             retry=retry,
+            _target_object=None,
         )
         return Policy.from_api_repr(info)
 
@@ -2940,37 +2968,53 @@ class Blob(_PropertyMixin):
             query_params["userProject"] = self.user_project
 
         path = "%s/iam/testPermissions" % (self.path,)
-        resp = client._connection.api_request(
-            method="GET",
-            path=path,
+        resp = client._get_resource(
+            path,
             query_params=query_params,
             timeout=timeout,
             retry=retry,
+            _target_object=None,
         )
 
         return resp.get("permissions", [])
 
-    def make_public(self, client=None):
+    def make_public(self, client=None, timeout=_DEFAULT_TIMEOUT):
         """Update blob's ACL, granting read access to anonymous users.
 
         :type client: :class:`~google.cloud.storage.client.Client` or
                       ``NoneType``
         :param client: (Optional) The client to use.  If not passed, falls back
                        to the ``client`` stored on the blob's bucket.
+
+        :type timeout: float or tuple
+        :param timeout: (Optional) The amount of time, in seconds, to wait
+            for the server response. The timeout applies to each underlying
+            request.
+
+            Can also be passed as a tuple (connect_timeout, read_timeout).
+            See :meth:`requests.Session.request` documentation for details.
         """
         self.acl.all().grant_read()
-        self.acl.save(client=client)
+        self.acl.save(client=client, timeout=timeout)
 
-    def make_private(self, client=None):
+    def make_private(self, client=None, timeout=_DEFAULT_TIMEOUT):
         """Update blob's ACL, revoking read access for anonymous users.
 
         :type client: :class:`~google.cloud.storage.client.Client` or
                       ``NoneType``
         :param client: (Optional) The client to use.  If not passed, falls back
                        to the ``client`` stored on the blob's bucket.
+
+        :type timeout: float or tuple
+        :param timeout: (Optional) The amount of time, in seconds, to wait
+            for the server response. The timeout applies to each underlying
+            request.
+
+            Can also be passed as a tuple (connect_timeout, read_timeout).
+            See :meth:`requests.Session.request` documentation for details.
         """
         self.acl.all().revoke_read()
-        self.acl.save(client=client)
+        self.acl.save(client=client, timeout=timeout)
 
     def compose(
         self,
@@ -3088,14 +3132,13 @@ class Blob(_PropertyMixin):
             "sourceObjects": source_objects,
             "destination": self._properties.copy(),
         }
-        api_response = client._connection.api_request(
-            method="POST",
-            path=self.path + "/compose",
+        api_response = client._post_resource(
+            "{}/compose".format(self.path),
+            request,
             query_params=query_params,
-            data=request,
-            _target_object=self,
             timeout=timeout,
             retry=retry,
+            _target_object=self,
         )
         self._set_properties(api_response)
 
@@ -3239,15 +3282,15 @@ class Blob(_PropertyMixin):
             if_source_metageneration_not_match=if_source_metageneration_not_match,
         )
 
-        api_response = client._connection.api_request(
-            method="POST",
-            path=source.path + "/rewriteTo" + self.path,
+        path = "{}/rewriteTo{}".format(source.path, self.path)
+        api_response = client._post_resource(
+            path,
+            self._properties,
             query_params=query_params,
-            data=self._properties,
             headers=headers,
-            _target_object=self,
             timeout=timeout,
             retry=retry,
+            _target_object=self,
         )
         rewritten = int(api_response["totalBytesRewritten"])
         size = int(api_response["objectSize"])
@@ -3405,6 +3448,131 @@ class Blob(_PropertyMixin):
                 if_source_metageneration_not_match=if_source_metageneration_not_match,
                 timeout=timeout,
                 retry=retry,
+            )
+
+    def open(
+        self,
+        mode="r",
+        chunk_size=None,
+        encoding=None,
+        errors=None,
+        newline=None,
+        **kwargs
+    ):
+        r"""Create a file handler for file-like I/O to or from this blob.
+
+        This method can be used as a context manager, just like Python's
+        built-in 'open()' function.
+
+        While reading, as with other read methods, if blob.generation is not set
+        the most recent blob generation will be used. Because the file-like IO
+        reader downloads progressively in chunks, this could result in data from
+        multiple versions being mixed together. If this is a concern, use
+        either bucket.get_blob(), or blob.reload(), which will download the
+        latest generation number and set it; or, if the generation is known, set
+        it manually, for instance with bucket.blob(generation=123456).
+
+        Checksumming (hashing) to verify data integrity is disabled for reads
+        using this feature because reads are implemented using request ranges,
+        which do not provide checksums to validate. See
+        https://cloud.google.com/storage/docs/hashes-etags for details.
+
+        :type mode: str
+        :param mode:
+            (Optional) A mode string, as per standard Python `open()` semantics.The first
+            character must be 'r', to open the blob for reading, or 'w' to open
+            it for writing. The second character, if present, must be 't' for
+            (unicode) text mode, or 'b' for bytes mode. If the second character
+            is omitted, text mode is the default.
+
+        :type chunk_size: long
+        :param chunk_size:
+            (Optional) For reads, the minimum number of bytes to read at a time.
+            If fewer bytes than the chunk_size are requested, the remainder is
+            buffered. For writes, the maximum number of bytes to buffer before
+            sending data to the server, and the size of each request when data
+            is sent. Writes are implemented as a "resumable upload", so
+            chunk_size for writes must be exactly a multiple of 256KiB as with
+            other resumable uploads. The default is 40 MiB.
+
+        :type encoding: str
+        :param encoding:
+            (Optional) For text mode only, the name of the encoding that the stream will
+            be decoded or encoded with. If omitted, it defaults to
+            locale.getpreferredencoding(False).
+
+        :type errors: str
+        :param errors:
+            (Optional) For text mode only, an optional string that specifies how encoding
+            and decoding errors are to be handled. Pass 'strict' to raise a
+            ValueError exception if there is an encoding error (the default of
+            None has the same effect), or pass 'ignore' to ignore errors. (Note
+            that ignoring encoding errors can lead to data loss.) Other more
+            rarely-used options are also available; see the Python 'io' module
+            documentation for 'io.TextIOWrapper' for a complete list.
+
+        :type newline: str
+        :param newline:
+            (Optional) For text mode only, controls how line endings are handled. It can
+            be None, '', '\n', '\r', and '\r\n'. If None, reads use "universal
+            newline mode" and writes use the system default. See the Python
+            'io' module documentation for 'io.TextIOWrapper' for details.
+
+        :param kwargs: Keyword arguments to pass to the underlying API calls.
+            For both uploads and downloads, the following arguments are
+            supported: "if_generation_match", "if_generation_not_match",
+            "if_metageneration_match", "if_metageneration_not_match", "timeout".
+            For uploads only, the following additional arguments are supported:
+            "content_type", "num_retries", "predefined_acl", "checksum".
+
+        :returns: A 'BlobReader' or 'BlobWriter' from
+            'google.cloud.storage.fileio', or an 'io.TextIOWrapper' around one
+            of those classes, depending on the 'mode' argument.
+
+        Example:
+            Read from a text blob by using open() as context manager.
+
+            Using bucket.get_blob() fetches metadata such as the generation,
+            which prevents race conditions in case the blob is modified.
+
+            >>> from google.cloud import storage
+            >>> client = storage.Client()
+            >>> bucket = client.bucket("bucket-name")
+
+            >>> blob = bucket.get_blob("blob-name.txt")
+            >>> with blob.open("rt") as f:
+            >>>     print(f.read())
+
+        """
+        if mode == "rb":
+            if encoding or errors or newline:
+                raise ValueError(
+                    "encoding, errors and newline arguments are for text mode only"
+                )
+            return BlobReader(self, chunk_size=chunk_size, **kwargs)
+        elif mode == "wb":
+            if encoding or errors or newline:
+                raise ValueError(
+                    "encoding, errors and newline arguments are for text mode only"
+                )
+            return BlobWriter(self, chunk_size=chunk_size, **kwargs)
+        elif mode in ("r", "rt"):
+            return TextIOWrapper(
+                BlobReader(self, chunk_size=chunk_size, **kwargs),
+                encoding=encoding,
+                errors=errors,
+                newline=newline,
+            )
+        elif mode in ("w", "wt"):
+            return TextIOWrapper(
+                BlobWriter(self, chunk_size=chunk_size, text_mode=True, **kwargs),
+                encoding=encoding,
+                errors=errors,
+                newline=newline,
+            )
+        else:
+            raise NotImplementedError(
+                "Supported modes strings are 'r', 'rb', 'rt', 'w', 'wb', and 'wt' only."
             )
 
     cache_control = _scalar_property("cacheControl")
@@ -3708,6 +3876,15 @@ class Blob(_PropertyMixin):
             or the blob's resource has not been loaded from the server.
         """
         return self._properties.get("kmsKeyName")
+
+    @kms_key_name.setter
+    def kms_key_name(self, value):
+        """Set KMS encryption key for object.
+
+        :type value: str or ``NoneType``
+        :param value: new KMS key name (None to clear any existing key).
+        """
+        self._patch_property("kmsKeyName", value)
 
     storage_class = _scalar_property("storageClass")
     """Retrieve the storage class for the object.
