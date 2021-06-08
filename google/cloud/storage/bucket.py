@@ -17,14 +17,12 @@
 import base64
 import copy
 import datetime
-import functools
 import json
 import warnings
 
 import six
 from six.moves.urllib.parse import urlsplit
 
-from google.api_core import page_iterator
 from google.api_core import datetime_helpers
 from google.cloud._helpers import _datetime_to_rfc3339
 from google.cloud._helpers import _NOW
@@ -1392,14 +1390,8 @@ class Bucket(_PropertyMixin):
         """
         client = self._require_client(client)
         path = self.path + "/notificationConfigs"
-        api_request = functools.partial(
-            client._connection.api_request, timeout=timeout, retry=retry
-        )
-        iterator = page_iterator.HTTPIterator(
-            client=client,
-            api_request=api_request,
-            path=path,
-            item_to_value=_item_to_notification,
+        iterator = client._list_resource(
+            path, _item_to_notification, timeout=timeout, retry=retry,
         )
         iterator.bucket = self
         return iterator
@@ -1996,7 +1988,7 @@ class Bucket(_PropertyMixin):
         )
 
         if not preserve_acl:
-            new_blob.acl.save(acl={}, client=client, timeout=timeout, retry=retry)
+            new_blob.acl.save(acl={}, client=client, timeout=timeout)
 
         new_blob._set_properties(copy_result)
         return new_blob
@@ -3021,12 +3013,7 @@ class Bucket(_PropertyMixin):
         return resp.get("permissions", [])
 
     def make_public(
-        self,
-        recursive=False,
-        future=False,
-        client=None,
-        timeout=_DEFAULT_TIMEOUT,
-        retry=DEFAULT_RETRY,
+        self, recursive=False, future=False, client=None, timeout=_DEFAULT_TIMEOUT,
     ):
         """Update bucket's ACL, granting read access to anonymous users.
 
@@ -3050,20 +3037,6 @@ class Bucket(_PropertyMixin):
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
 
-        :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
-        :param retry: (Optional) How to retry the RPC. A None value will disable retries.
-            A google.api_core.retry.Retry value will enable retries, and the object will
-            define retriable response codes and errors and configure backoff and timeout options.
-
-            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a Retry object and
-            activates it only if certain conditions are met. This class exists to provide safe defaults
-            for RPC calls that are not technically safe to retry normally (due to potential data
-            duplication or other side-effects) but become safe to retry if a condition such as
-            if_metageneration_match is set.
-
-            See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
-            information on retry types and how to configure them.
-
         :raises ValueError:
             If ``recursive`` is True, and the bucket contains more than 256
             blobs.  This is to prevent extremely long runtime of this
@@ -3073,7 +3046,7 @@ class Bucket(_PropertyMixin):
             for each blob.
         """
         self.acl.all().grant_read()
-        self.acl.save(client=client, timeout=timeout, retry=retry)
+        self.acl.save(client=client, timeout=timeout)
 
         if future:
             doa = self.default_object_acl
@@ -3089,7 +3062,6 @@ class Bucket(_PropertyMixin):
                     max_results=self._MAX_OBJECTS_FOR_ITERATION + 1,
                     client=client,
                     timeout=timeout,
-                    retry=retry,
                 )
             )
             if len(blobs) > self._MAX_OBJECTS_FOR_ITERATION:
@@ -3104,15 +3076,10 @@ class Bucket(_PropertyMixin):
 
             for blob in blobs:
                 blob.acl.all().grant_read()
-                blob.acl.save(client=client, timeout=timeout, retry=retry)
+                blob.acl.save(client=client, timeout=timeout)
 
     def make_private(
-        self,
-        recursive=False,
-        future=False,
-        client=None,
-        timeout=_DEFAULT_TIMEOUT,
-        retry=DEFAULT_RETRY,
+        self, recursive=False, future=False, client=None, timeout=_DEFAULT_TIMEOUT,
     ):
         """Update bucket's ACL, revoking read access for anonymous users.
 
@@ -3137,20 +3104,6 @@ class Bucket(_PropertyMixin):
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
 
-        :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
-        :param retry: (Optional) How to retry the RPC. A None value will disable retries.
-            A google.api_core.retry.Retry value will enable retries, and the object will
-            define retriable response codes and errors and configure backoff and timeout options.
-
-            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a Retry object and
-            activates it only if certain conditions are met. This class exists to provide safe defaults
-            for RPC calls that are not technically safe to retry normally (due to potential data
-            duplication or other side-effects) but become safe to retry if a condition such as
-            if_metageneration_match is set.
-
-            See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
-            information on retry types and how to configure them.
-
         :raises ValueError:
             If ``recursive`` is True, and the bucket contains more than 256
             blobs.  This is to prevent extremely long runtime of this
@@ -3160,7 +3113,7 @@ class Bucket(_PropertyMixin):
             for each blob.
         """
         self.acl.all().revoke_read()
-        self.acl.save(client=client, timeout=timeout, retry=retry)
+        self.acl.save(client=client, timeout=timeout)
 
         if future:
             doa = self.default_object_acl
@@ -3176,7 +3129,6 @@ class Bucket(_PropertyMixin):
                     max_results=self._MAX_OBJECTS_FOR_ITERATION + 1,
                     client=client,
                     timeout=timeout,
-                    retry=retry,
                 )
             )
             if len(blobs) > self._MAX_OBJECTS_FOR_ITERATION:
@@ -3191,7 +3143,7 @@ class Bucket(_PropertyMixin):
 
             for blob in blobs:
                 blob.acl.all().revoke_read()
-                blob.acl.save(client=client, timeout=timeout, retry=retry)
+                blob.acl.save(client=client, timeout=timeout)
 
     def generate_upload_policy(self, conditions, expiration=None, client=None):
         """Create a signed upload policy for uploading objects.
