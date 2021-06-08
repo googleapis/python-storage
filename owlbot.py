@@ -38,7 +38,7 @@ s.move(
     templated_files, excludes=["docs/multiprocessing.rst", "noxfile.py", "CONTRIBUTING.rst"],
 )
 
-s.replace(
+replaced = s.replace(
     "docs/conf.py",
     """\
 intersphinx_mapping = {
@@ -50,5 +50,6 @@ intersphinx_mapping = {
     "requests": ("https://docs.python-requests.org/en/master/", None),
 """,
 )
+assert replaced == 1
 
 s.shell.run(["nox", "-s", "blacken"], hide_output=False)
