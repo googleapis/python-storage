@@ -1792,7 +1792,7 @@ class Test_Bucket(unittest.TestCase):
             expected_patch_data,
             query_params=expected_patch_query_params,
             timeout=self._get_default_timeout(),
-            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+            retry=None,
         )
 
     def test_copy_blob_w_name_and_user_project(self):
@@ -2996,7 +2996,7 @@ class Test_Bucket(unittest.TestCase):
             expected_data,
             query_params=expected_query_params,
             timeout=self._get_default_timeout(),
-            retry=DEFAULT_RETRY,
+            retry=None,
         )
 
     def _make_public_w_future_helper(self, default_object_acl_loaded=True):
