@@ -64,7 +64,7 @@ for each method, base on its semantics:
   :data:`~google.cloud.storage.retry.DEFAULT_RETRY` policy, which
   retries any API request which returns a "transient" error.
 
-- For API requests which are idempotent only if the bucket or blob has
+- For API requests which are idempotent only if the blob has
   the same "generation", the library uses its
   :data:`~google.cloud.storage.retry.DEFAULT_RETRY_IF_GENERATION_SPECIFIED`
   policy, which retries API requests which returns a "transient" error,
