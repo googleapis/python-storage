@@ -58,9 +58,31 @@ Configuring Retries
 Methods which invoke API methods may fail for a number of reasons, some of
 which represent "transient" conditions, and thus can be retried
 automatically.  The library tries to provide a sensible default retry policy
-for each method, base on its semantics.
+for each method, base on its semantics:
 
-Rather than using the default policy, you may choose to configure an
+- For API requests which are always idempotent, the library uses its
+  :data:`~google.cloud.storage.retry.DEFAULT_RETRY` policy, which
+  retries any API request which returns a "transient" error.
+
+- For API requests which are idempotent only if the bucket or blob has
+  the same "metageneration", the library uses its
+  :data:`~google.cloud.storage.retry.DEFAULT_RETRY_IF_GENERATION_SPECIFIED`
+  policy, which retries API requests which returns a "transient" error,
+  but only if the original request includes an ``ifGenerationMatch`` header.
+
+- For API requests which are idempotent only if the bucket or blob has
+  the same "metageneration", the library uses its
+  :data:`~google.cloud.storage.retry.DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED`
+  policy, which retries API requests which returns a "transient" error,
+  but only if the original request includes an ``ifMetagenerationMatch`` header.
+
+- For API requests which are idempotent only if the bucket or blob has
+  the same "etag", the library uses its
+  :data:`~google.cloud.storage.retry.DEFAULT_RETRY_IF_ETAG_IN_JSON`
+  policy, which retries API requests which returns a "transient" error,
+  but only if the original request includes an ``ETAG`` in its payload.
+
+Rather than using one of the default policies, you may choose to configure an
 explicit policy in your code.
 
 - You can pass ``None`` as a retry policy to disable retries.  E.g.:
@@ -75,10 +97,18 @@ explicit policy in your code.
 
 .. code-block:: python
 
+   from google.api_core import exceptions
    from google.api_core.retry import Retry
 
+   _MY_RETRIABLE_TYPES = [
+      exceptions.TooManyRequests,  # 429
+      exceptions.InternalServerError,  # 500
+      exceptions.BadGateway,  # 502
+      exceptions.ServiceUnavailable,  # 503
+   ]
+
    def is_retryable(exc):
-       ... # your retriable exception types here
+       return isinstance(exc, _MY_RETRIABLE_TYPES)
 
    my_retry_policy = Retry(predicate=is_retryable)
    bucket = client.get_bucket(BUCKET_NAME, retry=my_retry_policy)
@@ -98,7 +128,7 @@ explicit policy in your code.
    from google.cloud.storage.retry import is_etag_in_json
 
    def is_retryable(exc):
-       ... # your retriable exception types here
+       ... # as above
 
    my_retry_policy = Retry(predicate=is_retryable)
    my_cond_policy = ConditionalRetryPolicy(
