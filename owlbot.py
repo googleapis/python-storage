@@ -32,24 +32,13 @@ templated_files = common.py_library(
         # See: https://github.com/googleapis/python-storage/issues/226
         "google-cloud-kms < 2.0dev",
     ],
+    intersphinx_dependencies = {
+        "requests": "https://docs.python-requests.org/en/master/"
+    },
 )
 
 s.move(
     templated_files, excludes=["docs/multiprocessing.rst", "noxfile.py", "CONTRIBUTING.rst"],
 )
-
-replaced = s.replace(
-    "docs/conf.py",
-    """\
-intersphinx_mapping = {
-    "python": \("https://python.readthedocs.org/en/latest/", None\),
-""",
-    """\
-intersphinx_mapping = {
-    "python": ("https://python.readthedocs.org/en/latest/", None),
-    "requests": ("https://docs.python-requests.org/en/master/", None),
-""",
-)
-assert replaced == 1
 
 s.shell.run(["nox", "-s", "blacken"], hide_output=False)
