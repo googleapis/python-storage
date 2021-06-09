@@ -3797,6 +3797,125 @@ class Test_Blob(unittest.TestCase):
             _target_object=destination,
         )
 
+    @mock.patch("warnings.warn")
+    def test_compose_w_generation_match_w_warning(self, mock_warn):
+        source_1_name = "source-1"
+        source_2_name = "source-2"
+        destination_name = "destination"
+        api_response = {}
+        generation_numbers = [6, 9]
+
+        client = mock.Mock(spec=["_post_resource"])
+        client._post_resource.return_value = api_response
+        bucket = _Bucket(client=client)
+        source_1 = self._make_one(source_1_name, bucket=bucket)
+        source_2 = self._make_one(source_2_name, bucket=bucket)
+
+        destination = self._make_one(destination_name, bucket=bucket)
+        destination.compose(
+            sources=[source_1, source_2], if_generation_match=generation_numbers,
+        )
+
+        expected_path = "/b/name/o/%s/compose" % destination_name
+        expected_data = {
+            "sourceObjects": [
+                {
+                    "name": source_1_name,
+                    "generation": None,
+                    "objectPreconditions": {
+                        "ifGenerationMatch": generation_numbers[0],
+                    },
+                },
+                {
+                    "name": source_2_name,
+                    "generation": None,
+                    "objectPreconditions": {
+                        "ifGenerationMatch": generation_numbers[1],
+                    },
+                },
+            ],
+            "destination": {},
+        }
+        expected_query_params = {}
+        client._post_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+            _target_object=destination,
+        )
+
+        mock_warn.assert_called_with(
+            "if_generation_match: type list is deprecated and will be removed in future."
+            "Use if_source_generation_match instead.",
+            PendingDeprecationWarning,
+            stacklevel=1,
+        )
+
+    def test_compose_invalid_generation_match(self):
+        source_1_name = "source-1"
+        source_2_name = "source-2"
+        destination_name = "destination"
+        source_generation_numbers = [6, 8]
+        client = mock.Mock(spec=["_post_resource"])
+        bucket = _Bucket(client=client)
+        source_1 = self._make_one(source_1_name, bucket=bucket)
+        source_2 = self._make_one(source_2_name, bucket=bucket)
+
+        destination = self._make_one(destination_name, bucket=bucket)
+
+        with self.assertRaises(ValueError):
+            destination.compose(
+                sources=[source_1, source_2],
+                if_generation_match=source_generation_numbers,
+                if_source_generation_match=source_generation_numbers,
+            )
+
+        client._post_resource.assert_not_called()
+
+    @mock.patch("warnings.warn")
+    def test_compose_w_metageneration_match_w_warning(self, mock_warn):
+        source_1_name = "source-1"
+        source_2_name = "source-2"
+        destination_name = "destination"
+        metageneration_number = [6]
+        client = mock.Mock(spec=["_post_resource"])
+        bucket = _Bucket(client=client)
+        source_1 = self._make_one(source_1_name, bucket=bucket)
+        source_2 = self._make_one(source_2_name, bucket=bucket)
+
+        destination = self._make_one(destination_name, bucket=bucket)
+
+        destination.compose(
+            sources=[source_1, source_2], if_metageneration_match=metageneration_number,
+        )
+
+        expected_path = "/b/name/o/%s/compose" % destination_name
+        expected_data = {
+            "sourceObjects": [
+                {"name": source_1_name, "generation": None},
+                {"name": source_2_name, "generation": None},
+            ],
+            "destination": {},
+        }
+        expected_query_params = {}
+        client._post_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+            _target_object=destination,
+        )
+
+        mock_warn.assert_called_with(
+            "if_metageneration_match matches the given value to the destination object's metageneration."
+            "Please pass in a single value (type long).",
+            PendingDeprecationWarning,
+            stacklevel=1,
+        )
+
     def test_compose_w_metageneration_match(self):
         source_1_name = "source-1"
         source_2_name = "source-2"
