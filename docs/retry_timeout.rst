@@ -65,7 +65,7 @@ for each method, base on its semantics:
   retries any API request which returns a "transient" error.
 
 - For API requests which are idempotent only if the bucket or blob has
-  the same "metageneration", the library uses its
+  the same "generation", the library uses its
   :data:`~google.cloud.storage.retry.DEFAULT_RETRY_IF_GENERATION_SPECIFIED`
   policy, which retries API requests which returns a "transient" error,
   but only if the original request includes an ``ifGenerationMatch`` header.
@@ -81,6 +81,9 @@ for each method, base on its semantics:
   :data:`~google.cloud.storage.retry.DEFAULT_RETRY_IF_ETAG_IN_JSON`
   policy, which retries API requests which returns a "transient" error,
   but only if the original request includes an ``ETAG`` in its payload.
+
+- For those API requests which are never idempotent, the library passes
+  ``retry=None`` by default, suppressing any retries.
 
 Rather than using one of the default policies, you may choose to configure an
 explicit policy in your code.
