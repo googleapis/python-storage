@@ -19,6 +19,7 @@ from google.cloud.storage import _helpers
 
 from . import _read_local_json
 
+import os
 import pytest
 import requests
 import warnings
@@ -28,8 +29,9 @@ _CONFORMANCE_TESTS = _read_local_json("retry_strategy_test_data.json")[
     "retryStrategyTests"
 ]
 
-_API_ACCESS_ENDPOINT = _helpers._get_storage_host()
-_DEFAULT_STORAGE_HOST = u"https://storage.googleapis.com"
+STORAGE_EMULATOR_ENV_VAR = "STORAGE_EMULATOR_HOST"
+"""Environment variable defining host for Storage emulator."""
+
 _CONF_TEST_PROJECT_ID = "my-project-id"
 _CONF_TEST_SERVICE_ACCOUNT_EMAIL = (
     "my-service-account@my-project-id.iam.gserviceaccount.com"
@@ -358,8 +360,8 @@ def _delete_retry_test(host, id):
 
 @pytest.mark.parametrize("test_data", _CONFORMANCE_TESTS)
 def test_conformance_retry_strategy(test_data):
-    host = _API_ACCESS_ENDPOINT
-    if host == _DEFAULT_STORAGE_HOST:
+    host = os.environ.get(STORAGE_EMULATOR_ENV_VAR)
+    if host is None:
         pytest.skip(
             "This test must use the testbench emulator; set STORAGE_EMULATOR_HOST to run."
         )
