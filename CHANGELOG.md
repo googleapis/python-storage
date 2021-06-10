@@ -4,6 +4,20 @@
 
 [1]: https://pypi.org/project/google-cloud-storage/#history
 
+### [1.38.1](https://www.github.com/googleapis/python-storage/compare/v1.38.0...v1.38.1) (2021-06-10)
+
+
+### Bug Fixes
+
+* add ConnectionError to default retry ([#445](https://www.github.com/googleapis/python-storage/issues/445)) ([8344253](https://www.github.com/googleapis/python-storage/commit/8344253a1969b9d04b81f87a6d7bddd3ddb55006))
+* apply idempotency policies for ACLs ([#458](https://www.github.com/googleapis/python-storage/issues/458)) ([2232f38](https://www.github.com/googleapis/python-storage/commit/2232f38933dbdfeb4f6585291794d332771ffdf2))
+* replace python lifecycle action parsing ValueError with warning ([#437](https://www.github.com/googleapis/python-storage/issues/437)) ([2532d50](https://www.github.com/googleapis/python-storage/commit/2532d506b44fc1ef0fa0a996822d29e7459c465a))
+
+
+### Documentation
+
+* streamline 'timeout' / 'retry' docs in docstrings ([#461](https://www.github.com/googleapis/python-storage/issues/461)) ([78b2eba](https://www.github.com/googleapis/python-storage/commit/78b2eba81003b437cd24f2b8d269ea2455682507))
+
 ## [1.38.0](https://www.github.com/googleapis/python-storage/compare/v1.37.1...v1.38.0) (2021-04-26)
 
 
