@@ -3056,8 +3056,8 @@ class Blob(_PropertyMixin):
             If a list of long is passed in, makes the operation conditional on whether the
             current generation of each source blob matches the corresponding generation.
             The list must match ``sources`` item-to-item.
-            (Deprecated: type if_generation_match: list of long will be removed in a future release.
-            Use if_source_generation_match instead.)
+            (Deprecated: type(list of long) is supported for backwards-compatability reasons only.
+            Please use if_source_generation_match instead to match source objects generations.)
 
         :type if_metageneration_match: long
         :param if_metageneration_match:
@@ -3066,7 +3066,7 @@ class Blob(_PropertyMixin):
             value.
 
             If a list of long is passed in, no match operation will be performed.
-            (Deprecated: type if_metageneration_match: list of long will be removed in a future release.)
+            (Deprecated: type(list of long) is supported for backwards-compatability reasons only.)
 
         :type if_source_generation_match: list of long
         :param if_source_generation_match:
@@ -3108,8 +3108,8 @@ class Blob(_PropertyMixin):
 
         if isinstance(if_generation_match, list):
             warnings.warn(
-                "if_generation_match: type list is deprecated and will be removed in future."
-                "Use if_source_generation_match instead.",
+                "if_generation_match: type list is deprecated and supported for backwards-compatability reasons only."
+                "Use if_source_generation_match instead to match source objects generations.",
                 PendingDeprecationWarning,
                 stacklevel=1,
             )
