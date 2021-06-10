@@ -55,6 +55,11 @@ See also:
 Configuring Retries
 --------------------
 
+.. note::
+
+   For more background on retries, see also the
+   `GCS Retry Strategies Document <https://cloud.google.com/storage/docs/retry-strategy#python>`_ 
+
 Methods which invoke API methods may fail for a number of reasons, some of
 which represent "transient" conditions, and thus can be retried
 automatically.  The library tries to provide a sensible default retry policy
