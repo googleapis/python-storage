@@ -3784,8 +3784,8 @@ class Test_Blob(unittest.TestCase):
         )
 
         mock_warn.assert_called_with(
-            "if_generation_match: type list is deprecated and will be removed in future."
-            "Use if_source_generation_match instead.",
+            "if_generation_match: type list is deprecated and supported for backwards-compatability reasons only."
+            "Use if_source_generation_match instead to match source objects generations.",
             PendingDeprecationWarning,
             stacklevel=1,
         )
