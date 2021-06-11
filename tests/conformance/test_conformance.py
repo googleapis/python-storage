@@ -15,7 +15,6 @@
 import uuid
 
 from google.cloud import storage
-from google.cloud.storage import _helpers
 
 from . import _read_local_json
 
@@ -323,6 +322,11 @@ def _populate_resources(client, json_resource):
 
 
 def _create_retry_test(host, method_name, instructions):
+    """
+    Initialize a Retry Test resource with a list of instructions and an API method.
+    This offers a mechanism to send multiple retry instructions while sending a single, constant header through all the HTTP requests in a test.
+    See also: https://github.com/googleapis/google-cloud-cpp/tree/main/google/cloud/storage/emulator
+    """
     import json
 
     preflight_post_uri = host + "/retry_test"
@@ -335,14 +339,17 @@ def _create_retry_test(host, method_name, instructions):
     return r.json()
 
 
-def _check_retry_test(host, id):
+def _get_retry_test(host, id):
     status_get_uri = "{base}{retry}/{id}".format(base=host, retry="/retry_test", id=id)
     r = requests.get(status_get_uri)
     return r.json()
 
 
 def _run_retry_test(host, id, func, _preconditions, **resources):
-    # Create client using x-retry-test-id header.
+    """
+    To execute tests against the list of instrucions sent to the Retry API, create a client to send the retry test ID using the x-retry-test-id header in each request.
+    For incoming requests which match the given API method, the emulator will pop off the next instruction from the list and force the listed failure case.
+    """
     client = storage.Client(client_options={"api_endpoint": host})
     client._http.headers.update({"x-retry-test-id": id})
     func(client, _preconditions, **resources)
@@ -358,8 +365,29 @@ def _delete_retry_test(host, id):
 ########################################################################################################################################
 
 
-@pytest.mark.parametrize("test_data", _CONFORMANCE_TESTS)
-def test_conformance_retry_strategy(test_data):
+def pytest_generate_tests(metafunc):
+    for test_data in _CONFORMANCE_TESTS:
+        scenario_id = test_data["id"]
+        m = "s{}method".format(scenario_id)
+        c = "s{}case".format(scenario_id)
+        s = "s{}".format(scenario_id)
+        if s in metafunc.fixturenames:
+            metafunc.parametrize(s, [scenario_id])
+        if m in metafunc.fixturenames:
+            metafunc.parametrize(m, test_data["methods"])
+        if c in metafunc.fixturenames:
+            metafunc.parametrize(c, test_data["cases"])
+
+
+def test_retry_s1_always_idempotent(s1, s1method, s1case):
+    run_retry_stragegy_conformance_test(s1, s1method, s1case)
+
+
+def test_retry_s2_conditionally_idempotent_w_preconditions(s2, s2method, s2case):
+    run_retry_stragegy_conformance_test(s2, s2method, s2case)
+
+
+def run_retry_stragegy_conformance_test(scenario_id, method, case):
     host = os.environ.get(STORAGE_EMULATOR_ENV_VAR)
     if host is None:
         pytest.skip(
@@ -368,84 +396,56 @@ def test_conformance_retry_strategy(test_data):
 
     # Create client to use for setup steps.
     client = storage.Client(client_options={"api_endpoint": host})
-    methods = test_data["methods"]
-    cases = test_data["cases"]
-    expect_success = test_data["expectSuccess"]
-    precondition_provided = test_data["preconditionProvided"]
-    for c in cases:
-        for m in methods:
-            # Extract method name and instructions to create retry test.
-            method_name = m["name"]
-            instructions = c["instructions"]
-            json_resources = m["resources"]
+    scenario = _CONFORMANCE_TESTS[scenario_id - 1]
+    expect_success = scenario["expectSuccess"]
+    precondition_provided = scenario["preconditionProvided"]
+    json_resources = method["resources"]
+    method_name = method["name"]
+    instructions = case["instructions"]
 
-            if method_name not in method_mapping:
-                warnings.warn(
-                    "No tests for operation {}".format(method_name),
-                    UserWarning,
-                    stacklevel=1,
-                )
-                continue
+    if method_name not in method_mapping:
+        pytest.skip("No tests for operation {}".format(method_name),)
 
-            for function in method_mapping[method_name]:
-                # Create the retry test in the emulator to handle instructions.
-                try:
-                    r = _create_retry_test(host, method_name, instructions)
-                    id = r["id"]
-                except Exception as e:
-                    warnings.warn(
-                        "Error creating retry test for {}: {}".format(method_name, e),
-                        UserWarning,
-                        stacklevel=1,
-                    )
-                    continue
+    for function in method_mapping[method_name]:
+        # Create the retry test in the emulator to handle instructions.
+        try:
+            r = _create_retry_test(host, method_name, instructions)
+            id = r["id"]
+        except Exception as e:
+            warnings.warn(
+                "Error creating retry test for {}: {}".format(method_name, e),
+                UserWarning,
+                stacklevel=1,
+            )
+            continue
 
-                # Populate resources.
-                try:
-                    resources = _populate_resources(client, json_resources)
-                except Exception as e:
-                    warnings.warn(
-                        "Error populating resources for {}: {}".format(method_name, e),
-                        UserWarning,
-                        stacklevel=1,
-                    )
-                    continue
+        # Populate resources.
+        try:
+            resources = _populate_resources(client, json_resources)
+        except Exception as e:
+            warnings.warn(
+                "Error populating resources for {}: {}".format(method_name, e),
+                UserWarning,
+                stacklevel=1,
+            )
+            continue
 
-                # Run retry tests on library methods.
-                try:
-                    _run_retry_test(
-                        host, id, function, precondition_provided, **resources
-                    )
-                except Exception as e:
-                    # Should we be catching specific exceptions
-                    print(e)
-                    success_results = False
-                else:
-                    success_results = True
+        # Run retry tests on library methods.
+        try:
+            _run_retry_test(host, id, function, precondition_provided, **resources)
+        except Exception as e:
+            print(e)
+            success_results = False
+        else:
+            success_results = True
 
-                # Assert expected success for each scenario.
-                assert expect_success == success_results
+        # Assert expected success for each scenario.
+        assert expect_success == success_results
 
-                # Verify that all instructions were used up during the test
-                # (indicates that the client sent the correct requests).
-                try:
-                    status_response = _check_retry_test(host, id)
-                    assert status_response["completed"] is True
-                except Exception as e:
-                    warnings.warn(
-                        "Error checking retry test status for {}: {}".format(
-                            method_name, e
-                        ),
-                        UserWarning,
-                        stacklevel=1,
-                    )
+        # Verify that all instructions were used up during the test
+        # (indicates that the client sent the correct requests).
+        status_response = _get_retry_test(host, id)
+        assert status_response["completed"] is True
 
-                # Clean up and close out test in emulator.
-                try:
-                    _delete_retry_test(host, id)
-                except Exception as e:
-                    warnings.warn(
-                        "Error deleting retry test for {}: {}".format(method_name, e),
-                        UserWarning,
-                        stacklevel=1,
-                    )
+        # Clean up and close out test in emulator.
+        _delete_retry_test(host, id)
