@@ -42,6 +42,9 @@ class TestBlobReaderBinary(unittest.TestCase):
         self.assertEqual(reader._chunk_size, 256)
         self.assertEqual(reader._retry, DEFAULT_RETRY)
 
+    def test_attributes_explict(self):
+        blob = mock.Mock()
+        blob.chunk_size = 256
         reader = BlobReader(blob, chunk_size=1024, retry=None)
         self.assertEqual(reader._chunk_size, 1024)
         self.assertIsNone(reader._retry)
@@ -87,6 +90,24 @@ class TestBlobReaderBinary(unittest.TestCase):
         self.assertEqual(blob.download_as_bytes.call_count, 4)
         blob.download_as_bytes.assert_called_with(
             start=28, end=None, checksum=None, retry=DEFAULT_RETRY, **download_kwargs
+        )
+
+        reader.close()
+
+    def test_retry_passed_through(self):
+        blob = mock.Mock()
+
+        def read_from_fake_data(start=0, end=None, **_):
+            return TEST_BINARY_DATA[start:end]
+
+        blob.download_as_bytes = mock.Mock(side_effect=read_from_fake_data)
+        download_kwargs = {"if_metageneration_match": 1}
+        reader = BlobReader(blob, chunk_size=8, retry=None, **download_kwargs)
+
+        # Read and trigger the first download of chunk_size.
+        self.assertEqual(reader.read(1), TEST_BINARY_DATA[0:1])
+        blob.download_as_bytes.assert_called_once_with(
+            start=0, end=8, checksum=None, retry=None, **download_kwargs
         )
 
         reader.close()
@@ -225,6 +246,9 @@ class TestBlobWriterBinary(unittest.TestCase):
         self.assertTrue(writer.writable())
         self.assertEqual(writer._chunk_size, 256 * 1024)
 
+    def test_attributes_explicit(self):
+        blob = mock.Mock()
+        blob.chunk_size = 256 * 1024
         writer = BlobWriter(blob, chunk_size=512 * 1024, retry=DEFAULT_RETRY)
         self.assertEqual(writer._chunk_size, 512 * 1024)
         self.assertEqual(writer._retry, DEFAULT_RETRY)
@@ -398,6 +422,58 @@ class TestBlobWriterBinary(unittest.TestCase):
             chunk_size=chunk_size,
             retry=DEFAULT_RETRY,
             if_metageneration_match=1,
+        )
+        upload.transmit_next_chunk.assert_called_with(transport)
+        self.assertEqual(upload.transmit_next_chunk.call_count, 4)
+
+        # Write another byte, finalize and close.
+        writer.write(TEST_BINARY_DATA[32:33])
+        writer.close()
+        self.assertEqual(upload.transmit_next_chunk.call_count, 5)
+
+    @mock.patch("warnings.warn")
+    def test_forced_default_retry(self, mock_warn):
+        blob = mock.Mock()
+
+        upload = mock.Mock()
+        transport = mock.Mock()
+
+        blob._initiate_resumable_upload.return_value = (upload, transport)
+
+        with mock.patch("google.cloud.storage.fileio.CHUNK_SIZE_MULTIPLE", 1):
+            # Create a writer.
+            # It would be normal to use a context manager here, but not doing so
+            # gives us more control over close() for test purposes.
+            chunk_size = 8  # Note: Real upload requires a multiple of 256KiB.
+            writer = BlobWriter(
+                blob,
+                chunk_size=chunk_size,
+                content_type=PLAIN_CONTENT_TYPE,
+                retry=DEFAULT_RETRY,
+            )
+
+        # The transmit_next_chunk method must actually consume bytes from the
+        # sliding buffer for the flush() feature to work properly.
+        upload.transmit_next_chunk.side_effect = lambda _: writer._buffer.read(
+            chunk_size
+        )
+
+        # Write under chunk_size. This should be buffered and the upload not
+        # initiated.
+        writer.write(TEST_BINARY_DATA[0:4])
+        blob.initiate_resumable_upload.assert_not_called()
+
+        # Write over chunk_size. This should result in upload initialization
+        # and multiple chunks uploaded.
+        writer.write(TEST_BINARY_DATA[4:32])
+        blob._initiate_resumable_upload.assert_called_once_with(
+            blob.bucket.client,
+            writer._buffer,
+            PLAIN_CONTENT_TYPE,
+            None,  # size
+            None,  # num_retries
+            chunk_size=chunk_size,
+            retry=DEFAULT_RETRY,
         )
         upload.transmit_next_chunk.assert_called_with(transport)
         self.assertEqual(upload.transmit_next_chunk.call_count, 4)

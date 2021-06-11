@@ -1260,6 +1260,7 @@ class Client(ClientWithProject):
             extra_params=extra_params,
             page_start=_blobs_page_start,
             timeout=timeout,
+            retry=retry,
         )
         iterator.bucket = bucket
         iterator.prefixes = set()

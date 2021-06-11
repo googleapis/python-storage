@@ -1467,99 +1467,6 @@ class TestClient(unittest.TestCase):
             expect_condition_fail=True,
         )
 
-    def test_list_blobs(self):
-        from google.cloud.storage.bucket import Bucket
-
-        BUCKET_NAME = "bucket-name"
-
-        credentials = _make_credentials()
-        client = self._make_one(project="PROJECT", credentials=credentials)
-        connection = _make_connection({"items": []})
-
-        with mock.patch(
-            "google.cloud.storage.client.Client._connection",
-            new_callable=mock.PropertyMock,
-        ) as client_mock:
-            client_mock.return_value = connection
-
-            bucket_obj = Bucket(client, BUCKET_NAME)
-            iterator = client.list_blobs(bucket_obj)
-            blobs = list(iterator)
-
-            self.assertEqual(blobs, [])
-            connection.api_request.assert_called_once_with(
-                method="GET",
-                path="/b/%s/o" % BUCKET_NAME,
-                query_params={"projection": "noAcl"},
-                timeout=self._get_default_timeout(),
-                retry=DEFAULT_RETRY,
-            )
-
-    def test_list_blobs_w_all_arguments_and_user_project(self):
-        from google.cloud.storage.bucket import Bucket
-
-        BUCKET_NAME = "name"
-        USER_PROJECT = "user-project-123"
-        MAX_RESULTS = 10
-        PAGE_TOKEN = "ABCD"
-        PREFIX = "subfolder"
-        DELIMITER = "/"
-        START_OFFSET = "c"
-        END_OFFSET = "g"
-        INCLUDE_TRAILING_DELIMITER = True
-        VERSIONS = True
-        PROJECTION = "full"
-        FIELDS = "items/contentLanguage,nextPageToken"
-        EXPECTED = {
-            "maxResults": 10,
-            "pageToken": PAGE_TOKEN,
-            "prefix": PREFIX,
-            "delimiter": DELIMITER,
-            "startOffset": START_OFFSET,
-            "endOffset": END_OFFSET,
-            "includeTrailingDelimiter": INCLUDE_TRAILING_DELIMITER,
-            "versions": VERSIONS,
-            "projection": PROJECTION,
-            "fields": FIELDS,
-            "userProject": USER_PROJECT,
-        }
-
-        credentials = _make_credentials()
-        client = self._make_one(project=USER_PROJECT, credentials=credentials)
-        connection = _make_connection({"items": []})
-
-        with mock.patch(
-            "google.cloud.storage.client.Client._connection",
-            new_callable=mock.PropertyMock,
-        ) as client_mock:
-            client_mock.return_value = connection
-
-            bucket = Bucket(client, BUCKET_NAME, user_project=USER_PROJECT)
-            iterator = client.list_blobs(
-                bucket_or_name=bucket,
-                max_results=MAX_RESULTS,
-                page_token=PAGE_TOKEN,
-                prefix=PREFIX,
-                delimiter=DELIMITER,
-                start_offset=START_OFFSET,
-                end_offset=END_OFFSET,
-                include_trailing_delimiter=INCLUDE_TRAILING_DELIMITER,
-                versions=VERSIONS,
-                projection=PROJECTION,
-                fields=FIELDS,
-                timeout=42,
-            )
-            blobs = list(iterator)
-
-            self.assertEqual(blobs, [])
-            connection.api_request.assert_called_once_with(
-                method="GET",
-                path="/b/%s/o" % BUCKET_NAME,
-                query_params=EXPECTED,
-                timeout=42,
-                retry=DEFAULT_RETRY,
-            )
-
     def _download_blob_to_file_helper(
         self, use_chunks, raw_download, expect_condition_fail=False, **extra_kwargs
     ):
@@ -1652,6 +1559,7 @@ class TestClient(unittest.TestCase):
             extra_params=expected_extra_params,
             page_start=expected_page_start,
             timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
         )
 
     def test_list_blobs_w_explicit_w_user_project(self):
@@ -1727,6 +1635,7 @@ class TestClient(unittest.TestCase):
             extra_params=expected_extra_params,
             page_start=expected_page_start,
             timeout=timeout,
+            retry=retry,
         )
 
     def test_list_buckets_wo_project(self):
