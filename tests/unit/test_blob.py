@@ -3786,8 +3786,8 @@ class Test_Blob(unittest.TestCase):
         mock_warn.assert_called_with(
             "if_generation_match: type list is deprecated and supported for backwards-compatability reasons only."
             "Use if_source_generation_match instead to match source objects generations.",
-            PendingDeprecationWarning,
-            stacklevel=1,
+            DeprecationWarning,
+            stacklevel=2,
         )
 
     def test_compose_invalid_generation_match(self):
@@ -3847,10 +3847,11 @@ class Test_Blob(unittest.TestCase):
         )
 
         mock_warn.assert_called_with(
-            "if_metageneration_match matches the given value to the destination object's metageneration."
+            "if_metageneration_match: type list is deprecated and supported for backwards-compatability reasons only."
+            "Note that the metageneration to be matched is that of the destination blob."
             "Please pass in a single value (type long).",
-            PendingDeprecationWarning,
-            stacklevel=1,
+            DeprecationWarning,
+            stacklevel=2,
         )
 
     def test_compose_w_metageneration_match(self):

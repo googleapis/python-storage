@@ -2986,8 +2986,8 @@ class Blob(_PropertyMixin):
             warnings.warn(
                 "if_generation_match: type list is deprecated and supported for backwards-compatability reasons only."
                 "Use if_source_generation_match instead to match source objects generations.",
-                PendingDeprecationWarning,
-                stacklevel=1,
+                DeprecationWarning,
+                stacklevel=2,
             )
 
             if if_source_generation_match is not None:
@@ -3002,10 +3002,11 @@ class Blob(_PropertyMixin):
 
         if isinstance(if_metageneration_match, list):
             warnings.warn(
-                "if_metageneration_match matches the given value to the destination object's metageneration."
+                "if_metageneration_match: type list is deprecated and supported for backwards-compatability reasons only."
+                "Note that the metageneration to be matched is that of the destination blob."
                 "Please pass in a single value (type long).",
-                PendingDeprecationWarning,
-                stacklevel=1,
+                DeprecationWarning,
+                stacklevel=2,
             )
 
             if_metageneration_match = None
