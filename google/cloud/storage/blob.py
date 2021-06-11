@@ -2939,11 +2939,10 @@ class Blob(_PropertyMixin):
             Setting to 0 makes the operation succeed only if there are no live
             versions of the object.
 
-            If a list of long is passed in, makes the operation conditional on whether the
-            current generation of each source blob matches the corresponding generation.
-            The list must match ``sources`` item-to-item.
-            (Deprecated: type(list of long) is supported for backwards-compatability reasons only.
-            Please use if_source_generation_match instead to match source objects generations.)
+            Note: In a previous version, this argument worked identically to the
+            ``if_source_generation_match`` argument. For backwards-compatibility reasons,
+            if a list is passed in, this argument will behave like ``if_source_generation_match``
+            and also issue a DeprecationWarning.
 
         :type if_metageneration_match: long
         :param if_metageneration_match:
@@ -2992,7 +2991,7 @@ class Blob(_PropertyMixin):
 
             if if_source_generation_match is not None:
                 raise ValueError(
-                    "Use if_generation_match to match the generation of the destination object."
+                    "Use if_generation_match to match the generation of the destination object by passing in a generation number, instead of a list."
                     "Use if_source_generation_match to match source objects generations."
                 )
 
