@@ -1100,6 +1100,28 @@ class Blob(_PropertyMixin):
             emitted. Supported values are "md5", "crc32c" and None. The default
             is "md5".
 
+        :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
+        :param retry: (Optional) How to retry the RPC. A None value will disable
+            retries. A google.api_core.retry.Retry value will enable retries,
+            and the object will define retriable response codes and errors and
+            configure backoff and timeout options.
+
+            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a
+            Retry object and activates it only if certain conditions are met.
+            This class exists to provide safe defaults for RPC calls that are
+            not technically safe to retry normally (due to potential data
+            duplication or other side-effects) but become safe to retry if a
+            condition such as if_metageneration_match is set.
+
+            See the retry.py source code and docstrings in this package
+            (google.cloud.storage.retry) for information on retry types and how
+            to configure them.
+
+            Media operations (downloads and uploads) do not support non-default
+            predicates in a Retry object. The default will always be used. Other
+            configuration changes for Retry objects such as delays and deadlines
+            are respected.
+
         :raises: :class:`google.cloud.exceptions.NotFound`
         """
         client = self._require_client(client)
@@ -1197,6 +1219,28 @@ class Blob(_PropertyMixin):
             downloads where chunk_size is set) an INFO-level log will be
             emitted. Supported values are "md5", "crc32c" and None. The default
             is "md5".
+
+        :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
+        :param retry: (Optional) How to retry the RPC. A None value will disable
+            retries. A google.api_core.retry.Retry value will enable retries,
+            and the object will define retriable response codes and errors and
+            configure backoff and timeout options.
+
+            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a
+            Retry object and activates it only if certain conditions are met.
+            This class exists to provide safe defaults for RPC calls that are
+            not technically safe to retry normally (due to potential data
+            duplication or other side-effects) but become safe to retry if a
+            condition such as if_metageneration_match is set.
+
+            See the retry.py source code and docstrings in this package
+            (google.cloud.storage.retry) for information on retry types and how
+            to configure them.
+
+            Media operations (downloads and uploads) do not support non-default
+            predicates in a Retry object. The default will always be used. Other
+            configuration changes for Retry objects such as delays and deadlines
+            are respected.
 
         :raises: :class:`google.cloud.exceptions.NotFound`
         """
@@ -1305,6 +1349,28 @@ class Blob(_PropertyMixin):
             emitted. Supported values are "md5", "crc32c" and None. The default
             is "md5".
 
+        :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
+        :param retry: (Optional) How to retry the RPC. A None value will disable
+            retries. A google.api_core.retry.Retry value will enable retries,
+            and the object will define retriable response codes and errors and
+            configure backoff and timeout options.
+
+            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a
+            Retry object and activates it only if certain conditions are met.
+            This class exists to provide safe defaults for RPC calls that are
+            not technically safe to retry normally (due to potential data
+            duplication or other side-effects) but become safe to retry if a
+            condition such as if_metageneration_match is set.
+
+            See the retry.py source code and docstrings in this package
+            (google.cloud.storage.retry) for information on retry types and how
+            to configure them.
+
+            Media operations (downloads and uploads) do not support non-default
+            predicates in a Retry object. The default will always be used. Other
+            configuration changes for Retry objects such as delays and deadlines
+            are respected.
+
         :rtype: bytes
         :returns: The data stored in this blob.
 
@@ -1393,6 +1459,28 @@ class Blob(_PropertyMixin):
             repeated several times using the same timeout each time.
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
+
+        :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
+        :param retry: (Optional) How to retry the RPC. A None value will disable
+            retries. A google.api_core.retry.Retry value will enable retries,
+            and the object will define retriable response codes and errors and
+            configure backoff and timeout options.
+
+            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a
+            Retry object and activates it only if certain conditions are met.
+            This class exists to provide safe defaults for RPC calls that are
+            not technically safe to retry normally (due to potential data
+            duplication or other side-effects) but become safe to retry if a
+            condition such as if_metageneration_match is set.
+
+            See the retry.py source code and docstrings in this package
+            (google.cloud.storage.retry) for information on retry types and how
+            to configure them.
+
+            Media operations (downloads and uploads) do not support non-default
+            predicates in a Retry object. The default will always be used. Other
+            configuration changes for Retry objects such as delays and deadlines
+            are respected.
 
         :rtype: bytes
         :returns: The data stored in this blob.
@@ -1487,6 +1575,28 @@ class Blob(_PropertyMixin):
             repeated several times using the same timeout each time.
             Can also be passed as a tuple (connect_timeout, read_timeout).
             See :meth:`requests.Session.request` documentation for details.
+
+        :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
+        :param retry: (Optional) How to retry the RPC. A None value will disable
+            retries. A google.api_core.retry.Retry value will enable retries,
+            and the object will define retriable response codes and errors and
+            configure backoff and timeout options.
+
+            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a
+            Retry object and activates it only if certain conditions are met.
+            This class exists to provide safe defaults for RPC calls that are
+            not technically safe to retry normally (due to potential data
+            duplication or other side-effects) but become safe to retry if a
+            condition such as if_metageneration_match is set.
+
+            See the retry.py source code and docstrings in this package
+            (google.cloud.storage.retry) for information on retry types and how
+            to configure them.
+
+            Media operations (downloads and uploads) do not support non-default
+            predicates in a Retry object. The default will always be used. Other
+            configuration changes for Retry objects such as delays and deadlines
+            are respected.
 
         :rtype: text
         :returns: The data stored in this blob, decoded to text.
@@ -1693,6 +1803,21 @@ class Blob(_PropertyMixin):
             manually-set checksum value. Supported values are "md5",
             "crc32c" and None. The default is None.
 
+        :type retry: google.api_core.retry.Retry
+        :param retry: (Optional) How to retry the RPC. A None value will disable
+            retries. A google.api_core.retry.Retry value will enable retries,
+            and the object will configure backoff and timeout options. Custom
+            predicates (customizable error codes) are not supported for media
+            operations such as this one.
+
+            This private method does not accept ConditionalRetryPolicy values
+            because the information necessary to evaluate the policy is instead
+            evaluated in client.download_blob_to_file().
+
+            See the retry.py source code and docstrings in this package
+            (google.cloud.storage.retry) for information on retry types and how
+            to configure them.
+
         :rtype: :class:`~requests.Response`
         :returns: The "200 OK" response object returned after the multipart
                   upload request.
@@ -1874,6 +1999,21 @@ class Blob(_PropertyMixin):
             delete the uploaded object automatically. Supported values
             are "md5", "crc32c" and None. The default is None.
 
+        :type retry: google.api_core.retry.Retry
+        :param retry: (Optional) How to retry the RPC. A None value will disable
+            retries. A google.api_core.retry.Retry value will enable retries,
+            and the object will configure backoff and timeout options. Custom
+            predicates (customizable error codes) are not supported for media
+            operations such as this one.
+
+            This private method does not accept ConditionalRetryPolicy values
+            because the information necessary to evaluate the policy is instead
+            evaluated in client.download_blob_to_file().
+
+            See the retry.py source code and docstrings in this package
+            (google.cloud.storage.retry) for information on retry types and how
+            to configure them.
+
         :rtype: tuple
         :returns:
             Pair of
@@ -2052,6 +2192,21 @@ class Blob(_PropertyMixin):
             delete the uploaded object automatically. Supported values
             are "md5", "crc32c" and None. The default is None.
 
+        :type retry: google.api_core.retry.Retry
+        :param retry: (Optional) How to retry the RPC. A None value will disable
+            retries. A google.api_core.retry.Retry value will enable retries,
+            and the object will configure backoff and timeout options. Custom
+            predicates (customizable error codes) are not supported for media
+            operations such as this one.
+
+            This private method does not accept ConditionalRetryPolicy values
+            because the information necessary to evaluate the policy is instead
+            evaluated in client.download_blob_to_file().
+
+            See the retry.py source code and docstrings in this package
+            (google.cloud.storage.retry) for information on retry types and how
+            to configure them.
+
         :rtype: :class:`~requests.Response`
         :returns: The "200 OK" response object returned after the final chunk
                   is uploaded.
@@ -2183,6 +2338,28 @@ class Blob(_PropertyMixin):
             google.resumable_media.common.DataCorruption on a mismatch and
             attempting to delete the corrupted file. Supported values are
             "md5", "crc32c" and None. The default is None.
+
+        :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
+        :param retry: (Optional) How to retry the RPC. A None value will disable
+            retries. A google.api_core.retry.Retry value will enable retries,
+            and the object will define retriable response codes and errors and
+            configure backoff and timeout options.
+
+            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a
+            Retry object and activates it only if certain conditions are met.
+            This class exists to provide safe defaults for RPC calls that are
+            not technically safe to retry normally (due to potential data
+            duplication or other side-effects) but become safe to retry if a
+            condition such as if_metageneration_match is set.
+
+            See the retry.py source code and docstrings in this package
+            (google.cloud.storage.retry) for information on retry types and how
+            to configure them.
+
+            Media operations (downloads and uploads) do not support non-default
+            predicates in a Retry object. The default will always be used. Other
+            configuration changes for Retry objects such as delays and deadlines
+            are respected.
 
         :rtype: dict
         :returns: The parsed JSON from the "200 OK" response. This will be the
@@ -2370,6 +2547,28 @@ class Blob(_PropertyMixin):
             attempting to delete the corrupted file. Supported values are
             "md5", "crc32c" and None. The default is None.
 
+        :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
+        :param retry: (Optional) How to retry the RPC. A None value will disable
+            retries. A google.api_core.retry.Retry value will enable retries,
+            and the object will define retriable response codes and errors and
+            configure backoff and timeout options.
+
+            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a
+            Retry object and activates it only if certain conditions are met.
+            This class exists to provide safe defaults for RPC calls that are
+            not technically safe to retry normally (due to potential data
+            duplication or other side-effects) but become safe to retry if a
+            condition such as if_metageneration_match is set.
+
+            See the retry.py source code and docstrings in this package
+            (google.cloud.storage.retry) for information on retry types and how
+            to configure them.
+
+            Media operations (downloads and uploads) do not support non-default
+            predicates in a Retry object. The default will always be used. Other
+            configuration changes for Retry objects such as delays and deadlines
+            are respected.
+
         :raises: :class:`~google.cloud.exceptions.GoogleCloudError`
                  if the upload response returns an error status.
 
@@ -2513,6 +2712,28 @@ class Blob(_PropertyMixin):
             google.resumable_media.common.DataCorruption on a mismatch and
             attempting to delete the corrupted file. Supported values are
             "md5", "crc32c" and None. The default is None.
+
+        :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
+        :param retry: (Optional) How to retry the RPC. A None value will disable
+            retries. A google.api_core.retry.Retry value will enable retries,
+            and the object will define retriable response codes and errors and
+            configure backoff and timeout options.
+
+            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a
+            Retry object and activates it only if certain conditions are met.
+            This class exists to provide safe defaults for RPC calls that are
+            not technically safe to retry normally (due to potential data
+            duplication or other side-effects) but become safe to retry if a
+            condition such as if_metageneration_match is set.
+
+            See the retry.py source code and docstrings in this package
+            (google.cloud.storage.retry) for information on retry types and how
+            to configure them.
+
+            Media operations (downloads and uploads) do not support non-default
+            predicates in a Retry object. The default will always be used. Other
+            configuration changes for Retry objects such as delays and deadlines
+            are respected.
         """
         content_type = self._get_content_type(content_type, filename=filename)
 
@@ -2635,6 +2856,28 @@ class Blob(_PropertyMixin):
             google.resumable_media.common.DataCorruption on a mismatch and
             attempting to delete the corrupted file. Supported values are
             "md5", "crc32c" and None. The default is None.
+
+        :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
+        :param retry: (Optional) How to retry the RPC. A None value will disable
+            retries. A google.api_core.retry.Retry value will enable retries,
+            and the object will define retriable response codes and errors and
+            configure backoff and timeout options.
+
+            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a
+            Retry object and activates it only if certain conditions are met.
+            This class exists to provide safe defaults for RPC calls that are
+            not technically safe to retry normally (due to potential data
+            duplication or other side-effects) but become safe to retry if a
+            condition such as if_metageneration_match is set.
+
+            See the retry.py source code and docstrings in this package
+            (google.cloud.storage.retry) for information on retry types and how
+            to configure them.
+
+            Media operations (downloads and uploads) do not support non-default
+            predicates in a Retry object. The default will always be used. Other
+            configuration changes for Retry objects such as delays and deadlines
+            are respected.
         """
         data = _to_bytes(data, encoding="utf-8")
         string_buffer = BytesIO(data)

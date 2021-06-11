@@ -679,6 +679,27 @@ class Client(ClientWithProject):
                 downloads where chunk_size is set) an INFO-level log will be
                 emitted. Supported values are "md5", "crc32c" and None. The default
                 is "md5".
+            retry (google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy)
+                (Optional) How to retry the RPC. A None value will disable
+                retries. A google.api_core.retry.Retry value will enable retries,
+                and the object will define retriable response codes and errors and
+                configure backoff and timeout options.
+
+                A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a
+                Retry object and activates it only if certain conditions are met.
+                This class exists to provide safe defaults for RPC calls that are
+                not technically safe to retry normally (due to potential data
+                duplication or other side-effects) but become safe to retry if a
+                condition such as if_metageneration_match is set.
+
+                See the retry.py source code and docstrings in this package
+                (google.cloud.storage.retry) for information on retry types and how
+                to configure them.
+
+                Media operations (downloads and uploads) do not support non-default
+                predicates in a Retry object. The default will always be used. Other
+                configuration changes for Retry objects such as delays and deadlines
+                are respected.
 
         Examples:
             Download a blob using a blob resource.

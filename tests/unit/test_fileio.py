@@ -407,6 +407,44 @@ class TestBlobWriterBinary(unittest.TestCase):
         writer.close()
         self.assertEqual(upload.transmit_next_chunk.call_count, 5)
 
+    def test_num_retries_and_retry_conflict(self):
+        blob = mock.Mock()
+
+        blob._initiate_resumable_upload.side_effect = ValueError
+
+        with mock.patch("google.cloud.storage.fileio.CHUNK_SIZE_MULTIPLE", 1):
+            # Create a writer.
+            # It would be normal to use a context manager here, but not doing so
+            # gives us more control over close() for test purposes.
+            chunk_size = 8  # Note: Real upload requires a multiple of 256KiB.
+            writer = BlobWriter(
+                blob,
+                chunk_size=chunk_size,
+                content_type=PLAIN_CONTENT_TYPE,
+                num_retries=2,
+                retry=DEFAULT_RETRY,
+            )
+
+        # Write under chunk_size. This should be buffered and the upload not
+        # initiated.
+        writer.write(TEST_BINARY_DATA[0:4])
+        blob.initiate_resumable_upload.assert_not_called()
+
+        # Write over chunk_size. The mock will raise a ValueError, simulating
+        # actual behavior when num_retries and retry are both specified.
+        with self.assertRaises(ValueError):
+            writer.write(TEST_BINARY_DATA[4:32])
+
+        blob._initiate_resumable_upload.assert_called_once_with(
+            blob.bucket.client,
+            writer._buffer,
+            PLAIN_CONTENT_TYPE,
+            None,  # size
+            2,  # num_retries
+            chunk_size=chunk_size,
+            retry=DEFAULT_RETRY,
+        )
+
     @mock.patch("warnings.warn")
     def test_num_retries_only(self, mock_warn):
         blob = mock.Mock()
