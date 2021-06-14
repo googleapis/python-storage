@@ -35,6 +35,7 @@ from google.cloud import storage
 from google.cloud.storage._helpers import _base64_md5hash
 from google.cloud.storage.bucket import LifecycleRuleDelete
 from google.cloud.storage.bucket import LifecycleRuleSetStorageClass
+from google.cloud import _helpers
 from google.cloud import kms
 from google import resumable_media
 import google.auth
@@ -154,6 +155,18 @@ class TestClient(unittest.TestCase):
         email = credentials.service_account_email
 
         before_keys = set(Config.CLIENT.list_hmac_keys())
+
+        now = datetime.datetime.utcnow().replace(tzinfo=_helpers.UTC)
+        yesterday = now - datetime.timedelta(days=1)
+
+        # Delete any HMAC keys older than a day.
+        for before_key in list(before_keys):
+            if before_key.time_created < yesterday:
+                if before_key.state != HMACKeyMetadata.INACTIVE_STATE:
+                    before_key.state = HMACKeyMetadata.INACTIVE_STATE
+                    before_key.update()
+                before_key.delete()
+                before_keys.remove(before_key)
 
         metadata, secret = Config.CLIENT.create_hmac_key(email)
         self.case_hmac_keys_to_delete.append(metadata)
