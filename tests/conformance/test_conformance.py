@@ -44,13 +44,13 @@ _CONF_TEST_SERVICE_ACCOUNT_EMAIL = (
 def list_buckets(client, _preconditions, **_):
     buckets = client.list_buckets()
     for b in buckets:
-        break
+        print(b)
 
 
 def list_blobs(client, _preconditions, bucket, **_):
     blobs = client.list_blobs(bucket.name)
     for b in blobs:
-        break
+        print(b)
 
 
 def get_blob(client, _preconditions, bucket, object):
@@ -90,7 +90,7 @@ def list_notifications(client, _preconditions, bucket, **_):
     bucket = client.get_bucket(bucket.name)
     notifications = bucket.list_notifications()
     for n in notifications:
-        break
+        print(n)
 
 
 def get_notification(client, _preconditions, bucket, notification):
@@ -107,7 +107,7 @@ def delete_notification(client, _preconditions, bucket, notification):
 def list_hmac_keys(client, _preconditions, **_):
     hmac_keys = client.list_hmac_keys()
     for k in hmac_keys:
-        break
+        print(k)
 
 
 def delete_bucket(client, _preconditions, bucket):
@@ -440,12 +440,12 @@ def run_retry_stragegy_conformance_test(scenario_id, method, case):
             success_results = True
 
         # Assert expected success for each scenario.
-        assert expect_success == success_results
+        assert expect_success == success_results, "Scenario{}-{}: expected_success was {}, should be {}".format(scenario_id, function.__name__, success_results, expect_success)
 
         # Verify that all instructions were used up during the test
         # (indicates that the client sent the correct requests).
         status_response = _get_retry_test(host, id)
-        assert status_response["completed"] is True
+        assert status_response["completed"] is True, "Scenario{}-{}: test not completed; unused instructions:{}".format(scenario_id, function.__name__, status_response["instructions"])
 
         # Clean up and close out test in emulator.
         _delete_retry_test(host, id)
