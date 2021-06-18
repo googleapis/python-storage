@@ -12,16 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+import pytest
+import requests
+import tempfile
 import uuid
+import warnings
 
 from google.cloud import storage
 
 from . import _read_local_json
-
-import os
-import pytest
-import requests
-import warnings
 
 
 _CONFORMANCE_TESTS = _read_local_json("retry_strategy_test_data.json")[
@@ -53,9 +53,50 @@ def list_blobs(client, _preconditions, bucket, **_):
         print(b)
 
 
+def bucket_list_blobs(client, _preconditions, bucket, **_):
+    blobs = client.bucket(bucket.name).list_blobs()
+    for b in blobs:
+        print(b)
+
+
 def get_blob(client, _preconditions, bucket, object):
     bucket = client.bucket(bucket.name)
     bucket.get_blob(object.name)
+
+
+def blob_exists(client, _preconditions, bucket, object):
+    blob = client.bucket(bucket.name).blob(object.name)
+    blob.exists()
+
+
+def blob_download_as_bytes(client, _preconditions, bucket, object):
+    blob = client.bucket(bucket.name).blob(object.name)
+    blob.download_as_bytes()
+
+
+def blob_download_as_text(client, _preconditions, bucket, object):
+    blob = client.bucket(bucket.name).blob(object.name)
+    blob.download_as_text()
+
+
+def blob_download_to_filename(client, _preconditions, bucket, object):
+    blob = client.bucket(bucket.name).blob(object.name)
+    with tempfile.NamedTemporaryFile() as temp_f:
+        blob.download_to_filename(temp_f.name)
+
+
+def client_download_to_file(client, _preconditions, object, **_):
+    with tempfile.NamedTemporaryFile() as temp_f:
+        with open(temp_f.name, "wb") as file_obj:
+            client.download_blob_to_file(object, file_obj)
+
+
+def blobreader_read(client, _preconditions, bucket, object):
+    from google.cloud.storage.fileio import BlobReader
+
+    blob = client.bucket(bucket.name).blob(object.name)
+    blob_reader = BlobReader(blob)
+    blob_reader.read()
 
 
 def reload_bucket(client, _preconditions, bucket):
@@ -67,9 +108,23 @@ def get_bucket(client, _preconditions, bucket):
     client.get_bucket(bucket.name)
 
 
+def lookup_bucket(client, _preconditions, bucket):
+    client.lookup_bucket(bucket.name)
+
+
+def bucket_exists(client, _preconditions, bucket):
+    bucket = client.bucket(bucket.name)
+    bucket.exists()
+
+
 def create_bucket(client, _preconditions):
     bucket = client.bucket(uuid.uuid4().hex)
     client.create_bucket(bucket)
+
+
+def bucket_create(client, _preconditions):
+    bucket = client.bucket(uuid.uuid4().hex)
+    bucket.create()
 
 
 def upload_from_string(client, _preconditions, bucket):
@@ -97,9 +152,23 @@ def get_notification(client, _preconditions, bucket, notification):
     client.bucket(bucket.name).get_notification(notification.notification_id)
 
 
+def reload_notification(client, _preconditions, bucket, notification):
+    notification = client.bucket(bucket.name).notification(
+        notification_id=notification.notification_id
+    )
+    notification.reload()
+
+
+def notification_exists(client, _preconditions, bucket, notification):
+    notification = client.bucket(bucket.name).notification(
+        notification_id=notification.notification_id
+    )
+    notification.exists()
+
+
 def delete_notification(client, _preconditions, bucket, notification):
-    notification = client.bucket(bucket.name).get_notification(
-        notification.notification_id
+    notification = client.bucket(bucket.name).notification(
+        notification_id=notification.notification_id
     )
     notification.delete()
 
@@ -110,9 +179,9 @@ def list_hmac_keys(client, _preconditions, **_):
         print(k)
 
 
-def delete_bucket(client, _preconditions, bucket):
+def delete_bucket(client, _preconditions, bucket, **_):
     bucket = client.bucket(bucket.name)
-    bucket.delete()
+    bucket.delete(force=True)
 
 
 def get_iam_policy(client, _preconditions, bucket):
@@ -135,7 +204,7 @@ def make_bucket_public(client, _preconditions, bucket):
     bucket.make_public()
 
 
-def delete_blob(client, _preconditions, bucket, object):
+def bucket_delete_blob(client, _preconditions, bucket, object):
     bucket = client.bucket(bucket.name)
     if _preconditions:
         generation = object.generation
@@ -144,6 +213,27 @@ def delete_blob(client, _preconditions, bucket, object):
         bucket.delete_blob(object.name)
 
 
+def bucket_delete_blobs(client, _preconditions, bucket, object):
+    bucket = client.bucket(bucket.name)
+    blob_2 = bucket.blob(uuid.uuid4().hex)
+    blob_2.upload_from_string("foo")
+    sources = [object, blob_2]
+    source_generations = [object.generation, blob_2.generation]
+    if _preconditions:
+        bucket.delete_blobs(sources, if_generation_match=source_generations)
+    else:
+        bucket.delete_blobs(sources)
+
+
+def blob_delete(client, _preconditions, bucket, object):
+    blob = client.bucket(bucket.name).blob(object.name)
+    if _preconditions:
+        blob.delete(if_generation_match=object.generation)
+    else:
+        blob.delete()
+
+
+# TODO(cathyo@): fix emulator issue and assign metageneration to buckets.insert
 def lock_retention_policy(client, _preconditions, bucket):
     bucket2 = client.bucket(bucket.name)
     bucket2.retention_period = 60
@@ -204,7 +294,12 @@ def rename_blob(client, _preconditions, bucket, object):
     bucket = client.bucket(bucket.name)
     new_name = uuid.uuid4().hex
     if _preconditions:
-        bucket.rename_blob(object, new_name, if_generation_match=0)
+        bucket.rename_blob(
+            object,
+            new_name,
+            if_generation_match=0,
+            if_source_generation_match=object.generation,
+        )
     else:
         bucket.rename_blob(object, new_name)
 
@@ -230,30 +325,52 @@ def compose_blob(client, _preconditions, bucket, object):
         blob.compose(sources)
 
 
+########################################################################################################################################
+### Method Invocation Mapping ##########################################################################################################
+########################################################################################################################################
+
 # Method invocation mapping. Methods to retry. This is a map whose keys are a string describing a standard
 # API call (e.g. storage.objects.get) and values are a list of functions which
 # wrap library methods that implement these calls. There may be multiple values
 # because multiple library methods may use the same call (e.g. get could be a
 # read or just a metadata get).
+
 method_mapping = {
     "storage.buckets.delete": [delete_bucket],  # S1 start
-    "storage.buckets.get": [get_bucket, reload_bucket],
+    "storage.buckets.get": [get_bucket, reload_bucket, lookup_bucket, bucket_exists],
     "storage.buckets.getIamPolicy": [get_iam_policy],
-    "storage.buckets.insert": [create_bucket],
+    "storage.buckets.insert": [create_bucket, bucket_create],
     "storage.buckets.list": [list_buckets],
     "storage.buckets.lockRententionPolicy": [],  # lock_retention_policy
     "storage.buckets.testIamPermission": [get_iam_permissions],
     "storage.notifications.delete": [delete_notification],
-    "storage.notifications.get": [get_notification],
+    "storage.notifications.get": [
+        get_notification,
+        notification_exists,
+        reload_notification,
+    ],
     "storage.notifications.list": [list_notifications],
-    "storage.objects.get": [get_blob],
-    "storage.objects.list": [list_blobs],  # S1 end
+    "storage.objects.get": [
+        get_blob,
+        blob_exists,
+        client_download_to_file,
+        blob_download_to_filename,
+        blob_download_as_bytes,
+        blob_download_as_text,
+        blobreader_read,
+    ],
+    "storage.objects.list": [list_blobs, bucket_list_blobs, delete_bucket],  # S1 end
     "storage.buckets.patch": [patch_bucket],  # S2 start
     "storage.buckets.setIamPolicy": [],
     "storage.buckets.update": [update_bucket],
-    "storage.objects.compose": [],  # compose_blob
+    "storage.objects.compose": [compose_blob],
     "storage.objects.copy": [copy_blob, rename_blob],
-    "storage.objects.delete": [delete_blob],
+    "storage.objects.delete": [
+        bucket_delete_blob,
+        bucket_delete_blobs,
+        delete_bucket,
+        blob_delete,
+    ],  # rename_blob
     "storage.objects.insert": [upload_from_string],
     "storage.objects.patch": [patch_blob],
     "storage.objects.rewrite": [rewrite_blob],
@@ -440,12 +557,20 @@ def run_retry_stragegy_conformance_test(scenario_id, method, case):
             success_results = True
 
         # Assert expected success for each scenario.
-        assert expect_success == success_results, "Scenario{}-{}: expected_success was {}, should be {}".format(scenario_id, function.__name__, success_results, expect_success)
+        assert (
+            expect_success == success_results
+        ), "S{}-{}-{}: expected_success was {}, should be {}".format(
+            scenario_id, method_name, function.__name__, success_results, expect_success
+        )
 
         # Verify that all instructions were used up during the test
         # (indicates that the client sent the correct requests).
         status_response = _get_retry_test(host, id)
-        assert status_response["completed"] is True, "Scenario{}-{}: test not completed; unused instructions:{}".format(scenario_id, function.__name__, status_response["instructions"])
+        assert (
+            status_response["completed"] is True
+        ), "S{}-{}-{}: test not completed; unused instructions:{}".format(
+            scenario_id, method_name, function.__name__, status_response["instructions"]
+        )
 
         # Clean up and close out test in emulator.
         _delete_retry_test(host, id)

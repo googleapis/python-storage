@@ -27,7 +27,8 @@
           {
             "name": "storage.buckets.delete",
             "resources": [
-              "BUCKET"
+              "BUCKET",
+              "OBJECT"
             ]
           },
           {
