@@ -35,7 +35,6 @@ from google.cloud import storage
 from google.cloud.storage._helpers import _base64_md5hash
 from google.cloud.storage.bucket import LifecycleRuleDelete
 from google.cloud.storage.bucket import LifecycleRuleSetStorageClass
-from google.cloud import _helpers
 from google.cloud import kms
 from google import resumable_media
 import google.auth
@@ -112,86 +111,6 @@ def tearDownModule():
     retry = RetryErrors(errors, max_tries=15)
     retry(_empty_bucket)(Config.CLIENT, Config.TEST_BUCKET)
     retry(Config.TEST_BUCKET.delete)(force=True)
-
-
-class TestClient(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        super(TestClient, cls).setUpClass()
-        if (
-            type(Config.CLIENT._credentials)
-            is not google.oauth2.service_account.Credentials
-        ):
-            raise unittest.SkipTest("These tests require a service account credential")
-
-    def setUp(self):
-        self.case_hmac_keys_to_delete = []
-
-    def tearDown(self):
-        from google.cloud.storage.hmac_key import HMACKeyMetadata
-
-        for hmac_key in self.case_hmac_keys_to_delete:
-            if hmac_key.state == HMACKeyMetadata.ACTIVE_STATE:
-                hmac_key.state = HMACKeyMetadata.INACTIVE_STATE
-                hmac_key.update()
-            if hmac_key.state == HMACKeyMetadata.INACTIVE_STATE:
-                retry_429_harder(hmac_key.delete)()
-
-    @staticmethod
-    def _get_before_hmac_keys(client):
-        from google.cloud.storage.hmac_key import HMACKeyMetadata
-
-        before_hmac_keys = set(client.list_hmac_keys())
-
-        now = datetime.datetime.utcnow().replace(tzinfo=_helpers.UTC)
-        yesterday = now - datetime.timedelta(days=1)
-
-        # Delete any HMAC keys older than a day.
-        for hmac_key in list(before_hmac_keys):
-            if hmac_key.time_created < yesterday:
-                if hmac_key.state != HMACKeyMetadata.INACTIVE_STATE:
-                    hmac_key.state = HMACKeyMetadata.INACTIVE_STATE
-                    hmac_key.update()
-                hmac_key.delete()
-                before_hmac_keys.remove(hmac_key)
-
-        return before_hmac_keys
-
-    def test_hmac_key_crud(self):
-        from google.cloud.storage.hmac_key import HMACKeyMetadata
-
-        credentials = Config.CLIENT._credentials
-        email = credentials.service_account_email
-
-        before_hmac_keys = self._get_before_hmac_keys(Config.CLIENT)
-
-        metadata, secret = Config.CLIENT.create_hmac_key(email)
-        self.case_hmac_keys_to_delete.append(metadata)
-
-        self.assertIsInstance(secret, six.text_type)
-        self.assertEqual(len(secret), 40)
-
-        after_hmac_keys = set(Config.CLIENT.list_hmac_keys())
-        self.assertFalse(metadata in before_hmac_keys)
-        self.assertTrue(metadata in after_hmac_keys)
-
-        another = HMACKeyMetadata(Config.CLIENT)
-
-        another._properties["accessId"] = "nonesuch"
-        self.assertFalse(another.exists())
-
-        another._properties["accessId"] = metadata.access_id
-        self.assertTrue(another.exists())
-
-        another.reload()
-
-        self.assertEqual(another._properties, metadata._properties)
-
-        metadata.state = HMACKeyMetadata.INACTIVE_STATE
-        metadata.update()
-
-        metadata.delete()
-        self.case_hmac_keys_to_delete.remove(metadata)
 
 
 class TestStorageBuckets(unittest.TestCase):
