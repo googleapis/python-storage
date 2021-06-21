@@ -14,8 +14,14 @@
 
 import re
 
+import pytest
+
+from  . import _helpers
+
 
 def test_get_service_account_email(storage_client):
+    _helpers.require_service_account(storage_client)
+
     domain = "gs-project-accounts.iam.gserviceaccount.com"
     email = storage_client.get_service_account_email()
 
