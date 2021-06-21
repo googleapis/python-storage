@@ -20,7 +20,6 @@ import gzip
 import hashlib
 import io
 import os
-import re
 import tempfile
 import time
 import unittest
@@ -137,17 +136,6 @@ class TestClient(unittest.TestCase):
                 hmac_key.update()
             if hmac_key.state == HMACKeyMetadata.INACTIVE_STATE:
                 retry_429_harder(hmac_key.delete)()
-
-    def test_get_service_account_email(self):
-        domain = "gs-project-accounts.iam.gserviceaccount.com"
-        email = Config.CLIENT.get_service_account_email()
-
-        new_style = re.compile(r"service-(?P<projnum>[^@]+)@" + domain)
-        old_style = re.compile(r"{}@{}".format(Config.CLIENT.project, domain))
-        patterns = [new_style, old_style]
-        matches = [pattern.match(email) for pattern in patterns]
-
-        self.assertTrue(any(match for match in matches if match is not None))
 
     @staticmethod
     def _get_before_hmac_keys(client):
