@@ -40,7 +40,7 @@ Generation
 
 Each time you upload a new version of a file to a
 :class:`~google.cloud.storage.blob.Blob` ("Object" in the GCS back-end docs),
-the Blob's :attr:`~google.cloud.storage.blob.generation` is increased, and its
+the Blob's :attr:`~google.cloud.storage.blob.generation` is changed, and its
 :attr:`~google.cloud.storage.blob.metageneration` is reset to ``1`` (the first
 metadata version for that generation of the blob).
 
@@ -102,7 +102,7 @@ Using ``if_metageneration_match``
 
 Passing the ``if_metageneration_match`` parameter to a method which retrieves
 a blob or bucket resource
-(e.g., :meth:`Blob.reaload <google.cloud.storage.blob.Blob.reload>`,
+(e.g., :meth:`Blob.reload <google.cloud.storage.blob.Blob.reload>`,
 :meth:`Bucket.reload <google.cloud.storage.bucket.Bucket.reload>`)
 or modifies the blob or bucket (e.g.,
 :meth:`Blob.update <google.cloud.storage.blob.Blob.update>`
@@ -118,7 +118,7 @@ Using ``if_metageneration_not_match``
 
 Passing the ``if_metageneration_not_match`` parameter to a method which
 retrieves a blob or bucket resource
-(e.g., :meth:`Blob.reaload <google.cloud.storage.blob.Blob.reload>`,
+(e.g., :meth:`Blob.reload <google.cloud.storage.blob.Blob.reload>`,
 :meth:`Bucket.reload <google.cloud.storage.bucket.Bucket.reload>`)
 or modifies the blob or bucket (e.g.,
 :meth:`Blob.update <google.cloud.storage.blob.Blob.update>`
