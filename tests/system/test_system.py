@@ -57,6 +57,7 @@ def _bad_copy(bad_request):
     err_msg = bad_request.message
     return err_msg.startswith("No file found in request. (POST") and "copyTo" in err_msg
 
+
 def _no_event_based_hold(blob):
     return not blob.event_based_hold
 
