@@ -29,7 +29,7 @@ initialized to ``1``.  representing the initial version of the blob's metadata.
 The ``metageneration`` attribute is set by the GCS back-end, and is read-only
 in the client library.
 
-WHenever you patch or update the bucket / blob's metadata, its
+Each time you patch or update the bucket's / blob's metadata, its
 ``metageneration`` is incremented.
 
 
