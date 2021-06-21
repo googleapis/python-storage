@@ -120,25 +120,6 @@ class TestStorageBuckets(unittest.TestCase):
             bucket = Config.CLIENT.bucket(bucket_name)
             retry_429_harder(bucket.delete)()
 
-    def test_list_buckets(self):
-        buckets_to_create = [
-            "new" + unique_resource_id(),
-            "newer" + unique_resource_id(),
-            "newest" + unique_resource_id(),
-        ]
-        created_buckets = []
-        for bucket_name in buckets_to_create:
-            bucket = Config.CLIENT.bucket(bucket_name)
-            retry_429_503(bucket.create)()
-            self.case_buckets_to_delete.append(bucket_name)
-
-        # Retrieve the buckets.
-        all_buckets = Config.CLIENT.list_buckets()
-        created_buckets = [
-            bucket for bucket in all_buckets if bucket.name in buckets_to_create
-        ]
-        self.assertEqual(len(created_buckets), len(buckets_to_create))
-
     def test_bucket_update_labels(self):
         bucket_name = "update-labels" + unique_resource_id("-")
         bucket = retry_429_503(Config.CLIENT.create_bucket)(bucket_name)

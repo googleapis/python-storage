@@ -44,3 +44,24 @@ def test_create_bucket_simple(storage_client, buckets_to_delete):
     buckets_to_delete.append(created)
 
     assert created.name == new_bucket_name
+
+
+def test_list_buckets(storage_client, buckets_to_delete):
+    buckets_to_create = [
+        _helpers.unique_name("new"),
+        _helpers.unique_name("newer"),
+        _helpers.unique_name("newest"),
+    ]
+    created_buckets = []
+
+    for bucket_name in buckets_to_create:
+        bucket = _helpers.retry_429_503(storage_client.create_bucket)(bucket_name)
+        buckets_to_delete.append(bucket)
+
+    all_buckets = storage_client.list_buckets()
+
+    created_buckets = [
+        bucket.name for bucket in all_buckets if bucket.name in buckets_to_create
+    ]
+
+    assert sorted(created_buckets) == sorted(buckets_to_create)
