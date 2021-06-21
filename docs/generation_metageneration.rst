@@ -1,8 +1,18 @@
-Conditional Requests Via Generation / Metageneration
-====================================================
+Conditional Requests Via Generation / Metageneration Preconditions
+==================================================================
+
+Preconditions tell Cloud Storage to only perform a request if the
+:ref:`generation <concept-generation>` or
+:ref:`metageneration <concept-metageneration>` number of the affected object
+meets your precondition criteria. These checks of the generation and
+metageneration numbers ensure that the object is in the expected state,
+allowing you to perform safe read-modify-write updates and conditional
+operations on objects
 
 Concepts
 --------
+
+.. _concept-metageneration:
 
 Metageneration
 ::::::::::::::
@@ -21,6 +31,9 @@ in the client library.
 
 WHenever you patch or update the bucket / blob's metadata, its
 ``metageneration`` is incremented.
+
+
+.. _concept-generation:
 
 Generation
 ::::::::::
