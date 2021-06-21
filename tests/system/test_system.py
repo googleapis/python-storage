@@ -122,15 +122,6 @@ class TestStorageBuckets(unittest.TestCase):
             bucket = Config.CLIENT.bucket(bucket_name)
             retry_429_harder(bucket.delete)()
 
-    def test_create_bucket(self):
-        new_bucket_name = "a-new-bucket" + unique_resource_id("-")
-        self.assertRaises(
-            exceptions.NotFound, Config.CLIENT.get_bucket, new_bucket_name
-        )
-        created = retry_429_503(Config.CLIENT.create_bucket)(new_bucket_name)
-        self.case_buckets_to_delete.append(new_bucket_name)
-        self.assertEqual(created.name, new_bucket_name)
-
     def test_bucket_create_w_alt_storage_class(self):
         from google.cloud.storage import constants
 

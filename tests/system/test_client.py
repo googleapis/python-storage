@@ -16,7 +16,8 @@ import re
 
 import pytest
 
-from  . import _helpers
+from google.cloud import exceptions
+from . import _helpers
 
 
 def test_get_service_account_email(storage_client):
@@ -31,3 +32,15 @@ def test_get_service_account_email(storage_client):
     matches = [pattern.match(email) for pattern in patterns]
 
     assert any(match for match in matches if match is not None)
+
+
+def test_create_bucket_simple(storage_client, buckets_to_delete):
+    new_bucket_name = _helpers.unique_name("a-new-bucket")
+
+    with pytest.raises(exceptions.NotFound):
+        storage_client.get_bucket(new_bucket_name)
+
+    created = _helpers.retry_429_503(storage_client.create_bucket)(new_bucket_name)
+    buckets_to_delete.append(created)
+
+    assert created.name == new_bucket_name

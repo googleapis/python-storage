@@ -18,10 +18,33 @@ from google.api_core import exceptions
 from google.oauth2 import service_account
 
 from test_utils.retry import RetryErrors
+from test_utils.system import unique_resource_id
 
 retry_429_harder = RetryErrors(exceptions.TooManyRequests, max_tries=10)
+retry_429_503 = RetryErrors(
+    [exceptions.TooManyRequests, exceptions.ServiceUnavailable], max_tries=10
+)
 
 
 def require_service_account(storage_client):
     if not isinstance(storage_client._credentials, service_account.Credentials):
         pytest.skip("These tests require a service account credential")
+
+
+def unique_name(prefix):
+    return prefix + unique_resource_id("-")
+
+
+def empty_bucket(bucket):
+    for blob in list(bucket.list_blobs(versions=True)):
+        try:
+            blob.delete()
+        except exceptions.NotFound:
+            pass
+
+
+def delete_bucket(bucket):
+    errors = (exceptions.Conflict, exceptions.TooManyRequests)
+    retry = RetryErrors(errors, max_tries=15)
+    retry(empty_bucket)(bucket)
+    retry(bucket.delete)(force=True)

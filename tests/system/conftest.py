@@ -16,6 +16,8 @@ import contextlib
 
 import pytest
 
+from . import _helpers
+
 
 @pytest.fixture(scope="session")
 def storage_client():
@@ -24,3 +26,13 @@ def storage_client():
     client = Client()
     with contextlib.closing(client):
         yield client
+
+
+@pytest.fixture(scope="function")
+def buckets_to_delete():
+    buckets_to_delete = []
+
+    yield buckets_to_delete
+
+    for bucket in buckets_to_delete:
+        _helpers.delete_bucket(bucket)
