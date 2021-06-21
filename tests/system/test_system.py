@@ -33,8 +33,6 @@ from google.cloud import exceptions
 from google.cloud import iam_credentials_v1
 from google.cloud import storage
 from google.cloud.storage._helpers import _base64_md5hash
-from google.cloud.storage.bucket import LifecycleRuleDelete
-from google.cloud.storage.bucket import LifecycleRuleSetStorageClass
 from google.cloud import kms
 from google import resumable_media
 import google.auth
@@ -121,59 +119,6 @@ class TestStorageBuckets(unittest.TestCase):
         for bucket_name in self.case_buckets_to_delete:
             bucket = Config.CLIENT.bucket(bucket_name)
             retry_429_harder(bucket.delete)()
-
-    def test_lifecycle_rules(self):
-        import datetime
-        from google.cloud.storage import constants
-
-        new_bucket_name = "w-lifcycle-rules" + unique_resource_id("-")
-        custom_time_before = datetime.date(2018, 8, 1)
-        noncurrent_before = datetime.date(2018, 8, 1)
-
-        self.assertRaises(
-            exceptions.NotFound, Config.CLIENT.get_bucket, new_bucket_name
-        )
-        bucket = Config.CLIENT.bucket(new_bucket_name)
-        bucket.add_lifecycle_delete_rule(
-            age=42,
-            number_of_newer_versions=3,
-            days_since_custom_time=2,
-            custom_time_before=custom_time_before,
-            days_since_noncurrent_time=2,
-            noncurrent_time_before=noncurrent_before,
-        )
-        bucket.add_lifecycle_set_storage_class_rule(
-            constants.COLDLINE_STORAGE_CLASS,
-            is_live=False,
-            matches_storage_class=[constants.NEARLINE_STORAGE_CLASS],
-        )
-
-        expected_rules = [
-            LifecycleRuleDelete(
-                age=42,
-                number_of_newer_versions=3,
-                days_since_custom_time=2,
-                custom_time_before=custom_time_before,
-                days_since_noncurrent_time=2,
-                noncurrent_time_before=noncurrent_before,
-            ),
-            LifecycleRuleSetStorageClass(
-                constants.COLDLINE_STORAGE_CLASS,
-                is_live=False,
-                matches_storage_class=[constants.NEARLINE_STORAGE_CLASS],
-            ),
-        ]
-
-        retry_429_503(bucket.create)(location="us")
-
-        self.case_buckets_to_delete.append(new_bucket_name)
-        self.assertEqual(bucket.name, new_bucket_name)
-        self.assertEqual(list(bucket.lifecycle_rules), expected_rules)
-
-        bucket.clear_lifecyle_rules()
-        bucket.patch()
-
-        self.assertEqual(list(bucket.lifecycle_rules), [])
 
     def test_list_buckets(self):
         buckets_to_create = [
