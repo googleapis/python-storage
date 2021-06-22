@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import datetime
 import gzip
 import io
 import os
@@ -539,3 +540,67 @@ def test_blob_upload_from_file_resumable_with_generation(
     with pytest.raises(exceptions.PreconditionFailed):
         with open(info["path"], "rb") as file_obj:
             blob.upload_from_file(file_obj, if_metageneration_match=3)
+
+
+def test_blob_upload_from_string_w_owner(
+    shared_bucket, blobs_to_delete, file_data, service_account,
+):
+    blob = shared_bucket.blob("MyBuffer")
+    payload = b"Hello World"
+    blob.upload_from_string(payload)
+    blobs_to_delete.append(blob)
+
+    same_blob = shared_bucket.blob("MyBuffer")
+    same_blob.reload(projection="full")  # Initialize properties.
+    user_email = service_account.service_account_email
+    owner = same_blob.owner
+    assert user_email in owner["entity"]
+
+
+def test_blob_upload_from_string_w_custom_time(
+    shared_bucket, blobs_to_delete, file_data, service_account,
+):
+    blob = shared_bucket.blob("CustomTimeBlob")
+    payload = b"Hello World"
+    current_time = datetime.datetime.now()
+    blob.custom_time = current_time
+    blob.upload_from_string(payload)
+    blobs_to_delete.append(blob)
+
+    same_blob = shared_bucket.blob("CustomTimeBlob")
+    same_blob.reload(projection="full")
+    custom_time = same_blob.custom_time.replace(tzinfo=None)
+    assert custom_time == current_time
+
+
+def test_blob_upload_from_string_w_custom_time_no_micros(
+    shared_bucket, blobs_to_delete, file_data, service_account,
+):
+    # Test that timestamps without microseconds are treated correctly by
+    # custom_time encoding/decoding.
+    blob = shared_bucket.blob("CustomTimeNoMicrosBlob")
+    payload = b"Hello World"
+    time_without_micros = datetime.datetime(2021, 2, 10, 12, 30)
+    blob.custom_time = time_without_micros
+    blob.upload_from_string(payload)
+    blobs_to_delete.append(blob)
+
+    same_blob = shared_bucket.blob(("CustomTimeNoMicrosBlob"))
+    same_blob.reload(projection="full")
+    custom_time = same_blob.custom_time.replace(tzinfo=None)
+    assert custom_time == time_without_micros
+
+
+def test_blob_upload_download_crc32_md5_hash(
+    shared_bucket, blobs_to_delete, file_data, service_account,
+):
+    blob = shared_bucket.blob("MyBuffer")
+    payload = b"Hello World"
+    blob.upload_from_string(payload)
+    blobs_to_delete.append(blob)
+
+    download_blob = shared_bucket.blob("MyBuffer")
+
+    assert download_blob.download_as_string() == payload
+    assert download_blob.crc32c == blob.crc32c
+    assert download_blob.md5_hash == blob.md5_hash

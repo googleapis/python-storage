@@ -144,58 +144,6 @@ class TestStorageWriteFiles(TestStorageFiles):
         ):
             raise unittest.SkipTest("These tests require a service account credential")
 
-    def test_upload_blob_owner(self):
-        blob = self.bucket.blob("MyBuffer")
-        file_contents = b"Hello World"
-        blob.upload_from_string(file_contents)
-        self.case_blobs_to_delete.append(blob)
-
-        same_blob = self.bucket.blob("MyBuffer")
-        same_blob.reload(projection="full")  # Initialize properties.
-        user_email = Config.CLIENT._credentials.service_account_email
-        owner = same_blob.owner
-        self.assertIn(user_email, owner["entity"])
-
-    def test_upload_blob_custom_time(self):
-        blob = self.bucket.blob("CustomTimeBlob")
-        file_contents = b"Hello World"
-        current_time = datetime.datetime.now()
-        blob.custom_time = current_time
-        blob.upload_from_string(file_contents)
-        self.case_blobs_to_delete.append(blob)
-
-        same_blob = self.bucket.blob("CustomTimeBlob")
-        same_blob.reload(projection="full")
-        custom_time = same_blob.custom_time.replace(tzinfo=None)
-        self.assertEqual(custom_time, current_time)
-
-    def test_blob_custom_time_no_micros(self):
-        # Test that timestamps without microseconds are treated correctly by
-        # custom_time encoding/decoding.
-        blob = self.bucket.blob("CustomTimeNoMicrosBlob")
-        file_contents = b"Hello World"
-        time_without_micros = datetime.datetime(2021, 2, 10, 12, 30)
-        blob.custom_time = time_without_micros
-        blob.upload_from_string(file_contents)
-        self.case_blobs_to_delete.append(blob)
-
-        same_blob = self.bucket.blob(("CustomTimeNoMicrosBlob"))
-        same_blob.reload(projection="full")
-        custom_time = same_blob.custom_time.replace(tzinfo=None)
-        self.assertEqual(custom_time, time_without_micros)
-
-    def test_blob_crc32_md5_hash(self):
-        blob = self.bucket.blob("MyBuffer")
-        file_contents = b"Hello World"
-        blob.upload_from_string(file_contents)
-        self.case_blobs_to_delete.append(blob)
-
-        download_blob = self.bucket.blob("MyBuffer")
-
-        self.assertEqual(download_blob.download_as_string(), file_contents)
-        self.assertEqual(download_blob.crc32c, blob.crc32c)
-        self.assertEqual(download_blob.md5_hash, blob.md5_hash)
-
     def test_blobwriter_and_blobreader(self):
         blob = self.bucket.blob("LargeFile")
 
