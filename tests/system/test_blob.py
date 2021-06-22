@@ -584,3 +584,28 @@ def test_blob_upload_download_crc32_md5_hash(
     assert download_blob.download_as_string() == payload
     assert download_blob.crc32c == blob.crc32c
     assert download_blob.md5_hash == blob.md5_hash
+
+
+@pytest.mark.parametrize(
+    "blob_name,payload",
+    [
+        (u"Caf\u00e9", b"Normalization Form C"),
+        (u"Cafe\u0301", b"Normalization Form D"),
+    ],
+)
+def test_blob_w_unicode_names(blob_name, payload, shared_bucket, blobs_to_delete):
+    # Historical note: This test when originally written accessed public
+    # files with Unicode names. These files are no longer available, so it
+    # was rewritten to upload them first.
+
+    # Normalization form C: a single character for e-acute;
+    # URL should end with Cafe%CC%81
+    # Normalization Form D: an ASCII e followed by U+0301 combining
+    # character; URL should end with Caf%C3%A9
+
+    blob = shared_bucket.blob(blob_name)
+    blob.upload_from_string(payload)
+
+    same_blob = shared_bucket.blob(blob_name)
+    assert same_blob.download_as_bytes() == payload
+    assert same_blob.name == blob_name
