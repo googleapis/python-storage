@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import gzip
+import io
 import os
 import tempfile
 
@@ -487,3 +489,24 @@ def test_blob_download_as_text(
 
     stored_contents = blob.download_as_text()
     assert stored_contents == payload
+
+
+def test_blob_upload_w_gzip_encoded_download_raw(
+    shared_bucket, blobs_to_delete, service_account,
+):
+    payload = b"DEADBEEF" * 1000
+    raw_stream = io.BytesIO()
+    with gzip.GzipFile(fileobj=raw_stream, mode="wb") as gzip_stream:
+        gzip_stream.write(payload)
+    zipped = raw_stream.getvalue()
+
+    blob = shared_bucket.blob("test_gzipped.gz")
+    blob.content_encoding = "gzip"
+    blob.upload_from_file(raw_stream, rewind=True)
+    blobs_to_delete.append(blob)
+
+    expanded = blob.download_as_bytes()
+    assert expanded == payload
+
+    raw = blob.download_as_bytes(raw_download=True)
+    assert raw == zipped

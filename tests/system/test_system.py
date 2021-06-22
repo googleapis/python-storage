@@ -16,9 +16,7 @@
 
 import base64
 import datetime
-import gzip
 import hashlib
-import io
 import os
 import tempfile
 import time
@@ -145,23 +143,6 @@ class TestStorageWriteFiles(TestStorageFiles):
             is not google.oauth2.service_account.Credentials
         ):
             raise unittest.SkipTest("These tests require a service account credential")
-
-    def test_upload_gzip_encoded_download_raw(self):
-        payload = b"DEADBEEF" * 1000
-        raw_stream = io.BytesIO()
-        with gzip.GzipFile(fileobj=raw_stream, mode="wb") as gzip_stream:
-            gzip_stream.write(payload)
-        zipped = raw_stream.getvalue()
-
-        blob = self.bucket.blob("test_gzipped.gz")
-        blob.content_encoding = "gzip"
-        blob.upload_from_file(raw_stream, rewind=True)
-
-        expanded = blob.download_as_bytes()
-        self.assertEqual(expanded, payload)
-
-        raw = blob.download_as_bytes(raw_download=True)
-        self.assertEqual(raw, zipped)
 
     def test_resumable_upload_with_generation_match(self):
         blob = self.bucket.blob("LargeFile")
