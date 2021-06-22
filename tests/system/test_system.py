@@ -144,32 +144,6 @@ class TestStorageWriteFiles(TestStorageFiles):
         ):
             raise unittest.SkipTest("These tests require a service account credential")
 
-    def test_resumable_upload_with_generation_match(self):
-        blob = self.bucket.blob("LargeFile")
-
-        # uploading the file
-        file_data = self.FILES["big"]
-        with open(file_data["path"], "rb") as file_obj:
-            blob.upload_from_file(file_obj)
-            self.case_blobs_to_delete.append(blob)
-
-        # reuploading with correct generations numbers
-        with open(file_data["path"], "rb") as file_obj:
-            blob.upload_from_file(
-                file_obj,
-                if_generation_match=blob.generation,
-                if_metageneration_match=blob.metageneration,
-            )
-
-        # reuploading with generations numbers that doesn't match original
-        with self.assertRaises(google.api_core.exceptions.PreconditionFailed):
-            with open(file_data["path"], "rb") as file_obj:
-                blob.upload_from_file(file_obj, if_generation_match=3)
-
-        with self.assertRaises(google.api_core.exceptions.PreconditionFailed):
-            with open(file_data["path"], "rb") as file_obj:
-                blob.upload_from_file(file_obj, if_metageneration_match=3)
-
     def test_upload_blob_owner(self):
         blob = self.bucket.blob("MyBuffer")
         file_contents = b"Hello World"

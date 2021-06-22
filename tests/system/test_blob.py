@@ -510,3 +510,32 @@ def test_blob_upload_w_gzip_encoded_download_raw(
 
     raw = blob.download_as_bytes(raw_download=True)
     assert raw == zipped
+
+
+def test_blob_upload_from_file_resumable_with_generation(
+    shared_bucket, blobs_to_delete, file_data, service_account,
+):
+    blob = shared_bucket.blob("LargeFile")
+
+    # uploading the file
+    info = file_data["big"]
+    with open(info["path"], "rb") as file_obj:
+        blob.upload_from_file(file_obj)
+        blobs_to_delete.append(blob)
+
+    # reuploading with correct generations numbers
+    with open(info["path"], "rb") as file_obj:
+        blob.upload_from_file(
+            file_obj,
+            if_generation_match=blob.generation,
+            if_metageneration_match=blob.metageneration,
+        )
+
+    # reuploading with generations numbers that doesn't match original
+    with pytest.raises(exceptions.PreconditionFailed):
+        with open(info["path"], "rb") as file_obj:
+            blob.upload_from_file(file_obj, if_generation_match=3)
+
+    with pytest.raises(exceptions.PreconditionFailed):
+        with open(info["path"], "rb") as file_obj:
+            blob.upload_from_file(file_obj, if_metageneration_match=3)
