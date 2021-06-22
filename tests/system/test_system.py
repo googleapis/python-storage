@@ -146,21 +146,6 @@ class TestStorageWriteFiles(TestStorageFiles):
         ):
             raise unittest.SkipTest("These tests require a service account credential")
 
-    def test_copy_existing_file(self):
-        filename = self.FILES["logo"]["path"]
-        blob = storage.Blob("CloudLogo", bucket=self.bucket)
-        blob.upload_from_filename(filename)
-        self.case_blobs_to_delete.append(blob)
-
-        new_blob = retry_bad_copy(self.bucket.copy_blob)(
-            blob, self.bucket, "CloudLogoCopy"
-        )
-        self.case_blobs_to_delete.append(new_blob)
-
-        base_contents = blob.download_as_bytes()
-        copied_contents = new_blob.download_as_bytes()
-        self.assertEqual(base_contents, copied_contents)
-
     def test_download_blob_as_text(self):
         blob = self.bucket.blob("MyBuffer")
         file_contents = "Hello World"

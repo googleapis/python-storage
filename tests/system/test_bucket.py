@@ -247,6 +247,28 @@ def test_bucket_acls_iam_w_user_project(
     with_user_project.set_iam_policy(policy)
 
 
+def test_bucket_copy_blob(
+    storage_client, buckets_to_delete, blobs_to_delete, user_project,
+):
+    payload = b"DEADBEEF"
+    new_bucket_name = _helpers.unique_name("copy-blob")
+    created = _helpers.retry_429_503(storage_client.create_bucket)(new_bucket_name)
+    buckets_to_delete.append(created)
+    assert created.name == new_bucket_name
+
+    blob = created.blob("CloudLogo")
+    blob.upload_from_string(payload)
+    blobs_to_delete.append(blob)
+
+    new_blob = _helpers.retry_bad_copy(created.copy_blob)(
+        blob, created, "CloudLogoCopy"
+    )
+    blobs_to_delete.append(new_blob)
+
+    copied_contents = new_blob.download_as_bytes()
+    assert copied_contents == payload
+
+
 def test_bucket_copy_blob_w_user_project(
     storage_client, buckets_to_delete, blobs_to_delete, user_project,
 ):
