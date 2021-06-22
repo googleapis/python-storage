@@ -119,36 +119,6 @@ class TestStorageBuckets(unittest.TestCase):
             bucket = Config.CLIENT.bucket(bucket_name)
             retry_429_harder(bucket.delete)()
 
-    def test_copy_file_with_generation_match(self):
-        new_bucket_name = "generation-match" + unique_resource_id("-")
-        created = retry_429_503(Config.CLIENT.create_bucket)(
-            new_bucket_name, requester_pays=True
-        )
-        self.case_buckets_to_delete.append(new_bucket_name)
-        self.assertEqual(created.name, new_bucket_name)
-
-        to_delete = []
-        blob = storage.Blob("simple", bucket=created)
-        blob.upload_from_string(b"DEADBEEF")
-        to_delete.append(blob)
-        try:
-            dest_bucket = Config.CLIENT.bucket(new_bucket_name)
-
-            new_blob = dest_bucket.copy_blob(
-                blob,
-                dest_bucket,
-                "simple-copy",
-                if_source_generation_match=blob.generation,
-            )
-            to_delete.append(new_blob)
-
-            base_contents = blob.download_as_bytes()
-            copied_contents = new_blob.download_as_bytes()
-            self.assertEqual(base_contents, copied_contents)
-        finally:
-            for blob in to_delete:
-                retry_429_harder(blob.delete)()
-
     def test_copy_file_with_metageneration_match(self):
         new_bucket_name = "generation-match" + unique_resource_id("-")
         created = retry_429_503(Config.CLIENT.create_bucket)(

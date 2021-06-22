@@ -278,3 +278,28 @@ def test_bucket_copy_blob_with_user_project(
     blobs_to_delete.append(new_blob)
 
     assert new_blob.download_as_bytes() == payload
+
+
+def test_bucket_copy_blob_w_generation_match(
+    storage_client, buckets_to_delete, blobs_to_delete,
+):
+    payload = b"DEADBEEF"
+    new_bucket_name = _helpers.unique_name("generation-match")
+    created = _helpers.retry_429_503(storage_client.create_bucket)(
+        new_bucket_name, requester_pays=True
+    )
+    buckets_to_delete.append(created)
+    assert created.name == new_bucket_name
+
+    blob = created.blob("simple")
+    blob.upload_from_string(payload)
+    blobs_to_delete.append(blob)
+
+    dest_bucket = storage_client.bucket(new_bucket_name)
+
+    new_blob = dest_bucket.copy_blob(
+        blob, dest_bucket, "simple-copy", if_source_generation_match=blob.generation,
+    )
+    blobs_to_delete.append(new_blob)
+
+    assert new_blob.download_as_bytes() == payload
