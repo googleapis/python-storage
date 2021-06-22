@@ -605,6 +605,7 @@ def test_blob_w_unicode_names(blob_name, payload, shared_bucket, blobs_to_delete
 
     blob = shared_bucket.blob(blob_name)
     blob.upload_from_string(payload)
+    blobs_to_delete.append(blob)
 
     same_blob = shared_bucket.blob(blob_name)
     assert same_blob.download_as_bytes() == payload

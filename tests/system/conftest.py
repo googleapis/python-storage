@@ -33,6 +33,8 @@ _file_data = {
     for key, file_name in _filenames
 }
 
+_listable_filenames = ["CloudLogo1", "CloudLogo2", "CloudLogo3", "CloudLogo4"]
+
 
 @pytest.fixture(scope="session")
 def storage_client():
@@ -57,6 +59,35 @@ def shared_bucket(storage_client, shared_bucket_name):
     yield bucket
 
     _helpers.delete_bucket(bucket)
+
+
+@pytest.fixture(scope="session")
+def listable_bucket_name():
+    return _helpers.unique_name("gcp-systest-listable")
+
+
+@pytest.fixture(scope="session")
+def listable_bucket(storage_client, listable_bucket_name, file_data):
+    bucket = storage_client.bucket(listable_bucket_name)
+    _helpers.retry_429_503(bucket.create)()
+
+    info = file_data["logo"]
+    source_blob = bucket.blob(_listable_filenames[0])
+    source_blob.upload_from_filename(info["path"])
+
+    for filename in _listable_filenames[1:]:
+        _helpers.retry_bad_copy(bucket.copy_blob)(
+            source_blob, bucket, filename,
+        )
+
+    yield bucket
+
+    _helpers.delete_bucket(bucket)
+
+
+@pytest.fixture(scope="session")
+def listable_filenames():
+    return _listable_filenames
 
 
 @pytest.fixture(scope="session")

@@ -15,8 +15,10 @@
 import datetime
 
 import pytest
+import six
 
 from google.api_core import exceptions
+from test_utils.retry import RetryErrors
 from . import _helpers
 
 
@@ -375,3 +377,73 @@ def test_bucket_get_blob_with_user_project(
 
     found = with_user_project.get_blob(blob_name)
     assert found.download_as_bytes() == payload
+
+
+@RetryErrors(AssertionError)
+def test_bucket_list_blobs(listable_bucket, listable_filenames):
+    all_blobs = list(listable_bucket.list_blobs())
+    assert sorted(blob.name for blob in all_blobs) == sorted(listable_filenames)
+
+
+@RetryErrors(AssertionError)
+def test_bucket_list_blobs_w_user_project(
+    storage_client, listable_bucket, listable_filenames, user_project,
+):
+    with_user_project = storage_client.bucket(
+        listable_bucket.name, user_project=user_project
+    )
+    all_blobs = list(with_user_project.list_blobs())
+    assert sorted(blob.name for blob in all_blobs) == sorted(listable_filenames)
+
+
+@RetryErrors(AssertionError)
+def test_bucket_list_blobs_paginated(listable_bucket, listable_filenames):
+    truncation_size = 1
+    count = len(listable_filenames) - truncation_size
+    iterator = listable_bucket.list_blobs(max_results=count)
+    page_iter = iterator.pages
+
+    page1 = six.next(page_iter)
+    blobs = list(page1)
+    assert len(blobs) == count
+    assert iterator.next_page_token is not None
+    # Technically the iterator is exhausted.
+    assert iterator.num_results == iterator.max_results
+    # But we modify the iterator to continue paging after
+    # artificially stopping after ``count`` items.
+    iterator.max_results = None
+
+    page2 = six.next(page_iter)
+    last_blobs = list(page2)
+    assert len(last_blobs) == truncation_size
+
+
+@RetryErrors(AssertionError)
+def test_bucket_list_blobs_paginated_w_offset(listable_bucket, listable_filenames):
+    truncation_size = 1
+    inclusive_start_offset = listable_filenames[1]
+    exclusive_end_offset = listable_filenames[-1]
+    desired_files = listable_filenames[1:-1]
+    count = len(desired_files) - truncation_size
+    iterator = listable_bucket.list_blobs(
+        max_results=count,
+        start_offset=inclusive_start_offset,
+        end_offset=exclusive_end_offset,
+    )
+    page_iter = iterator.pages
+
+    page1 = six.next(page_iter)
+    blobs = list(page1)
+    assert len(blobs) == count
+    assert blobs[0].name == desired_files[0]
+    assert iterator.next_page_token is not None
+    # Technically the iterator is exhausted.
+    assert iterator.num_results == iterator.max_results
+    # But we modify the iterator to continue paging after
+    # artificially stopping after ``count`` items.
+    iterator.max_results = None
+
+    page2 = six.next(page_iter)
+    last_blobs = list(page2)
+    assert len(last_blobs) == truncation_size
+    assert last_blobs[-1].name == desired_files[-1]
