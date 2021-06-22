@@ -447,3 +447,87 @@ def test_bucket_list_blobs_paginated_w_offset(listable_bucket, listable_filename
     last_blobs = list(page2)
     assert len(last_blobs) == truncation_size
     assert last_blobs[-1].name == desired_files[-1]
+
+
+@RetryErrors(AssertionError)
+def test_blob_exists_hierarchy(hierarchy_bucket, hierarchy_filenames):
+    for filename in hierarchy_filenames:
+        blob = hierarchy_bucket.blob(filename)
+        assert blob.exists()
+
+
+@RetryErrors(AssertionError)
+def test_list_blobs_hierarchy_root_level(hierarchy_bucket, hierarchy_filenames):
+    expected_names = ["file01.txt"]
+    expected_prefixes = set(["parent/"])
+
+    iterator = hierarchy_bucket.list_blobs(delimiter="/")
+    page = six.next(iterator.pages)
+    blobs = list(page)
+
+    assert [blob.name for blob in blobs] == expected_names
+    assert iterator.next_page_token is None
+    assert iterator.prefixes == expected_prefixes
+
+
+@RetryErrors(AssertionError)
+def test_list_blobs_hierarchy_first_level(hierarchy_bucket, hierarchy_filenames):
+    expected_names = ["parent/", "parent/file11.txt"]
+    expected_prefixes = set(["parent/child/"])
+
+    iterator = hierarchy_bucket.list_blobs(delimiter="/", prefix="parent/")
+    page = six.next(iterator.pages)
+    blobs = list(page)
+
+    assert [blob.name for blob in blobs] == expected_names
+    assert iterator.next_page_token is None
+    assert iterator.prefixes == expected_prefixes
+
+
+@RetryErrors(AssertionError)
+def test_list_blobs_hierarchy_second_level(hierarchy_bucket, hierarchy_filenames):
+    expected_names = ["parent/child/file21.txt", "parent/child/file22.txt"]
+    expected_prefixes = set(["parent/child/grand/", "parent/child/other/"])
+
+    iterator = hierarchy_bucket.list_blobs(delimiter="/", prefix="parent/child/")
+    page = six.next(iterator.pages)
+    blobs = list(page)
+    assert [blob.name for blob in blobs] == expected_names
+    assert iterator.next_page_token is None
+    assert iterator.prefixes == expected_prefixes
+
+
+@RetryErrors(AssertionError)
+def test_list_blobs_hierarchy_third_level(hierarchy_bucket, hierarchy_filenames):
+    # Pseudo-hierarchy can be arbitrarily deep, subject to the limit
+    # of 1024 characters in the UTF-8 encoded name:
+    # https://cloud.google.com/storage/docs/bucketnaming#objectnames
+    # Exercise a layer deeper to illustrate this.
+    expected_names = ["parent/child/grand/file31.txt"]
+    expected_prefixes = set()
+
+    iterator = hierarchy_bucket.list_blobs(delimiter="/", prefix="parent/child/grand/")
+    page = six.next(iterator.pages)
+    blobs = list(page)
+
+    assert [blob.name for blob in blobs] == expected_names
+    assert iterator.next_page_token is None
+    assert iterator.prefixes == expected_prefixes
+
+
+@RetryErrors(AssertionError)
+def test_list_blobs_hierarchy_w_include_trailing_delimiter(
+    hierarchy_bucket, hierarchy_filenames,
+):
+    expected_names = ["file01.txt", "parent/"]
+    expected_prefixes = set(["parent/"])
+
+    iterator = hierarchy_bucket.list_blobs(
+        delimiter="/", include_trailing_delimiter=True
+    )
+    page = six.next(iterator.pages)
+    blobs = list(page)
+
+    assert [blob.name for blob in blobs] == expected_names
+    assert iterator.next_page_token is None
+    assert iterator.prefixes == expected_prefixes

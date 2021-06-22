@@ -23,7 +23,6 @@ import time
 import unittest
 
 import requests
-import six
 
 from google.cloud import exceptions
 from google.cloud import iam_credentials_v1
@@ -130,110 +129,6 @@ class TestStorageFiles(unittest.TestCase):
         retry = RetryErrors(errors, max_tries=6)
         for blob in self.case_blobs_to_delete:
             retry(blob.delete)()
-
-
-class TestStoragePseudoHierarchy(TestStorageFiles):
-
-    FILENAMES = (
-        "file01.txt",
-        "parent/",
-        "parent/file11.txt",
-        "parent/child/file21.txt",
-        "parent/child/file22.txt",
-        "parent/child/grand/file31.txt",
-        "parent/child/other/file32.txt",
-    )
-
-    @classmethod
-    def setUpClass(cls):
-        super(TestStoragePseudoHierarchy, cls).setUpClass()
-        # Make sure bucket empty before beginning.
-        _empty_bucket(Config.CLIENT, cls.bucket)
-
-        cls.suite_blobs_to_delete = []
-        simple_path = cls.FILES["simple"]["path"]
-        for filename in cls.FILENAMES:
-            blob = storage.Blob(filename, bucket=cls.bucket)
-            blob.upload_from_filename(simple_path)
-            cls.suite_blobs_to_delete.append(blob)
-
-    @classmethod
-    def tearDownClass(cls):
-        errors = (exceptions.TooManyRequests, exceptions.ServiceUnavailable)
-        retry = RetryErrors(errors, max_tries=6)
-        for blob in cls.suite_blobs_to_delete:
-            retry(blob.delete)()
-
-    @RetryErrors(unittest.TestCase.failureException)
-    def test_blob_get_w_delimiter(self):
-        for filename in self.FILENAMES:
-            blob = self.bucket.blob(filename)
-            self.assertTrue(blob.exists(), filename)
-
-    @RetryErrors(unittest.TestCase.failureException)
-    def test_root_level_w_delimiter(self):
-        iterator = Config.CLIENT.list_blobs(self.bucket, delimiter="/")
-        page = six.next(iterator.pages)
-        blobs = list(page)
-        self.assertEqual([blob.name for blob in blobs], ["file01.txt"])
-        self.assertIsNone(iterator.next_page_token)
-        self.assertEqual(iterator.prefixes, set(["parent/"]))
-
-    @RetryErrors(unittest.TestCase.failureException)
-    def test_first_level(self):
-        iterator = Config.CLIENT.list_blobs(
-            self.bucket, delimiter="/", prefix="parent/"
-        )
-        page = six.next(iterator.pages)
-        blobs = list(page)
-        self.assertEqual(
-            [blob.name for blob in blobs], ["parent/", "parent/file11.txt"]
-        )
-        self.assertIsNone(iterator.next_page_token)
-        self.assertEqual(iterator.prefixes, set(["parent/child/"]))
-
-    @RetryErrors(unittest.TestCase.failureException)
-    def test_second_level(self):
-        expected_names = ["parent/child/file21.txt", "parent/child/file22.txt"]
-
-        iterator = Config.CLIENT.list_blobs(
-            self.bucket, delimiter="/", prefix="parent/child/"
-        )
-        page = six.next(iterator.pages)
-        blobs = list(page)
-        self.assertEqual([blob.name for blob in blobs], expected_names)
-        self.assertIsNone(iterator.next_page_token)
-        self.assertEqual(
-            iterator.prefixes, set(["parent/child/grand/", "parent/child/other/"])
-        )
-
-    @RetryErrors(unittest.TestCase.failureException)
-    def test_third_level(self):
-        # Pseudo-hierarchy can be arbitrarily deep, subject to the limit
-        # of 1024 characters in the UTF-8 encoded name:
-        # https://cloud.google.com/storage/docs/bucketnaming#objectnames
-        # Exercise a layer deeper to illustrate this.
-        iterator = Config.CLIENT.list_blobs(
-            self.bucket, delimiter="/", prefix="parent/child/grand/"
-        )
-        page = six.next(iterator.pages)
-        blobs = list(page)
-        self.assertEqual(
-            [blob.name for blob in blobs], ["parent/child/grand/file31.txt"]
-        )
-        self.assertIsNone(iterator.next_page_token)
-        self.assertEqual(iterator.prefixes, set())
-
-    @RetryErrors(unittest.TestCase.failureException)
-    def test_include_trailing_delimiter(self):
-        iterator = Config.CLIENT.list_blobs(
-            self.bucket, delimiter="/", include_trailing_delimiter=True
-        )
-        page = six.next(iterator.pages)
-        blobs = list(page)
-        self.assertEqual([blob.name for blob in blobs], ["file01.txt", "parent/"])
-        self.assertIsNone(iterator.next_page_token)
-        self.assertEqual(iterator.prefixes, set(["parent/"]))
 
 
 class TestStorageSignURLs(unittest.TestCase):

@@ -34,6 +34,15 @@ _file_data = {
 }
 
 _listable_filenames = ["CloudLogo1", "CloudLogo2", "CloudLogo3", "CloudLogo4"]
+_hierarchy_filenames = [
+    "file01.txt",
+    "parent/",
+    "parent/file11.txt",
+    "parent/child/file21.txt",
+    "parent/child/file22.txt",
+    "parent/child/grand/file31.txt",
+    "parent/child/other/file32.txt",
+]
 
 
 @pytest.fixture(scope="session")
@@ -88,6 +97,31 @@ def listable_bucket(storage_client, listable_bucket_name, file_data):
 @pytest.fixture(scope="session")
 def listable_filenames():
     return _listable_filenames
+
+
+@pytest.fixture(scope="session")
+def hierarchy_bucket_name():
+    return _helpers.unique_name("gcp-systest-hierarchy")
+
+
+@pytest.fixture(scope="session")
+def hierarchy_bucket(storage_client, hierarchy_bucket_name, file_data):
+    bucket = storage_client.bucket(hierarchy_bucket_name)
+    _helpers.retry_429_503(bucket.create)()
+
+    simple_path = _file_data["simple"]["path"]
+    for filename in _hierarchy_filenames:
+        blob = bucket.blob(filename)
+        blob.upload_from_filename(simple_path)
+
+    yield bucket
+
+    _helpers.delete_bucket(bucket)
+
+
+@pytest.fixture(scope="session")
+def hierarchy_filenames():
+    return _hierarchy_filenames
 
 
 @pytest.fixture(scope="session")
