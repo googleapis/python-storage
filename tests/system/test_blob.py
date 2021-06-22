@@ -165,3 +165,136 @@ def test_small_file_write_from_filename_with_failed_checksum(
             blob.upload_from_filename(info["path"], checksum="crc32c")
 
     assert not blob.exists()
+
+
+def test_blob_crud_w_user_project(
+    storage_client,
+    shared_bucket,
+    blobs_to_delete,
+    file_data,
+    service_account,
+    user_project,
+):
+    gen1_payload = b"gen1"
+    with_user_project = storage_client.bucket(
+        shared_bucket.name, user_project=user_project
+    )
+    blob = with_user_project.blob("SmallFile")
+
+    info = file_data["simple"]
+    with open(info["path"], mode="rb") as to_read:
+        gen0_payload = to_read.read()
+
+    # Exercise 'objects.insert' w/ userProject.
+    blob.upload_from_filename(info["path"])
+    gen0 = blob.generation
+
+    # Upload a second generation of the blob
+    blob.upload_from_string(gen1_payload)
+    gen1 = blob.generation
+
+    blob0 = with_user_project.blob("SmallFile", generation=gen0)
+    blob1 = with_user_project.blob("SmallFile", generation=gen1)
+
+    # Exercise 'objects.get' w/ generation
+    assert with_user_project.get_blob(blob.name).generation == gen1
+    assert with_user_project.get_blob(blob.name, generation=gen0).generation == gen0
+
+    try:
+        # Exercise 'objects.get' (metadata) w/ userProject.
+        assert blob.exists()
+        blob.reload()
+
+        # Exercise 'objects.get' (media) w/ userProject.
+        assert blob0.download_as_bytes() == gen0_payload
+        assert blob1.download_as_bytes() == gen1_payload
+
+        # Exercise 'objects.patch' w/ userProject.
+        blob0.content_language = "en"
+        blob0.patch()
+        assert blob0.content_language == "en"
+        assert blob1.content_language is None
+
+        # Exercise 'objects.update' w/ userProject.
+        metadata = {"foo": "Foo", "bar": "Bar"}
+        blob0.metadata = metadata
+        blob0.update()
+        assert blob0.metadata == metadata
+        assert blob1.metadata is None
+
+    finally:
+        # Exercise 'objects.delete' (metadata) w/ userProject.
+        blobs = storage_client.list_blobs(
+            with_user_project, prefix=blob.name, versions=True
+        )
+        assert [each.generation for each in blobs] == [gen0, gen1]
+
+        blob0.delete()
+        blobs = storage_client.list_blobs(
+            with_user_project, prefix=blob.name, versions=True
+        )
+        assert [each.generation for each in blobs] == [gen1]
+
+        blob1.delete()
+
+
+def test_blob_crud_w_generation_match(
+    shared_bucket, blobs_to_delete, file_data, service_account,
+):
+    wrong_generation_number = 6
+    wrong_metageneration_number = 9
+    gen1_payload = b"gen1"
+
+    blob = shared_bucket.blob("SmallFile")
+
+    info = file_data["simple"]
+    with open(info["path"], mode="rb") as to_read:
+        gen0_payload = to_read.read()
+
+    blob.upload_from_filename(info["path"])
+    gen0 = blob.generation
+
+    # Upload a second generation of the blob
+    blob.upload_from_string(gen1_payload)
+    gen1 = blob.generation
+
+    blob0 = shared_bucket.blob("SmallFile", generation=gen0)
+    blob1 = shared_bucket.blob("SmallFile", generation=gen1)
+
+    try:
+        # Exercise 'objects.get' (metadata) w/ generation match.
+        with pytest.raises(exceptions.PreconditionFailed):
+            blob.exists(if_generation_match=wrong_generation_number)
+
+        assert blob.exists(if_generation_match=gen1)
+
+        with pytest.raises(exceptions.PreconditionFailed):
+            blob.reload(if_metageneration_match=wrong_metageneration_number)
+
+        blob.reload(if_generation_match=gen1)
+
+        # Exercise 'objects.get' (media) w/ generation match.
+        assert blob0.download_as_bytes(if_generation_match=gen0) == gen0_payload
+        assert blob1.download_as_bytes(if_generation_not_match=gen0) == gen1_payload
+
+        # Exercise 'objects.patch' w/ generation match.
+        blob0.content_language = "en"
+        blob0.patch(if_generation_match=gen0)
+
+        assert blob0.content_language == "en"
+        assert blob1.content_language is None
+
+        # Exercise 'objects.update' w/ generation match.
+        metadata = {"foo": "Foo", "bar": "Bar"}
+        blob0.metadata = metadata
+        blob0.update(if_generation_match=gen0)
+
+        assert blob0.metadata == metadata
+        assert blob1.metadata is None
+    finally:
+        # Exercise 'objects.delete' (metadata) w/ generation match.
+        with pytest.raises(exceptions.PreconditionFailed):
+            blob0.delete(if_metageneration_match=wrong_metageneration_number)
+
+        blob0.delete(if_generation_match=gen0)
+        blob1.delete(if_metageneration_not_match=wrong_metageneration_number)
