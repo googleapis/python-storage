@@ -17,6 +17,7 @@ import gzip
 import io
 import os
 import tempfile
+import warnings
 
 import pytest
 import six
@@ -25,6 +26,7 @@ import mock
 from google import resumable_media
 from google.api_core import exceptions
 from google.cloud.storage._helpers import _base64_md5hash
+from . import _helpers
 
 encryption_key = "b23ff11bba187db8c37077e6af3b25b8"
 
@@ -610,3 +612,160 @@ def test_blob_w_unicode_names(blob_name, payload, shared_bucket, blobs_to_delete
     same_blob = shared_bucket.blob(blob_name)
     assert same_blob.download_as_bytes() == payload
     assert same_blob.name == blob_name
+
+
+def test_blob_compose_new_blob(shared_bucket, blobs_to_delete):
+    payload_1 = b"AAA\n"
+    source_1 = shared_bucket.blob("source-1")
+    source_1.upload_from_string(payload_1)
+    blobs_to_delete.append(source_1)
+
+    payload_2 = b"BBB\n"
+    source_2 = shared_bucket.blob("source-2")
+    source_2.upload_from_string(payload_2)
+    blobs_to_delete.append(source_2)
+
+    destination = shared_bucket.blob("destination")
+    destination.content_type = "text/plain"
+    destination.compose([source_1, source_2])
+    blobs_to_delete.append(destination)
+
+    assert destination.download_as_bytes() == payload_1 + payload_2
+
+
+def test_blob_compose_new_blob_wo_content_type(shared_bucket, blobs_to_delete):
+    payload_1 = b"AAA\n"
+    source_1 = shared_bucket.blob("source-1")
+    source_1.upload_from_string(payload_1)
+    blobs_to_delete.append(source_1)
+
+    payload_2 = b"BBB\n"
+    source_2 = shared_bucket.blob("source-2")
+    source_2.upload_from_string(payload_2)
+    blobs_to_delete.append(source_2)
+
+    destination = shared_bucket.blob("destination")
+
+    destination.compose([source_1, source_2])
+    blobs_to_delete.append(destination)
+
+    assert destination.content_type is None
+    assert destination.download_as_bytes() == payload_1 + payload_2
+
+
+def test_blob_compose_replace_existing_blob(shared_bucket, blobs_to_delete):
+    payload_before = b"AAA\n"
+    original = shared_bucket.blob("original")
+    original.content_type = "text/plain"
+    original.upload_from_string(payload_before)
+    blobs_to_delete.append(original)
+
+    payload_to_append = b"BBB\n"
+    to_append = shared_bucket.blob("to_append")
+    to_append.upload_from_string(payload_to_append)
+    blobs_to_delete.append(to_append)
+
+    original.compose([original, to_append])
+
+    assert original.download_as_bytes() == payload_before + payload_to_append
+
+
+def test_blob_compose_w_generation_match_list(shared_bucket, blobs_to_delete):
+    payload_before = b"AAA\n"
+    original = shared_bucket.blob("original")
+    original.content_type = "text/plain"
+    original.upload_from_string(payload_before)
+    blobs_to_delete.append(original)
+
+    payload_to_append = b"BBB\n"
+    to_append = shared_bucket.blob("to_append")
+    to_append.upload_from_string(payload_to_append)
+    blobs_to_delete.append(to_append)
+
+    with warnings.catch_warnings(record=True) as log:
+        with pytest.raises(exceptions.PreconditionFailed):
+            original.compose(
+                [original, to_append],
+                if_generation_match=[6, 7],
+                if_metageneration_match=[8, 9],
+            )
+    assert len(log) == 2
+
+    with warnings.catch_warnings(record=True) as log:
+        original.compose(
+            [original, to_append],
+            if_generation_match=[original.generation, to_append.generation],
+            if_metageneration_match=[original.metageneration, to_append.metageneration],
+        )
+    assert len(log) == 2
+
+    assert original.download_as_bytes() == payload_before + payload_to_append
+
+
+def test_blob_compose_w_generation_match_long(shared_bucket, blobs_to_delete):
+    payload_before = b"AAA\n"
+    original = shared_bucket.blob("original")
+    original.content_type = "text/plain"
+    original.upload_from_string(payload_before)
+    blobs_to_delete.append(original)
+
+    payload_to_append = b"BBB\n"
+    to_append = shared_bucket.blob("to_append")
+    to_append.upload_from_string(payload_to_append)
+    blobs_to_delete.append(to_append)
+
+    with pytest.raises(exceptions.PreconditionFailed):
+        original.compose([original, to_append], if_generation_match=0)
+
+    original.compose([original, to_append], if_generation_match=original.generation)
+
+    assert original.download_as_bytes() == payload_before + payload_to_append
+
+
+def test_blob_compose_w_source_generation_match(shared_bucket, blobs_to_delete):
+    payload_before = b"AAA\n"
+    original = shared_bucket.blob("original")
+    original.content_type = "text/plain"
+    original.upload_from_string(payload_before)
+    blobs_to_delete.append(original)
+
+    payload_to_append = b"BBB\n"
+    to_append = shared_bucket.blob("to_append")
+    to_append.upload_from_string(payload_to_append)
+    blobs_to_delete.append(to_append)
+
+    with pytest.raises(exceptions.PreconditionFailed):
+        original.compose([original, to_append], if_source_generation_match=[6, 7])
+
+    original.compose(
+        [original, to_append],
+        if_source_generation_match=[original.generation, to_append.generation],
+    )
+
+    assert original.download_as_bytes() == payload_before + payload_to_append
+
+
+def test_blob_compose_w_user_project(storage_client, buckets_to_delete, user_project):
+    new_bucket_name = _helpers.unique_name("compose-user-project")
+    created = _helpers.retry_429_503(storage_client.create_bucket)(
+        new_bucket_name, requester_pays=True
+    )
+    buckets_to_delete.append(created)
+
+    payload_1 = b"AAA\n"
+    source_1 = created.blob("source-1")
+    source_1.upload_from_string(payload_1)
+
+    payload_2 = b"BBB\n"
+    source_2 = created.blob("source-2")
+    source_2.upload_from_string(payload_2)
+
+    with_user_project = storage_client.bucket(
+        new_bucket_name, user_project=user_project
+    )
+
+    destination = with_user_project.blob("destination")
+    destination.content_type = "text/plain"
+    destination.compose([source_1, source_2])
+
+    assert destination.download_as_bytes() == payload_1 + payload_2
