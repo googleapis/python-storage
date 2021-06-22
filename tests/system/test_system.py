@@ -161,24 +161,6 @@ class TestStorageWriteFiles(TestStorageFiles):
         copied_contents = new_blob.download_as_bytes()
         self.assertEqual(base_contents, copied_contents)
 
-    def test_download_blob_w_uri(self):
-        blob = self.bucket.blob("MyBuffer")
-        file_contents = b"Hello World"
-        blob.upload_from_string(file_contents)
-        self.case_blobs_to_delete.append(blob)
-
-        with tempfile.NamedTemporaryFile() as temp_f:
-
-            with open(temp_f.name, "wb") as file_obj:
-                Config.CLIENT.download_blob_to_file(
-                    "gs://" + self.bucket.name + "/MyBuffer", file_obj
-                )
-
-            with open(temp_f.name, "rb") as file_obj:
-                stored_contents = file_obj.read()
-
-        self.assertEqual(file_contents, stored_contents)
-
     def test_download_blob_as_text(self):
         blob = self.bucket.blob("MyBuffer")
         file_contents = "Hello World"

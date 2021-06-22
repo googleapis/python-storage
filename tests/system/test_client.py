@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import re
+import tempfile
 
 import pytest
 
@@ -63,3 +64,24 @@ def test_list_buckets(storage_client, buckets_to_delete):
     ]
 
     assert sorted(created_buckets) == sorted(buckets_to_create)
+
+
+def test_download_blob_to_file_w_uri(
+    storage_client, shared_bucket, blobs_to_delete, service_account,
+):
+    blob = shared_bucket.blob("MyBuffer")
+    payload = b"Hello World"
+    blob.upload_from_string(payload)
+    blobs_to_delete.append(blob)
+
+    with tempfile.NamedTemporaryFile() as temp_f:
+
+        with open(temp_f.name, "wb") as file_obj:
+            storage_client.download_blob_to_file(
+                "gs://" + shared_bucket.name + "/MyBuffer", file_obj
+            )
+
+        with open(temp_f.name, "rb") as file_obj:
+            stored_contents = file_obj.read()
+
+    assert stored_contents == payload
