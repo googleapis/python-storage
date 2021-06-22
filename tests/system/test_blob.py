@@ -358,3 +358,54 @@ def test_blob_acl_upload_predefined(
     acl.all().revoke_read()
     assert acl.all().get_roles() == set()
     assert control_acl.all().get_roles() == acl.all().get_roles()
+
+
+def test_blob_patch_metadata(
+    shared_bucket, blobs_to_delete, file_data, service_account,
+):
+    filename = file_data["logo"]["path"]
+    blob_name = os.path.basename(filename)
+
+    blob = shared_bucket.blob(blob_name)
+    blob.upload_from_filename(filename)
+    blobs_to_delete.append(blob)
+
+    # NOTE: This should not be necessary. We should be able to pass
+    #       it in to upload_file and also to upload_from_string.
+    blob.content_type = "image/png"
+    assert blob.content_type == "image/png"
+
+    metadata = {"foo": "Foo", "bar": "Bar"}
+    blob.metadata = metadata
+    blob.patch()
+    blob.reload()
+    assert blob.metadata == metadata
+
+    # Ensure that metadata keys can be deleted by setting equal to None.
+    new_metadata = {"foo": "Foo", "bar": None}
+    blob.metadata = new_metadata
+    blob.patch()
+    blob.reload()
+    assert blob.metadata == {"foo": "Foo"}
+
+
+def test_blob_direct_write_and_read_into_file(
+    shared_bucket, blobs_to_delete, service_account,
+):
+    payload = b"Hello World"
+    blob = shared_bucket.blob("MyBuffer")
+    blob.upload_from_string(payload)
+    blobs_to_delete.append(blob)
+
+    same_blob = shared_bucket.blob("MyBuffer")
+    same_blob.reload()  # Initialize properties.
+
+    with tempfile.NamedTemporaryFile() as temp_f:
+
+        with open(temp_f.name, "wb") as file_obj:
+            same_blob.download_to_file(file_obj)
+
+        with open(temp_f.name, "rb") as file_obj:
+            stored_contents = file_obj.read()
+
+    assert stored_contents == payload

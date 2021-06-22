@@ -148,51 +148,6 @@ class TestStorageWriteFiles(TestStorageFiles):
         ):
             raise unittest.SkipTest("These tests require a service account credential")
 
-    def test_write_metadata(self):
-        filename = self.FILES["logo"]["path"]
-        blob_name = os.path.basename(filename)
-
-        blob = storage.Blob(blob_name, bucket=self.bucket)
-        blob.upload_from_filename(filename)
-        self.case_blobs_to_delete.append(blob)
-
-        # NOTE: This should not be necessary. We should be able to pass
-        #       it in to upload_file and also to upload_from_string.
-        blob.content_type = "image/png"
-        self.assertEqual(blob.content_type, "image/png")
-
-        metadata = {"foo": "Foo", "bar": "Bar"}
-        blob.metadata = metadata
-        blob.patch()
-        blob.reload()
-        self.assertEqual(blob.metadata, metadata)
-
-        # Ensure that metadata keys can be deleted by setting equal to None.
-        new_metadata = {"foo": "Foo", "bar": None}
-        blob.metadata = new_metadata
-        blob.patch()
-        blob.reload()
-        self.assertEqual(blob.metadata, {"foo": "Foo"})
-
-    def test_direct_write_and_read_into_file(self):
-        blob = self.bucket.blob("MyBuffer")
-        file_contents = b"Hello World"
-        blob.upload_from_string(file_contents)
-        self.case_blobs_to_delete.append(blob)
-
-        same_blob = self.bucket.blob("MyBuffer")
-        same_blob.reload()  # Initialize properties.
-
-        with tempfile.NamedTemporaryFile() as temp_f:
-
-            with open(temp_f.name, "wb") as file_obj:
-                Config.CLIENT.download_blob_to_file(same_blob, file_obj)
-
-            with open(temp_f.name, "rb") as file_obj:
-                stored_contents = file_obj.read()
-
-        self.assertEqual(file_contents, stored_contents)
-
     def test_download_w_generation_match(self):
         WRONG_GENERATION_NUMBER = 6
 
