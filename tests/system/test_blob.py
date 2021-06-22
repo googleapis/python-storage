@@ -475,3 +475,15 @@ def test_blob_download_w_failed_crc32c_checksum(
             stored_contents = file_obj.read()
 
         assert stored_contents == payload
+
+
+def test_blob_download_as_text(
+    shared_bucket, blobs_to_delete, service_account,
+):
+    blob = shared_bucket.blob("MyBuffer")
+    payload = "Hello World"
+    blob.upload_from_string(payload)
+    blobs_to_delete.append(blob)
+
+    stored_contents = blob.download_as_text()
+    assert stored_contents == payload

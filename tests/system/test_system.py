@@ -146,15 +146,6 @@ class TestStorageWriteFiles(TestStorageFiles):
         ):
             raise unittest.SkipTest("These tests require a service account credential")
 
-    def test_download_blob_as_text(self):
-        blob = self.bucket.blob("MyBuffer")
-        file_contents = "Hello World"
-        blob.upload_from_string(file_contents)
-        self.case_blobs_to_delete.append(blob)
-
-        stored_contents = blob.download_as_text()
-        self.assertEqual(file_contents, stored_contents)
-
     def test_upload_gzip_encoded_download_raw(self):
         payload = b"DEADBEEF" * 1000
         raw_stream = io.BytesIO()
