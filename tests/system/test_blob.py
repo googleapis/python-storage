@@ -26,27 +26,7 @@ from google import resumable_media
 from google.api_core import exceptions
 from google.cloud.storage._helpers import _base64_md5hash
 
-dirname = os.path.realpath(os.path.dirname(__file__))
-data_dirname = os.path.abspath(os.path.join(dirname, "..", "data"))
-_filenames = [
-    ("logo", "CloudPlatform_128px_Retina.png"),
-    ("big", "five-point-one-mb-file.zip"),
-    ("simple", "simple.txt"),
-]
-_file_data = {
-    key: {"path": os.path.join(data_dirname, file_name)}
-    for key, file_name in _filenames
-}
 encryption_key = "b23ff11bba187db8c37077e6af3b25b8"
-
-
-@pytest.fixture(scope="session")
-def file_data():
-    for file_data in _file_data.values():
-        with open(file_data["path"], "rb") as file_obj:
-            file_data["hash"] = _base64_md5hash(file_obj)
-
-    return _file_data
 
 
 def _check_blob_hash(blob, info):

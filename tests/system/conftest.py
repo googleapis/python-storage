@@ -13,10 +13,25 @@
 # limitations under the License.
 
 import contextlib
+import os
 
 import pytest
 
+from google.cloud.storage._helpers import _base64_md5hash
 from . import _helpers
+
+
+dirname = os.path.realpath(os.path.dirname(__file__))
+data_dirname = os.path.abspath(os.path.join(dirname, "..", "data"))
+_filenames = [
+    ("logo", "CloudPlatform_128px_Retina.png"),
+    ("big", "five-point-one-mb-file.zip"),
+    ("simple", "simple.txt"),
+]
+_file_data = {
+    key: {"path": os.path.join(data_dirname, file_name)}
+    for key, file_name in _filenames
+}
 
 
 @pytest.fixture(scope="session")
@@ -78,3 +93,12 @@ def blobs_to_delete():
 
     for blob in blobs_to_delete:
         _helpers.delete_blob(blob)
+
+
+@pytest.fixture(scope="session")
+def file_data():
+    for file_data in _file_data.values():
+        with open(file_data["path"], "rb") as file_obj:
+            file_data["hash"] = _base64_md5hash(file_obj)
+
+    return _file_data
