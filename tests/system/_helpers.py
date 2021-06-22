@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+
 import pytest
 
 from google.api_core import exceptions
@@ -24,6 +26,8 @@ retry_429_harder = RetryErrors(exceptions.TooManyRequests, max_tries=10)
 retry_429_503 = RetryErrors(
     [exceptions.TooManyRequests, exceptions.ServiceUnavailable], max_tries=10
 )
+
+user_project = os.environ.get("GOOGLE_CLOUD_TESTS_USER_PROJECT")
 
 
 def require_service_account(storage_client):

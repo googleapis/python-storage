@@ -162,3 +162,45 @@ def test_bucket_get_set_iam_policy(storage_client, buckets_to_delete):
 
     fetched_policy = bucket.get_iam_policy(requested_policy_version=3)
     assert fetched_policy.bindings == returned_policy.bindings
+
+
+@pytest.mark.skipif(
+    _helpers.user_project is None, reason="USER_PROJECT not set in environment."
+)
+def test_bucket_crud_with_requester_pays(storage_client, buckets_to_delete):
+    new_bucket_name = _helpers.unique_name("w-requester-pays")
+    created = _helpers.retry_429_503(storage_client.create_bucket)(
+        new_bucket_name, requester_pays=True
+    )
+    buckets_to_delete.append(created)
+    assert created.name == new_bucket_name
+    assert created.requester_pays
+
+    with_user_project = storage_client.bucket(
+        new_bucket_name, user_project=_helpers.user_project,
+    )
+
+    try:
+        # Exercise 'buckets.get' w/ userProject.
+        assert with_user_project.exists()
+        with_user_project.reload()
+        assert with_user_project.requester_pays
+
+        # Exercise 'buckets.patch' w/ userProject.
+        with_user_project.configure_website(
+            main_page_suffix="index.html", not_found_page="404.html"
+        )
+        with_user_project.patch()
+        expected_website = {"mainPageSuffix": "index.html", "notFoundPage": "404.html"}
+        assert with_user_project._properties["website"] == expected_website
+
+        # Exercise 'buckets.update' w/ userProject.
+        new_labels = {"another-label": "another-value"}
+        with_user_project.labels = new_labels
+        with_user_project.update()
+        assert with_user_project.labels == new_labels
+
+    finally:
+        # Exercise 'buckets.delete' w/ userProject.
+        with_user_project.delete()
+        buckets_to_delete.remove(created)

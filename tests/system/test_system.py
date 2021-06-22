@@ -120,49 +120,6 @@ class TestStorageBuckets(unittest.TestCase):
             retry_429_harder(bucket.delete)()
 
     @unittest.skipUnless(USER_PROJECT, "USER_PROJECT not set in environment.")
-    def test_crud_bucket_with_requester_pays(self):
-        new_bucket_name = "w-requester-pays" + unique_resource_id("-")
-        created = retry_429_503(Config.CLIENT.create_bucket)(
-            new_bucket_name, requester_pays=True
-        )
-        self.case_buckets_to_delete.append(new_bucket_name)
-        self.assertEqual(created.name, new_bucket_name)
-        self.assertTrue(created.requester_pays)
-
-        with_user_project = Config.CLIENT.bucket(
-            new_bucket_name, user_project=USER_PROJECT
-        )
-
-        # Bucket will be deleted in-line below.
-        self.case_buckets_to_delete.remove(new_bucket_name)
-
-        try:
-            # Exercise 'buckets.get' w/ userProject.
-            self.assertTrue(with_user_project.exists())
-            with_user_project.reload()
-            self.assertTrue(with_user_project.requester_pays)
-
-            # Exercise 'buckets.patch' w/ userProject.
-            with_user_project.configure_website(
-                main_page_suffix="index.html", not_found_page="404.html"
-            )
-            with_user_project.patch()
-            self.assertEqual(
-                with_user_project._properties["website"],
-                {"mainPageSuffix": "index.html", "notFoundPage": "404.html"},
-            )
-
-            # Exercise 'buckets.update' w/ userProject.
-            new_labels = {"another-label": "another-value"}
-            with_user_project.labels = new_labels
-            with_user_project.update()
-            self.assertEqual(with_user_project.labels, new_labels)
-
-        finally:
-            # Exercise 'buckets.delete' w/ userProject.
-            with_user_project.delete()
-
-    @unittest.skipUnless(USER_PROJECT, "USER_PROJECT not set in environment.")
     def test_bucket_acls_iam_with_user_project(self):
         new_bucket_name = "acl-w-user-project" + unique_resource_id("-")
         retry_429_503(Config.CLIENT.create_bucket)(new_bucket_name, requester_pays=True)
