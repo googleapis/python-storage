@@ -298,3 +298,63 @@ def test_blob_crud_w_generation_match(
 
         blob0.delete(if_generation_match=gen0)
         blob1.delete(if_metageneration_not_match=wrong_metageneration_number)
+
+
+def test_blob_acl_w_user_project(
+    storage_client,
+    shared_bucket,
+    blobs_to_delete,
+    file_data,
+    service_account,
+    user_project,
+):
+    with_user_project = storage_client.bucket(
+        shared_bucket.name, user_project=user_project
+    )
+    blob = with_user_project.blob("SmallFile")
+
+    info = file_data["simple"]
+
+    blob.upload_from_filename(info["path"])
+    blobs_to_delete.append(blob)
+
+    # Exercise blob ACL w/ userProject
+    acl = blob.acl
+    acl.reload()
+    acl.all().grant_read()
+    acl.save()
+    assert "READER" in acl.all().get_roles()
+
+    del acl.entities["allUsers"]
+    acl.save()
+    assert not acl.has_entity("allUsers")
+
+
+def test_blob_acl_upload_predefined(
+    shared_bucket, blobs_to_delete, file_data, service_account,
+):
+    control = shared_bucket.blob("logo")
+    control_info = file_data["logo"]
+
+    blob = shared_bucket.blob("SmallFile")
+    info = file_data["simple"]
+
+    try:
+        control.upload_from_filename(control_info["path"])
+    finally:
+        blobs_to_delete.append(control)
+
+    try:
+        blob.upload_from_filename(info["path"], predefined_acl="publicRead")
+    finally:
+        blobs_to_delete.append(blob)
+
+    control_acl = control.acl
+    assert "READER" not in control_acl.all().get_roles()
+
+    acl = blob.acl
+    assert "READER" in acl.all().get_roles()
+
+    acl.all().revoke_read()
+    assert acl.all().get_roles() == set()
+    assert control_acl.all().get_roles() == acl.all().get_roles()
