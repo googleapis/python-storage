@@ -205,6 +205,7 @@ def test_bucket_crud_with_requester_pays(storage_client, buckets_to_delete):
         with_user_project.delete()
         buckets_to_delete.remove(created)
 
+
 @pytest.mark.skipif(
     _helpers.user_project is None, reason="USER_PROJECT not set in environment."
 )
@@ -246,3 +247,34 @@ def test_bucket_acls_iam_with_user_project(storage_client, buckets_to_delete):
     viewers = policy.setdefault("roles/storage.objectViewer", set())
     viewers.add(policy.all_users())
     with_user_project.set_iam_policy(policy)
+
+
+@pytest.mark.skipif(
+    _helpers.user_project is None, reason="USER_PROJECT not set in environment."
+)
+def test_bucket_copy_blob_with_user_project(
+    storage_client, buckets_to_delete, blobs_to_delete,
+):
+    payload = b"DEADBEEF"
+    new_bucket_name = _helpers.unique_name("copy-w-requester-pays")
+    created = _helpers.retry_429_503(storage_client.create_bucket)(
+        new_bucket_name, requester_pays=True
+    )
+    buckets_to_delete.append(created)
+    assert created.name == new_bucket_name
+    assert created.requester_pays
+
+    blob = created.blob("simple")
+    blob.upload_from_string(payload)
+    blobs_to_delete.append(blob)
+
+    with_user_project = storage_client.bucket(
+        new_bucket_name, user_project=_helpers.user_project
+    )
+
+    new_blob = _helpers.retry_bad_copy(with_user_project.copy_blob)(
+        blob, with_user_project, "simple-copy"
+    )
+    blobs_to_delete.append(new_blob)
+
+    assert new_blob.download_as_bytes() == payload

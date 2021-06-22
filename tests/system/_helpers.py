@@ -30,6 +30,15 @@ retry_429_503 = RetryErrors(
 user_project = os.environ.get("GOOGLE_CLOUD_TESTS_USER_PROJECT")
 
 
+def _bad_copy(bad_request):
+    """Predicate: pass only exceptions for a failed copyTo."""
+    err_msg = bad_request.message
+    return err_msg.startswith("No file found in request. (POST") and "copyTo" in err_msg
+
+
+retry_bad_copy = RetryErrors(exceptions.BadRequest, error_predicate=_bad_copy)
+
+
 def require_service_account(storage_client):
     if not isinstance(storage_client._credentials, service_account.Credentials):
         pytest.skip("These tests require a service account credential")
@@ -45,6 +54,12 @@ def empty_bucket(bucket):
             blob.delete()
         except exceptions.NotFound:
             pass
+
+
+def delete_blob(blob):
+    errors = (exceptions.Conflict, exceptions.TooManyRequests)
+    retry = RetryErrors(errors)
+    retry(blob.delete)()
 
 
 def delete_bucket(bucket):

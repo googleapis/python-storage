@@ -36,3 +36,13 @@ def buckets_to_delete():
 
     for bucket in buckets_to_delete:
         _helpers.delete_bucket(bucket)
+
+
+@pytest.fixture(scope="function")
+def blobs_to_delete():
+    blobs_to_delete = []
+
+    yield blobs_to_delete
+
+    for blob in blobs_to_delete:
+        _helpers.delete_blob(blob)
