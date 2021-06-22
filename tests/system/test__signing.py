@@ -251,3 +251,28 @@ def test_create_signed_read_url_v4_w_access_token(
         service_account_email=service_account_email,
         access_token=response.access_token,
     )
+
+
+def _create_signed_delete_url_helper(client, bucket, version="v2", expiration=None):
+    expiration = _morph_expiration(version, expiration)
+
+    blob = bucket.blob("DELETE_ME.txt")
+    blob.upload_from_string(b"DELETE ME!")
+
+    signed_delete_url = blob.generate_signed_url(
+        expiration=expiration, method="DELETE", client=client, version=version,
+    )
+
+    response = requests.request("DELETE", signed_delete_url)
+
+    assert response.status_code == 204
+    assert response.content == b""
+    assert not blob.exists()
+
+
+def test_create_signed_delete_url_v2(storage_client, signing_bucket):
+    _create_signed_delete_url_helper(storage_client, signing_bucket)
+
+
+def test_create_signed_delete_url_v4(storage_client, signing_bucket):
+    _create_signed_delete_url_helper(storage_client, signing_bucket, version="v4")

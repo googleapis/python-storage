@@ -163,31 +163,6 @@ class TestStorageSignURLs(unittest.TestCase):
 
         return 10
 
-    def _create_signed_delete_url_helper(self, version="v2", expiration=None):
-        expiration = self._morph_expiration(version, expiration)
-
-        blob = self.bucket.blob("DELETE_ME.txt")
-        blob.upload_from_string(b"DELETE ME!")
-
-        signed_delete_url = blob.generate_signed_url(
-            expiration=expiration,
-            method="DELETE",
-            client=Config.CLIENT,
-            version=version,
-        )
-
-        response = requests.request("DELETE", signed_delete_url)
-        self.assertEqual(response.status_code, 204)
-        self.assertEqual(response.content, b"")
-
-        self.assertFalse(blob.exists())
-
-    def test_create_signed_delete_url_v2(self):
-        self._create_signed_delete_url_helper()
-
-    def test_create_signed_delete_url_v4(self):
-        self._create_signed_delete_url_helper(version="v4")
-
     def _signed_resumable_upload_url_helper(self, version="v2", expiration=None):
         expiration = self._morph_expiration(version, expiration)
         blob = self.bucket.blob("cruddy.txt")
