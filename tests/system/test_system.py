@@ -120,44 +120,6 @@ class TestStorageBuckets(unittest.TestCase):
             retry_429_harder(bucket.delete)()
 
     @unittest.skipUnless(USER_PROJECT, "USER_PROJECT not set in environment.")
-    def test_bucket_acls_iam_with_user_project(self):
-        new_bucket_name = "acl-w-user-project" + unique_resource_id("-")
-        retry_429_503(Config.CLIENT.create_bucket)(new_bucket_name, requester_pays=True)
-        self.case_buckets_to_delete.append(new_bucket_name)
-
-        with_user_project = Config.CLIENT.bucket(
-            new_bucket_name, user_project=USER_PROJECT
-        )
-
-        # Exercise bucket ACL w/ userProject
-        acl = with_user_project.acl
-        acl.reload()
-        acl.all().grant_read()
-        acl.save()
-        self.assertIn("READER", acl.all().get_roles())
-        del acl.entities["allUsers"]
-        acl.save()
-        self.assertFalse(acl.has_entity("allUsers"))
-
-        # Exercise default object ACL w/ userProject
-        doa = with_user_project.default_object_acl
-        doa.reload()
-        doa.all().grant_read()
-        doa.save()
-        self.assertIn("READER", doa.all().get_roles())
-
-        # Exercise IAM w/ userProject
-        test_permissions = ["storage.buckets.get"]
-        self.assertEqual(
-            with_user_project.test_iam_permissions(test_permissions), test_permissions
-        )
-
-        policy = with_user_project.get_iam_policy()
-        viewers = policy.setdefault("roles/storage.objectViewer", set())
-        viewers.add(policy.all_users())
-        with_user_project.set_iam_policy(policy)
-
-    @unittest.skipUnless(USER_PROJECT, "USER_PROJECT not set in environment.")
     def test_copy_existing_file_with_user_project(self):
         new_bucket_name = "copy-w-requester-pays" + unique_resource_id("-")
         created = retry_429_503(Config.CLIENT.create_bucket)(

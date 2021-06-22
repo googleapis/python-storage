@@ -204,3 +204,45 @@ def test_bucket_crud_with_requester_pays(storage_client, buckets_to_delete):
         # Exercise 'buckets.delete' w/ userProject.
         with_user_project.delete()
         buckets_to_delete.remove(created)
+
+@pytest.mark.skipif(
+    _helpers.user_project is None, reason="USER_PROJECT not set in environment."
+)
+def test_bucket_acls_iam_with_user_project(storage_client, buckets_to_delete):
+    new_bucket_name = _helpers.unique_name("acl-w-user-project")
+    created = _helpers.retry_429_503(storage_client.create_bucket)(
+        new_bucket_name, requester_pays=True,
+    )
+    buckets_to_delete.append(created)
+
+    with_user_project = storage_client.bucket(
+        new_bucket_name, user_project=_helpers.user_project
+    )
+
+    # Exercise bucket ACL w/ userProject
+    acl = with_user_project.acl
+    acl.reload()
+    acl.all().grant_read()
+    acl.save()
+    assert "READER" in acl.all().get_roles()
+
+    del acl.entities["allUsers"]
+    acl.save()
+    assert not acl.has_entity("allUsers")
+
+    # Exercise default object ACL w/ userProject
+    doa = with_user_project.default_object_acl
+    doa.reload()
+    doa.all().grant_read()
+    doa.save()
+    assert "READER" in doa.all().get_roles()
+
+    # Exercise IAM w/ userProject
+    test_permissions = ["storage.buckets.get"]
+    found = with_user_project.test_iam_permissions(test_permissions)
+    assert found == test_permissions
+
+    policy = with_user_project.get_iam_policy()
+    viewers = policy.setdefault("roles/storage.objectViewer", set())
+    viewers.add(policy.all_users())
+    with_user_project.set_iam_policy(policy)
