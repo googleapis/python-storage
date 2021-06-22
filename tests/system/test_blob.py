@@ -747,10 +747,9 @@ def test_blob_compose_w_source_generation_match(shared_bucket, blobs_to_delete):
 
 def test_blob_compose_w_user_project(storage_client, buckets_to_delete, user_project):
     new_bucket_name = _helpers.unique_name("compose-user-project")
-    created = _helpers.retry_429_503(storage_client.create_bucket)(
-        new_bucket_name, requester_pays=True
-    )
+    created = _helpers.retry_429_503(storage_client.create_bucket)(new_bucket_name)
     buckets_to_delete.append(created)
+    created.requester_pays = True
 
     payload_1 = b"AAA\n"
     source_1 = created.blob("source-1")
@@ -769,3 +768,128 @@ def test_blob_compose_w_user_project(storage_client, buckets_to_delete, user_pro
     destination.compose([source_1, source_2])
 
     assert destination.download_as_bytes() == payload_1 + payload_2
+
+
+def test_blob_rewrite_new_blob_add_key(shared_bucket, blobs_to_delete, file_data):
+    info = file_data["simple"]
+    source = shared_bucket.blob("source")
+    source.upload_from_filename(info["path"])
+    blobs_to_delete.append(source)
+    source_data = source.download_as_bytes()
+
+    key = os.urandom(32)
+    dest = shared_bucket.blob("dest", encryption_key=key)
+    token, rewritten, total = dest.rewrite(source)
+    blobs_to_delete.append(dest)
+
+    assert token is None
+    assert rewritten == len(source_data)
+    assert total == len(source_data)
+    assert dest.download_as_bytes() == source_data
+
+
+def test_blob_rewrite_rotate_key(shared_bucket, blobs_to_delete, file_data):
+    blob_name = "rotating-keys"
+    info = file_data["simple"]
+
+    source_key = os.urandom(32)
+    source = shared_bucket.blob(blob_name, encryption_key=source_key)
+    source.upload_from_filename(info["path"])
+    blobs_to_delete.append(source)
+    source_data = source.download_as_bytes()
+
+    dest_key = os.urandom(32)
+    dest = shared_bucket.blob(blob_name, encryption_key=dest_key)
+    token, rewritten, total = dest.rewrite(source)
+    # Not adding 'dest' to 'blobs_to_delete':  it is the
+    # same object as 'source'.
+
+    assert token is None
+    assert rewritten == len(source_data)
+    assert total == len(source_data)
+    assert dest.download_as_bytes() == source_data
+
+
+def test_blob_rewrite_add_key_w_user_project(
+    storage_client, buckets_to_delete, user_project, file_data
+):
+    info = file_data["simple"]
+    new_bucket_name = _helpers.unique_name("rewrite-key-up")
+    created = _helpers.retry_429_503(storage_client.create_bucket)(new_bucket_name)
+    buckets_to_delete.append(created)
+    created.requester_pays = True
+
+    with_user_project = storage_client.bucket(
+        new_bucket_name, user_project=user_project
+    )
+
+    source = with_user_project.blob("source")
+    source.upload_from_filename(info["path"])
+    source_data = source.download_as_bytes()
+
+    key = os.urandom(32)
+    dest = with_user_project.blob("dest", encryption_key=key)
+    token, rewritten, total = dest.rewrite(source)
+
+    assert token is None
+    assert rewritten == len(source_data)
+    assert total == len(source_data)
+    assert dest.download_as_bytes() == source_data
+
+
+def test_blob_rewrite_rotate_key_w_user_project(
+    storage_client, buckets_to_delete, user_project, file_data
+):
+    blob_name = "rotating-keys"
+    info = file_data["simple"]
+    new_bucket_name = _helpers.unique_name("rewrite-key-up")
+    created = _helpers.retry_429_503(storage_client.create_bucket)(new_bucket_name)
+    buckets_to_delete.append(created)
+    created.requester_pays = True
+
+    with_user_project = storage_client.bucket(
+        new_bucket_name, user_project=user_project
+    )
+
+    source_key = os.urandom(32)
+    source = with_user_project.blob(blob_name, encryption_key=source_key)
+    source.upload_from_filename(info["path"])
+    source_data = source.download_as_bytes()
+
+    dest_key = os.urandom(32)
+    dest = with_user_project.blob(blob_name, encryption_key=dest_key)
+    token, rewritten, total = dest.rewrite(source)
+
+    assert token is None
+    assert rewritten == len(source_data)
+    assert total == len(source_data)
+    assert dest.download_as_bytes() == source_data
+
+
+def test_blob_rewrite_w_generation_match(shared_bucket, blobs_to_delete, file_data):
+    wrong_generation_number = 6
+    blob_name = "generation-match"
+    info = file_data["simple"]
+
+    source = shared_bucket.blob(blob_name)
+    source.upload_from_filename(info["path"])
+    source_data = source.download_as_bytes()
+    blobs_to_delete.append(source)
+
+    dest = shared_bucket.blob(blob_name)
+    dest.reload()
+
+    with pytest.raises(exceptions.PreconditionFailed):
+        dest.rewrite(source, if_generation_match=wrong_generation_number)
+
+    token, rewritten, total = dest.rewrite(
+        source,
+        if_generation_match=dest.generation,
+        if_source_generation_match=source.generation,
+        if_source_metageneration_match=source.metageneration,
+    )
+
+    assert token is None
+    assert rewritten == len(source_data)
+    assert total == len(source_data)
+    assert dest.download_as_bytes() == source_data
