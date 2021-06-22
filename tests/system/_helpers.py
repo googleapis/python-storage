@@ -17,7 +17,6 @@ import os
 import pytest
 
 from google.api_core import exceptions
-from google.oauth2 import service_account
 
 from test_utils.retry import RetryErrors
 from test_utils.system import unique_resource_id
@@ -37,11 +36,6 @@ def _bad_copy(bad_request):
 
 
 retry_bad_copy = RetryErrors(exceptions.BadRequest, error_predicate=_bad_copy)
-
-
-def require_service_account(storage_client):
-    if not isinstance(storage_client._credentials, service_account.Credentials):
-        pytest.skip("These tests require a service account credential")
 
 
 def unique_name(prefix):

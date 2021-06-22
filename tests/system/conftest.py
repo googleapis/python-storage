@@ -16,6 +16,7 @@ import contextlib
 
 import pytest
 
+from google.oauth2 import service_account
 from . import _helpers
 
 
@@ -26,6 +27,12 @@ def storage_client():
     client = Client()
     with contextlib.closing(client):
         yield client
+
+
+@pytest.fixture(scope="function")
+def require_service_account(storage_client):
+    if not isinstance(storage_client._credentials, service_account.Credentials):
+        pytest.skip("These tests require a service account credential")
 
 
 @pytest.fixture(scope="function")

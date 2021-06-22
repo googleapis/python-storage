@@ -52,7 +52,7 @@ def scrubbed_hmac_keys(storage_client):
         ensure_hmac_key_deleted(hmac_key)
 
 
-def test_hmac_key_crud(storage_client, scrubbed_hmac_keys):
+def test_hmac_key_crud(storage_client, scrubbed_hmac_keys, require_service_account):
     from google.cloud.storage.hmac_key import HMACKeyMetadata
 
     before_hmac_keys, hmac_keys_to_delete = scrubbed_hmac_keys

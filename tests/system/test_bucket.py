@@ -114,7 +114,9 @@ def test_bucket_update_labels(storage_client, buckets_to_delete):
     assert bucket.labels == {}
 
 
-def test_bucket_get_set_iam_policy(storage_client, buckets_to_delete):
+def test_bucket_get_set_iam_policy(
+    storage_client, buckets_to_delete, require_service_account,
+):
     from google.cloud.storage.iam import STORAGE_OBJECT_VIEWER_ROLE
     from google.api_core.exceptions import BadRequest
     from google.api_core.exceptions import PreconditionFailed
