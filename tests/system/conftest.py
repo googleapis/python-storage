@@ -29,6 +29,22 @@ def storage_client():
         yield client
 
 
+@pytest.fixture(scope="session")
+def shared_bucket_name():
+    return _helpers.unique_name("gcp-systest")
+
+
+@pytest.fixture(scope="session")
+def shared_bucket(storage_client, shared_bucket_name):
+    bucket = storage_client.bucket(shared_bucket_name)
+    bucket.versioning_enabled = True
+    _helpers.retry_429_503(bucket.create)()
+
+    yield bucket
+
+    _helpers.delete_bucket(bucket)
+
+
 @pytest.fixture(scope="function")
 def require_service_account(storage_client):
     if not isinstance(storage_client._credentials, service_account.Credentials):
