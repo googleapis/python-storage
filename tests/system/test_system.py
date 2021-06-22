@@ -17,7 +17,6 @@
 import datetime
 import os
 import tempfile
-import time
 import unittest
 
 import requests
@@ -125,92 +124,6 @@ class TestStorageFiles(unittest.TestCase):
         retry = RetryErrors(errors, max_tries=6)
         for blob in self.case_blobs_to_delete:
             retry(blob.delete)()
-
-
-class TestStorageSignURLs(unittest.TestCase):
-    BLOB_CONTENT = b"This time for sure, Rocky!"
-
-    @classmethod
-    def setUpClass(cls):
-        super(TestStorageSignURLs, cls).setUpClass()
-        if (
-            type(Config.CLIENT._credentials)
-            is not google.oauth2.service_account.Credentials
-        ):
-            raise unittest.SkipTest(
-                "Signing tests requires a service account credential"
-            )
-
-        bucket_name = "gcp-signing" + unique_resource_id()
-        cls.bucket = retry_429_503(Config.CLIENT.create_bucket)(bucket_name)
-        cls.blob = cls.bucket.blob("README.txt")
-        cls.blob.upload_from_string(cls.BLOB_CONTENT)
-
-    @classmethod
-    def tearDownClass(cls):
-        _empty_bucket(Config.CLIENT, cls.bucket)
-        errors = (exceptions.Conflict, exceptions.TooManyRequests)
-        retry = RetryErrors(errors, max_tries=6)
-        retry(cls.bucket.delete)(force=True)
-
-    @staticmethod
-    def _morph_expiration(version, expiration):
-        if expiration is not None:
-            return expiration
-
-        if version == "v2":
-            return int(time.time()) + 10
-
-        return 10
-
-    def _signed_resumable_upload_url_helper(self, version="v2", expiration=None):
-        expiration = self._morph_expiration(version, expiration)
-        blob = self.bucket.blob("cruddy.txt")
-        payload = b"DEADBEEF"
-
-        # Initiate the upload using a signed URL.
-        signed_resumable_upload_url = blob.generate_signed_url(
-            expiration=expiration,
-            method="RESUMABLE",
-            client=Config.CLIENT,
-            version=version,
-        )
-
-        post_headers = {"x-goog-resumable": "start"}
-        post_response = requests.post(signed_resumable_upload_url, headers=post_headers)
-        self.assertEqual(post_response.status_code, 201)
-
-        # Finish uploading the body.
-        location = post_response.headers["Location"]
-        put_headers = {"content-length": str(len(payload))}
-        put_response = requests.put(location, headers=put_headers, data=payload)
-        self.assertEqual(put_response.status_code, 200)
-
-        # Download using a signed URL and verify.
-        signed_download_url = blob.generate_signed_url(
-            expiration=expiration, method="GET", client=Config.CLIENT, version=version
-        )
-
-        get_response = requests.get(signed_download_url)
-        self.assertEqual(get_response.status_code, 200)
-        self.assertEqual(get_response.content, payload)
-
-        # Finally, delete the blob using a signed URL.
-        signed_delete_url = blob.generate_signed_url(
-            expiration=expiration,
-            method="DELETE",
-            client=Config.CLIENT,
-            version=version,
-        )
-
-        delete_response = requests.delete(signed_delete_url)
-        self.assertEqual(delete_response.status_code, 204)
-
-    def test_signed_resumable_upload_url_v2(self):
-        self._signed_resumable_upload_url_helper(version="v2")
-
-    def test_signed_resumable_upload_url_v4(self):
-        self._signed_resumable_upload_url_helper(version="v4")
 
 
 class TestStorageCompose(TestStorageFiles):

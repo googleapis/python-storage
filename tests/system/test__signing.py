@@ -276,3 +276,55 @@ def test_create_signed_delete_url_v2(storage_client, signing_bucket):
 
 def test_create_signed_delete_url_v4(storage_client, signing_bucket):
     _create_signed_delete_url_helper(storage_client, signing_bucket, version="v4")
+
+
+def _create_signed_resumable_upload_url_helper(
+    client, bucket, version="v2", expiration=None
+):
+    expiration = _morph_expiration(version, expiration)
+    blob = bucket.blob("cruddy.txt")
+    payload = b"DEADBEEF"
+
+    # Initiate the upload using a signed URL.
+    signed_resumable_upload_url = blob.generate_signed_url(
+        expiration=expiration, method="RESUMABLE", client=client, version=version,
+    )
+
+    post_headers = {"x-goog-resumable": "start"}
+    post_response = requests.post(signed_resumable_upload_url, headers=post_headers)
+    assert post_response.status_code == 201
+
+    # Finish uploading the body.
+    location = post_response.headers["Location"]
+    put_headers = {"content-length": str(len(payload))}
+    put_response = requests.put(location, headers=put_headers, data=payload)
+    assert put_response.status_code == 200
+
+    # Download using a signed URL and verify.
+    signed_download_url = blob.generate_signed_url(
+        expiration=expiration, method="GET", client=client, version=version
+    )
+
+    get_response = requests.get(signed_download_url)
+    assert get_response.status_code == 200
+    assert get_response.content == payload
+
+    # Finally, delete the blob using a signed URL.
+    signed_delete_url = blob.generate_signed_url(
+        expiration=expiration, method="DELETE", client=client, version=version,
+    )
+
+    delete_response = requests.delete(signed_delete_url)
+    assert delete_response.status_code == 204
+
+
+def test_create_signed_resumable_upload_url_v2(storage_client, signing_bucket):
+    _create_signed_resumable_upload_url_helper(
+        storage_client, signing_bucket, version="v2",
+    )
+
+
+def test_create_signed_resumable_upload_url_v4(storage_client, signing_bucket):
+    _create_signed_resumable_upload_url_helper(
+        storage_client, signing_bucket, version="v4",
+    )
