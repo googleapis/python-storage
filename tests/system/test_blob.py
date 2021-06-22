@@ -409,3 +409,69 @@ def test_blob_direct_write_and_read_into_file(
             stored_contents = file_obj.read()
 
     assert stored_contents == payload
+
+
+def test_blob_download_w_generation_match(
+    shared_bucket, blobs_to_delete, service_account,
+):
+    wrong_generation_number = 6
+
+    blob = shared_bucket.blob("MyBuffer")
+    payload = b"Hello World"
+    blob.upload_from_string(payload)
+    blobs_to_delete.append(blob)
+
+    same_blob = shared_bucket.blob("MyBuffer")
+    same_blob.reload()  # Initialize properties.
+
+    with tempfile.NamedTemporaryFile() as temp_f:
+
+        with open(temp_f.name, "wb") as file_obj:
+            with pytest.raises(exceptions.PreconditionFailed):
+                same_blob.download_to_file(
+                    file_obj, if_generation_match=wrong_generation_number
+                )
+
+            same_blob.download_to_file(
+                file_obj,
+                if_generation_match=blob.generation,
+                if_metageneration_match=blob.metageneration,
+            )
+
+        with open(temp_f.name, "rb") as file_obj:
+            stored_contents = file_obj.read()
+
+    assert stored_contents == payload
+
+
+def test_blob_download_w_failed_crc32c_checksum(
+    shared_bucket, blobs_to_delete, service_account,
+):
+    blob = shared_bucket.blob("FailedChecksumBlob")
+    payload = b"Hello World"
+    blob.upload_from_string(payload)
+    blobs_to_delete.append(blob)
+
+    with tempfile.NamedTemporaryFile() as temp_f:
+        # Intercept the digest processing at the last stage and replace
+        # it with garbage.  This is done with a patch to monkey-patch
+        # the resumable media library's checksum processing; it does not
+        # mock a remote interface like a unit test would.
+        # The remote API is still exercised.
+        with mock.patch(
+            "google.resumable_media._helpers.prepare_checksum_digest",
+            return_value="FFFFFF==",
+        ):
+            with pytest.raises(resumable_media.DataCorruption):
+                blob.download_to_filename(temp_f.name, checksum="crc32c")
+
+            # Confirm the file was deleted on failure
+            assert not os.path.isfile(temp_f.name)
+
+            # Now download with checksumming turned off
+            blob.download_to_filename(temp_f.name, checksum=None)
+
+        with open(temp_f.name, "rb") as file_obj:
+            stored_contents = file_obj.read()
+
+        assert stored_contents == payload

@@ -23,7 +23,6 @@ import os
 import tempfile
 import time
 import unittest
-import mock
 
 import requests
 import six
@@ -33,7 +32,6 @@ from google.cloud import iam_credentials_v1
 from google.cloud import storage
 from google.cloud.storage._helpers import _base64_md5hash
 from google.cloud import kms
-from google import resumable_media
 import google.auth
 import google.api_core
 from google.api_core import path_template
@@ -147,66 +145,6 @@ class TestStorageWriteFiles(TestStorageFiles):
             is not google.oauth2.service_account.Credentials
         ):
             raise unittest.SkipTest("These tests require a service account credential")
-
-    def test_download_w_generation_match(self):
-        WRONG_GENERATION_NUMBER = 6
-
-        blob = self.bucket.blob("MyBuffer")
-        file_contents = b"Hello World"
-        blob.upload_from_string(file_contents)
-        self.case_blobs_to_delete.append(blob)
-
-        same_blob = self.bucket.blob("MyBuffer")
-        same_blob.reload()  # Initialize properties.
-
-        with tempfile.NamedTemporaryFile() as temp_f:
-
-            with open(temp_f.name, "wb") as file_obj:
-                with self.assertRaises(google.api_core.exceptions.PreconditionFailed):
-                    Config.CLIENT.download_blob_to_file(
-                        same_blob, file_obj, if_generation_match=WRONG_GENERATION_NUMBER
-                    )
-
-                Config.CLIENT.download_blob_to_file(
-                    same_blob,
-                    file_obj,
-                    if_generation_match=blob.generation,
-                    if_metageneration_match=blob.metageneration,
-                )
-
-            with open(temp_f.name, "rb") as file_obj:
-                stored_contents = file_obj.read()
-
-        self.assertEqual(file_contents, stored_contents)
-
-    def test_download_w_failed_crc32c_checksum(self):
-        blob = self.bucket.blob("FailedChecksumBlob")
-        file_contents = b"Hello World"
-        blob.upload_from_string(file_contents)
-        self.case_blobs_to_delete.append(blob)
-
-        with tempfile.NamedTemporaryFile() as temp_f:
-            # Intercept the digest processing at the last stage and replace it with garbage.
-            # This is done with a patch to monkey-patch the resumable media library's checksum
-            # processing; it does not mock a remote interface like a unit test would. The
-            # remote API is still exercised.
-            with mock.patch(
-                "google.resumable_media._helpers.prepare_checksum_digest",
-                return_value="FFFFFF==",
-            ):
-                with self.assertRaises(resumable_media.DataCorruption):
-                    blob.download_to_filename(temp_f.name, checksum="crc32c")
-
-                # Confirm the file was deleted on failure
-                self.assertFalse(os.path.isfile(temp_f.name))
-
-                # Now download with checksumming turned off
-                blob.download_to_filename(temp_f.name, checksum=None)
-
-            with open(temp_f.name, "rb") as file_obj:
-                stored_contents = file_obj.read()
-
-            self.assertEqual(file_contents, stored_contents)
 
     def test_copy_existing_file(self):
         filename = self.FILES["logo"]["path"]
