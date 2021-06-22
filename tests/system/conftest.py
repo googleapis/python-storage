@@ -43,7 +43,6 @@ _hierarchy_filenames = [
     "parent/child/grand/file31.txt",
     "parent/child/other/file32.txt",
 ]
-_signing_blob_content = b"This time for sure, Rocky!"
 
 
 @pytest.fixture(scope="session")
@@ -135,7 +134,7 @@ def signing_bucket(storage_client, signing_bucket_name):
     bucket = storage_client.bucket(signing_bucket_name)
     _helpers.retry_429_503(bucket.create)()
     blob = bucket.blob("README.txt")
-    blob.upload_from_string(_signing_blob_content)
+    blob.upload_from_string(_helpers.signing_blob_content)
 
     yield bucket
 

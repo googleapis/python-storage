@@ -14,9 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import base64
 import datetime
-import hashlib
 import os
 import tempfile
 import time
@@ -25,13 +23,11 @@ import unittest
 import requests
 
 from google.cloud import exceptions
-from google.cloud import iam_credentials_v1
 from google.cloud import storage
 from google.cloud.storage._helpers import _base64_md5hash
 from google.cloud import kms
 import google.auth
 import google.api_core
-from google.api_core import path_template
 import google.oauth2
 from test_utils.retry import RetryErrors
 from test_utils.retry import RetryInstanceState
@@ -166,141 +162,6 @@ class TestStorageSignURLs(unittest.TestCase):
             return int(time.time()) + 10
 
         return 10
-
-    def _create_signed_read_url_helper(
-        self,
-        blob_name="LogoToSign.jpg",
-        method="GET",
-        version="v2",
-        payload=None,
-        expiration=None,
-        encryption_key=None,
-        service_account_email=None,
-        access_token=None,
-    ):
-        expiration = self._morph_expiration(version, expiration)
-
-        if payload is not None:
-            blob = self.bucket.blob(blob_name, encryption_key=encryption_key)
-            blob.upload_from_string(payload)
-        else:
-            blob = self.blob
-
-        signed_url = blob.generate_signed_url(
-            expiration=expiration,
-            method=method,
-            client=Config.CLIENT,
-            version=version,
-            service_account_email=service_account_email,
-            access_token=access_token,
-        )
-
-        headers = {}
-
-        if encryption_key is not None:
-            headers["x-goog-encryption-algorithm"] = "AES256"
-            encoded_key = base64.b64encode(encryption_key).decode("utf-8")
-            headers["x-goog-encryption-key"] = encoded_key
-            key_hash = hashlib.sha256(encryption_key).digest()
-            key_hash = base64.b64encode(key_hash).decode("utf-8")
-            headers["x-goog-encryption-key-sha256"] = key_hash
-
-        response = requests.get(signed_url, headers=headers)
-        self.assertEqual(response.status_code, 200)
-        if payload is not None:
-            self.assertEqual(response.content, payload)
-        else:
-            self.assertEqual(response.content, self.BLOB_CONTENT)
-
-    def test_create_signed_read_url_v2(self):
-        self._create_signed_read_url_helper()
-
-    def test_create_signed_read_url_v4(self):
-        self._create_signed_read_url_helper(version="v4")
-
-    def test_create_signed_read_url_v2_w_expiration(self):
-        now = datetime.datetime.utcnow()
-        delta = datetime.timedelta(seconds=10)
-
-        self._create_signed_read_url_helper(expiration=now + delta)
-
-    def test_create_signed_read_url_v4_w_expiration(self):
-        now = datetime.datetime.utcnow()
-        delta = datetime.timedelta(seconds=10)
-        self._create_signed_read_url_helper(expiration=now + delta, version="v4")
-
-    def test_create_signed_read_url_v2_lowercase_method(self):
-        self._create_signed_read_url_helper(method="get")
-
-    def test_create_signed_read_url_v4_lowercase_method(self):
-        self._create_signed_read_url_helper(method="get", version="v4")
-
-    def test_create_signed_read_url_v2_w_non_ascii_name(self):
-        self._create_signed_read_url_helper(
-            blob_name=u"Caf\xe9.txt",
-            payload=b"Test signed URL for blob w/ non-ASCII name",
-        )
-
-    def test_create_signed_read_url_v4_w_non_ascii_name(self):
-        self._create_signed_read_url_helper(
-            blob_name=u"Caf\xe9.txt",
-            payload=b"Test signed URL for blob w/ non-ASCII name",
-            version="v4",
-        )
-
-    def test_create_signed_read_url_v2_w_csek(self):
-        encryption_key = os.urandom(32)
-        self._create_signed_read_url_helper(
-            blob_name="v2-w-csek.txt",
-            payload=b"Test signed URL for blob w/ CSEK",
-            encryption_key=encryption_key,
-        )
-
-    def test_create_signed_read_url_v4_w_csek(self):
-        encryption_key = os.urandom(32)
-        self._create_signed_read_url_helper(
-            blob_name="v2-w-csek.txt",
-            payload=b"Test signed URL for blob w/ CSEK",
-            encryption_key=encryption_key,
-            version="v4",
-        )
-
-    def test_create_signed_read_url_v2_w_access_token(self):
-        client = iam_credentials_v1.IAMCredentialsClient()
-        service_account_email = Config.CLIENT._credentials.service_account_email
-        name = path_template.expand(
-            "projects/{project}/serviceAccounts/{service_account}",
-            project="-",
-            service_account=service_account_email,
-        )
-        scope = [
-            "https://www.googleapis.com/auth/devstorage.read_write",
-            "https://www.googleapis.com/auth/iam",
-        ]
-        response = client.generate_access_token(name=name, scope=scope)
-        self._create_signed_read_url_helper(
-            service_account_email=service_account_email,
-            access_token=response.access_token,
-        )
-
-    def test_create_signed_read_url_v4_w_access_token(self):
-        client = iam_credentials_v1.IAMCredentialsClient()
-        service_account_email = Config.CLIENT._credentials.service_account_email
-        name = path_template.expand(
-            "projects/{project}/serviceAccounts/{service_account}",
-            project="-",
-            service_account=service_account_email,
-        )
-        scope = [
-            "https://www.googleapis.com/auth/devstorage.read_write",
-            "https://www.googleapis.com/auth/iam",
-        ]
-        response = client.generate_access_token(name=name, scope=scope)
-        self._create_signed_read_url_helper(
-            version="v4",
-            service_account_email=service_account_email,
-            access_token=response.access_token,
-        )
 
     def _create_signed_delete_url_helper(self, version="v2", expiration=None):
         expiration = self._morph_expiration(version, expiration)
