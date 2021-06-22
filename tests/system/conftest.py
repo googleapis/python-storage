@@ -45,6 +45,13 @@ def shared_bucket(storage_client, shared_bucket_name):
     _helpers.delete_bucket(bucket)
 
 
+@pytest.fixture(scope="session")
+def user_project(storage_client):
+    if _helpers.user_project is None:
+        pytest.skip("USER_PROJECT not set in environment.")
+    return _helpers.user_project
+
+
 @pytest.fixture(scope="function")
 def require_service_account(storage_client):
     if not isinstance(storage_client._credentials, service_account.Credentials):

@@ -166,10 +166,7 @@ def test_bucket_get_set_iam_policy(
     assert fetched_policy.bindings == returned_policy.bindings
 
 
-@pytest.mark.skipif(
-    _helpers.user_project is None, reason="USER_PROJECT not set in environment."
-)
-def test_bucket_crud_w_requester_pays(storage_client, buckets_to_delete):
+def test_bucket_crud_w_requester_pays(storage_client, buckets_to_delete, user_project):
     new_bucket_name = _helpers.unique_name("w-requester-pays")
     created = _helpers.retry_429_503(storage_client.create_bucket)(
         new_bucket_name, requester_pays=True
@@ -179,7 +176,7 @@ def test_bucket_crud_w_requester_pays(storage_client, buckets_to_delete):
     assert created.requester_pays
 
     with_user_project = storage_client.bucket(
-        new_bucket_name, user_project=_helpers.user_project,
+        new_bucket_name, user_project=user_project,
     )
 
     try:
@@ -208,10 +205,7 @@ def test_bucket_crud_w_requester_pays(storage_client, buckets_to_delete):
         buckets_to_delete.remove(created)
 
 
-@pytest.mark.skipif(
-    _helpers.user_project is None, reason="USER_PROJECT not set in environment."
-)
-def test_bucket_acls_iam_w_user_project(storage_client, buckets_to_delete):
+def test_bucket_acls_iam_w_user_project(storage_client, buckets_to_delete, user_project):
     new_bucket_name = _helpers.unique_name("acl-w-user-project")
     created = _helpers.retry_429_503(storage_client.create_bucket)(
         new_bucket_name, requester_pays=True,
@@ -219,7 +213,7 @@ def test_bucket_acls_iam_w_user_project(storage_client, buckets_to_delete):
     buckets_to_delete.append(created)
 
     with_user_project = storage_client.bucket(
-        new_bucket_name, user_project=_helpers.user_project
+        new_bucket_name, user_project=user_project
     )
 
     # Exercise bucket ACL w/ userProject
@@ -251,11 +245,8 @@ def test_bucket_acls_iam_w_user_project(storage_client, buckets_to_delete):
     with_user_project.set_iam_policy(policy)
 
 
-@pytest.mark.skipif(
-    _helpers.user_project is None, reason="USER_PROJECT not set in environment."
-)
 def test_bucket_copy_blob_w_user_project(
-    storage_client, buckets_to_delete, blobs_to_delete,
+    storage_client, buckets_to_delete, blobs_to_delete, user_project,
 ):
     payload = b"DEADBEEF"
     new_bucket_name = _helpers.unique_name("copy-w-requester-pays")
@@ -271,7 +262,7 @@ def test_bucket_copy_blob_w_user_project(
     blobs_to_delete.append(blob)
 
     with_user_project = storage_client.bucket(
-        new_bucket_name, user_project=_helpers.user_project
+        new_bucket_name, user_project=user_project
     )
 
     new_blob = _helpers.retry_bad_copy(with_user_project.copy_blob)(
@@ -335,11 +326,8 @@ def test_bucket_copy_blob_w_metageneration_match(
     assert new_blob.download_as_bytes() == payload
 
 
-@pytest.mark.skipif(
-    _helpers.user_project is None, reason="USER_PROJECT not set in environment."
-)
 def test_bucket_get_blob_with_user_project(
-    storage_client, buckets_to_delete, blobs_to_delete,
+    storage_client, buckets_to_delete, blobs_to_delete, user_project,
 ):
     blob_name = "blob-name"
     payload = b"DEADBEEF"
@@ -352,7 +340,7 @@ def test_bucket_get_blob_with_user_project(
     assert created.requester_pays
 
     with_user_project = storage_client.bucket(
-        new_bucket_name, user_project=_helpers.user_project
+        new_bucket_name, user_project=user_project
     )
 
     assert with_user_project.get_blob("nonesuch") is None
