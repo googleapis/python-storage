@@ -110,40 +110,6 @@ def tearDownModule():
     retry(Config.TEST_BUCKET.delete)(force=True)
 
 
-class TestStorageBuckets(unittest.TestCase):
-    def setUp(self):
-        self.case_buckets_to_delete = []
-
-    def tearDown(self):
-        for bucket_name in self.case_buckets_to_delete:
-            bucket = Config.CLIENT.bucket(bucket_name)
-            retry_429_harder(bucket.delete)()
-
-    @unittest.skipUnless(USER_PROJECT, "USER_PROJECT not set in environment.")
-    def test_bucket_get_blob_with_user_project(self):
-        new_bucket_name = "w-requester-pays" + unique_resource_id("-")
-        data = b"DEADBEEF"
-        created = retry_429_503(Config.CLIENT.create_bucket)(
-            new_bucket_name, requester_pays=True
-        )
-        self.case_buckets_to_delete.append(new_bucket_name)
-        self.assertEqual(created.name, new_bucket_name)
-        self.assertTrue(created.requester_pays)
-
-        with_user_project = Config.CLIENT.bucket(
-            new_bucket_name, user_project=USER_PROJECT
-        )
-
-        self.assertIsNone(with_user_project.get_blob("nonesuch"))
-        to_add = created.blob("blob-name")
-        to_add.upload_from_string(data)
-        try:
-            found = with_user_project.get_blob("blob-name")
-            self.assertEqual(found.download_as_bytes(), data)
-        finally:
-            to_add.delete()
-
-
 class TestStorageFiles(unittest.TestCase):
 
     FILES = {

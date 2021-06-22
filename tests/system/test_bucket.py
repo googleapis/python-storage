@@ -331,3 +331,33 @@ def test_bucket_copy_blob_w_metageneration_match(
     blobs_to_delete.append(new_blob)
 
     assert new_blob.download_as_bytes() == payload
+
+
+@pytest.mark.skipif(
+    _helpers.user_project is None, reason="USER_PROJECT not set in environment."
+)
+def test_bucket_get_blob_with_user_project(
+    storage_client, buckets_to_delete, blobs_to_delete,
+):
+    blob_name = "blob-name"
+    payload = b"DEADBEEF"
+    new_bucket_name = _helpers.unique_name("w-requester-pays")
+    created = _helpers.retry_429_503(storage_client.create_bucket)(
+        new_bucket_name, requester_pays=True
+    )
+    buckets_to_delete.append(created)
+    assert created.name == new_bucket_name
+    assert created.requester_pays
+
+    with_user_project = storage_client.bucket(
+        new_bucket_name, user_project=_helpers.user_project
+    )
+
+    assert with_user_project.get_blob("nonesuch") is None
+
+    to_add = created.blob(blob_name)
+    to_add.upload_from_string(payload)
+    blobs_to_delete.append(to_add)
+
+    found = with_user_project.get_blob(blob_name)
+    assert found.download_as_bytes() == payload
