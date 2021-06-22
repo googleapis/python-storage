@@ -91,3 +91,24 @@ def test_bucket_lifecycle_rules(storage_client, buckets_to_delete):
     bucket.patch()
 
     assert list(bucket.lifecycle_rules) == []
+
+
+def test_bucket_update_labels(storage_client, buckets_to_delete):
+    bucket_name = _helpers.unique_name("update-labels")
+    bucket = _helpers.retry_429_503(storage_client.create_bucket)(bucket_name)
+    buckets_to_delete.append(bucket)
+    assert bucket.exists()
+
+    updated_labels = {"test-label": "label-value"}
+    bucket.labels = updated_labels
+    bucket.update()
+    assert bucket.labels == updated_labels
+
+    new_labels = {"another-label": "another-value"}
+    bucket.labels = new_labels
+    bucket.patch()
+    assert bucket.labels == new_labels
+
+    bucket.labels = {}
+    bucket.update()
+    assert bucket.labels == {}

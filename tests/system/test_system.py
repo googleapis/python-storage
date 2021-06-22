@@ -120,26 +120,6 @@ class TestStorageBuckets(unittest.TestCase):
             bucket = Config.CLIENT.bucket(bucket_name)
             retry_429_harder(bucket.delete)()
 
-    def test_bucket_update_labels(self):
-        bucket_name = "update-labels" + unique_resource_id("-")
-        bucket = retry_429_503(Config.CLIENT.create_bucket)(bucket_name)
-        self.case_buckets_to_delete.append(bucket_name)
-        self.assertTrue(bucket.exists())
-
-        updated_labels = {"test-label": "label-value"}
-        bucket.labels = updated_labels
-        bucket.update()
-        self.assertEqual(bucket.labels, updated_labels)
-
-        new_labels = {"another-label": "another-value"}
-        bucket.labels = new_labels
-        bucket.patch()
-        self.assertEqual(bucket.labels, new_labels)
-
-        bucket.labels = {}
-        bucket.update()
-        self.assertEqual(bucket.labels, {})
-
     def test_get_set_iam_policy(self):
         from google.cloud.storage.iam import STORAGE_OBJECT_VIEWER_ROLE
         from google.api_core.exceptions import BadRequest, PreconditionFailed
