@@ -112,3 +112,53 @@ def test_bucket_update_labels(storage_client, buckets_to_delete):
     bucket.labels = {}
     bucket.update()
     assert bucket.labels == {}
+
+
+def test_bucket_get_set_iam_policy(storage_client, buckets_to_delete):
+    from google.cloud.storage.iam import STORAGE_OBJECT_VIEWER_ROLE
+    from google.api_core.exceptions import BadRequest
+    from google.api_core.exceptions import PreconditionFailed
+
+    bucket_name = _helpers.unique_name("iam-policy")
+    bucket = _helpers.retry_429_503(storage_client.create_bucket)(bucket_name)
+    buckets_to_delete.append(bucket)
+    assert bucket.exists()
+
+    policy_no_version = bucket.get_iam_policy()
+    assert policy_no_version.version == 1
+
+    policy = bucket.get_iam_policy(requested_policy_version=3)
+    assert policy == policy_no_version
+
+    member = "serviceAccount:{}".format(storage_client.get_service_account_email())
+
+    binding_w_condition = {
+        "role": STORAGE_OBJECT_VIEWER_ROLE,
+        "members": {member},
+        "condition": {
+            "title": "always-true",
+            "description": "test condition always-true",
+            "expression": "true",
+        },
+    }
+    policy.bindings.append(binding_w_condition)
+
+    with pytest.raises(PreconditionFailed, match="enable uniform bucket-level access"):
+        bucket.set_iam_policy(policy)
+
+    bucket.iam_configuration.uniform_bucket_level_access_enabled = True
+    bucket.patch()
+
+    policy = bucket.get_iam_policy(requested_policy_version=3)
+    policy.bindings.append(binding_w_condition)
+
+    with pytest.raises(BadRequest, match="at least 3"):
+        bucket.set_iam_policy(policy)
+
+    policy.version = 3
+    returned_policy = bucket.set_iam_policy(policy)
+    assert returned_policy.version == 3
+    assert returned_policy.bindings == policy.bindings
+
+    fetched_policy = bucket.get_iam_policy(requested_policy_version=3)
+    assert fetched_policy.bindings == returned_policy.bindings
