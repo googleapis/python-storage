@@ -893,3 +893,43 @@ def test_blob_rewrite_w_generation_match(shared_bucket, blobs_to_delete, file_da
     assert rewritten == len(source_data)
     assert total == len(source_data)
     assert dest.download_as_bytes() == source_data
+
+
+def test_blob_update_storage_class_small_file(
+    shared_bucket, blobs_to_delete, file_data
+):
+    from google.cloud.storage import constants
+
+    blob = shared_bucket.blob("SmallFile")
+
+    info = file_data["simple"]
+    blob.upload_from_filename(info["path"])
+    blobs_to_delete.append(blob)
+
+    blob.update_storage_class(constants.NEARLINE_STORAGE_CLASS)
+    blob.reload()
+    assert blob.storage_class == constants.NEARLINE_STORAGE_CLASS
+
+    blob.update_storage_class(constants.COLDLINE_STORAGE_CLASS)
+    blob.reload()
+    assert blob.storage_class == constants.COLDLINE_STORAGE_CLASS
+
+
+def test_blob_update_storage_class_large_file(
+    shared_bucket, blobs_to_delete, file_data
+):
+    from google.cloud.storage import constants
+
+    blob = shared_bucket.blob("BigFile")
+
+    info = file_data["big"]
+    blob.upload_from_filename(info["path"])
+    blobs_to_delete.append(blob)
+
+    blob.update_storage_class(constants.NEARLINE_STORAGE_CLASS)
+    blob.reload()
+    assert blob.storage_class == constants.NEARLINE_STORAGE_CLASS
+
+    blob.update_storage_class(constants.COLDLINE_STORAGE_CLASS)
+    blob.reload()
+    assert blob.storage_class == constants.COLDLINE_STORAGE_CLASS
