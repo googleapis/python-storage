@@ -167,35 +167,6 @@ class TestStorageSignURLs(unittest.TestCase):
 
         return 10
 
-    def _create_signed_list_blobs_url_helper(
-        self, version, expiration=None, method="GET"
-    ):
-        expiration = self._morph_expiration(version, expiration)
-
-        signed_url = self.bucket.generate_signed_url(
-            expiration=expiration, method=method, client=Config.CLIENT, version=version
-        )
-
-        response = requests.get(signed_url)
-        self.assertEqual(response.status_code, 200)
-
-    def test_create_signed_list_blobs_url_v2(self):
-        self._create_signed_list_blobs_url_helper(version="v2")
-
-    def test_create_signed_list_blobs_url_v2_w_expiration(self):
-        now = datetime.datetime.utcnow()
-        delta = datetime.timedelta(seconds=10)
-
-        self._create_signed_list_blobs_url_helper(expiration=now + delta, version="v2")
-
-    def test_create_signed_list_blobs_url_v4(self):
-        self._create_signed_list_blobs_url_helper(version="v4")
-
-    def test_create_signed_list_blobs_url_v4_w_expiration(self):
-        now = datetime.datetime.utcnow()
-        delta = datetime.timedelta(seconds=10)
-        self._create_signed_list_blobs_url_helper(expiration=now + delta, version="v4")
-
     def _create_signed_read_url_helper(
         self,
         blob_name="LogoToSign.jpg",

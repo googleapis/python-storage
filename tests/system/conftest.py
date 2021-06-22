@@ -43,6 +43,7 @@ _hierarchy_filenames = [
     "parent/child/grand/file31.txt",
     "parent/child/other/file32.txt",
 ]
+_signing_blob_content = b"This time for sure, Rocky!"
 
 
 @pytest.fixture(scope="session")
@@ -122,6 +123,23 @@ def hierarchy_bucket(storage_client, hierarchy_bucket_name, file_data):
 @pytest.fixture(scope="session")
 def hierarchy_filenames():
     return _hierarchy_filenames
+
+
+@pytest.fixture(scope="session")
+def signing_bucket_name():
+    return _helpers.unique_name("gcp-systest-signing")
+
+
+@pytest.fixture(scope="session")
+def signing_bucket(storage_client, signing_bucket_name):
+    bucket = storage_client.bucket(signing_bucket_name)
+    _helpers.retry_429_503(bucket.create)()
+    blob = bucket.blob("README.txt")
+    blob.upload_from_string(_signing_blob_content)
+
+    yield bucket
+
+    _helpers.delete_bucket(bucket)
 
 
 @pytest.fixture(scope="session")
