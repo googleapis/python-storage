@@ -22,7 +22,6 @@ import mock
 from google import resumable_media
 from google.api_core import exceptions
 from google.cloud.storage._helpers import _base64_md5hash
-from . import _helpers
 
 dirname = os.path.realpath(os.path.dirname(__file__))
 data_dirname = os.path.abspath(os.path.join(dirname, "..", "data"))
@@ -56,7 +55,7 @@ def _check_blob_hash(blob, info):
 
 
 def test_large_file_write_from_stream(
-    shared_bucket, blobs_to_delete, file_data, require_service_account,
+    shared_bucket, blobs_to_delete, file_data, service_account,
 ):
     blob = shared_bucket.blob("LargeFile")
 
@@ -69,7 +68,7 @@ def test_large_file_write_from_stream(
 
 
 def test_large_file_write_from_stream_w_checksum(
-    shared_bucket, blobs_to_delete, file_data, require_service_account,
+    shared_bucket, blobs_to_delete, file_data, service_account,
 ):
     blob = shared_bucket.blob("LargeFile")
 
@@ -82,7 +81,7 @@ def test_large_file_write_from_stream_w_checksum(
 
 
 def test_large_file_write_from_stream_w_failed_checksum(
-    shared_bucket, blobs_to_delete, file_data, require_service_account,
+    shared_bucket, blobs_to_delete, file_data, service_account,
 ):
     blob = shared_bucket.blob("LargeFile")
 
@@ -105,7 +104,7 @@ def test_large_file_write_from_stream_w_failed_checksum(
 
 
 def test_large_file_write_from_stream_w_encryption_key(
-    storage_client, shared_bucket, blobs_to_delete, file_data, require_service_account,
+    storage_client, shared_bucket, blobs_to_delete, file_data, service_account,
 ):
     blob = shared_bucket.blob("LargeFile", encryption_key=encryption_key)
 
@@ -127,7 +126,7 @@ def test_large_file_write_from_stream_w_encryption_key(
 
 
 def test_small_file_write_from_filename(
-    shared_bucket, blobs_to_delete, file_data, require_service_account,
+    shared_bucket, blobs_to_delete, file_data, service_account,
 ):
     blob = shared_bucket.blob("SmallFile")
 
@@ -139,7 +138,7 @@ def test_small_file_write_from_filename(
 
 
 def test_small_file_write_from_filename_with_checksum(
-    shared_bucket, blobs_to_delete, file_data, require_service_account,
+    shared_bucket, blobs_to_delete, file_data, service_account,
 ):
     blob = shared_bucket.blob("SmallFile")
 
@@ -151,7 +150,7 @@ def test_small_file_write_from_filename_with_checksum(
 
 
 def test_small_file_write_from_filename_with_failed_checksum(
-    shared_bucket, blobs_to_delete, file_data, require_service_account,
+    shared_bucket, blobs_to_delete, file_data, service_account,
 ):
     blob = shared_bucket.blob("SmallFile")
 

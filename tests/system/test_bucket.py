@@ -115,7 +115,7 @@ def test_bucket_update_labels(storage_client, buckets_to_delete):
 
 
 def test_bucket_get_set_iam_policy(
-    storage_client, buckets_to_delete, require_service_account,
+    storage_client, buckets_to_delete, service_account,
 ):
     from google.cloud.storage.iam import STORAGE_OBJECT_VIEWER_ROLE
     from google.api_core.exceptions import BadRequest
@@ -205,7 +205,9 @@ def test_bucket_crud_w_requester_pays(storage_client, buckets_to_delete, user_pr
         buckets_to_delete.remove(created)
 
 
-def test_bucket_acls_iam_w_user_project(storage_client, buckets_to_delete, user_project):
+def test_bucket_acls_iam_w_user_project(
+    storage_client, buckets_to_delete, user_project
+):
     new_bucket_name = _helpers.unique_name("acl-w-user-project")
     created = _helpers.retry_429_503(storage_client.create_bucket)(
         new_bucket_name, requester_pays=True,

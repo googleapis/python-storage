@@ -16,7 +16,6 @@ import contextlib
 
 import pytest
 
-from google.oauth2 import service_account
 from . import _helpers
 
 
@@ -46,16 +45,19 @@ def shared_bucket(storage_client, shared_bucket_name):
 
 
 @pytest.fixture(scope="session")
-def user_project(storage_client):
+def user_project():
     if _helpers.user_project is None:
         pytest.skip("USER_PROJECT not set in environment.")
     return _helpers.user_project
 
 
-@pytest.fixture(scope="function")
-def require_service_account(storage_client):
-    if not isinstance(storage_client._credentials, service_account.Credentials):
+@pytest.fixture(scope="session")
+def service_account(storage_client):
+    from google.oauth2.service_account import Credentials
+
+    if not isinstance(storage_client._credentials, Credentials):
         pytest.skip("These tests require a service account credential")
+    return storage_client._credentials
 
 
 @pytest.fixture(scope="function")

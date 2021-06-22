@@ -52,13 +52,12 @@ def scrubbed_hmac_keys(storage_client):
         ensure_hmac_key_deleted(hmac_key)
 
 
-def test_hmac_key_crud(storage_client, scrubbed_hmac_keys, require_service_account):
+def test_hmac_key_crud(storage_client, scrubbed_hmac_keys, service_account):
     from google.cloud.storage.hmac_key import HMACKeyMetadata
 
     before_hmac_keys, hmac_keys_to_delete = scrubbed_hmac_keys
 
-    credentials = storage_client._credentials
-    email = credentials.service_account_email
+    email = service_account.service_account_email
 
     metadata, secret = storage_client.create_hmac_key(email)
     hmac_keys_to_delete.append(metadata)

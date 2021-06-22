@@ -14,8 +14,6 @@
 
 import os
 
-import pytest
-
 from google.api_core import exceptions
 
 from test_utils.retry import RetryErrors

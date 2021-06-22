@@ -20,7 +20,7 @@ from google.cloud import exceptions
 from . import _helpers
 
 
-def test_get_service_account_email(storage_client, require_service_account):
+def test_get_service_account_email(storage_client, service_account):
     domain = "gs-project-accounts.iam.gserviceaccount.com"
     email = storage_client.get_service_account_email()
 
