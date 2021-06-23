@@ -25,6 +25,7 @@ retry_429_503 = RetryErrors(
 )
 
 user_project = os.environ.get("GOOGLE_CLOUD_TESTS_USER_PROJECT")
+testing_mtls = os.getenv("GOOGLE_API_USE_CLIENT_CERTIFICATE") == "true"
 signing_blob_content = b"This time for sure, Rocky!"
 
 

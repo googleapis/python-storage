@@ -55,6 +55,28 @@ def storage_client():
 
 
 @pytest.fixture(scope="session")
+def user_project():
+    if _helpers.user_project is None:
+        pytest.skip("USER_PROJECT not set in environment.")
+    return _helpers.user_project
+
+
+@pytest.fixture(scope="session")
+def no_mtls():
+    if _helpers.testing_mtls:
+        pytest.skip("Test incompatible with mTLS.")
+
+
+@pytest.fixture(scope="session")
+def service_account(storage_client):
+    from google.oauth2.service_account import Credentials
+
+    if not isinstance(storage_client._credentials, Credentials):
+        pytest.skip("These tests require a service account credential")
+    return storage_client._credentials
+
+
+@pytest.fixture(scope="session")
 def shared_bucket_name():
     return _helpers.unique_name("gcp-systest")
 
@@ -139,22 +161,6 @@ def signing_bucket(storage_client, signing_bucket_name):
     yield bucket
 
     _helpers.delete_bucket(bucket)
-
-
-@pytest.fixture(scope="session")
-def user_project():
-    if _helpers.user_project is None:
-        pytest.skip("USER_PROJECT not set in environment.")
-    return _helpers.user_project
-
-
-@pytest.fixture(scope="session")
-def service_account(storage_client):
-    from google.oauth2.service_account import Credentials
-
-    if not isinstance(storage_client._credentials, Credentials):
-        pytest.skip("These tests require a service account credential")
-    return storage_client._credentials
 
 
 @pytest.fixture(scope="function")
