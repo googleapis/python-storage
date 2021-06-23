@@ -193,6 +193,11 @@ class Test_is_etag_in_json(unittest.TestCase):
 
         self.assertFalse(self._call_fut(data))
 
+    def test_w_etag_in_dict(self):
+        data = {"etag": "123"}
+
+        self.assertTrue(self._call_fut(data))
+
 
 class Test_default_conditional_retry_policies(unittest.TestCase):
     def test_is_generation_specified_match_generation_match(self):

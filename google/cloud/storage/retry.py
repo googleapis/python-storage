@@ -125,6 +125,8 @@ def is_etag_in_json(data):
 
     Indended for use on calls with relatively short JSON payloads."""
     try:
+        if isinstance(data, dict) and data.get("etag"):
+            return True
         content = json.loads(data)
         if content.get("etag"):
             return True
