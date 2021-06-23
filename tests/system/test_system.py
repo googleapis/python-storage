@@ -16,7 +16,6 @@
 
 import datetime
 import os
-import tempfile
 import unittest
 
 import requests
@@ -31,7 +30,6 @@ import google.oauth2
 from test_utils.retry import RetryErrors
 from test_utils.retry import RetryInstanceState
 from test_utils.system import unique_resource_id
-from test_utils.vpcsc_config import vpcsc_config
 
 
 USER_PROJECT = os.environ.get("GOOGLE_CLOUD_TESTS_USER_PROJECT")
@@ -124,19 +122,6 @@ class TestStorageFiles(unittest.TestCase):
         retry = RetryErrors(errors, max_tries=6)
         for blob in self.case_blobs_to_delete:
             retry(blob.delete)()
-
-
-class TestAnonymousClient(unittest.TestCase):
-
-    PUBLIC_BUCKET = "gcp-public-data-landsat"
-
-    @vpcsc_config.skip_if_inside_vpcsc
-    def test_access_to_public_bucket(self):
-        anonymous = storage.Client.create_anonymous_client()
-        bucket = anonymous.bucket(self.PUBLIC_BUCKET)
-        (blob,) = retry_429_503(anonymous.list_blobs)(bucket, max_results=1)
-        with tempfile.TemporaryFile() as stream:
-            retry_429_503(blob.download_to_file)(stream)
 
 
 class TestKMSIntegration(TestStorageFiles):

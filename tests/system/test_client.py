@@ -18,7 +18,24 @@ import tempfile
 import pytest
 
 from google.cloud import exceptions
+from test_utils.vpcsc_config import vpcsc_config
 from . import _helpers
+
+
+public_bucket = "gcp-public-data-landsat"
+
+
+@vpcsc_config.skip_if_inside_vpcsc
+def test_anonymous_client_access_to_public_bucket():
+    from google.cloud.storage.client import Client
+
+    anonymous_client = Client.create_anonymous_client()
+    bucket = anonymous_client.bucket(public_bucket)
+    (blob,) = _helpers.retry_429_503(anonymous_client.list_blobs)(
+        bucket, max_results=1,
+    )
+    with tempfile.TemporaryFile() as stream:
+        _helpers.retry_429_503(blob.download_to_file)(stream)
 
 
 def test_get_service_account_email(storage_client, service_account):
