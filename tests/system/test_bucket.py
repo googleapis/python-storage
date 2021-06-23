@@ -697,3 +697,81 @@ def test_bucket_lock_retention_policy(
     bucket.retention_period = None
     with pytest.raises(exceptions.Forbidden):
         bucket.patch()
+
+
+def test_new_bucket_w_ubla(
+    storage_client, buckets_to_delete, blobs_to_delete,
+):
+    bucket_name = _helpers.unique_name("new-w-ubla")
+    bucket = storage_client.bucket(bucket_name)
+    bucket.iam_configuration.uniform_bucket_level_access_enabled = True
+    _helpers.retry_429_503(bucket.create)()
+    buckets_to_delete.append(bucket)
+
+    bucket_acl = bucket.acl
+    with pytest.raises(exceptions.BadRequest):
+        bucket_acl.reload()
+
+    bucket_acl.loaded = True  # Fake that we somehow loaded the ACL
+    bucket_acl.all().grant_read()
+    with pytest.raises(exceptions.BadRequest):
+        bucket_acl.save()
+
+    blob_name = "my-blob.txt"
+    blob = bucket.blob(blob_name)
+    payload = b"DEADBEEF"
+    blob.upload_from_string(payload)
+    blobs_to_delete.append(blob)
+
+    found = bucket.get_blob(blob_name)
+    assert found.download_as_bytes() == payload
+
+    blob_acl = blob.acl
+    with pytest.raises(exceptions.BadRequest):
+        blob_acl.reload()
+
+    blob_acl.loaded = True  # Fake that we somehow loaded the ACL
+    blob_acl.all().grant_read()
+    with pytest.raises(exceptions.BadRequest):
+        blob_acl.save()
+
+
+def test_ubla_set_unset_preserves_acls(
+    storage_client, buckets_to_delete, blobs_to_delete,
+):
+    bucket_name = _helpers.unique_name("ubla-acls")
+    bucket = _helpers.retry_429_503(storage_client.create_bucket)(bucket_name)
+    buckets_to_delete.append(bucket)
+
+    blob_name = "my-blob.txt"
+    blob = bucket.blob(blob_name)
+    payload = b"DEADBEEF"
+    blob.upload_from_string(payload)
+    blobs_to_delete.append(blob)
+
+    # Preserve ACLs before setting UBLA
+    bucket_acl_before = list(bucket.acl)
+    blob_acl_before = list(bucket.acl)
+
+    # Set UBLA
+    bucket.iam_configuration.uniform_bucket_level_access_enabled = True
+    bucket.patch()
+
+    assert bucket.iam_configuration.uniform_bucket_level_access_enabled
+
+    # While UBLA is set, cannot get / set ACLs
+    with pytest.raises(exceptions.BadRequest):
+        bucket.acl.reload()
+
+    # Clear UBLA
+    bucket.iam_configuration.uniform_bucket_level_access_enabled = False
+    bucket.patch()
+
+    # Query ACLs after clearing UBLA
+    bucket.acl.reload()
+    bucket_acl_after = list(bucket.acl)
+    blob.acl.reload()
+    blob_acl_after = list(bucket.acl)
+
+    assert bucket_acl_before == bucket_acl_after
+    assert blob_acl_before == blob_acl_after
