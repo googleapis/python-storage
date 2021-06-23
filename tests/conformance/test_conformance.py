@@ -135,6 +135,45 @@ def upload_from_string(client, _preconditions, bucket):
         blob.upload_from_string("upload from string")
 
 
+def blob_upload_from_file(client, _preconditions, bucket):
+    from io import BytesIO
+
+    file_obj = BytesIO()
+    blob = client.bucket(bucket.name).blob(uuid.uuid4().hex)
+    if _preconditions:
+        blob.upload_from_file(file_obj, if_metageneration_match=0)
+    else:
+        blob.upload_from_file(file_obj)
+
+
+def blob_upload_from_filename(client, _preconditions, bucket):
+    blob = client.bucket(bucket.name).blob(uuid.uuid4().hex)
+    with tempfile.NamedTemporaryFile() as temp_f:
+        if _preconditions:
+            blob.upload_from_filename(temp_f.name, if_metageneration_match=0)
+        else:
+            blob.upload_from_filename(temp_f.name)
+
+
+def blobwriter_write(client, _preconditions, bucket):
+    import os
+    from google.cloud.storage.fileio import BlobWriter
+
+    chunk_size = 256 * 1024
+    blob = client.bucket(bucket.name).blob(uuid.uuid4().hex)
+    if _preconditions:
+        blob_writer = BlobWriter(blob, chunk_size=chunk_size, if_metageneration_match=0)
+        blob_writer.write(bytearray(os.urandom(262144)))
+    else:
+        blob_writer = BlobWriter(blob, chunk_size=chunk_size)
+        blob_writer.write(bytearray(os.urandom(262144)))
+
+
+def blob_create_resumable_upload_session(client, _preconditions, bucket):
+    blob = client.bucket(bucket.name).blob(uuid.uuid4().hex)
+    blob.create_resumable_upload_session()
+
+
 def create_notification(client, _preconditions, bucket):
     bucket = client.get_bucket(bucket.name)
     notification = bucket.notification()
@@ -313,6 +352,15 @@ def rewrite_blob(client, _preconditions, bucket, object):
         new_blob.rewrite(object)
 
 
+def blob_update_storage_class(client, _preconditions, bucket, object):
+    blob = client.bucket(bucket.name).blob(object.name)
+    storage_class = "STANDARD"
+    if _preconditions:
+        blob.update_storage_class(storage_class, if_generation_match=object.generation)
+    else:
+        blob.update_storage_class(storage_class)
+
+
 def compose_blob(client, _preconditions, bucket, object):
     blob = client.bucket(bucket.name).blob(object.name)
     blob_2 = bucket.blob(uuid.uuid4().hex)
@@ -323,6 +371,20 @@ def compose_blob(client, _preconditions, bucket, object):
         blob.compose(sources, if_generation_match=object.generation)
     else:
         blob.compose(sources)
+
+
+def bucket_set_iam_policy(client, _preconditions, bucket):
+    bucket = client.get_bucket(bucket.name)
+    role = "roles/storage.objectViewer"
+    member = _CONF_TEST_SERVICE_ACCOUNT_EMAIL
+
+    policy = bucket.get_iam_policy(requested_policy_version=3)
+    policy.bindings.append({"role": role, "members": {member}})
+
+    if _preconditions:
+        bucket.set_iam_policy(policy)
+    else:
+        bucket.set_iam_policy(policy)
 
 
 ########################################################################################################################################
@@ -361,7 +423,7 @@ method_mapping = {
     ],
     "storage.objects.list": [list_blobs, bucket_list_blobs, delete_bucket],  # S1 end
     "storage.buckets.patch": [patch_bucket],  # S2 start
-    "storage.buckets.setIamPolicy": [],
+    "storage.buckets.setIamPolicy": [],  # bucket_set_iam_policy
     "storage.buckets.update": [update_bucket],
     "storage.objects.compose": [compose_blob],
     "storage.objects.copy": [copy_blob, rename_blob],
@@ -371,9 +433,14 @@ method_mapping = {
         delete_bucket,
         blob_delete,
     ],  # rename_blob
-    "storage.objects.insert": [upload_from_string],
+    "storage.objects.insert": [
+        upload_from_string,
+        blob_upload_from_file,
+        blob_upload_from_filename,
+        blobwriter_write,
+    ],
     "storage.objects.patch": [patch_blob],
-    "storage.objects.rewrite": [rewrite_blob],
+    "storage.objects.rewrite": [rewrite_blob, blob_update_storage_class],
     "storage.objects.update": [update_blob],  # S2 end
     "storage.notifications.insert": [create_notification],  # S4
 }
