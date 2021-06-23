@@ -54,7 +54,10 @@ def empty_bucket(bucket):
 def delete_blob(blob):
     errors = (exceptions.Conflict, exceptions.TooManyRequests)
     retry = RetryErrors(errors)
-    retry(blob.delete)()
+    try:
+        retry(blob.delete)()
+    except exceptions.NotFound:  # race
+        pass
 
 
 def delete_bucket(bucket):
