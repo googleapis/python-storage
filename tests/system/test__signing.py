@@ -328,3 +328,68 @@ def test_create_signed_resumable_upload_url_v4(storage_client, signing_bucket):
     _create_signed_resumable_upload_url_helper(
         storage_client, signing_bucket, version="v4",
     )
+
+
+def test_generate_signed_post_policy_v4(
+    storage_client, buckets_to_delete, blobs_to_delete, service_account,
+):
+    bucket_name = _helpers.unique_name("post_policy")
+    bucket = _helpers.retry_429_503(storage_client.create_bucket)(bucket_name)
+    buckets_to_delete.append(bucket)
+
+    blob_name = "post_policy_obj.txt"
+    payload = b"DEADBEEF"
+    with open(blob_name, "wb") as f:
+        f.write(payload)
+
+    policy = storage_client.generate_signed_post_policy_v4(
+        bucket_name,
+        blob_name,
+        conditions=[
+            {"bucket": bucket_name},
+            ["starts-with", "$Content-Type", "text/pla"],
+        ],
+        expiration=datetime.datetime.utcnow() + datetime.timedelta(hours=1),
+        fields={"content-type": "text/plain"},
+    )
+    with open(blob_name, "r") as f:
+        files = {"file": (blob_name, f)}
+        response = requests.post(policy["url"], data=policy["fields"], files=files)
+
+    os.remove(blob_name)
+    assert response.status_code == 204
+
+    blob = bucket.get_blob(blob_name)
+    assert blob.download_as_bytes() == payload
+
+
+def test_generate_signed_post_policy_v4_invalid_field(
+    storage_client, buckets_to_delete, blobs_to_delete, service_account,
+):
+    bucket_name = _helpers.unique_name("post_policy-invalid")
+    bucket = _helpers.retry_429_503(storage_client.create_bucket)(bucket_name)
+    buckets_to_delete.append(bucket)
+
+    blob_name = "post_policy_obj.txt"
+    payload = b"DEADBEEF"
+    with open(blob_name, "wb") as f:
+        f.write(payload)
+
+    policy = storage_client.generate_signed_post_policy_v4(
+        bucket_name,
+        blob_name,
+        conditions=[
+            {"bucket": bucket_name},
+            ["starts-with", "$Content-Type", "text/pla"],
+        ],
+        expiration=datetime.datetime.utcnow() + datetime.timedelta(hours=1),
+        fields={"x-goog-random": "invalid_field", "content-type": "text/plain"},
+    )
+    with open(blob_name, "r") as f:
+        files = {"file": (blob_name, f)}
+        response = requests.post(policy["url"], data=policy["fields"], files=files)
+
+    os.remove(blob_name)
+    assert response.status_code == 400
+
+    assert list(bucket.list_blobs()) == []
