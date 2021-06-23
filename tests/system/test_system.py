@@ -27,6 +27,7 @@ import unittest
 import mock
 
 import requests
+import pytest
 import six
 
 from google.cloud import exceptions
@@ -35,6 +36,7 @@ from google.cloud import storage
 from google.cloud.storage._helpers import _base64_md5hash
 from google.cloud.storage.bucket import LifecycleRuleDelete
 from google.cloud.storage.bucket import LifecycleRuleSetStorageClass
+from google.cloud import _helpers
 from google.cloud import kms
 from google import resumable_media
 import google.auth
@@ -42,6 +44,7 @@ import google.api_core
 from google.api_core import path_template
 import google.oauth2
 from test_utils.retry import RetryErrors
+from test_utils.retry import RetryInstanceState
 from test_utils.system import unique_resource_id
 from test_utils.vpcsc_config import vpcsc_config
 
@@ -57,12 +60,17 @@ def _bad_copy(bad_request):
     return err_msg.startswith("No file found in request. (POST") and "copyTo" in err_msg
 
 
+def _no_event_based_hold(blob):
+    return not blob.event_based_hold
+
+
 retry_429 = RetryErrors(exceptions.TooManyRequests, max_tries=6)
 retry_429_harder = RetryErrors(exceptions.TooManyRequests, max_tries=10)
 retry_429_503 = RetryErrors(
     [exceptions.TooManyRequests, exceptions.ServiceUnavailable], max_tries=10
 )
 retry_bad_copy = RetryErrors(exceptions.BadRequest, error_predicate=_bad_copy)
+retry_no_event_based_hold = RetryInstanceState(_no_event_based_hold)
 
 
 def _empty_bucket(client, bucket):
@@ -141,13 +149,33 @@ class TestClient(unittest.TestCase):
 
         self.assertTrue(any(match for match in matches if match is not None))
 
+    @staticmethod
+    def _get_before_hmac_keys(client):
+        from google.cloud.storage.hmac_key import HMACKeyMetadata
+
+        before_hmac_keys = set(client.list_hmac_keys())
+
+        now = datetime.datetime.utcnow().replace(tzinfo=_helpers.UTC)
+        yesterday = now - datetime.timedelta(days=1)
+
+        # Delete any HMAC keys older than a day.
+        for hmac_key in list(before_hmac_keys):
+            if hmac_key.time_created < yesterday:
+                if hmac_key.state != HMACKeyMetadata.INACTIVE_STATE:
+                    hmac_key.state = HMACKeyMetadata.INACTIVE_STATE
+                    hmac_key.update()
+                hmac_key.delete()
+                before_hmac_keys.remove(hmac_key)
+
+        return before_hmac_keys
+
     def test_hmac_key_crud(self):
         from google.cloud.storage.hmac_key import HMACKeyMetadata
 
         credentials = Config.CLIENT._credentials
         email = credentials.service_account_email
 
-        before_keys = set(Config.CLIENT.list_hmac_keys())
+        before_hmac_keys = self._get_before_hmac_keys(Config.CLIENT)
 
         metadata, secret = Config.CLIENT.create_hmac_key(email)
         self.case_hmac_keys_to_delete.append(metadata)
@@ -155,9 +183,9 @@ class TestClient(unittest.TestCase):
         self.assertIsInstance(secret, six.text_type)
         self.assertEqual(len(secret), 40)
 
-        after_keys = set(Config.CLIENT.list_hmac_keys())
-        self.assertFalse(metadata in before_keys)
-        self.assertTrue(metadata in after_keys)
+        after_hmac_keys = set(Config.CLIENT.list_hmac_keys())
+        self.assertFalse(metadata in before_hmac_keys)
+        self.assertTrue(metadata in after_hmac_keys)
 
         another = HMACKeyMetadata(Config.CLIENT)
 
@@ -303,7 +331,6 @@ class TestStorageBuckets(unittest.TestCase):
         self.assertEqual(bucket.labels, {})
 
     def test_get_set_iam_policy(self):
-        import pytest
         from google.cloud.storage.iam import STORAGE_OBJECT_VIEWER_ROLE
         from google.api_core.exceptions import BadRequest, PreconditionFailed
 
@@ -2482,6 +2509,11 @@ class TestRetentionPolicy(unittest.TestCase):
         self.assertFalse(bucket.retention_policy_locked)
 
         blob.upload_from_string(payload)
+
+        # https://github.com/googleapis/python-storage/issues/435
+        if blob.event_based_hold:
+            retry_no_event_based_hold(blob.reload)()
+
         self.assertFalse(blob.event_based_hold)
         self.assertFalse(blob.temporary_hold)
         self.assertIsNone(blob.retention_expiration_time)
