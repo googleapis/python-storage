@@ -19,6 +19,7 @@ from google.api_core import exceptions
 from test_utils.retry import RetryErrors
 from test_utils.system import unique_resource_id
 
+retry_429 = RetryErrors(exceptions.TooManyRequests)
 retry_429_harder = RetryErrors(exceptions.TooManyRequests, max_tries=10)
 retry_429_503 = RetryErrors(
     [exceptions.TooManyRequests, exceptions.ServiceUnavailable], max_tries=10
