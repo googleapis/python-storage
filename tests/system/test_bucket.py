@@ -531,3 +531,169 @@ def test_list_blobs_hierarchy_w_include_trailing_delimiter(
     assert [blob.name for blob in blobs] == expected_names
     assert iterator.next_page_token is None
     assert iterator.prefixes == expected_prefixes
+
+
+def test_bucket_w_retention_period(
+    storage_client, buckets_to_delete, blobs_to_delete,
+):
+    period_secs = 10
+    bucket_name = _helpers.unique_name("w-retention-period")
+    bucket = _helpers.retry_429_503(storage_client.create_bucket)(bucket_name)
+    buckets_to_delete.append(bucket)
+
+    bucket.retention_period = period_secs
+    bucket.default_event_based_hold = False
+    bucket.patch()
+
+    assert bucket.retention_period == period_secs
+    assert isinstance(bucket.retention_policy_effective_time, datetime.datetime)
+    assert not bucket.default_event_based_hold
+    assert not bucket.retention_policy_locked
+
+    blob_name = "test-blob"
+    payload = b"DEADBEEF"
+    blob = bucket.blob(blob_name)
+    blob.upload_from_string(payload)
+
+    blobs_to_delete.append(blob)
+
+    other = bucket.get_blob(blob_name)
+
+    assert not other.event_based_hold
+    assert not other.temporary_hold
+    assert isinstance(other.retention_expiration_time, datetime.datetime)
+
+    with pytest.raises(exceptions.Forbidden):
+        other.delete()
+
+    bucket.retention_period = None
+    bucket.patch()
+
+    assert bucket.retention_period is None
+    assert bucket.retention_policy_effective_time is None
+    assert not bucket.default_event_based_hold
+    assert not bucket.retention_policy_locked
+
+    other.reload()
+
+    assert not other.event_based_hold
+    assert not other.temporary_hold
+    assert other.retention_expiration_time is None
+
+    other.delete()
+    blobs_to_delete.pop()
+
+
+def test_bucket_w_default_event_based_hold(
+    storage_client, buckets_to_delete, blobs_to_delete,
+):
+    bucket_name = _helpers.unique_name("w-def-ebh")
+    bucket = _helpers.retry_429_503(storage_client.create_bucket)(bucket_name)
+    buckets_to_delete.append(bucket)
+
+    bucket.default_event_based_hold = True
+    bucket.patch()
+
+    assert bucket.default_event_based_hold
+    assert bucket.retention_period is None
+    assert bucket.retention_policy_effective_time is None
+    assert not bucket.retention_policy_locked
+
+    blob_name = "test-blob"
+    payload = b"DEADBEEF"
+    blob = bucket.blob(blob_name)
+    blob.upload_from_string(payload)
+
+    blobs_to_delete.append(blob)
+
+    other = bucket.get_blob(blob_name)
+
+    assert other.event_based_hold
+    assert not other.temporary_hold
+    assert other.retention_expiration_time is None
+
+    with pytest.raises(exceptions.Forbidden):
+        other.delete()
+
+    other.event_based_hold = False
+    other.patch()
+    other.delete()
+
+    bucket.default_event_based_hold = False
+    bucket.patch()
+
+    assert not bucket.default_event_based_hold
+    assert bucket.retention_period is None
+    assert bucket.retention_policy_effective_time is None
+    assert not bucket.retention_policy_locked
+
+    blob.upload_from_string(payload)
+
+    # https://github.com/googleapis/python-storage/issues/435
+    if blob.event_based_hold:
+        _helpers.retry_no_event_based_hold(blob.reload)()
+
+    assert not blob.event_based_hold
+    assert not blob.temporary_hold
+    assert blob.retention_expiration_time is None
+
+    blob.delete()
+    blobs_to_delete.pop()
+
+
+def test_blob_w_temporary_hold(
+    storage_client, buckets_to_delete, blobs_to_delete,
+):
+    bucket_name = _helpers.unique_name("w-tmp-hold")
+    bucket = _helpers.retry_429_503(storage_client.create_bucket)(bucket_name)
+    buckets_to_delete.append(bucket)
+
+    blob_name = "test-blob"
+    payload = b"DEADBEEF"
+    blob = bucket.blob(blob_name)
+    blob.upload_from_string(payload)
+
+    blobs_to_delete.append(blob)
+
+    other = bucket.get_blob(blob_name)
+    other.temporary_hold = True
+    other.patch()
+
+    assert other.temporary_hold
+    assert not other.event_based_hold
+    assert other.retention_expiration_time is None
+
+    with pytest.raises(exceptions.Forbidden):
+        other.delete()
+
+    other.temporary_hold = False
+    other.patch()
+
+    other.delete()
+    blobs_to_delete.pop()
+
+
+def test_bucket_lock_retention_policy(
+    storage_client, buckets_to_delete,
+):
+    period_secs = 10
+    bucket_name = _helpers.unique_name("loc-ret-policy")
+    bucket = _helpers.retry_429_503(storage_client.create_bucket)(bucket_name)
+    buckets_to_delete.append(bucket)
+
+    bucket.retention_period = period_secs
+    bucket.patch()
+
+    assert bucket.retention_period == period_secs
+    assert isinstance(bucket.retention_policy_effective_time, datetime.datetime)
+    assert not bucket.default_event_based_hold
+    assert not bucket.retention_policy_locked
+
+    bucket.lock_retention_policy()
+
+    bucket.reload()
+    assert bucket.retention_policy_locked
+
+    bucket.retention_period = None
+    with pytest.raises(exceptions.Forbidden):
+        bucket.patch()

@@ -17,6 +17,7 @@ import os
 from google.api_core import exceptions
 
 from test_utils.retry import RetryErrors
+from test_utils.retry import RetryInstanceState
 from test_utils.system import unique_resource_id
 
 retry_429 = RetryErrors(exceptions.TooManyRequests)
@@ -36,7 +37,12 @@ def _bad_copy(bad_request):
     return err_msg.startswith("No file found in request. (POST") and "copyTo" in err_msg
 
 
+def _no_event_based_hold(blob):
+    return not blob.event_based_hold
+
+
 retry_bad_copy = RetryErrors(exceptions.BadRequest, error_predicate=_bad_copy)
+retry_no_event_based_hold = RetryInstanceState(_no_event_based_hold)
 
 
 def unique_name(prefix):
