@@ -2955,7 +2955,7 @@ class Test_Blob(unittest.TestCase):
         if_metageneration_not_match = kwargs.get("if_metageneration_not_match", None)
         num_retries = kwargs.get("num_retries", None)
         default_retry = (
-            DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED if not num_retries else None
+            DEFAULT_RETRY_IF_GENERATION_SPECIFIED if not num_retries else None
         )
         retry = kwargs.get("retry", default_retry)
         ret_val = blob.upload_from_file(
@@ -3062,9 +3062,7 @@ class Test_Blob(unittest.TestCase):
 
         expected_timeout = self._get_default_timeout() if timeout is None else timeout
         if not retry:
-            retry = (
-                DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED if not num_retries else None
-            )
+            retry = DEFAULT_RETRY_IF_GENERATION_SPECIFIED if not num_retries else None
         self.assertEqual(
             kwargs, {"timeout": expected_timeout, "checksum": None, "retry": retry}
         )
