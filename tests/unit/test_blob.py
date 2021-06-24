@@ -3352,7 +3352,7 @@ class Test_Blob(unittest.TestCase):
 
     def test_create_resumable_upload_session_with_conditional_retry_success(self):
         self._create_resumable_upload_session_helper(
-            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED, if_generation_match=1
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED, if_generation_match=123456
         )
 
     def test_create_resumable_upload_session_with_conditional_retry_failure(self):
