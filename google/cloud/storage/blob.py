@@ -1702,10 +1702,10 @@ class Blob(_PropertyMixin):
         :type num_retries: int
         :param num_retries:
             Number of upload retries. By default, only uploads with
-            if_metageneration_match set will be retried, as uploads without the
+            if_generation_match set will be retried, as uploads without the
             argument are not guaranteed to be idempotent. Setting num_retries
             will override this default behavior and guarantee retries even when
-            if_metageneration_match is not set.  (Deprecated: This argument
+            if_generation_match is not set.  (Deprecated: This argument
             will be removed in a future release.)
 
         :type predefined_acl: str
@@ -1749,7 +1749,7 @@ class Blob(_PropertyMixin):
 
             This private method does not accept ConditionalRetryPolicy values
             because the information necessary to evaluate the policy is instead
-            evaluated in client.download_blob_to_file().
+            evaluated in blob._do_upload().
 
             See the retry.py source code and docstrings in this package
             (google.cloud.storage.retry) for information on retry types and how
@@ -1876,10 +1876,10 @@ class Blob(_PropertyMixin):
         :type num_retries: int
         :param num_retries:
             Number of upload retries. By default, only uploads with
-            if_metageneration_match set will be retried, as uploads without the
+            if_generation_match set will be retried, as uploads without the
             argument are not guaranteed to be idempotent. Setting num_retries
             will override this default behavior and guarantee retries even when
-            if_metageneration_match is not set.  (Deprecated: This argument
+            if_generation_match is not set.  (Deprecated: This argument
             will be removed in a future release.)
 
         :type extra_headers: dict
@@ -1935,7 +1935,7 @@ class Blob(_PropertyMixin):
 
             This private method does not accept ConditionalRetryPolicy values
             because the information necessary to evaluate the policy is instead
-            evaluated in client.download_blob_to_file().
+            evaluated in blob._do_upload().
 
             See the retry.py source code and docstrings in this package
             (google.cloud.storage.retry) for information on retry types and how
@@ -2069,10 +2069,10 @@ class Blob(_PropertyMixin):
         :type num_retries: int
         :param num_retries:
             Number of upload retries. By default, only uploads with
-            if_metageneration_match set will be retried, as uploads without the
+            if_generation_match set will be retried, as uploads without the
             argument are not guaranteed to be idempotent. Setting num_retries
             will override this default behavior and guarantee retries even when
-            if_metageneration_match is not set.  (Deprecated: This argument
+            if_generation_match is not set.  (Deprecated: This argument
             will be removed in a future release.)
 
         :type predefined_acl: str
@@ -2118,7 +2118,7 @@ class Blob(_PropertyMixin):
 
             This private method does not accept ConditionalRetryPolicy values
             because the information necessary to evaluate the policy is instead
-            evaluated in client.download_blob_to_file().
+            evaluated in blob._do_upload().
 
             See the retry.py source code and docstrings in this package
             (google.cloud.storage.retry) for information on retry types and how
@@ -2203,10 +2203,10 @@ class Blob(_PropertyMixin):
         :type num_retries: int
         :param num_retries:
             Number of upload retries. By default, only uploads with
-            if_metageneration_match set will be retried, as uploads without the
+            if_generation_match set will be retried, as uploads without the
             argument are not guaranteed to be idempotent. Setting num_retries
             will override this default behavior and guarantee retries even when
-            if_metageneration_match is not set.  (Deprecated: This argument
+            if_generation_match is not set.  (Deprecated: This argument
             will be removed in a future release.)
 
         :type predefined_acl: str
@@ -2257,7 +2257,7 @@ class Blob(_PropertyMixin):
             This class exists to provide safe defaults for RPC calls that are
             not technically safe to retry normally (due to potential data
             duplication or other side-effects) but become safe to retry if a
-            condition such as if_metageneration_match is set.
+            condition such as if_generation_match is set.
 
             See the retry.py source code and docstrings in this package
             (google.cloud.storage.retry) for information on retry types and how
@@ -2399,7 +2399,7 @@ class Blob(_PropertyMixin):
             if_generation_match set will be retried, as uploads without the
             argument are not guaranteed to be idempotent. Setting num_retries
             will override this default behavior and guarantee retries even when
-            if_metageneration_match is not set.  (Deprecated: This argument
+            if_generation_match is not set.  (Deprecated: This argument
             will be removed in a future release.)
 
         :type client: :class:`~google.cloud.storage.client.Client`
@@ -2560,7 +2560,7 @@ class Blob(_PropertyMixin):
             if_generation_match set will be retried, as uploads without the
             argument are not guaranteed to be idempotent. Setting num_retries
             will override this default behavior and guarantee retries even when
-            if_metageneration_match is not set.  (Deprecated: This argument
+            if_generation_match is not set.  (Deprecated: This argument
             will be removed in a future release.)
 
         :type predefined_acl: str
@@ -2689,7 +2689,7 @@ class Blob(_PropertyMixin):
             if_generation_match set will be retried, as uploads without the
             argument are not guaranteed to be idempotent. Setting num_retries
             will override this default behavior and guarantee retries even when
-            if_metageneration_match is not set.  (Deprecated: This argument
+            if_generation_match is not set.  (Deprecated: This argument
             will be removed in a future release.)
 
         :type client: :class:`~google.cloud.storage.client.Client`
