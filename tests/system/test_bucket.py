@@ -18,18 +18,7 @@ import pytest
 import six
 
 from google.api_core import exceptions
-from test_utils.retry import RetryErrors
 from . import _helpers
-
-# Work around https://github.com/googleapis/python-test-utils/issues/36
-if six.PY3:
-    retry_failures = RetryErrors(AssertionError)
-else:
-
-    def retry_failures(decorated):  # no-op
-        wrapped = RetryErrors(AssertionError)(decorated)
-        wrapped.__wrapped__ = decorated
-        return wrapped
 
 
 def test_bucket_create_w_alt_storage_class(storage_client, buckets_to_delete):
@@ -379,13 +368,13 @@ def test_bucket_get_blob_with_user_project(
     assert found.download_as_bytes() == payload
 
 
-@retry_failures
+@_helpers.retry_failures
 def test_bucket_list_blobs(listable_bucket, listable_filenames):
     all_blobs = list(listable_bucket.list_blobs())
     assert sorted(blob.name for blob in all_blobs) == sorted(listable_filenames)
 
 
-@retry_failures
+@_helpers.retry_failures
 def test_bucket_list_blobs_w_user_project(
     storage_client, listable_bucket, listable_filenames, user_project,
 ):
@@ -396,7 +385,7 @@ def test_bucket_list_blobs_w_user_project(
     assert sorted(blob.name for blob in all_blobs) == sorted(listable_filenames)
 
 
-@retry_failures
+@_helpers.retry_failures
 def test_bucket_list_blobs_paginated(listable_bucket, listable_filenames):
     truncation_size = 1
     count = len(listable_filenames) - truncation_size
@@ -418,7 +407,7 @@ def test_bucket_list_blobs_paginated(listable_bucket, listable_filenames):
     assert len(last_blobs) == truncation_size
 
 
-@retry_failures
+@_helpers.retry_failures
 def test_bucket_list_blobs_paginated_w_offset(listable_bucket, listable_filenames):
     truncation_size = 1
     inclusive_start_offset = listable_filenames[1]
@@ -449,14 +438,14 @@ def test_bucket_list_blobs_paginated_w_offset(listable_bucket, listable_filename
     assert last_blobs[-1].name == desired_files[-1]
 
 
-@retry_failures
+@_helpers.retry_failures
 def test_blob_exists_hierarchy(hierarchy_bucket, hierarchy_filenames):
     for filename in hierarchy_filenames:
         blob = hierarchy_bucket.blob(filename)
         assert blob.exists()
 
 
-@retry_failures
+@_helpers.retry_failures
 def test_bucket_list_blobs_hierarchy_root_level(hierarchy_bucket, hierarchy_filenames):
     expected_names = ["file01.txt"]
     expected_prefixes = set(["parent/"])
@@ -470,7 +459,7 @@ def test_bucket_list_blobs_hierarchy_root_level(hierarchy_bucket, hierarchy_file
     assert iterator.prefixes == expected_prefixes
 
 
-@retry_failures
+@_helpers.retry_failures
 def test_bucket_list_blobs_hierarchy_first_level(hierarchy_bucket, hierarchy_filenames):
     expected_names = ["parent/", "parent/file11.txt"]
     expected_prefixes = set(["parent/child/"])
@@ -484,7 +473,7 @@ def test_bucket_list_blobs_hierarchy_first_level(hierarchy_bucket, hierarchy_fil
     assert iterator.prefixes == expected_prefixes
 
 
-@retry_failures
+@_helpers.retry_failures
 def test_bucket_list_blobs_hierarchy_second_level(
     hierarchy_bucket, hierarchy_filenames
 ):
@@ -499,7 +488,7 @@ def test_bucket_list_blobs_hierarchy_second_level(
     assert iterator.prefixes == expected_prefixes
 
 
-@retry_failures
+@_helpers.retry_failures
 def test_bucket_list_blobs_hierarchy_third_level(hierarchy_bucket, hierarchy_filenames):
     # Pseudo-hierarchy can be arbitrarily deep, subject to the limit
     # of 1024 characters in the UTF-8 encoded name:
@@ -517,7 +506,7 @@ def test_bucket_list_blobs_hierarchy_third_level(hierarchy_bucket, hierarchy_fil
     assert iterator.prefixes == expected_prefixes
 
 
-@retry_failures
+@_helpers.retry_failures
 def test_bucket_list_blobs_hierarchy_w_include_trailing_delimiter(
     hierarchy_bucket, hierarchy_filenames,
 ):

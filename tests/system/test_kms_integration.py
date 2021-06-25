@@ -18,7 +18,6 @@ import pytest
 
 from google.api_core import exceptions
 from google.cloud import kms
-from test_utils.retry import RetryErrors
 from . import _helpers
 
 keyring_name = "gcs-test"
@@ -126,7 +125,7 @@ def test_blob_w_explicit_kms_key_name(
     assert listed.kms_key_name.startswith(kms_key_name)
 
 
-@RetryErrors(AssertionError)
+@_helpers.retry_failures
 def test_bucket_w_default_kms_key_name(
     kms_bucket, blobs_to_delete, kms_key_name, alt_kms_key_name, file_data,
 ):
