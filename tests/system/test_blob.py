@@ -499,6 +499,8 @@ def test_blob_upload_from_file_resumable_with_generation(
     shared_bucket, blobs_to_delete, file_data, service_account,
 ):
     blob = shared_bucket.blob("LargeFile")
+    wrong_generation = 3
+    wrong_meta_generation = 3
 
     # uploading the file
     info = file_data["big"]
@@ -517,11 +519,15 @@ def test_blob_upload_from_file_resumable_with_generation(
     # reuploading with generations numbers that doesn't match original
     with pytest.raises(exceptions.PreconditionFailed):
         with open(info["path"], "rb") as file_obj:
-            blob.upload_from_file(file_obj, if_generation_match=3)
+            blob.upload_from_file(
+                file_obj, if_generation_match=wrong_generation,
+            )
 
     with pytest.raises(exceptions.PreconditionFailed):
         with open(info["path"], "rb") as file_obj:
-            blob.upload_from_file(file_obj, if_metageneration_match=3)
+            blob.upload_from_file(
+                file_obj, if_metageneration_match=wrong_meta_generation,
+            )
 
 
 def test_blob_upload_from_string_w_owner(
@@ -676,6 +682,8 @@ def test_blob_compose_w_generation_match_list(shared_bucket, blobs_to_delete):
     original.content_type = "text/plain"
     original.upload_from_string(payload_before)
     blobs_to_delete.append(original)
+    wrong_generations = [6, 7]
+    wrong_metagenerations = [8, 9]
 
     payload_to_append = b"BBB\n"
     to_append = shared_bucket.blob("to_append")
@@ -686,8 +694,8 @@ def test_blob_compose_w_generation_match_list(shared_bucket, blobs_to_delete):
         with pytest.raises(exceptions.PreconditionFailed):
             original.compose(
                 [original, to_append],
-                if_generation_match=[6, 7],
-                if_metageneration_match=[8, 9],
+                if_generation_match=wrong_generations,
+                if_metageneration_match=wrong_metagenerations,
             )
     assert len(log) == 2
 
@@ -728,6 +736,7 @@ def test_blob_compose_w_source_generation_match(shared_bucket, blobs_to_delete):
     original.content_type = "text/plain"
     original.upload_from_string(payload_before)
     blobs_to_delete.append(original)
+    wrong_source_generations = [6, 7]
 
     payload_to_append = b"BBB\n"
     to_append = shared_bucket.blob("to_append")
@@ -735,7 +744,9 @@ def test_blob_compose_w_source_generation_match(shared_bucket, blobs_to_delete):
     blobs_to_delete.append(to_append)
 
     with pytest.raises(exceptions.PreconditionFailed):
-        original.compose([original, to_append], if_source_generation_match=[6, 7])
+        original.compose(
+            [original, to_append], if_source_generation_match=wrong_source_generations,
+        )
 
     original.compose(
         [original, to_append],
