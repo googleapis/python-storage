@@ -27,7 +27,9 @@ if six.PY3:
 else:
 
     def retry_failures(decorated):  # no-op
-        return decorated
+        wrapped = RetryErrors(AssertionError)(decorated)
+        wrapped.__wrapped__ = decorated
+        return wrapped
 
 
 def test_bucket_create_w_alt_storage_class(storage_client, buckets_to_delete):
