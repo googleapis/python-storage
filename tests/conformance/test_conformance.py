@@ -17,7 +17,7 @@ import pytest
 import requests
 import tempfile
 import uuid
-import warnings
+import logging
 
 from google.cloud import storage
 
@@ -44,19 +44,19 @@ _CONF_TEST_SERVICE_ACCOUNT_EMAIL = (
 def list_buckets(client, _preconditions, **_):
     buckets = client.list_buckets()
     for b in buckets:
-        print(b)
+        pass
 
 
 def list_blobs(client, _preconditions, bucket, **_):
     blobs = client.list_blobs(bucket.name)
     for b in blobs:
-        print(b)
+        pass
 
 
 def bucket_list_blobs(client, _preconditions, bucket, **_):
     blobs = client.bucket(bucket.name).list_blobs()
     for b in blobs:
-        print(b)
+        pass
 
 
 def get_blob(client, _preconditions, bucket, object):
@@ -130,7 +130,7 @@ def bucket_create(client, _preconditions):
 def upload_from_string(client, _preconditions, bucket):
     blob = client.bucket(bucket.name).blob(uuid.uuid4().hex)
     if _preconditions:
-        blob.upload_from_string("upload from string", if_metageneration_match=0)
+        blob.upload_from_string("upload from string", if_generation_match=0)
     else:
         blob.upload_from_string("upload from string")
 
@@ -141,7 +141,7 @@ def blob_upload_from_file(client, _preconditions, bucket):
     file_obj = BytesIO()
     blob = client.bucket(bucket.name).blob(uuid.uuid4().hex)
     if _preconditions:
-        blob.upload_from_file(file_obj, if_metageneration_match=0)
+        blob.upload_from_file(file_obj, if_generation_match=0)
     else:
         blob.upload_from_file(file_obj)
 
@@ -150,7 +150,7 @@ def blob_upload_from_filename(client, _preconditions, bucket):
     blob = client.bucket(bucket.name).blob(uuid.uuid4().hex)
     with tempfile.NamedTemporaryFile() as temp_f:
         if _preconditions:
-            blob.upload_from_filename(temp_f.name, if_metageneration_match=0)
+            blob.upload_from_filename(temp_f.name, if_generation_match=0)
         else:
             blob.upload_from_filename(temp_f.name)
 
@@ -162,7 +162,7 @@ def blobwriter_write(client, _preconditions, bucket):
     chunk_size = 256 * 1024
     blob = client.bucket(bucket.name).blob(uuid.uuid4().hex)
     if _preconditions:
-        blob_writer = BlobWriter(blob, chunk_size=chunk_size, if_metageneration_match=0)
+        blob_writer = BlobWriter(blob, chunk_size=chunk_size, if_generation_match=0)
         blob_writer.write(bytearray(os.urandom(262144)))
     else:
         blob_writer = BlobWriter(blob, chunk_size=chunk_size)
@@ -184,7 +184,7 @@ def list_notifications(client, _preconditions, bucket, **_):
     bucket = client.get_bucket(bucket.name)
     notifications = bucket.list_notifications()
     for n in notifications:
-        print(n)
+        pass
 
 
 def get_notification(client, _preconditions, bucket, notification):
@@ -215,7 +215,7 @@ def delete_notification(client, _preconditions, bucket, notification):
 def list_hmac_keys(client, _preconditions, **_):
     hmac_keys = client.list_hmac_keys()
     for k in hmac_keys:
-        print(k)
+        pass
 
 
 def delete_bucket(client, _preconditions, bucket, **_):
@@ -254,10 +254,8 @@ def bucket_delete_blob(client, _preconditions, bucket, object):
 
 def bucket_delete_blobs(client, _preconditions, bucket, object):
     bucket = client.bucket(bucket.name)
-    blob_2 = bucket.blob(uuid.uuid4().hex)
-    blob_2.upload_from_string("foo")
-    sources = [object, blob_2]
-    source_generations = [object.generation, blob_2.generation]
+    sources = [object]
+    source_generations = [object.generation]
     if _preconditions:
         bucket.delete_blobs(sources, if_generation_match=source_generations)
     else:
@@ -492,7 +490,6 @@ resource_mapping = {
 
 def _populate_resources(client, json_resource):
     resources = {}
-
     for r in json_resource:
         func = resource_mapping[r]
         func(client, resources)
@@ -596,29 +593,25 @@ def run_retry_stragegy_conformance_test(scenario_id, method, case):
             r = _create_retry_test(host, method_name, instructions)
             id = r["id"]
         except Exception as e:
-            warnings.warn(
-                "Error creating retry test for {}: {}".format(method_name, e),
-                UserWarning,
-                stacklevel=1,
-            )
-            continue
+            raise Exception(
+                "Error creating retry test for {}: {}".format(method_name, e)
+            ).with_traceback(e.__traceback__)
 
         # Populate resources.
         try:
             resources = _populate_resources(client, json_resources)
         except Exception as e:
-            warnings.warn(
-                "Error populating resources for {}: {}".format(method_name, e),
-                UserWarning,
-                stacklevel=1,
-            )
-            continue
+            raise Exception(
+                "Error populating resources for {}: {}".format(method_name, e)
+            ).with_traceback(e.__traceback__)
 
         # Run retry tests on library methods.
         try:
             _run_retry_test(host, id, function, precondition_provided, **resources)
         except Exception as e:
-            print(e)
+            logging.exception(
+                "Caught an exception while running retry instructions\n {}".format(e)
+            )
             success_results = False
         else:
             success_results = True
