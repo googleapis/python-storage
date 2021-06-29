@@ -25,6 +25,7 @@ import mock
 import pytest
 import six
 from six.moves import http_client
+from six.moves.urllib.parse import urlencode
 
 from google.cloud.storage.retry import DEFAULT_RETRY
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_ETAG_IN_JSON
@@ -2042,8 +2043,6 @@ class Test_Blob(unittest.TestCase):
         mtls=False,
         retry=None,
     ):
-        from six.moves.urllib.parse import urlencode
-
         bucket = _Bucket(name="w00t", user_project=user_project)
         blob = self._make_one(u"blob-name", bucket=bucket, kms_key_name=kms_key_name)
         self.assertIsNone(blob.chunk_size)
@@ -2287,7 +2286,6 @@ class Test_Blob(unittest.TestCase):
         mtls=False,
         retry=None,
     ):
-        from six.moves.urllib.parse import urlencode
         from google.resumable_media.requests import ResumableUpload
         from google.cloud.storage.blob import _DEFAULT_CHUNKSIZE
 
@@ -3261,8 +3259,6 @@ class Test_Blob(unittest.TestCase):
         if_metageneration_not_match=None,
         retry=None,
     ):
-        from six.moves.urllib.parse import urlencode
-
         bucket = _Bucket(name="alex-trebek")
         blob = self._make_one("blob-name", bucket=bucket)
         chunk_size = 99 * blob._CHUNK_SIZE_MULTIPLE
