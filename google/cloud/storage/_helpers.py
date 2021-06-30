@@ -23,6 +23,7 @@ from datetime import datetime
 import os
 
 from six.moves.urllib.parse import urlsplit
+from google import resumable_media
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 from google.cloud.storage.retry import DEFAULT_RETRY
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED
@@ -43,6 +44,12 @@ _GENERATION_MATCH_PARAMETERS = (
     ("if_source_generation_not_match", "ifSourceGenerationNotMatch"),
     ("if_source_metageneration_match", "ifSourceMetagenerationMatch"),
     ("if_source_metageneration_not_match", "ifSourceMetagenerationNotMatch"),
+)
+
+_NUM_RETRIES_MESSAGE = (
+    "`num_retries` has been deprecated and will be removed in a future "
+    "release. Use the `retry` argument with a Retry or ConditionalRetryPolicy "
+    "object, or None, instead."
 )
 
 
@@ -140,11 +147,11 @@ class _PropertyMixin(object):
         self,
         client=None,
         projection="noAcl",
-        timeout=_DEFAULT_TIMEOUT,
         if_generation_match=None,
         if_generation_not_match=None,
         if_metageneration_match=None,
         if_metageneration_not_match=None,
+        timeout=_DEFAULT_TIMEOUT,
         retry=DEFAULT_RETRY,
     ):
         """Reload properties from Cloud Storage.
@@ -161,47 +168,30 @@ class _PropertyMixin(object):
                            Defaults to ``'noAcl'``. Specifies the set of
                            properties to return.
 
-        :type timeout: float or tuple
-        :param timeout: (Optional) The amount of time, in seconds, to wait
-            for the server response.
-
-            Can also be passed as a tuple (connect_timeout, read_timeout).
-            See :meth:`requests.Session.request` documentation for details.
-
         :type if_generation_match: long
-        :param if_generation_match: (Optional) Make the operation conditional on whether
-                                    the blob's current generation matches the given value.
-                                    Setting to 0 makes the operation succeed only if there
-                                    are no live versions of the blob.
+        :param if_generation_match:
+            (Optional) See :ref:`using-if-generation-match`
 
         :type if_generation_not_match: long
-        :param if_generation_not_match: (Optional) Make the operation conditional on whether
-                                        the blob's current generation does not match the given
-                                        value. If no live blob exists, the precondition fails.
-                                        Setting to 0 makes the operation succeed only if there
-                                        is a live version of the blob.
+        :param if_generation_not_match:
+            (Optional) See :ref:`using-if-generation-not-match`
 
         :type if_metageneration_match: long
-        :param if_metageneration_match: (Optional) Make the operation conditional on whether the
-                                        blob's current metageneration matches the given value.
+        :param if_metageneration_match:
+            (Optional) See :ref:`using-if-metageneration-match`
 
         :type if_metageneration_not_match: long
-        :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
-                                            blob's current metageneration does not match the given value.
+        :param if_metageneration_not_match:
+            (Optional) See :ref:`using-if-metageneration-not-match`
+
+        :type timeout: float or tuple
+        :param timeout:
+            (Optional) The amount of time, in seconds, to wait
+            for the server response.  See: :ref:`configuring_timeouts`
 
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
-        :param retry: (Optional) How to retry the RPC. A None value will disable retries.
-            A google.api_core.retry.Retry value will enable retries, and the object will
-            define retriable response codes and errors and configure backoff and timeout options.
-
-            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a Retry object and
-            activates it only if certain conditions are met. This class exists to provide safe defaults
-            for RPC calls that are not technically safe to retry normally (due to potential data
-            duplication or other side-effects) but become safe to retry if a condition such as
-            if_metageneration_match is set.
-
-            See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
-            information on retry types and how to configure them.
+        :param retry:
+            (Optional) How to retry the RPC. See: :ref:`configuring_retries`
         """
         client = self._require_client(client)
         query_params = self._query_params
@@ -256,11 +246,11 @@ class _PropertyMixin(object):
     def patch(
         self,
         client=None,
-        timeout=_DEFAULT_TIMEOUT,
         if_generation_match=None,
         if_generation_not_match=None,
         if_metageneration_match=None,
         if_metageneration_not_match=None,
+        timeout=_DEFAULT_TIMEOUT,
         retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
     ):
         """Sends all changed properties in a PATCH request.
@@ -274,47 +264,30 @@ class _PropertyMixin(object):
         :param client: the client to use. If not passed, falls back to the
                        ``client`` stored on the current object.
 
-        :type timeout: float or tuple
-        :param timeout: (Optional) The amount of time, in seconds, to wait
-            for the server response.
-
-            Can also be passed as a tuple (connect_timeout, read_timeout).
-            See :meth:`requests.Session.request` documentation for details.
-
         :type if_generation_match: long
-        :param if_generation_match: (Optional) Make the operation conditional on whether
-                                    the blob's current generation matches the given value.
-                                    Setting to 0 makes the operation succeed only if there
-                                    are no live versions of the blob.
+        :param if_generation_match:
+            (Optional) See :ref:`using-if-generation-match`
 
         :type if_generation_not_match: long
-        :param if_generation_not_match: (Optional) Make the operation conditional on whether
-                                        the blob's current generation does not match the given
-                                        value. If no live blob exists, the precondition fails.
-                                        Setting to 0 makes the operation succeed only if there
-                                        is a live version of the blob.
+        :param if_generation_not_match:
+            (Optional) See :ref:`using-if-generation-not-match`
 
         :type if_metageneration_match: long
-        :param if_metageneration_match: (Optional) Make the operation conditional on whether the
-                                        blob's current metageneration matches the given value.
+        :param if_metageneration_match:
+            (Optional) See :ref:`using-if-metageneration-match`
 
         :type if_metageneration_not_match: long
-        :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
-                                            blob's current metageneration does not match the given value.
+        :param if_metageneration_not_match:
+            (Optional) See :ref:`using-if-metageneration-not-match`
+
+        :type timeout: float or tuple
+        :param timeout:
+            (Optional) The amount of time, in seconds, to wait
+            for the server response.  See: :ref:`configuring_timeouts`
 
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
-        :param retry: (Optional) How to retry the RPC. A None value will disable retries.
-            A google.api_core.retry.Retry value will enable retries, and the object will
-            define retriable response codes and errors and configure backoff and timeout options.
-
-            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a Retry object and
-            activates it only if certain conditions are met. This class exists to provide safe defaults
-            for RPC calls that are not technically safe to retry normally (due to potential data
-            duplication or other side-effects) but become safe to retry if a condition such as
-            if_metageneration_match is set.
-
-            See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
-            information on retry types and how to configure them.
+        :param retry:
+            (Optional) How to retry the RPC. See: :ref:`configuring_retries`
         """
         client = self._require_client(client)
         query_params = self._query_params
@@ -344,11 +317,11 @@ class _PropertyMixin(object):
     def update(
         self,
         client=None,
-        timeout=_DEFAULT_TIMEOUT,
         if_generation_match=None,
         if_generation_not_match=None,
         if_metageneration_match=None,
         if_metageneration_not_match=None,
+        timeout=_DEFAULT_TIMEOUT,
         retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
     ):
         """Sends all properties in a PUT request.
@@ -362,47 +335,30 @@ class _PropertyMixin(object):
         :param client: the client to use. If not passed, falls back to the
                        ``client`` stored on the current object.
 
-        :type timeout: float or tuple
-        :param timeout: (Optional) The amount of time, in seconds, to wait
-            for the server response.
-
-            Can also be passed as a tuple (connect_timeout, read_timeout).
-            See :meth:`requests.Session.request` documentation for details.
-
         :type if_generation_match: long
-        :param if_generation_match: (Optional) Make the operation conditional on whether
-                                    the blob's current generation matches the given value.
-                                    Setting to 0 makes the operation succeed only if there
-                                    are no live versions of the blob.
+        :param if_generation_match:
+            (Optional) See :ref:`using-if-generation-match`
 
         :type if_generation_not_match: long
-        :param if_generation_not_match: (Optional) Make the operation conditional on whether
-                                        the blob's current generation does not match the given
-                                        value. If no live blob exists, the precondition fails.
-                                        Setting to 0 makes the operation succeed only if there
-                                        is a live version of the blob.
+        :param if_generation_not_match:
+            (Optional) See :ref:`using-if-generation-not-match`
 
         :type if_metageneration_match: long
-        :param if_metageneration_match: (Optional) Make the operation conditional on whether the
-                                        blob's current metageneration matches the given value.
+        :param if_metageneration_match:
+            (Optional) See :ref:`using-if-metageneration-match`
 
         :type if_metageneration_not_match: long
-        :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
-                                            blob's current metageneration does not match the given value.
+        :param if_metageneration_not_match:
+            (Optional) See :ref:`using-if-metageneration-not-match`
+
+        :type timeout: float or tuple
+        :param timeout:
+            (Optional) The amount of time, in seconds, to wait
+            for the server response.  See: :ref:`configuring_timeouts`
 
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
-        :param retry: (Optional) How to retry the RPC. A None value will disable retries.
-            A google.api_core.retry.Retry value will enable retries, and the object will
-            define retriable response codes and errors and configure backoff and timeout options.
-
-            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a Retry object and
-            activates it only if certain conditions are met. This class exists to provide safe defaults
-            for RPC calls that are not technically safe to retry normally (due to potential data
-            duplication or other side-effects) but become safe to retry if a condition such as
-            if_metageneration_match is set.
-
-            See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
-            information on retry types and how to configure them.
+        :param retry:
+            (Optional) How to retry the RPC. See: :ref:`configuring_retries`
         """
         client = self._require_client(client)
 
@@ -560,3 +516,37 @@ def _bucket_bound_hostname_url(host, scheme=None):
         return host
 
     return "{scheme}://{host}/".format(scheme=scheme, host=host)
+
+
+def _api_core_retry_to_resumable_media_retry(retry, num_retries=None):
+    """Convert google.api.core.Retry to google.resumable_media.RetryStrategy.
+
+    Custom predicates are not translated.
+
+    :type retry: google.api_core.Retry
+    :param retry: (Optional) The google.api_core.Retry object to translate.
+
+    :type num_retries: int
+    :param num_retries: (Optional) The number of retries desired. This is
+        supported for backwards compatibility and is mutually exclusive with
+        `retry`.
+
+    :rtype: google.resumable_media.RetryStrategy
+    :returns: A RetryStrategy with all applicable attributes copied from input,
+              or a RetryStrategy with max_retries set to 0 if None was input.
+    """
+
+    if retry is not None and num_retries is not None:
+        raise ValueError("num_retries and retry arguments are mutually exclusive")
+
+    elif retry is not None:
+        return resumable_media.RetryStrategy(
+            max_sleep=retry._maximum,
+            max_cumulative_retry=retry._deadline,
+            initial_delay=retry._initial,
+            multiplier=retry._multiplier,
+        )
+    elif num_retries is not None:
+        return resumable_media.RetryStrategy(max_retries=num_retries)
+    else:
+        return resumable_media.RetryStrategy(max_retries=0)

@@ -29,6 +29,7 @@ from google.oauth2.service_account import Credentials
 from . import _read_local_json
 
 from google.cloud.storage.retry import DEFAULT_RETRY
+from google.cloud.storage.retry import DEFAULT_RETRY_IF_GENERATION_SPECIFIED
 
 
 _SERVICE_ACCOUNT_JSON = _read_local_json("url_signer_v4_test_account.json")
@@ -219,7 +220,8 @@ class TestClient(unittest.TestCase):
         self.assertIs(client._connection._client_info, client_info)
 
     def test_ctor_mtls(self):
-        credentials = _make_credentials()
+        PROJECT = "PROJECT"
+        credentials = _make_credentials(project=PROJECT)
 
         client = self._make_one(credentials=credentials)
         self.assertEqual(client._connection.ALLOW_AUTO_SWITCH_TO_MTLS_URL, True)
@@ -1370,13 +1372,13 @@ class TestClient(unittest.TestCase):
         from google.cloud.storage.blob import Blob
         from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 
+        project = "PROJECT"
         raw_response = requests.Response()
         raw_response.status_code = http_client.NOT_FOUND
         raw_request = requests.Request("GET", "http://example.com")
         raw_response.request = raw_request.prepare()
         grmp_response = InvalidResponse(raw_response)
-
-        credentials = _make_credentials()
+        credentials = _make_credentials(project=project)
         client = self._make_one(credentials=credentials)
         blob = mock.create_autospec(Blob)
         blob._encryption_key = None
@@ -1401,13 +1403,14 @@ class TestClient(unittest.TestCase):
             False,
             checksum="md5",
             timeout=_DEFAULT_TIMEOUT,
+            retry=DEFAULT_RETRY,
         )
 
     def test_download_blob_to_file_with_uri(self):
         from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 
         project = "PROJECT"
-        credentials = _make_credentials()
+        credentials = _make_credentials(project=project)
         client = self._make_one(project=project, credentials=credentials)
         blob = mock.Mock()
         file_obj = io.BytesIO()
@@ -1431,6 +1434,7 @@ class TestClient(unittest.TestCase):
             False,
             checksum="md5",
             timeout=_DEFAULT_TIMEOUT,
+            retry=DEFAULT_RETRY,
         )
 
     def test_download_blob_to_file_with_invalid_uri(self):
@@ -1442,11 +1446,35 @@ class TestClient(unittest.TestCase):
         with pytest.raises(ValueError, match="URI scheme must be gs"):
             client.download_blob_to_file("http://bucket_name/path/to/object", file_obj)
 
-    def _download_blob_to_file_helper(self, use_chunks, raw_download):
+    def test_download_blob_to_file_w_no_retry(self):
+        self._download_blob_to_file_helper(
+            use_chunks=True, raw_download=True, retry=None
+        )
+
+    def test_download_blob_to_file_w_conditional_retry_pass(self):
+        self._download_blob_to_file_helper(
+            use_chunks=True,
+            raw_download=True,
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+            if_generation_match=1,
+        )
+
+    def test_download_blob_to_file_w_conditional_retry_fail(self):
+        self._download_blob_to_file_helper(
+            use_chunks=True,
+            raw_download=True,
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+            expect_condition_fail=True,
+        )
+
+    def _download_blob_to_file_helper(
+        self, use_chunks, raw_download, expect_condition_fail=False, **extra_kwargs
+    ):
         from google.cloud.storage.blob import Blob
         from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 
-        credentials = _make_credentials()
+        project = "PROJECT"
+        credentials = _make_credentials(project=project)
         client = self._make_one(credentials=credentials)
         blob = mock.create_autospec(Blob)
         blob._encryption_key = None
@@ -1458,9 +1486,20 @@ class TestClient(unittest.TestCase):
 
         file_obj = io.BytesIO()
         if raw_download:
-            client.download_blob_to_file(blob, file_obj, raw_download=True)
+            client.download_blob_to_file(
+                blob, file_obj, raw_download=True, **extra_kwargs
+            )
         else:
-            client.download_blob_to_file(blob, file_obj)
+            client.download_blob_to_file(blob, file_obj, **extra_kwargs)
+
+        expected_retry = extra_kwargs.get("retry", DEFAULT_RETRY)
+        if (
+            expected_retry is DEFAULT_RETRY_IF_GENERATION_SPECIFIED
+            and not expect_condition_fail
+        ):
+            expected_retry = DEFAULT_RETRY
+        elif expect_condition_fail:
+            expected_retry = None
 
         headers = {"accept-encoding": "gzip"}
         blob._do_download.assert_called_once_with(
@@ -1473,6 +1512,7 @@ class TestClient(unittest.TestCase):
             raw_download,
             checksum="md5",
             timeout=_DEFAULT_TIMEOUT,
+            retry=expected_retry,
         )
 
     def test_download_blob_to_file_wo_chunks_wo_raw(self):
@@ -1518,6 +1558,8 @@ class TestClient(unittest.TestCase):
             max_results=expected_max_results,
             extra_params=expected_extra_params,
             page_start=expected_page_start,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
         )
 
     def test_list_blobs_w_explicit_w_user_project(self):
@@ -1592,6 +1634,8 @@ class TestClient(unittest.TestCase):
             max_results=expected_max_results,
             extra_params=expected_extra_params,
             page_start=expected_page_start,
+            timeout=timeout,
+            retry=retry,
         )
 
     def test_list_buckets_wo_project(self):
@@ -1955,7 +1999,9 @@ class TestClient(unittest.TestCase):
         EXPECTED_SIGN = "5369676e61747572655f6279746573"
         EXPECTED_POLICY = "eyJjb25kaXRpb25zIjpbeyJidWNrZXQiOiJidWNrZXQtbmFtZSJ9LHsiYWNsIjoicHJpdmF0ZSJ9LFsic3RhcnRzLXdpdGgiLCIkQ29udGVudC1UeXBlIiwidGV4dC9wbGFpbiJdLHsiYnVja2V0IjoiYnVja2V0LW5hbWUifSx7ImtleSI6Im9iamVjdC1uYW1lIn0seyJ4LWdvb2ctZGF0ZSI6IjIwMjAwMzEyVDExNDcxNloifSx7IngtZ29vZy1jcmVkZW50aWFsIjoidGVzdEBtYWlsLmNvbS8yMDIwMDMxMi9hdXRvL3N0b3JhZ2UvZ29vZzRfcmVxdWVzdCJ9LHsieC1nb29nLWFsZ29yaXRobSI6IkdPT0c0LVJTQS1TSEEyNTYifV0sImV4cGlyYXRpb24iOiIyMDIwLTAzLTI2VDAwOjAwOjEwWiJ9"
 
-        client = self._make_one(project="PROJECT")
+        project = "PROJECT"
+        credentials = _make_credentials(project=project)
+        client = self._make_one(credentials=credentials)
 
         dtstamps_patch, now_patch, expire_secs_patch = _time_functions_patches()
         with dtstamps_patch, now_patch, expire_secs_patch:
@@ -2033,7 +2079,9 @@ class TestClient(unittest.TestCase):
         EXPECTED_SIGN = "5369676e61747572655f6279746573"
         EXPECTED_POLICY = "eyJjb25kaXRpb25zIjpbeyJidWNrZXQiOiJidWNrZXQtbmFtZSJ9LHsiYWNsIjoicHJpdmF0ZSJ9LFsic3RhcnRzLXdpdGgiLCIkQ29udGVudC1UeXBlIiwidGV4dC9wbGFpbiJdLHsiZmllbGQxIjoiVmFsdWUxIn0seyJidWNrZXQiOiJidWNrZXQtbmFtZSJ9LHsia2V5Ijoib2JqZWN0LW5hbWUifSx7IngtZ29vZy1kYXRlIjoiMjAyMDAzMTJUMTE0NzE2WiJ9LHsieC1nb29nLWNyZWRlbnRpYWwiOiJ0ZXN0QG1haWwuY29tLzIwMjAwMzEyL2F1dG8vc3RvcmFnZS9nb29nNF9yZXF1ZXN0In0seyJ4LWdvb2ctYWxnb3JpdGhtIjoiR09PRzQtUlNBLVNIQTI1NiJ9XSwiZXhwaXJhdGlvbiI6IjIwMjAtMDMtMjZUMDA6MDA6MTBaIn0="
 
-        client = self._make_one(project="PROJECT")
+        project = "PROJECT"
+        credentials = _make_credentials(project=project)
+        client = self._make_one(credentials=credentials)
 
         dtstamps_patch, now_patch, expire_secs_patch = _time_functions_patches()
         with dtstamps_patch, now_patch, expire_secs_patch:
@@ -2071,7 +2119,9 @@ class TestClient(unittest.TestCase):
 
         BUCKET_NAME = "bucket-name"
 
-        client = self._make_one(project="PROJECT")
+        project = "PROJECT"
+        credentials = _make_credentials(project=project)
+        client = self._make_one(credentials=credentials)
 
         dtstamps_patch, _, _ = _time_functions_patches()
         with dtstamps_patch:
@@ -2089,7 +2139,9 @@ class TestClient(unittest.TestCase):
     def test_get_signed_policy_v4_bucket_bound_hostname(self):
         import datetime
 
-        client = self._make_one(project="PROJECT")
+        project = "PROJECT"
+        credentials = _make_credentials(project=project)
+        client = self._make_one(credentials=credentials)
 
         dtstamps_patch, _, _ = _time_functions_patches()
         with dtstamps_patch:
@@ -2105,7 +2157,9 @@ class TestClient(unittest.TestCase):
     def test_get_signed_policy_v4_bucket_bound_hostname_with_scheme(self):
         import datetime
 
-        client = self._make_one(project="PROJECT")
+        project = "PROJECT"
+        credentials = _make_credentials(project=project)
+        client = self._make_one(credentials=credentials)
 
         dtstamps_patch, _, _ = _time_functions_patches()
         with dtstamps_patch:
@@ -2123,7 +2177,9 @@ class TestClient(unittest.TestCase):
         BUCKET_NAME = "bucket-name"
         EXPECTED_POLICY = "eyJjb25kaXRpb25zIjpbeyJidWNrZXQiOiJidWNrZXQtbmFtZSJ9LHsia2V5Ijoib2JqZWN0LW5hbWUifSx7IngtZ29vZy1kYXRlIjoiMjAyMDAzMTJUMTE0NzE2WiJ9LHsieC1nb29nLWNyZWRlbnRpYWwiOiJ0ZXN0QG1haWwuY29tLzIwMjAwMzEyL2F1dG8vc3RvcmFnZS9nb29nNF9yZXF1ZXN0In0seyJ4LWdvb2ctYWxnb3JpdGhtIjoiR09PRzQtUlNBLVNIQTI1NiJ9XSwiZXhwaXJhdGlvbiI6IjIwMjAtMDMtMjZUMDA6MDA6MTBaIn0="
 
-        client = self._make_one(project="PROJECT")
+        project = "PROJECT"
+        credentials = _make_credentials(project=project)
+        client = self._make_one(credentials=credentials)
 
         dtstamps_patch, now_patch, expire_secs_patch = _time_functions_patches()
         with dtstamps_patch, now_patch, expire_secs_patch:
@@ -2147,7 +2203,9 @@ class TestClient(unittest.TestCase):
         EXPECTED_SIGN = "0c4003044105"
         EXPECTED_POLICY = "eyJjb25kaXRpb25zIjpbeyJidWNrZXQiOiJidWNrZXQtbmFtZSJ9LHsiYWNsIjoicHJpdmF0ZSJ9LFsic3RhcnRzLXdpdGgiLCIkQ29udGVudC1UeXBlIiwidGV4dC9wbGFpbiJdLHsiYnVja2V0IjoiYnVja2V0LW5hbWUifSx7ImtleSI6Im9iamVjdC1uYW1lIn0seyJ4LWdvb2ctZGF0ZSI6IjIwMjAwMzEyVDExNDcxNloifSx7IngtZ29vZy1jcmVkZW50aWFsIjoidGVzdEBtYWlsLmNvbS8yMDIwMDMxMi9hdXRvL3N0b3JhZ2UvZ29vZzRfcmVxdWVzdCJ9LHsieC1nb29nLWFsZ29yaXRobSI6IkdPT0c0LVJTQS1TSEEyNTYifV0sImV4cGlyYXRpb24iOiIyMDIwLTAzLTI2VDAwOjAwOjEwWiJ9"
 
-        client = self._make_one(project="PROJECT")
+        project = "PROJECT"
+        credentials = _make_credentials(project=project)
+        client = self._make_one(credentials=credentials)
 
         dtstamps_patch, now_patch, expire_secs_patch = _time_functions_patches()
         with dtstamps_patch, now_patch, expire_secs_patch:

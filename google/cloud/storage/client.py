@@ -53,6 +53,7 @@ from google.cloud.storage.acl import BucketACL
 from google.cloud.storage.acl import DefaultObjectACL
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 from google.cloud.storage.retry import DEFAULT_RETRY
+from google.cloud.storage.retry import ConditionalRetryPolicy
 
 
 _marker = object()
@@ -259,25 +260,13 @@ class Client(ClientWithProject):
             (Optional) Project ID to use for retreiving GCS service account
             email address.  Defaults to the client's project.
         :type timeout: float or tuple
-        :param timeout: (Optional) The amount of time, in seconds, to wait
-            for the server response.
-
-            Can also be passed as a tuple (connect_timeout, read_timeout).
-            See :meth:`requests.Session.request` documentation for details.
+        :param timeout:
+            (Optional) The amount of time, in seconds, to wait
+            for the server response.  See: :ref:`configuring_timeouts`
 
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
-        :param retry: (Optional) How to retry the RPC. A None value will disable retries.
-            A google.api_core.retry.Retry value will enable retries, and the object will
-            define retriable response codes and errors and configure backoff and timeout options.
-
-            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a Retry object and
-            activates it only if certain conditions are met. This class exists to provide safe defaults
-            for RPC calls that are not technically safe to retry normally (due to potential data
-            duplication or other side-effects) but become safe to retry if a condition such as
-            if_metageneration_match is set.
-
-            See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
-            information on retry types and how to configure them.
+        :param retry:
+            (Optional) How to retry the RPC. See: :ref:`configuring_retries`
 
         :rtype: str
         :returns: service account email address
@@ -799,11 +788,9 @@ class Client(ClientWithProject):
         :param bucket_name: The name of the bucket to get.
 
         :type timeout: float or tuple
-        :param timeout: (Optional) The amount of time, in seconds, to wait
-            for the server response.
-
-            Can also be passed as a tuple (connect_timeout, read_timeout).
-            See :meth:`requests.Session.request` documentation for details.
+        :param timeout:
+            (Optional) The amount of time, in seconds, to wait
+            for the server response.  See: :ref:`configuring_timeouts`
 
         :type if_metageneration_match: long
         :param if_metageneration_match: (Optional) Make the operation conditional on whether the
@@ -814,18 +801,8 @@ class Client(ClientWithProject):
                                             blob's current metageneration does not match the given value.
 
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
-        :param retry: (Optional) How to retry the RPC. A None value will disable retries.
-            A google.api_core.retry.Retry value will enable retries, and the object will
-            define retriable response codes and errors and configure backoff and timeout options.
-
-            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a Retry object and
-            activates it only if certain conditions are met. This class exists to provide safe defaults
-            for RPC calls that are not technically safe to retry normally (due to potential data
-            duplication or other side-effects) but become safe to retry if a condition such as
-            if_metageneration_match is set.
-
-            See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
-            information on retry types and how to configure them.
+        :param retry:
+            (Optional) How to retry the RPC. See: :ref:`configuring_retries`
 
         :rtype: :class:`google.cloud.storage.bucket.Bucket`
         :returns: The bucket matching the name provided or None if not found.
@@ -996,6 +973,7 @@ class Client(ClientWithProject):
         if_metageneration_not_match=None,
         timeout=_DEFAULT_TIMEOUT,
         checksum="md5",
+        retry=DEFAULT_RETRY,
     ):
         """Download the contents of a blob object or blob URI into a file-like object.
 
@@ -1005,37 +983,35 @@ class Client(ClientWithProject):
              str, \
             ]):
                 The blob resource to pass or URI to download.
+
             file_obj (file):
                 A file handle to which to write the blob's data.
+
             start (int):
                 (Optional) The first byte in a range to be downloaded.
+
             end (int):
                 (Optional) The last byte in a range to be downloaded.
+
             raw_download (bool):
                 (Optional) If true, download the object without any expansion.
-            if_generation_match (long):
-                (Optional) Make the operation conditional on whether
-                the blob's current generation matches the given value.
-                Setting to 0 makes the operation succeed only if there
-                are no live versions of the blob.
-            if_generation_not_match (long):
-                (Optional) Make the operation conditional on whether
-                the blob's current generation does not match the given
-                value. If no live blob exists, the precondition fails.
-                Setting to 0 makes the operation succeed only if there
-                is a live version of the blob.
-            if_metageneration_match (long):
-                (Optional) Make the operation conditional on whether the
-                blob's current metageneration matches the given value.
-            if_metageneration_not_match (long):
-                (Optional) Make the operation conditional on whether the
-                blob's current metageneration does not match the given value.
+
+            if_generation_match: long
+                (Optional) See :ref:`using-if-generation-match`
+
+            if_generation_not_match: long
+                (Optional) See :ref:`using-if-generation-not-match`
+
+            if_metageneration_match: long
+                (Optional) See :ref:`using-if-metageneration-match`
+
+            if_metageneration_not_match: long
+                (Optional) See :ref:`using-if-metageneration-not-match`
+
             timeout ([Union[float, Tuple[float, float]]]):
-                (Optional) The number of seconds the transport should wait for the
-                server response. Depending on the retry strategy, a request may be
-                repeated several times using the same timeout each time.
-                Can also be passed as a tuple (connect_timeout, read_timeout).
-                See :meth:`requests.Session.request` documentation for details.
+                (Optional) The amount of time, in seconds, to wait
+                for the server response.  See: :ref:`configuring_timeouts`
+
             checksum (str):
                 (Optional) The type of checksum to compute to verify the integrity
                 of the object. The response headers must contain a checksum of the
@@ -1045,6 +1021,27 @@ class Client(ClientWithProject):
                 downloads where chunk_size is set) an INFO-level log will be
                 emitted. Supported values are "md5", "crc32c" and None. The default
                 is "md5".
+            retry (google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy)
+                (Optional) How to retry the RPC. A None value will disable
+                retries. A google.api_core.retry.Retry value will enable retries,
+                and the object will define retriable response codes and errors and
+                configure backoff and timeout options.
+
+                A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a
+                Retry object and activates it only if certain conditions are met.
+                This class exists to provide safe defaults for RPC calls that are
+                not technically safe to retry normally (due to potential data
+                duplication or other side-effects) but become safe to retry if a
+                condition such as if_metageneration_match is set.
+
+                See the retry.py source code and docstrings in this package
+                (google.cloud.storage.retry) for information on retry types and how
+                to configure them.
+
+                Media operations (downloads and uploads) do not support non-default
+                predicates in a Retry object. The default will always be used. Other
+                configuration changes for Retry objects such as delays and deadlines
+                are respected.
 
         Examples:
             Download a blob using a blob resource.
@@ -1070,6 +1067,19 @@ class Client(ClientWithProject):
 
 
         """
+
+        # Handle ConditionalRetryPolicy.
+        if isinstance(retry, ConditionalRetryPolicy):
+            # Conditional retries are designed for non-media calls, which change
+            # arguments into query_params dictionaries. Media operations work
+            # differently, so here we make a "fake" query_params to feed to the
+            # ConditionalRetryPolicy.
+            query_params = {
+                "ifGenerationMatch": if_generation_match,
+                "ifMetagenerationMatch": if_metageneration_match,
+            }
+            retry = retry.get_retry_policy_if_conditions_met(query_params=query_params)
+
         if not isinstance(blob_or_uri, Blob):
             blob_or_uri = Blob.from_string(blob_or_uri)
         download_url = blob_or_uri._get_download_url(
@@ -1094,6 +1104,7 @@ class Client(ClientWithProject):
                 raw_download,
                 timeout=timeout,
                 checksum=checksum,
+                retry=retry,
             )
         except resumable_media.InvalidResponse as exc:
             _raise_from_invalid_response(exc)
@@ -1246,6 +1257,8 @@ class Client(ClientWithProject):
             max_results=max_results,
             extra_params=extra_params,
             page_start=_blobs_page_start,
+            timeout=timeout,
+            retry=retry,
         )
         iterator.bucket = bucket
         iterator.prefixes = set()
@@ -1306,25 +1319,13 @@ class Client(ClientWithProject):
                         If not passed, uses the project set on the client.
 
         :type timeout: float or tuple
-        :param timeout: (Optional) The amount of time, in seconds, to wait
-            for the server response.
-
-            Can also be passed as a tuple (connect_timeout, read_timeout).
-            See :meth:`requests.Session.request` documentation for details.
+        :param timeout:
+            (Optional) The amount of time, in seconds, to wait
+            for the server response.  See: :ref:`configuring_timeouts`
 
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
-        :param retry: (Optional) How to retry the RPC. A None value will disable retries.
-            A google.api_core.retry.Retry value will enable retries, and the object will
-            define retriable response codes and errors and configure backoff and timeout options.
-
-            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a Retry object and
-            activates it only if certain conditions are met. This class exists to provide safe defaults
-            for RPC calls that are not technically safe to retry normally (due to potential data
-            duplication or other side-effects) but become safe to retry if a condition such as
-            if_metageneration_match is set.
-
-            See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
-            information on retry types and how to configure them.
+        :param retry:
+            (Optional) How to retry the RPC. See: :ref:`configuring_retries`
 
         :rtype: :class:`~google.api_core.page_iterator.Iterator`
         :raises ValueError: if both ``project`` is ``None`` and the client's
@@ -1379,11 +1380,9 @@ class Client(ClientWithProject):
         :param user_project: (Optional) This parameter is currently ignored.
 
         :type timeout: float or tuple
-        :param timeout: (Optional) The amount of time, in seconds, to wait
-            for the server response.
-
-            Can also be passed as a tuple (connect_timeout, read_timeout).
-            See :meth:`requests.Session.request` documentation for details.
+        :param timeout:
+            (Optional) The amount of time, in seconds, to wait
+            for the server response.  See: :ref:`configuring_timeouts`
 
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
         :param retry: (Optional) How to retry the RPC. A None value will disable retries.
@@ -1453,25 +1452,13 @@ class Client(ClientWithProject):
         :param user_project: (Optional) This parameter is currently ignored.
 
         :type timeout: float or tuple
-        :param timeout: (Optional) The amount of time, in seconds, to wait
-            for the server response.
-
-            Can also be passed as a tuple (connect_timeout, read_timeout).
-            See :meth:`requests.Session.request` documentation for details.
+        :param timeout:
+            (Optional) The amount of time, in seconds, to wait
+            for the server response.  See: :ref:`configuring_timeouts`
 
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
-        :param retry: (Optional) How to retry the RPC. A None value will disable retries.
-            A google.api_core.retry.Retry value will enable retries, and the object will
-            define retriable response codes and errors and configure backoff and timeout options.
-
-            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a Retry object and
-            activates it only if certain conditions are met. This class exists to provide safe defaults
-            for RPC calls that are not technically safe to retry normally (due to potential data
-            duplication or other side-effects) but become safe to retry if a condition such as
-            if_metageneration_match is set.
-
-            See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
-            information on retry types and how to configure them.
+        :param retry:
+            (Optional) How to retry the RPC. See: :ref:`configuring_retries`
 
         :rtype:
             Tuple[:class:`~google.cloud.storage.hmac_key.HMACKeyMetadata`, str]
@@ -1514,11 +1501,9 @@ class Client(ClientWithProject):
             Defaults to client's project.
 
         :type timeout: float or tuple
-        :param timeout: (Optional) The amount of time, in seconds, to wait
-            for the server response.
-
-            Can also be passed as a tuple (connect_timeout, read_timeout).
-            See :meth:`requests.Session.request` documentation for details.
+        :param timeout:
+            (Optional) The amount of time, in seconds, to wait
+            for the server response.  See: :ref:`configuring_timeouts`
 
         :type user_project: str
         :param user_project: (Optional) This parameter is currently ignored.

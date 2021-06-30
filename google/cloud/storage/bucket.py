@@ -766,11 +766,9 @@ class Bucket(_PropertyMixin):
                        to the ``client`` stored on the current bucket.
 
         :type timeout: float or tuple
-        :param timeout: (Optional) The amount of time, in seconds, to wait
-            for the server response.
-
-            Can also be passed as a tuple (connect_timeout, read_timeout).
-            See :meth:`requests.Session.request` documentation for details.
+        :param timeout:
+            (Optional) The amount of time, in seconds, to wait
+            for the server response.  See: :ref:`configuring_timeouts`
 
         :type if_metageneration_match: long
         :param if_metageneration_match: (Optional) Make the operation conditional on whether the
@@ -781,18 +779,8 @@ class Bucket(_PropertyMixin):
                                             blob's current metageneration does not match the given value.
 
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
-        :param retry: (Optional) How to retry the RPC. A None value will disable retries.
-            A google.api_core.retry.Retry value will enable retries, and the object will
-            define retriable response codes and errors and configure backoff and timeout options.
-
-            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a Retry object and
-            activates it only if certain conditions are met. This class exists to provide safe defaults
-            for RPC calls that are not technically safe to retry normally (due to potential data
-            duplication or other side-effects) but become safe to retry if a condition such as
-            if_metageneration_match is set.
-
-            See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
-            information on retry types and how to configure them.
+        :param retry:
+            (Optional) How to retry the RPC. See: :ref:`configuring_retries`
 
         :rtype: bool
         :returns: True if the bucket exists in Cloud Storage.
@@ -877,25 +865,13 @@ class Bucket(_PropertyMixin):
             https://cloud.google.com/storage/docs/access-control/lists#predefined-acl
 
         :type timeout: float or tuple
-        :param timeout: (Optional) The amount of time, in seconds, to wait
-            for the server response.
-
-            Can also be passed as a tuple (connect_timeout, read_timeout).
-            See :meth:`requests.Session.request` documentation for details.
+        :param timeout:
+            (Optional) The amount of time, in seconds, to wait
+            for the server response.  See: :ref:`configuring_timeouts`
 
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
-        :param retry: (Optional) How to retry the RPC. A None value will disable retries.
-            A google.api_core.retry.Retry value will enable retries, and the object will
-            define retriable response codes and errors and configure backoff and timeout options.
-
-            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a Retry object and
-            activates it only if certain conditions are met. This class exists to provide safe defaults
-            for RPC calls that are not technically safe to retry normally (due to potential data
-            duplication or other side-effects) but become safe to retry if a condition such as
-            if_metageneration_match is set.
-
-            See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
-            information on retry types and how to configure them.
+        :param retry:
+            (Optional) How to retry the RPC. See: :ref:`configuring_retries`
         """
         warnings.warn(
             "Bucket.create() is deprecated and will be removed in future."
@@ -936,11 +912,9 @@ class Bucket(_PropertyMixin):
                        ``client`` stored on the current object.
 
         :type timeout: float or tuple
-        :param timeout: (Optional) The amount of time, in seconds, to wait
-            for the server response.
-
-            Can also be passed as a tuple (connect_timeout, read_timeout).
-            See :meth:`requests.Session.request` documentation for details.
+        :param timeout:
+            (Optional) The amount of time, in seconds, to wait
+            for the server response.  See: :ref:`configuring_timeouts`
 
         :type if_metageneration_match: long
         :param if_metageneration_match: (Optional) Make the operation conditional on whether the
@@ -951,18 +925,8 @@ class Bucket(_PropertyMixin):
                                             blob's current metageneration does not match the given value.
 
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
-        :param retry: (Optional) How to retry the RPC. A None value will disable retries.
-            A google.api_core.retry.Retry value will enable retries, and the object will
-            define retriable response codes and errors and configure backoff and timeout options.
-
-            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a Retry object and
-            activates it only if certain conditions are met. This class exists to provide safe defaults
-            for RPC calls that are not technically safe to retry normally (due to potential data
-            duplication or other side-effects) but become safe to retry if a condition such as
-            if_metageneration_match is set.
-
-            See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
-            information on retry types and how to configure them.
+        :param retry:
+            (Optional) How to retry the RPC. See: :ref:`configuring_retries`
         """
         super(Bucket, self).update(
             client=client,
@@ -996,11 +960,9 @@ class Bucket(_PropertyMixin):
                            properties to return.
 
         :type timeout: float or tuple
-        :param timeout: (Optional) The amount of time, in seconds, to wait
-            for the server response.
-
-            Can also be passed as a tuple (connect_timeout, read_timeout).
-            See :meth:`requests.Session.request` documentation for details.
+        :param timeout:
+            (Optional) The amount of time, in seconds, to wait
+            for the server response.  See: :ref:`configuring_timeouts`
 
         :type if_metageneration_match: long
         :param if_metageneration_match: (Optional) Make the operation conditional on whether the
@@ -1011,18 +973,8 @@ class Bucket(_PropertyMixin):
                                             blob's current metageneration does not match the given value.
 
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
-        :param retry: (Optional) How to retry the RPC. A None value will disable retries.
-            A google.api_core.retry.Retry value will enable retries, and the object will
-            define retriable response codes and errors and configure backoff and timeout options.
-
-            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a Retry object and
-            activates it only if certain conditions are met. This class exists to provide safe defaults
-            for RPC calls that are not technically safe to retry normally (due to potential data
-            duplication or other side-effects) but become safe to retry if a condition such as
-            if_metageneration_match is set.
-
-            See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
-            information on retry types and how to configure them.
+        :param retry:
+            (Optional) How to retry the RPC. See: :ref:`configuring_retries`
         """
         super(Bucket, self).reload(
             client=client,
@@ -1053,11 +1005,9 @@ class Bucket(_PropertyMixin):
                        ``client`` stored on the current object.
 
         :type timeout: float or tuple
-        :param timeout: (Optional) The amount of time, in seconds, to wait
-            for the server response.
-
-            Can also be passed as a tuple (connect_timeout, read_timeout).
-            See :meth:`requests.Session.request` documentation for details.
+        :param timeout:
+            (Optional) The amount of time, in seconds, to wait
+            for the server response.  See: :ref:`configuring_timeouts`
 
         :type if_metageneration_match: long
         :param if_metageneration_match: (Optional) Make the operation conditional on whether the
@@ -1068,18 +1018,8 @@ class Bucket(_PropertyMixin):
                                             blob's current metageneration does not match the given value.
 
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
-        :param retry: (Optional) How to retry the RPC. A None value will disable retries.
-            A google.api_core.retry.Retry value will enable retries, and the object will
-            define retriable response codes and errors and configure backoff and timeout options.
-
-            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a Retry object and
-            activates it only if certain conditions are met. This class exists to provide safe defaults
-            for RPC calls that are not technically safe to retry normally (due to potential data
-            duplication or other side-effects) but become safe to retry if a condition such as
-            if_metageneration_match is set.
-
-            See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
-            information on retry types and how to configure them.
+        :param retry:
+            (Optional) How to retry the RPC. See: :ref:`configuring_retries`
         """
         # Special case: For buckets, it is possible that labels are being
         # removed; this requires special handling.
@@ -1134,11 +1074,11 @@ class Bucket(_PropertyMixin):
         client=None,
         encryption_key=None,
         generation=None,
-        timeout=_DEFAULT_TIMEOUT,
         if_generation_match=None,
         if_generation_not_match=None,
         if_metageneration_match=None,
         if_metageneration_not_match=None,
+        timeout=_DEFAULT_TIMEOUT,
         retry=DEFAULT_RETRY,
         **kwargs
     ):
@@ -1168,50 +1108,33 @@ class Bucket(_PropertyMixin):
             https://cloud.google.com/storage/docs/encryption#customer-supplied.
 
         :type generation: long
-        :param generation: (Optional) If present, selects a specific revision of
-                           this object.
-
-        :type timeout: float or tuple
-        :param timeout: (Optional) The amount of time, in seconds, to wait
-            for the server response.
-
-            Can also be passed as a tuple (connect_timeout, read_timeout).
-            See :meth:`requests.Session.request` documentation for details.
+        :param generation:
+            (Optional) If present, selects a specific revision of this object.
 
         :type if_generation_match: long
-        :param if_generation_match: (Optional) Make the operation conditional on whether
-                                    the blob's current generation matches the given value.
-                                    Setting to 0 makes the operation succeed only if there
-                                    are no live versions of the blob.
+        :param if_generation_match:
+            (Optional) See :ref:`using-if-generation-match`
 
         :type if_generation_not_match: long
-        :param if_generation_not_match: (Optional) Make the operation conditional on whether
-                                        the blob's current generation does not match the given
-                                        value. If no live blob exists, the precondition fails.
-                                        Setting to 0 makes the operation succeed only if there
-                                        is a live version of the blob.
+        :param if_generation_not_match:
+            (Optional) See :ref:`using-if-generation-not-match`
 
         :type if_metageneration_match: long
-        :param if_metageneration_match: (Optional) Make the operation conditional on whether the
-                                        blob's current metageneration matches the given value.
+        :param if_metageneration_match:
+            (Optional) See :ref:`using-if-metageneration-match`
 
         :type if_metageneration_not_match: long
-        :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
-                                            blob's current metageneration does not match the given value.
+        :param if_metageneration_not_match:
+            (Optional) See :ref:`using-if-metageneration-not-match`
+
+        :type timeout: float or tuple
+        :param timeout:
+            (Optional) The amount of time, in seconds, to wait
+            for the server response.  See: :ref:`configuring_timeouts`
 
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
-        :param retry: (Optional) How to retry the RPC. A None value will disable retries.
-            A google.api_core.retry.Retry value will enable retries, and the object will
-            define retriable response codes and errors and configure backoff and timeout options.
-
-            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a Retry object and
-            activates it only if certain conditions are met. This class exists to provide safe defaults
-            for RPC calls that are not technically safe to retry normally (due to potential data
-            duplication or other side-effects) but become safe to retry if a condition such as
-            if_metageneration_match is set.
-
-            See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
-            information on retry types and how to configure them.
+        :param retry:
+            (Optional) How to retry the RPC. See: :ref:`configuring_retries`
 
         :param kwargs: Keyword arguments to pass to the
                        :class:`~google.cloud.storage.blob.Blob` constructor.
@@ -1329,25 +1252,13 @@ class Bucket(_PropertyMixin):
                        to the ``client`` stored on the current bucket.
 
         :type timeout: float or tuple
-        :param timeout: (Optional) The amount of time, in seconds, to wait
-            for the server response.
-
-            Can also be passed as a tuple (connect_timeout, read_timeout).
-            See :meth:`requests.Session.request` documentation for details.
+        :param timeout:
+            (Optional) The amount of time, in seconds, to wait
+            for the server response.  See: :ref:`configuring_timeouts`
 
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
-        :param retry: (Optional) How to retry the RPC. A None value will disable retries.
-            A google.api_core.retry.Retry value will enable retries, and the object will
-            define retriable response codes and errors and configure backoff and timeout options.
-
-            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a Retry object and
-            activates it only if certain conditions are met. This class exists to provide safe defaults
-            for RPC calls that are not technically safe to retry normally (due to potential data
-            duplication or other side-effects) but become safe to retry if a condition such as
-            if_metageneration_match is set.
-
-            See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
-            information on retry types and how to configure them.
+        :param retry:
+            (Optional) How to retry the RPC. See: :ref:`configuring_retries`
 
         :rtype: :class:`~google.api_core.page_iterator.Iterator`
         :returns: Iterator of all :class:`~google.cloud.storage.blob.Blob`
@@ -1394,25 +1305,13 @@ class Bucket(_PropertyMixin):
         :param client: (Optional) The client to use.  If not passed, falls back
                        to the ``client`` stored on the current bucket.
         :type timeout: float or tuple
-        :param timeout: (Optional) The amount of time, in seconds, to wait
-            for the server response.
-
-            Can also be passed as a tuple (connect_timeout, read_timeout).
-            See :meth:`requests.Session.request` documentation for details.
+        :param timeout:
+            (Optional) The amount of time, in seconds, to wait
+            for the server response.  See: :ref:`configuring_timeouts`
 
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
-        :param retry: (Optional) How to retry the RPC. A None value will disable retries.
-            A google.api_core.retry.Retry value will enable retries, and the object will
-            define retriable response codes and errors and configure backoff and timeout options.
-
-            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a Retry object and
-            activates it only if certain conditions are met. This class exists to provide safe defaults
-            for RPC calls that are not technically safe to retry normally (due to potential data
-            duplication or other side-effects) but become safe to retry if a condition such as
-            if_metageneration_match is set.
-
-            See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
-            information on retry types and how to configure them.
+        :param retry:
+            (Optional) How to retry the RPC. See: :ref:`configuring_retries`
 
         :rtype: list of :class:`.BucketNotification`
         :returns: notification instances
@@ -1447,25 +1346,13 @@ class Bucket(_PropertyMixin):
         :param client: (Optional) The client to use.  If not passed, falls back
                        to the ``client`` stored on the current bucket.
         :type timeout: float or tuple
-        :param timeout: (Optional) The amount of time, in seconds, to wait
-            for the server response.
-
-            Can also be passed as a tuple (connect_timeout, read_timeout).
-            See :meth:`requests.Session.request` documentation for details.
+        :param timeout:
+            (Optional) The amount of time, in seconds, to wait
+            for the server response.  See: :ref:`configuring_timeouts`
 
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
-        :param retry: (Optional) How to retry the RPC. A None value will disable retries.
-            A google.api_core.retry.Retry value will enable retries, and the object will
-            define retriable response codes and errors and configure backoff and timeout options.
-
-            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a Retry object and
-            activates it only if certain conditions are met. This class exists to provide safe defaults
-            for RPC calls that are not technically safe to retry normally (due to potential data
-            duplication or other side-effects) but become safe to retry if a condition such as
-            if_metageneration_match is set.
-
-            See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
-            information on retry types and how to configure them.
+        :param retry:
+            (Optional) How to retry the RPC. See: :ref:`configuring_retries`
 
         :rtype: :class:`.BucketNotification`
         :returns: notification instance.
@@ -1526,25 +1413,13 @@ class Bucket(_PropertyMixin):
                                             blob's current metageneration does not match the given value.
 
         :type timeout: float or tuple
-        :param timeout: (Optional) The amount of time, in seconds, to wait
-            for the server response on each request.
-
-            Can also be passed as a tuple (connect_timeout, read_timeout).
-            See :meth:`requests.Session.request` documentation for details.
+        :param timeout:
+            (Optional) The amount of time, in seconds, to wait
+            for the server response.  See: :ref:`configuring_timeouts`
 
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
-        :param retry: (Optional) How to retry the RPC. A None value will disable retries.
-            A google.api_core.retry.Retry value will enable retries, and the object will
-            define retriable response codes and errors and configure backoff and timeout options.
-
-            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a Retry object and
-            activates it only if certain conditions are met. This class exists to provide safe defaults
-            for RPC calls that are not technically safe to retry normally (due to potential data
-            duplication or other side-effects) but become safe to retry if a condition such as
-            if_metageneration_match is set.
-
-            See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
-            information on retry types and how to configure them.
+        :param retry:
+            (Optional) How to retry the RPC. See: :ref:`configuring_retries`
 
         :raises: :class:`ValueError` if ``force`` is ``True`` and the bucket
                  contains more than 256 objects / blobs.
@@ -1603,11 +1478,11 @@ class Bucket(_PropertyMixin):
         blob_name,
         client=None,
         generation=None,
-        timeout=_DEFAULT_TIMEOUT,
         if_generation_match=None,
         if_generation_not_match=None,
         if_metageneration_match=None,
         if_metageneration_not_match=None,
+        timeout=_DEFAULT_TIMEOUT,
         retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
     ):
         """Deletes a blob from the current bucket.
@@ -1636,47 +1511,30 @@ class Bucket(_PropertyMixin):
         :param generation: (Optional) If present, permanently deletes a specific
                            revision of this object.
 
-        :type timeout: float or tuple
-        :param timeout: (Optional) The amount of time, in seconds, to wait
-            for the server response.
-
-            Can also be passed as a tuple (connect_timeout, read_timeout).
-            See :meth:`requests.Session.request` documentation for details.
-
         :type if_generation_match: long
-        :param if_generation_match: (Optional) Make the operation conditional on whether
-                                    the blob's current generation matches the given value.
-                                    Setting to 0 makes the operation succeed only if there
-                                    are no live versions of the blob.
+        :param if_generation_match:
+            (Optional) See :ref:`using-if-generation-match`
 
         :type if_generation_not_match: long
-        :param if_generation_not_match: (Optional) Make the operation conditional on whether
-                                        the blob's current generation does not match the given
-                                        value. If no live blob exists, the precondition fails.
-                                        Setting to 0 makes the operation succeed only if there
-                                        is a live version of the blob.
+        :param if_generation_not_match:
+            (Optional) See :ref:`using-if-generation-not-match`
 
         :type if_metageneration_match: long
-        :param if_metageneration_match: (Optional) Make the operation conditional on whether the
-                                        blob's current metageneration matches the given value.
+        :param if_metageneration_match:
+            (Optional) See :ref:`using-if-metageneration-match`
 
         :type if_metageneration_not_match: long
-        :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
-                                            blob's current metageneration does not match the given value.
+        :param if_metageneration_not_match:
+            (Optional) See :ref:`using-if-metageneration-not-match`
+
+        :type timeout: float or tuple
+        :param timeout:
+            (Optional) The amount of time, in seconds, to wait
+            for the server response.  See: :ref:`configuring_timeouts`
 
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
-        :param retry: (Optional) How to retry the RPC. A None value will disable retries.
-            A google.api_core.retry.Retry value will enable retries, and the object will
-            define retriable response codes and errors and configure backoff and timeout options.
-
-            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a Retry object and
-            activates it only if certain conditions are met. This class exists to provide safe defaults
-            for RPC calls that are not technically safe to retry normally (due to potential data
-            duplication or other side-effects) but become safe to retry if a condition such as
-            if_metageneration_match is set.
-
-            See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
-            information on retry types and how to configure them.
+        :param retry:
+            (Optional) How to retry the RPC. See: :ref:`configuring_retries`
 
         :raises: :class:`google.cloud.exceptions.NotFound` (to suppress
                  the exception, call ``delete_blobs``, passing a no-op
@@ -1742,52 +1600,35 @@ class Bucket(_PropertyMixin):
         :param client: (Optional) The client to use.  If not passed, falls back
                        to the ``client`` stored on the current bucket.
 
-        :type timeout: float or tuple
-        :param timeout: (Optional) The amount of time, in seconds, to wait
-            for the server response. The timeout applies to each individual
-            blob delete request.
-
-            Can also be passed as a tuple (connect_timeout, read_timeout).
-            See :meth:`requests.Session.request` documentation for details.
-
         :type if_generation_match: list of long
-        :param if_generation_match: (Optional) Make the operation conditional on whether
-                                    the blob's current generation matches the given value.
-                                    Setting to 0 makes the operation succeed only if there
-                                    are no live versions of the blob. The list must match
-                                    ``blobs`` item-to-item.
+        :param if_generation_match:
+            (Optional) See :ref:`using-if-generation-match`
+            Note that the length of the list must match the length of
+            The list must match ``blobs`` item-to-item.
 
         :type if_generation_not_match: list of long
-        :param if_generation_not_match: (Optional) Make the operation conditional on whether
-                                        the blob's current generation does not match the given
-                                        value. If no live blob exists, the precondition fails.
-                                        Setting to 0 makes the operation succeed only if there
-                                        is a live version of the blob. The list must match
-                                        ``blobs`` item-to-item.
+        :param if_generation_not_match:
+            (Optional) See :ref:`using-if-generation-not-match`
+            The list must match ``blobs`` item-to-item.
 
         :type if_metageneration_match: list of long
-        :param if_metageneration_match: (Optional) Make the operation conditional on whether the
-                                        blob's current metageneration matches the given value.
-                                        The list must match ``blobs`` item-to-item.
+        :param if_metageneration_match:
+            (Optional) See :ref:`using-if-metageneration-match`
+            The list must match ``blobs`` item-to-item.
 
         :type if_metageneration_not_match: list of long
-        :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
-                                            blob's current metageneration does not match the given value.
-                                            The list must match ``blobs`` item-to-item.
+        :param if_metageneration_not_match:
+            (Optional) See :ref:`using-if-metageneration-not-match`
+            The list must match ``blobs`` item-to-item.
+
+        :type timeout: float or tuple
+        :param timeout:
+            (Optional) The amount of time, in seconds, to wait
+            for the server response.  See: :ref:`configuring_timeouts`
 
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
-        :param retry: (Optional) How to retry the RPC. A None value will disable retries.
-            A google.api_core.retry.Retry value will enable retries, and the object will
-            define retriable response codes and errors and configure backoff and timeout options.
-
-            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a Retry object and
-            activates it only if certain conditions are met. This class exists to provide safe defaults
-            for RPC calls that are not technically safe to retry normally (due to potential data
-            duplication or other side-effects) but become safe to retry if a condition such as
-            if_metageneration_match is set.
-
-            See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
-            information on retry types and how to configure them.
+        :param retry:
+            (Optional) How to retry the RPC. See: :ref:`configuring_retries`
 
         :raises: :class:`~google.cloud.exceptions.NotFound` (if
                  `on_error` is not passed).
@@ -1847,7 +1688,6 @@ class Bucket(_PropertyMixin):
         client=None,
         preserve_acl=True,
         source_generation=None,
-        timeout=_DEFAULT_TIMEOUT,
         if_generation_match=None,
         if_generation_not_match=None,
         if_metageneration_match=None,
@@ -1856,6 +1696,7 @@ class Bucket(_PropertyMixin):
         if_source_generation_not_match=None,
         if_source_metageneration_match=None,
         if_source_metageneration_not_match=None,
+        timeout=_DEFAULT_TIMEOUT,
         retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
     ):
         """Copy the given blob to the given bucket, optionally with a new name.
@@ -1886,83 +1727,58 @@ class Bucket(_PropertyMixin):
         :param source_generation: (Optional) The generation of the blob to be
                                   copied.
 
-        :type timeout: float or tuple
-        :param timeout: (Optional) The amount of time, in seconds, to wait
-            for the server response.
-
-            Can also be passed as a tuple (connect_timeout, read_timeout).
-            See :meth:`requests.Session.request` documentation for details.
-
         :type if_generation_match: long
-        :param if_generation_match: (Optional) Makes the operation
-                                    conditional on whether the destination
-                                    object's current generation matches the
-                                    given value. Setting to 0 makes the
-                                    operation succeed only if there are no
-                                    live versions of the object.
+        :param if_generation_match:
+            (Optional) See :ref:`using-if-generation-match`
+            Note that the generation to be matched is that of the
+            ``destination`` blob.
 
         :type if_generation_not_match: long
-        :param if_generation_not_match: (Optional) Makes the operation
-                                        conditional on whether the
-                                        destination object's current
-                                        generation does not match the given
-                                        value. If no live object exists,
-                                        the precondition fails. Setting to
-                                        0 makes the operation succeed only
-                                        if there is a live version
-                                        of the object.
+        :param if_generation_not_match:
+            (Optional) See :ref:`using-if-generation-not-match`
+            Note that the generation to be matched is that of the
+            ``destination`` blob.
 
         :type if_metageneration_match: long
-        :param if_metageneration_match: (Optional) Makes the operation
-                                        conditional on whether the
-                                        destination object's current
-                                        metageneration matches the given
-                                        value.
+        :param if_metageneration_match:
+            (Optional) See :ref:`using-if-metageneration-match`
+            Note that the metageneration to be matched is that of the
+            ``destination`` blob.
 
         :type if_metageneration_not_match: long
-        :param if_metageneration_not_match: (Optional) Makes the operation
-                                            conditional on whether the
-                                            destination object's current
-                                            metageneration does not match
-                                            the given value.
+        :param if_metageneration_not_match:
+            (Optional) See :ref:`using-if-metageneration-not-match`
+            Note that the metageneration to be matched is that of the
+            ``destination`` blob.
 
         :type if_source_generation_match: long
-        :param if_source_generation_match: (Optional) Makes the operation
-                                           conditional on whether the source
-                                           object's generation matches the
-                                           given value.
+        :param if_source_generation_match:
+            (Optional) Makes the operation conditional on whether the source
+            object's generation matches the given value.
 
         :type if_source_generation_not_match: long
-        :param if_source_generation_not_match: (Optional) Makes the operation
-                                               conditional on whether the source
-                                               object's generation does not match
-                                               the given value.
+        :param if_source_generation_not_match:
+            (Optional) Makes the operation conditional on whether the source
+            object's generation does not match the given value.
 
         :type if_source_metageneration_match: long
-        :param if_source_metageneration_match: (Optional) Makes the operation
-                                               conditional on whether the source
-                                               object's current metageneration
-                                               matches the given value.
+        :param if_source_metageneration_match:
+            (Optional) Makes the operation conditional on whether the source
+            object's current metageneration matches the given value.
 
         :type if_source_metageneration_not_match: long
-        :param if_source_metageneration_not_match: (Optional) Makes the operation
-                                                   conditional on whether the source
-                                                   object's current metageneration
-                                                   does not match the given value.
+        :param if_source_metageneration_not_match:
+            (Optional) Makes the operation conditional on whether the source
+            object's current metageneration does not match the given value.
+
+        :type timeout: float or tuple
+        :param timeout:
+            (Optional) The amount of time, in seconds, to wait
+            for the server response.  See: :ref:`configuring_timeouts`
 
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
-        :param retry: (Optional) How to retry the RPC. A None value will disable retries.
-            A google.api_core.retry.Retry value will enable retries, and the object will
-            define retriable response codes and errors and configure backoff and timeout options.
-
-            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a Retry object and
-            activates it only if certain conditions are met. This class exists to provide safe defaults
-            for RPC calls that are not technically safe to retry normally (due to potential data
-            duplication or other side-effects) but become safe to retry if a condition such as
-            if_metageneration_match is set.
-
-            See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
-            information on retry types and how to configure them.
+        :param retry:
+            (Optional) How to retry the RPC. See: :ref:`configuring_retries`
 
         :rtype: :class:`google.cloud.storage.blob.Blob`
         :returns: The new Blob.
@@ -2066,87 +1882,61 @@ class Bucket(_PropertyMixin):
                        to the ``client`` stored on the current bucket.
 
         :type if_generation_match: long
-        :param if_generation_match: (Optional) Makes the operation
-                                    conditional on whether the destination
-                                    object's current generation matches the
-                                    given value. Setting to 0 makes the
-                                    operation succeed only if there are no
-                                    live versions of the object.
+        :param if_generation_match:
+            (Optional) See :ref:`using-if-generation-match`
+            Note that the generation to be matched is that of the
+            ``destination`` blob.
 
         :type if_generation_not_match: long
-        :param if_generation_not_match: (Optional) Makes the operation
-                                        conditional on whether the
-                                        destination object's current
-                                        generation does not match the given
-                                        value. If no live object exists,
-                                        the precondition fails. Setting to
-                                        0 makes the operation succeed only
-                                        if there is a live version
-                                        of the object.
+        :param if_generation_not_match:
+            (Optional) See :ref:`using-if-generation-not-match`
+            Note that the generation to be matched is that of the
+            ``destination`` blob.
 
         :type if_metageneration_match: long
-        :param if_metageneration_match: (Optional) Makes the operation
-                                        conditional on whether the
-                                        destination object's current
-                                        metageneration matches the given
-                                        value.
+        :param if_metageneration_match:
+            (Optional) See :ref:`using-if-metageneration-match`
+            Note that the metageneration to be matched is that of the
+            ``destination`` blob.
 
         :type if_metageneration_not_match: long
-        :param if_metageneration_not_match: (Optional) Makes the operation
-                                            conditional on whether the
-                                            destination object's current
-                                            metageneration does not match
-                                            the given value.
+        :param if_metageneration_not_match:
+            (Optional) See :ref:`using-if-metageneration-not-match`
+            Note that the metageneration to be matched is that of the
+            ``destination`` blob.
 
         :type if_source_generation_match: long
-        :param if_source_generation_match: (Optional) Makes the operation
-                                           conditional on whether the source
-                                           object's generation matches the
-                                           given value. Also used in the
-                                           delete request.
+        :param if_source_generation_match:
+            (Optional) Makes the operation conditional on whether the source
+            object's generation matches the given value. Also used in the
+            (implied) delete request.
 
         :type if_source_generation_not_match: long
-        :param if_source_generation_not_match: (Optional) Makes the operation
-                                               conditional on whether the source
-                                               object's generation does not match
-                                               the given value. Also used in the
-                                               delete request.
+        :param if_source_generation_not_match:
+            (Optional) Makes the operation conditional on whether the source
+            object's generation does not match the given value. Also used in
+            the (implied) delete request.
 
         :type if_source_metageneration_match: long
-        :param if_source_metageneration_match: (Optional) Makes the operation
-                                               conditional on whether the source
-                                               object's current metageneration
-                                               matches the given value.Also used in the
-                                               delete request.
+        :param if_source_metageneration_match:
+            (Optional) Makes the operation conditional on whether the source
+            object's current metageneration matches the given value. Also used
+            in the (implied) delete request.
 
         :type if_source_metageneration_not_match: long
-        :param if_source_metageneration_not_match: (Optional) Makes the operation
-                                                   conditional on whether the source
-                                                   object's current metageneration
-                                                   does not match the given value.
-                                                   Also used in the delete request.
+        :param if_source_metageneration_not_match:
+            (Optional) Makes the operation conditional on whether the source
+            object's current metageneration does not match the given value.
+            Also used in the (implied) delete request.
 
         :type timeout: float or tuple
-        :param timeout: (Optional) The amount of time, in seconds, to wait
-            for the server response. The timeout applies to each individual
-            request.
-
-            Can also be passed as a tuple (connect_timeout, read_timeout).
-            See :meth:`requests.Session.request` documentation for details.
+        :param timeout:
+            (Optional) The amount of time, in seconds, to wait
+            for the server response.  See: :ref:`configuring_timeouts`
 
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
-        :param retry: (Optional) How to retry the RPC. A None value will disable retries.
-            A google.api_core.retry.Retry value will enable retries, and the object will
-            define retriable response codes and errors and configure backoff and timeout options.
-
-            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a Retry object and
-            activates it only if certain conditions are met. This class exists to provide safe defaults
-            for RPC calls that are not technically safe to retry normally (due to potential data
-            duplication or other side-effects) but become safe to retry if a condition such as
-            if_metageneration_match is set.
-
-            See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
-            information on retry types and how to configure them.
+        :param retry:
+            (Optional) How to retry the RPC. See: :ref:`configuring_retries`
 
         :rtype: :class:`Blob`
         :returns: The newly-renamed blob.
@@ -2848,25 +2638,13 @@ class Bucket(_PropertyMixin):
                                          feature syntax in the policy fetched.
 
         :type timeout: float or tuple
-        :param timeout: (Optional) The amount of time, in seconds, to wait
-            for the server response.
-
-            Can also be passed as a tuple (connect_timeout, read_timeout).
-            See :meth:`requests.Session.request` documentation for details.
+        :param timeout:
+            (Optional) The amount of time, in seconds, to wait
+            for the server response.  See: :ref:`configuring_timeouts`
 
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
-        :param retry: (Optional) How to retry the RPC. A None value will disable retries.
-            A google.api_core.retry.Retry value will enable retries, and the object will
-            define retriable response codes and errors and configure backoff and timeout options.
-
-            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a Retry object and
-            activates it only if certain conditions are met. This class exists to provide safe defaults
-            for RPC calls that are not technically safe to retry normally (due to potential data
-            duplication or other side-effects) but become safe to retry if a condition such as
-            if_metageneration_match is set.
-
-            See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
-            information on retry types and how to configure them.
+        :param retry:
+            (Optional) How to retry the RPC. See: :ref:`configuring_retries`
 
         :rtype: :class:`google.api_core.iam.Policy`
         :returns: the policy instance, based on the resource returned from
@@ -2937,25 +2715,13 @@ class Bucket(_PropertyMixin):
                        to the ``client`` stored on the current bucket.
 
         :type timeout: float or tuple
-        :param timeout: (Optional) The amount of time, in seconds, to wait
-            for the server response.
-
-            Can also be passed as a tuple (connect_timeout, read_timeout).
-            See :meth:`requests.Session.request` documentation for details.
+        :param timeout:
+            (Optional) The amount of time, in seconds, to wait
+            for the server response.  See: :ref:`configuring_timeouts`
 
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
-        :param retry: (Optional) How to retry the RPC. A None value will disable retries.
-            A google.api_core.retry.Retry value will enable retries, and the object will
-            define retriable response codes and errors and configure backoff and timeout options.
-
-            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a Retry object and
-            activates it only if certain conditions are met. This class exists to provide safe defaults
-            for RPC calls that are not technically safe to retry normally (due to potential data
-            duplication or other side-effects) but become safe to retry if a condition such as
-            if_metageneration_match is set.
-
-            See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
-            information on retry types and how to configure them.
+        :param retry:
+            (Optional) How to retry the RPC. See: :ref:`configuring_retries`
 
         :rtype: :class:`google.api_core.iam.Policy`
         :returns: the policy instance, based on the resource returned from
@@ -3001,25 +2767,13 @@ class Bucket(_PropertyMixin):
                        to the ``client`` stored on the current bucket.
 
         :type timeout: float or tuple
-        :param timeout: (Optional) The amount of time, in seconds, to wait
-            for the server response.
-
-            Can also be passed as a tuple (connect_timeout, read_timeout).
-            See :meth:`requests.Session.request` documentation for details.
+        :param timeout:
+            (Optional) The amount of time, in seconds, to wait
+            for the server response.  See: :ref:`configuring_timeouts`
 
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
-        :param retry: (Optional) How to retry the RPC. A None value will disable retries.
-            A google.api_core.retry.Retry value will enable retries, and the object will
-            define retriable response codes and errors and configure backoff and timeout options.
-
-            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a Retry object and
-            activates it only if certain conditions are met. This class exists to provide safe defaults
-            for RPC calls that are not technically safe to retry normally (due to potential data
-            duplication or other side-effects) but become safe to retry if a condition such as
-            if_metageneration_match is set.
-
-            See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
-            information on retry types and how to configure them.
+        :param retry:
+            (Optional) How to retry the RPC. See: :ref:`configuring_retries`
 
         :rtype: list of string
         :returns: the permissions returned by the ``testIamPermissions`` API
@@ -3059,12 +2813,9 @@ class Bucket(_PropertyMixin):
         :param client: (Optional) The client to use.  If not passed, falls back
                        to the ``client`` stored on the current bucket.
         :type timeout: float or tuple
-        :param timeout: (Optional) The amount of time, in seconds, to wait
-            for the server response. The timeout applies to each underlying
-            request.
-
-            Can also be passed as a tuple (connect_timeout, read_timeout).
-            See :meth:`requests.Session.request` documentation for details.
+        :param timeout:
+            (Optional) The amount of time, in seconds, to wait
+            for the server response.  See: :ref:`configuring_timeouts`
 
         :raises ValueError:
             If ``recursive`` is True, and the bucket contains more than 256
@@ -3126,12 +2877,9 @@ class Bucket(_PropertyMixin):
                        to the ``client`` stored on the current bucket.
 
         :type timeout: float or tuple
-        :param timeout: (Optional) The amount of time, in seconds, to wait
-            for the server response. The timeout applies to each underlying
-            request.
-
-            Can also be passed as a tuple (connect_timeout, read_timeout).
-            See :meth:`requests.Session.request` documentation for details.
+        :param timeout:
+            (Optional) The amount of time, in seconds, to wait
+            for the server response.  See: :ref:`configuring_timeouts`
 
         :raises ValueError:
             If ``recursive`` is True, and the bucket contains more than 256
@@ -3210,7 +2958,7 @@ class Bucket(_PropertyMixin):
                   to attach the signature.
         """
         client = self._require_client(client)
-        credentials = client._base_connection.credentials
+        credentials = client._credentials
         _signing.ensure_signed_credentials(credentials)
 
         if expiration is None:
@@ -3248,25 +2996,13 @@ class Bucket(_PropertyMixin):
                        to the ``client`` stored on the blob's bucket.
 
         :type timeout: float or tuple
-        :param timeout: (Optional) The amount of time, in seconds, to wait
-            for the server response.
-
-            Can also be passed as a tuple (connect_timeout, read_timeout).
-            See :meth:`requests.Session.request` documentation for details.
+        :param timeout:
+            (Optional) The amount of time, in seconds, to wait
+            for the server response.  See: :ref:`configuring_timeouts`
 
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
-        :param retry: (Optional) How to retry the RPC. A None value will disable retries.
-            A google.api_core.retry.Retry value will enable retries, and the object will
-            define retriable response codes and errors and configure backoff and timeout options.
-
-            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a Retry object and
-            activates it only if certain conditions are met. This class exists to provide safe defaults
-            for RPC calls that are not technically safe to retry normally (due to potential data
-            duplication or other side-effects) but become safe to retry if a condition such as
-            if_metageneration_match is set.
-
-            See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
-            information on retry types and how to configure them.
+        :param retry:
+            (Optional) How to retry the RPC. See: :ref:`configuring_retries`
 
         :raises ValueError:
             if the bucket has no metageneration (i.e., new or never reloaded);
