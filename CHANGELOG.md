@@ -4,6 +4,13 @@
 
 [1]: https://pypi.org/project/google-cloud-storage/#history
 
+### [1.40.1](https://www.github.com/googleapis/python-storage/compare/v1.40.0...v1.40.1) (2021-07-06)
+
+
+### Bug Fixes
+
+* populate etag / generation / metageneration properties during download ([#488](https://www.github.com/googleapis/python-storage/issues/488)) ([49ba14c](https://www.github.com/googleapis/python-storage/commit/49ba14c9c47dbe6bc2bb45d53bbe5621c131fbcb))
+
 ## [1.40.0](https://www.github.com/googleapis/python-storage/compare/v1.39.0...v1.40.0) (2021-06-30)
 
 
