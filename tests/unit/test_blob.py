@@ -1265,7 +1265,7 @@ class Test_Blob(unittest.TestCase):
     def test__do_download_wo_chunks_w_range_w_raw(self):
         self._do_download_helper_wo_chunks(w_range=True, raw_download=True)
 
-    def test__do_download_wo_chunks_w_range_w_raw(self):
+    def test__do_download_wo_chunks_w_range_w_raw_w_headers(self):
         self._do_download_helper_wo_chunks(
             w_range=True, raw_download=True, headers={"If-Match": "kittens"}
         )
