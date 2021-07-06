@@ -997,6 +997,8 @@ class Blob(_PropertyMixin):
         start=None,
         end=None,
         raw_download=False,
+        if_etag_match=None,
+        if_etag_not_match=None,
         if_generation_match=None,
         if_generation_not_match=None,
         if_metageneration_match=None,
@@ -1051,6 +1053,14 @@ class Blob(_PropertyMixin):
         :type raw_download: bool
         :param raw_download:
             (Optional) If true, download the object without any expansion.
+
+        :type if_etag_match: Union[str, Set[str]]
+        :param if_etag_match:
+            (Optional) See :ref:`using-if-etag-match`
+
+        :type if_etag_not_match: Union[str, Set[str]]
+        :param if_etag_not_match:
+            (Optional) See :ref:`using-if-etag-not-match`
 
         :type if_generation_match: long
         :param if_generation_match:
@@ -1116,6 +1126,8 @@ class Blob(_PropertyMixin):
             start=start,
             end=end,
             raw_download=raw_download,
+            if_etag_match=if_etag_match,
+            if_etag_not_match=if_etag_not_match,
             if_generation_match=if_generation_match,
             if_generation_not_match=if_generation_not_match,
             if_metageneration_match=if_metageneration_match,
@@ -1132,6 +1144,8 @@ class Blob(_PropertyMixin):
         start=None,
         end=None,
         raw_download=False,
+        if_etag_match=None,
+        if_etag_not_match=None,
         if_generation_match=None,
         if_generation_not_match=None,
         if_metageneration_match=None,
@@ -1162,6 +1176,14 @@ class Blob(_PropertyMixin):
         :type raw_download: bool
         :param raw_download:
             (Optional) If true, download the object without any expansion.
+
+        :type if_etag_match: Union[str, Set[str]]
+        :param if_etag_match:
+            (Optional) See :ref:`using-if-etag-match`
+
+        :type if_etag_not_match: Union[str, Set[str]]
+        :param if_etag_not_match:
+            (Optional) See :ref:`using-if-etag-not-match`
 
         :type if_generation_match: long
         :param if_generation_match:
@@ -1228,6 +1250,8 @@ class Blob(_PropertyMixin):
                     start=start,
                     end=end,
                     raw_download=raw_download,
+                    if_etag_match=if_etag_match,
+                    if_etag_not_match=if_etag_not_match,
                     if_generation_match=if_generation_match,
                     if_generation_not_match=if_generation_not_match,
                     if_metageneration_match=if_metageneration_match,
@@ -1255,6 +1279,8 @@ class Blob(_PropertyMixin):
         start=None,
         end=None,
         raw_download=False,
+        if_etag_match=None,
+        if_etag_not_match=None,
         if_generation_match=None,
         if_generation_not_match=None,
         if_metageneration_match=None,
@@ -1282,6 +1308,14 @@ class Blob(_PropertyMixin):
         :type raw_download: bool
         :param raw_download:
             (Optional) If true, download the object without any expansion.
+
+        :type if_etag_match: Union[str, Set[str]]
+        :param if_etag_match:
+            (Optional) See :ref:`using-if-etag-match`
+
+        :type if_etag_not_match: Union[str, Set[str]]
+        :param if_etag_not_match:
+            (Optional) See :ref:`using-if-etag-not-match`
 
         :type if_generation_match: long
         :param if_generation_match:
@@ -1350,6 +1384,8 @@ class Blob(_PropertyMixin):
             start=start,
             end=end,
             raw_download=raw_download,
+            if_etag_match=if_etag_match,
+            if_etag_not_match=if_etag_not_match,
             if_generation_match=if_generation_match,
             if_generation_not_match=if_generation_not_match,
             if_metageneration_match=if_metageneration_match,
@@ -1366,6 +1402,8 @@ class Blob(_PropertyMixin):
         start=None,
         end=None,
         raw_download=False,
+        if_etag_match=None,
+        if_etag_not_match=None,
         if_generation_match=None,
         if_generation_not_match=None,
         if_metageneration_match=None,
@@ -1395,6 +1433,14 @@ class Blob(_PropertyMixin):
         :type raw_download: bool
         :param raw_download:
             (Optional) If true, download the object without any expansion.
+
+        :type if_etag_match: Union[str, Set[str]]
+        :param if_etag_match:
+            (Optional) See :ref:`using-if-etag-match`
+
+        :type if_etag_not_match: Union[str, Set[str]]
+        :param if_etag_not_match:
+            (Optional) See :ref:`using-if-etag-not-match`
 
         :type if_generation_match: long
         :param if_generation_match:
@@ -1455,6 +1501,8 @@ class Blob(_PropertyMixin):
             start=start,
             end=end,
             raw_download=raw_download,
+            if_etag_match=if_etag_match,
+            if_etag_not_match=if_etag_not_match,
             if_generation_match=if_generation_match,
             if_generation_not_match=if_generation_not_match,
             if_metageneration_match=if_metageneration_match,
@@ -1470,6 +1518,8 @@ class Blob(_PropertyMixin):
         end=None,
         raw_download=False,
         encoding=None,
+        if_etag_match=None,
+        if_etag_not_match=None,
         if_generation_match=None,
         if_generation_not_match=None,
         if_metageneration_match=None,
@@ -1501,6 +1551,14 @@ class Blob(_PropertyMixin):
         :param encoding: (Optional) encoding to be used to decode the
             downloaded bytes.  Defaults to the ``charset`` param of
             attr:`content_type`, or else to "utf-8".
+
+        :type if_etag_match: Union[str, Set[str]]
+        :param if_etag_match:
+            (Optional) See :ref:`using-if-etag-match`
+
+        :type if_etag_not_match: Union[str, Set[str]]
+        :param if_etag_not_match:
+            (Optional) See :ref:`using-if-etag-not-match`
 
         :type if_generation_match: long
         :param if_generation_match:
@@ -1553,6 +1611,8 @@ class Blob(_PropertyMixin):
             start=start,
             end=end,
             raw_download=raw_download,
+            if_etag_match=if_etag_match,
+            if_etag_not_match=if_etag_not_match,
             if_generation_match=if_generation_match,
             if_generation_not_match=if_generation_not_match,
             if_metageneration_match=if_metageneration_match,

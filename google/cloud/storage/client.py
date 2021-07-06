@@ -967,6 +967,8 @@ class Client(ClientWithProject):
         start=None,
         end=None,
         raw_download=False,
+        if_etag_match=None,
+        if_etag_not_match=None,
         if_generation_match=None,
         if_generation_not_match=None,
         if_metageneration_match=None,
@@ -996,16 +998,22 @@ class Client(ClientWithProject):
             raw_download (bool):
                 (Optional) If true, download the object without any expansion.
 
-            if_generation_match: long
+            if_etag_match (Union[str, Set[str]]):
+                (Optional) See :ref:`using-if-etag-match`
+
+            if_etag_not_match (Union[str, Set[str]]):
+                (Optional) See :ref:`using-if-etag-not-match`
+
+            if_generation_match (long):
                 (Optional) See :ref:`using-if-generation-match`
 
-            if_generation_not_match: long
+            if_generation_not_match (long):
                 (Optional) See :ref:`using-if-generation-not-match`
 
-            if_metageneration_match: long
+            if_metageneration_match (long):
                 (Optional) See :ref:`using-if-metageneration-match`
 
-            if_metageneration_not_match: long
+            if_metageneration_not_match (long):
                 (Optional) See :ref:`using-if-metageneration-not-match`
 
             timeout ([Union[float, Tuple[float, float]]]):
@@ -1091,6 +1099,15 @@ class Client(ClientWithProject):
         )
         headers = _get_encryption_headers(blob_or_uri._encryption_key)
         headers["accept-encoding"] = "gzip"
+        if if_etag_match is not None:
+            if isinstance(if_etag_match, str):
+                if_etag_match = [if_etag_match]
+            headers["If-Match"] = ", ".join(if_etag_match)
+
+        if if_etag_not_match is not None:
+            if isinstance(if_etag_not_match, str):
+                if_etag_not_match = [if_etag_not_match]
+            headers["If-None-Match"] = ", ".join(if_etag_not_match)
 
         transport = self._http
         try:
