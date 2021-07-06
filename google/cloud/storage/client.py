@@ -1101,9 +1101,7 @@ class Client(ClientWithProject):
         headers = _get_encryption_headers(blob_or_uri._encryption_key)
         headers["accept-encoding"] = "gzip"
         _add_etag_match_headers(
-            headers,
-            if_etag_match=if_etag_match,
-            if_etag_not_match=if_etag_not_match,
+            headers, if_etag_match=if_etag_match, if_etag_not_match=if_etag_not_match,
         )
 
         transport = self._http
@@ -1426,11 +1424,7 @@ class Client(ClientWithProject):
             qs_params["userProject"] = user_project
 
         api_response = self._post_resource(
-            path,
-            None,
-            query_params=qs_params,
-            timeout=timeout,
-            retry=retry,
+            path, None, query_params=qs_params, timeout=timeout, retry=retry,
         )
         metadata = HMACKeyMetadata(self)
         metadata._properties = api_response["metadata"]

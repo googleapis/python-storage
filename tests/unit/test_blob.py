@@ -764,12 +764,7 @@ class Test_Blob(unittest.TestCase):
         bucket = _Bucket(client)
         blob = self._make_one(blob_name, bucket=bucket)
 
-        self.assertTrue(
-            blob.exists(
-                if_etag_match=etag,
-                retry=None,
-            )
-        )
+        self.assertTrue(blob.exists(if_etag_match=etag, retry=None,))
 
         expected_query_params = {
             "fields": "name",
@@ -1990,26 +1985,22 @@ class Test_Blob(unittest.TestCase):
 
     def test_download_as_text_w_if_etag_match_str(self):
         self._download_as_text_helper(
-            raw_download=False,
-            if_etag_match="kittens",
+            raw_download=False, if_etag_match="kittens",
         )
 
     def test_download_as_text_w_if_etag_match_list(self):
         self._download_as_text_helper(
-            raw_download=False,
-            if_etag_match=["kittens", "fluffy"],
+            raw_download=False, if_etag_match=["kittens", "fluffy"],
         )
 
     def test_download_as_text_w_if_etag_not_match_str(self):
         self._download_as_text_helper(
-            raw_download=False,
-            if_etag_not_match="kittens",
+            raw_download=False, if_etag_not_match="kittens",
         )
 
     def test_download_as_text_w_if_etag_not_match_list(self):
         self._download_as_text_helper(
-            raw_download=False,
-            if_etag_not_match=["kittens", "fluffy"],
+            raw_download=False, if_etag_not_match=["kittens", "fluffy"],
         )
 
     def test_download_as_text_w_if_generation_match(self):
@@ -2027,14 +2018,12 @@ class Test_Blob(unittest.TestCase):
     def test_download_as_text_w_encoding(self):
         encoding = "utf-16"
         self._download_as_text_helper(
-            raw_download=False,
-            encoding=encoding,
+            raw_download=False, encoding=encoding,
         )
 
     def test_download_as_text_w_no_charset(self):
         self._download_as_text_helper(
-            raw_download=False,
-            no_charset=True,
+            raw_download=False, no_charset=True,
         )
 
     def test_download_as_text_w_non_ascii_w_explicit_encoding(self):
@@ -3790,10 +3779,7 @@ class Test_Blob(unittest.TestCase):
         retry = mock.Mock(spec=[])
 
         returned = blob.set_iam_policy(
-            policy,
-            client=client,
-            timeout=timeout,
-            retry=retry,
+            policy, client=client, timeout=timeout, retry=retry,
         )
 
         self.assertEqual(returned.etag, etag)
@@ -4225,8 +4211,7 @@ class Test_Blob(unittest.TestCase):
         destination = self._make_one(destination_name, bucket=bucket)
 
         destination.compose(
-            sources=[source_1, source_2],
-            if_generation_match=generation_number,
+            sources=[source_1, source_2], if_generation_match=generation_number,
         )
 
         expected_path = "/b/name/o/%s/compose" % destination_name
@@ -4265,8 +4250,7 @@ class Test_Blob(unittest.TestCase):
 
         destination = self._make_one(destination_name, bucket=bucket)
         destination.compose(
-            sources=[source_1, source_2],
-            if_generation_match=generation_numbers,
+            sources=[source_1, source_2], if_generation_match=generation_numbers,
         )
 
         expected_path = "/b/name/o/%s/compose" % destination_name
@@ -4300,9 +4284,7 @@ class Test_Blob(unittest.TestCase):
         )
 
         mock_warn.assert_called_with(
-            _COMPOSE_IF_GENERATION_LIST_DEPRECATED,
-            DeprecationWarning,
-            stacklevel=2,
+            _COMPOSE_IF_GENERATION_LIST_DEPRECATED, DeprecationWarning, stacklevel=2,
         )
 
     def test_compose_w_if_generation_match_and_if_s_generation_match(self):
@@ -4342,8 +4324,7 @@ class Test_Blob(unittest.TestCase):
         destination = self._make_one(destination_name, bucket=bucket)
 
         destination.compose(
-            sources=[source_1, source_2],
-            if_metageneration_match=metageneration_number,
+            sources=[source_1, source_2], if_metageneration_match=metageneration_number,
         )
 
         expected_path = "/b/name/o/%s/compose" % destination_name
@@ -4384,8 +4365,7 @@ class Test_Blob(unittest.TestCase):
         destination = self._make_one(destination_name, bucket=bucket)
 
         destination.compose(
-            sources=[source_1, source_2],
-            if_metageneration_match=metageneration_number,
+            sources=[source_1, source_2], if_metageneration_match=metageneration_number,
         )
 
         expected_path = "/b/name/o/%s/compose" % destination_name
