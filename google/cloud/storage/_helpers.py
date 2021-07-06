@@ -153,6 +153,8 @@ class _PropertyMixin(object):
         self,
         client=None,
         projection="noAcl",
+        if_etag_match=None,
+        if_etag_not_match=None,
         if_generation_match=None,
         if_generation_not_match=None,
         if_metageneration_match=None,
@@ -173,6 +175,12 @@ class _PropertyMixin(object):
         :param projection: (Optional) If used, must be 'full' or 'noAcl'.
                            Defaults to ``'noAcl'``. Specifies the set of
                            properties to return.
+
+        :type if_etag_match: Union[str, Set[str]]
+        :param if_etag_match: (Optional) See :ref:`using-if-etag-match`
+
+        :type if_etag_not_match: Union[str, Set[str]])
+        :param if_etag_not_match: (Optional) See :ref:`using-if-etag-not-match`
 
         :type if_generation_match: long
         :param if_generation_match:
@@ -211,10 +219,14 @@ class _PropertyMixin(object):
             if_metageneration_match=if_metageneration_match,
             if_metageneration_not_match=if_metageneration_not_match,
         )
+        headers = self._encryption_headers()
+        _add_etag_match_headers(
+            headers, if_etag_match=if_etag_match, if_etag_not_match=if_etag_not_match
+        )
         api_response = client._get_resource(
             self.path,
             query_params=query_params,
-            headers=self._encryption_headers(),
+            headers=headers,
             timeout=timeout,
             retry=retry,
             _target_object=self,

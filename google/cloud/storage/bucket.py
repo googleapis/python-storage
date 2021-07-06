@@ -941,6 +941,8 @@ class Bucket(_PropertyMixin):
         client=None,
         projection="noAcl",
         timeout=_DEFAULT_TIMEOUT,
+        if_etag_match=None,
+        if_etag_not_match=None,
         if_metageneration_match=None,
         if_metageneration_not_match=None,
         retry=DEFAULT_RETRY,
@@ -964,13 +966,21 @@ class Bucket(_PropertyMixin):
             (Optional) The amount of time, in seconds, to wait
             for the server response.  See: :ref:`configuring_timeouts`
 
+        :type if_etag_match: Union[str, Set[str]]
+        :param if_etag_match: (Optional) Make the operation conditional on whether the
+                              bucket's current ETag matches the given value.
+
+        :type if_etag_not_match: Union[str, Set[str]])
+        :param if_etag_not_match: (Optional) Make the operation conditional on whether the
+                                  bucket's current ETag does not match the given value.
+
         :type if_metageneration_match: long
         :param if_metageneration_match: (Optional) Make the operation conditional on whether the
-                                        blob's current metageneration matches the given value.
+                                        bucket's current metageneration matches the given value.
 
         :type if_metageneration_not_match: long
         :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
-                                            blob's current metageneration does not match the given value.
+                                            bucket's current metageneration does not match the given value.
 
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
         :param retry:
@@ -980,6 +990,8 @@ class Bucket(_PropertyMixin):
             client=client,
             projection=projection,
             timeout=timeout,
+            if_etag_match=if_etag_match,
+            if_etag_not_match=if_etag_not_match,
             if_metageneration_match=if_metageneration_match,
             if_metageneration_not_match=if_metageneration_not_match,
             retry=retry,

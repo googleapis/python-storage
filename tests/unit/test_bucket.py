@@ -1677,6 +1677,32 @@ class Test_Bucket(unittest.TestCase):
         )
         bucket.delete_blob.assert_has_calls([call_1, call_2])
 
+    def test_reload_w_etag_match(self):
+        name = "name"
+        etag = "kittens"
+        api_response = {"name": name}
+        client = mock.Mock(spec=["_get_resource"])
+        client._get_resource.return_value = api_response
+        bucket = self._make_one(client, name=name)
+
+        bucket.reload(if_etag_match=etag)
+
+        expected_path = "/b/%s" % (name,)
+        expected_query_params = {
+            "projection": "noAcl",
+        }
+        expected_headers = {
+            "If-Match": etag,
+        }
+        client._get_resource.assert_called_once_with(
+            expected_path,
+            query_params=expected_query_params,
+            headers=expected_headers,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
+            _target_object=bucket,
+        )
+
     def test_reload_w_metageneration_match(self):
         name = "name"
         metageneration_number = 9
