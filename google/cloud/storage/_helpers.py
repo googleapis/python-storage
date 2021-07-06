@@ -34,6 +34,12 @@ STORAGE_EMULATOR_ENV_VAR = "STORAGE_EMULATOR_HOST"
 
 _DEFAULT_STORAGE_HOST = u"https://storage.googleapis.com"
 
+# etag match parameters in snake case and equivalent header
+_ETAG_MATCH_PARAMETERS = (
+    ("if_etag_match", "If-Match"),
+    ("if_etag_not_match", "If-None-Match"),
+)
+
 # generation match parameters in camel and snake cases
 _GENERATION_MATCH_PARAMETERS = (
     ("if_generation_match", "ifGenerationMatch"),
@@ -384,8 +390,7 @@ class _PropertyMixin(object):
 
 
 def _scalar_property(fieldname):
-    """Create a property descriptor around the :class:`_PropertyMixin` helpers.
-    """
+    """Create a property descriptor around the :class:`_PropertyMixin` helpers."""
 
     def _getter(self):
         """Scalar property getter."""
@@ -447,6 +452,29 @@ def _convert_to_timestamp(value):
     utc_naive = value.replace(tzinfo=None) - value.utcoffset()
     mtime = (utc_naive - datetime(1970, 1, 1)).total_seconds()
     return mtime
+
+
+def _add_etag_match_headers(headers, **match_parameters):
+    """Add generation match parameters into the given parameters list.
+
+    :type headers: dict
+    :param headers: Headers dict.
+
+    :type match_parameters: dict
+    :param match_parameters: if*etag*match parameters to add.
+
+    :raises: :exc:`ValueError` if ``parameters`` is not a ``dict()``.
+    """
+    if not isinstance(headers, dict):
+        raise ValueError("`headers` argument should be a dict() or a list().")
+
+    for snakecase_name, header_name in _ETAG_MATCH_PARAMETERS:
+        value = match_parameters.get(snakecase_name)
+
+        if value is not None:
+            if isinstance(value, str):
+                value = [value]
+            headers[header_name] = ", ".join(value)
 
 
 def _add_generation_match_parameters(parameters, **match_parameters):

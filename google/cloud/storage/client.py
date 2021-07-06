@@ -34,6 +34,7 @@ from google.cloud.exceptions import NotFound
 from google.cloud.storage._helpers import _get_storage_host
 from google.cloud.storage._helpers import _DEFAULT_STORAGE_HOST
 from google.cloud.storage._helpers import _bucket_bound_hostname_url
+from google.cloud.storage._helpers import _add_etag_match_headers
 from google.cloud.storage._http import Connection
 from google.cloud.storage._signing import (
     get_expiration_seconds_v4,
@@ -1099,15 +1100,11 @@ class Client(ClientWithProject):
         )
         headers = _get_encryption_headers(blob_or_uri._encryption_key)
         headers["accept-encoding"] = "gzip"
-        if if_etag_match is not None:
-            if isinstance(if_etag_match, str):
-                if_etag_match = [if_etag_match]
-            headers["If-Match"] = ", ".join(if_etag_match)
-
-        if if_etag_not_match is not None:
-            if isinstance(if_etag_not_match, str):
-                if_etag_not_match = [if_etag_not_match]
-            headers["If-None-Match"] = ", ".join(if_etag_not_match)
+        _add_etag_match_headers(
+            headers,
+            if_etag_match=if_etag_match,
+            if_etag_not_match=if_etag_not_match,
+        )
 
         transport = self._http
         try:
@@ -1429,7 +1426,11 @@ class Client(ClientWithProject):
             qs_params["userProject"] = user_project
 
         api_response = self._post_resource(
-            path, None, query_params=qs_params, timeout=timeout, retry=retry,
+            path,
+            None,
+            query_params=qs_params,
+            timeout=timeout,
+            retry=retry,
         )
         metadata = HMACKeyMetadata(self)
         metadata._properties = api_response["metadata"]

@@ -521,6 +521,39 @@ class Test__base64_md5hash(unittest.TestCase):
         self.assertEqual(MD5.hash_obj._blocks, [BYTES_TO_SIGN])
 
 
+class Test__add_etag_match_headers(unittest.TestCase):
+    def _call_fut(self, headers, **match_params):
+        from google.cloud.storage._helpers import _add_etag_match_headers
+
+        return _add_etag_match_headers(headers, **match_params)
+
+    def test_add_etag_match_parameters_str(self):
+        ETAG = "kittens"
+        headers = {"foo": "bar"}
+        EXPECTED_HEADERS = {
+            "foo": "bar",
+            "If-Match": ETAG,
+        }
+        self._call_fut(headers, if_etag_match=ETAG)
+        self.assertEqual(headers, EXPECTED_HEADERS)
+
+    def test_add_generation_match_parameters_list(self):
+        ETAGS = ["kittens", "fluffy"]
+        EXPECTED_HEADERS = {
+            "foo": "bar",
+            "If-Match": ", ".join(ETAGS),
+        }
+        headers = {"foo": "bar"}
+        self._call_fut(headers, if_etag_match=ETAGS)
+        self.assertEqual(headers, EXPECTED_HEADERS)
+
+    def test_add_generation_match_parameters_headers_not_dict(self):
+        ETAG = "kittens"
+        headers = 42
+        with self.assertRaises(ValueError):
+            self._call_fut(headers, if_etag_match=ETAG)
+
+
 class Test__add_generation_match_parameters(unittest.TestCase):
     def _call_fut(self, params, **match_params):
         from google.cloud.storage._helpers import _add_generation_match_parameters
