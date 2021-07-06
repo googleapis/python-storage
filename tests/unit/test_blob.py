@@ -702,10 +702,11 @@ class Test_Blob(unittest.TestCase):
         self.assertFalse(blob.exists())
 
         expected_query_params = {"fields": "name"}
+        expected_headers = {}
         client._get_resource.assert_called_once_with(
             blob.path,
             query_params=expected_query_params,
-            headers=None,
+            headers=expected_headers,
             timeout=self._get_default_timeout(),
             retry=DEFAULT_RETRY,
             _target_object=None,
@@ -724,10 +725,11 @@ class Test_Blob(unittest.TestCase):
         self.assertTrue(blob.exists(timeout=timeout))
 
         expected_query_params = {"fields": "name", "userProject": user_project}
+        expected_headers = {}
         client._get_resource.assert_called_once_with(
             blob.path,
             query_params=expected_query_params,
-            headers=None,
+            headers=expected_headers,
             timeout=timeout,
             retry=DEFAULT_RETRY,
             _target_object=None,
@@ -746,10 +748,11 @@ class Test_Blob(unittest.TestCase):
         self.assertTrue(blob.exists(retry=retry))
 
         expected_query_params = {"fields": "name", "generation": generation}
+        expected_headers = {}
         client._get_resource.assert_called_once_with(
             blob.path,
             query_params=expected_query_params,
-            headers=None,
+            headers=expected_headers,
             timeout=self._get_default_timeout(),
             retry=retry,
             _target_object=None,
@@ -804,10 +807,11 @@ class Test_Blob(unittest.TestCase):
             "ifGenerationMatch": generation_number,
             "ifMetagenerationMatch": metageneration_number,
         }
+        expected_headers = {}
         client._get_resource.assert_called_once_with(
             blob.path,
             query_params=expected_query_params,
-            headers=None,
+            headers=expected_headers,
             timeout=self._get_default_timeout(),
             retry=None,
             _target_object=None,

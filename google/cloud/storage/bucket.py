@@ -814,8 +814,6 @@ class Bucket(_PropertyMixin):
         _add_etag_match_headers(
             headers, if_etag_match=if_etag_match, if_etag_not_match=if_etag_not_match
         )
-        if not headers:
-            headers = None
 
         try:
             # We intentionally pass `_target_object=None` since fields=name

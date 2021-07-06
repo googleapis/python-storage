@@ -580,12 +580,6 @@ class Test__add_etag_match_headers(unittest.TestCase):
         self._call_fut(headers, if_etag_match=ETAGS)
         self.assertEqual(headers, EXPECTED_HEADERS)
 
-    def test_add_generation_match_parameters_headers_not_dict(self):
-        ETAG = "kittens"
-        headers = 42
-        with self.assertRaises(ValueError):
-            self._call_fut(headers, if_etag_match=ETAG)
-
 
 class Test__add_generation_match_parameters(unittest.TestCase):
     def _call_fut(self, params, **match_params):

@@ -1529,11 +1529,16 @@ class TestClient(unittest.TestCase):
             expected_retry = None
 
         headers = {"accept-encoding": "gzip"}
-        _helpers._add_etag_match_headers(
-            headers,
-            if_etag_match=extra_kwargs.get("if_etag_match"),
-            if_etag_not_match=extra_kwargs.get("if_etag_not_match"),
-        )
+        if_etag_match = extra_kwargs.get("if_etag_match")
+        if if_etag_match is not None:
+            if isinstance(if_etag_match, str):
+                if_etag_match = [if_etag_match]
+            headers["If-Match"] = ", ".join(if_etag_match)
+        if_etag_not_match = extra_kwargs.get("if_etag_not_match")
+        if if_etag_not_match is not None:
+            if isinstance(if_etag_not_match, str):
+                if_etag_not_match = [if_etag_not_match]
+            headers["If-None-Match"] = ", ".join(if_etag_not_match)
 
         blob._do_download.assert_called_once_with(
             client._http,

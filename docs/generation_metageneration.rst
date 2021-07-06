@@ -17,7 +17,10 @@ Concepts
 ETag
 ::::::::::::::
 
-An ETag is returned as part of the response header whenever a resource is returned, as well as included in the resource itself. Users should make no assumptions about the value used in an ETag except that it changes whenever the underlying data changes, per the
+An ETag is returned as part of the response header whenever a resource is
+returned, as well as included in the resource itself. Users should make no
+assumptions about the value used in an ETag except that it changes whenever the
+underlying data changes, per the
 `specification <https://tools.ietf.org/html/rfc7232#section-2.3>`_
 
 The ``ETag`` attribute is set by the GCS back-end, and is read-only in the

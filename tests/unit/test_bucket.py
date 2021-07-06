@@ -747,10 +747,11 @@ class Test_Bucket(unittest.TestCase):
         self.assertFalse(bucket.exists())
 
         expected_query_params = {"fields": "name"}
+        expected_headers = {}
         client._get_resource.assert_called_once_with(
             bucket.path,
             query_params=expected_query_params,
-            headers=None,
+            headers=expected_headers,
             timeout=self._get_default_timeout(),
             retry=DEFAULT_RETRY,
             _target_object=None,
@@ -798,10 +799,11 @@ class Test_Bucket(unittest.TestCase):
             "fields": "name",
             "ifMetagenerationMatch": metageneration_number,
         }
+        expected_headers = {}
         client._get_resource.assert_called_once_with(
             bucket.path,
             query_params=expected_query_params,
-            headers=None,
+            headers=expected_headers,
             timeout=timeout,
             retry=DEFAULT_RETRY,
             _target_object=None,
@@ -822,10 +824,11 @@ class Test_Bucket(unittest.TestCase):
             "fields": "name",
             "userProject": user_project,
         }
+        expected_headers = {}
         client._get_resource.assert_called_once_with(
             bucket.path,
             query_params=expected_query_params,
-            headers=None,
+            headers=expected_headers,
             timeout=self._get_default_timeout(),
             retry=retry,
             _target_object=None,

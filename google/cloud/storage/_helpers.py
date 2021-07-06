@@ -474,12 +474,7 @@ def _add_etag_match_headers(headers, **match_parameters):
 
     :type match_parameters: dict
     :param match_parameters: if*etag*match parameters to add.
-
-    :raises: :exc:`ValueError` if ``parameters`` is not a ``dict()``.
     """
-    if not isinstance(headers, dict):
-        raise ValueError("`headers` argument should be a dict() or a list().")
-
     for snakecase_name, header_name in _ETAG_MATCH_PARAMETERS:
         value = match_parameters.get(snakecase_name)
 
