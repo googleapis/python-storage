@@ -30,6 +30,7 @@ from google.cloud._helpers import _rfc3339_nanos_to_datetime
 from google.cloud.exceptions import NotFound
 from google.api_core.iam import Policy
 from google.cloud.storage import _signing
+from google.cloud.storage._helpers import _add_etag_match_headers
 from google.cloud.storage._helpers import _add_generation_match_parameters
 from google.cloud.storage._helpers import _PropertyMixin
 from google.cloud.storage._helpers import _scalar_property
@@ -752,6 +753,8 @@ class Bucket(_PropertyMixin):
         self,
         client=None,
         timeout=_DEFAULT_TIMEOUT,
+        if_etag_match=None,
+        if_etag_not_match=None,
         if_metageneration_match=None,
         if_metageneration_not_match=None,
         retry=DEFAULT_RETRY,
@@ -770,13 +773,21 @@ class Bucket(_PropertyMixin):
             (Optional) The amount of time, in seconds, to wait
             for the server response.  See: :ref:`configuring_timeouts`
 
+        :type if_etag_match: Union[str, Set[str]]
+        :param if_etag_match: (Optional) Make the operation conditional on whether the
+                              bucket's current ETag matches the given value.
+
+        :type if_etag_not_match: Union[str, Set[str]])
+        :param if_etag_not_match: (Optional) Make the operation conditional on whether the
+                                  bucket's current ETag does not match the given value.
+
         :type if_metageneration_match: long
         :param if_metageneration_match: (Optional) Make the operation conditional on whether the
-                                        blob's current metageneration matches the given value.
+                                        bucket's current metageneration matches the given value.
 
         :type if_metageneration_not_match: long
         :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
-                                            blob's current metageneration does not match the given value.
+                                            bucket's current metageneration does not match the given value.
 
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
         :param retry:
@@ -798,12 +809,21 @@ class Bucket(_PropertyMixin):
             if_metageneration_match=if_metageneration_match,
             if_metageneration_not_match=if_metageneration_not_match,
         )
+
+        headers = {}
+        _add_etag_match_headers(
+            headers, if_etag_match=if_etag_match, if_etag_not_match=if_etag_not_match
+        )
+        if not headers:
+            headers = None
+
         try:
             # We intentionally pass `_target_object=None` since fields=name
             # would limit the local properties.
             client._get_resource(
                 self.path,
                 query_params=query_params,
+                headers=headers,
                 timeout=timeout,
                 retry=retry,
                 _target_object=None,
