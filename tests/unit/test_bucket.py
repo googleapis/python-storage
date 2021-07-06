@@ -953,6 +953,41 @@ class Test_Bucket(unittest.TestCase):
             _target_object=blob,
         )
 
+    def test_get_blob_w_etag_match_w_retry(self):
+        from google.cloud.storage.blob import Blob
+
+        name = "name"
+        blob_name = "blob-name"
+        etag = "kittens"
+        retry = mock.Mock(spec=[])
+        api_response = {"name": blob_name, "etag": etag}
+        client = mock.Mock(spec=["_get_resource"])
+        client._get_resource.return_value = api_response
+        bucket = self._make_one(client, name=name)
+
+        blob = bucket.get_blob(blob_name, if_etag_match=etag, retry=retry)
+
+        self.assertIsInstance(blob, Blob)
+        self.assertIs(blob.bucket, bucket)
+        self.assertEqual(blob.name, blob_name)
+        self.assertEqual(blob.etag, etag)
+
+        expected_path = "/b/%s/o/%s" % (name, blob_name)
+        expected_query_params = {
+            "projection": "noAcl",
+        }
+        expected_headers = {
+            "If-Match": etag,
+        }
+        client._get_resource.assert_called_once_with(
+            expected_path,
+            query_params=expected_query_params,
+            headers=expected_headers,
+            timeout=self._get_default_timeout(),
+            retry=retry,
+            _target_object=blob,
+        )
+
     def test_get_blob_w_generation_match_w_retry(self):
         from google.cloud.storage.blob import Blob
 

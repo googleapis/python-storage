@@ -1106,6 +1106,8 @@ class Bucket(_PropertyMixin):
         client=None,
         encryption_key=None,
         generation=None,
+        if_etag_match=None,
+        if_etag_not_match=None,
         if_generation_match=None,
         if_generation_not_match=None,
         if_metageneration_match=None,
@@ -1142,6 +1144,14 @@ class Bucket(_PropertyMixin):
         :type generation: long
         :param generation:
             (Optional) If present, selects a specific revision of this object.
+
+        :type if_etag_match: Union[str, Set[str]]
+        :param if_etag_match:
+            (Optional) See :ref:`using-if-etag-match`
+
+        :type if_etag_not_match: Union[str, Set[str]]
+        :param if_etag_not_match:
+            (Optional) See :ref:`using-if-etag-not-match`
 
         :type if_generation_match: long
         :param if_generation_match:
@@ -1188,6 +1198,8 @@ class Bucket(_PropertyMixin):
             blob.reload(
                 client=client,
                 timeout=timeout,
+                if_etag_match=if_etag_match,
+                if_etag_not_match=if_etag_not_match,
                 if_generation_match=if_generation_match,
                 if_generation_not_match=if_generation_not_match,
                 if_metageneration_match=if_metageneration_match,
