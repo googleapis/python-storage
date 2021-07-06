@@ -705,6 +705,7 @@ class Test_Blob(unittest.TestCase):
         client._get_resource.assert_called_once_with(
             blob.path,
             query_params=expected_query_params,
+            headers=None,
             timeout=self._get_default_timeout(),
             retry=DEFAULT_RETRY,
             _target_object=None,
@@ -726,6 +727,7 @@ class Test_Blob(unittest.TestCase):
         client._get_resource.assert_called_once_with(
             blob.path,
             query_params=expected_query_params,
+            headers=None,
             timeout=timeout,
             retry=DEFAULT_RETRY,
             _target_object=None,
@@ -747,8 +749,40 @@ class Test_Blob(unittest.TestCase):
         client._get_resource.assert_called_once_with(
             blob.path,
             query_params=expected_query_params,
+            headers=None,
             timeout=self._get_default_timeout(),
             retry=retry,
+            _target_object=None,
+        )
+
+    def test_exists_w_etag_match(self):
+        blob_name = "blob-name"
+        etag = "kittens"
+        api_response = {"name": blob_name}
+        client = mock.Mock(spec=["_get_resource"])
+        client._get_resource.return_value = api_response
+        bucket = _Bucket(client)
+        blob = self._make_one(blob_name, bucket=bucket)
+
+        self.assertTrue(
+            blob.exists(
+                if_etag_match=etag,
+                retry=None,
+            )
+        )
+
+        expected_query_params = {
+            "fields": "name",
+        }
+        expected_headers = {
+            "If-Match": etag,
+        }
+        client._get_resource.assert_called_once_with(
+            blob.path,
+            query_params=expected_query_params,
+            headers=expected_headers,
+            timeout=self._get_default_timeout(),
+            retry=None,
             _target_object=None,
         )
 
@@ -778,6 +812,7 @@ class Test_Blob(unittest.TestCase):
         client._get_resource.assert_called_once_with(
             blob.path,
             query_params=expected_query_params,
+            headers=None,
             timeout=self._get_default_timeout(),
             retry=None,
             _target_object=None,
