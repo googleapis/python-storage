@@ -235,6 +235,52 @@ def test_blob_crud_w_user_project(
         blob1.delete()
 
 
+def test_blob_crud_w_etag_match(
+    shared_bucket, blobs_to_delete, file_data, service_account,
+):
+    wrong_etag = "kittens"
+
+    blob = shared_bucket.blob("SmallFile")
+
+    info = file_data["simple"]
+    with open(info["path"], mode="rb") as to_read:
+        payload = to_read.read()
+
+    blob.upload_from_filename(info["path"])
+    blobs_to_delete.append(blob)
+    etag = blob.etag
+
+    blob = shared_bucket.blob("SmallFile")
+
+    # Exercise 'objects.get' (metadata) w/ etag match.
+    with pytest.raises(exceptions.PreconditionFailed):
+        blob.exists(if_etag_match=wrong_etag)
+
+    with pytest.raises(exceptions.NotModified):
+        blob.exists(if_etag_not_match=etag)
+
+    assert blob.exists(if_etag_match=etag)
+    assert blob.exists(if_etag_not_match=wrong_etag)
+
+    with pytest.raises(exceptions.PreconditionFailed):
+        blob.reload(if_etag_match=wrong_etag)
+
+    with pytest.raises(exceptions.NotModified):
+        blob.reload(if_etag_not_match=etag)
+
+    blob.reload(if_etag_match=etag)
+    blob.reload(if_etag_not_match=wrong_etag)
+
+    # Exercise 'objects.get' (media) w/ etag match.
+    assert blob.download_as_bytes(if_etag_match=etag) == payload
+
+    with pytest.raises(exceptions.PreconditionFailed):
+        blob.download_as_bytes(if_etag_match=wrong_etag)
+
+    with pytest.raises(exceptions.NotModified):
+        blob.download_as_bytes(if_etag_not_match=etag)
+
+
 def test_blob_crud_w_generation_match(
     shared_bucket, blobs_to_delete, file_data, service_account,
 ):
