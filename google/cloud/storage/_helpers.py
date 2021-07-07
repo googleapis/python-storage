@@ -22,6 +22,7 @@ from hashlib import md5
 from datetime import datetime
 import os
 
+from six import string_types
 from six.moves.urllib.parse import urlsplit
 from google import resumable_media
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
@@ -479,7 +480,7 @@ def _add_etag_match_headers(headers, **match_parameters):
         value = match_parameters.get(snakecase_name)
 
         if value is not None:
-            if isinstance(value, str):
+            if isinstance(value, string_types):
                 value = [value]
             headers[header_name] = ", ".join(value)
 

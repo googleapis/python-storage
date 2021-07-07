@@ -20,6 +20,7 @@ import pytest
 import re
 import requests
 import unittest
+from six import string_types
 from six.moves import http_client
 from six.moves.urllib import parse as urlparse
 
@@ -1531,12 +1532,12 @@ class TestClient(unittest.TestCase):
         headers = {"accept-encoding": "gzip"}
         if_etag_match = extra_kwargs.get("if_etag_match")
         if if_etag_match is not None:
-            if isinstance(if_etag_match, str):
+            if isinstance(if_etag_match, string_types):
                 if_etag_match = [if_etag_match]
             headers["If-Match"] = ", ".join(if_etag_match)
         if_etag_not_match = extra_kwargs.get("if_etag_not_match")
         if if_etag_not_match is not None:
-            if isinstance(if_etag_not_match, str):
+            if isinstance(if_etag_not_match, string_types):
                 if_etag_not_match = [if_etag_not_match]
             headers["If-None-Match"] = ", ".join(if_etag_not_match)
 
