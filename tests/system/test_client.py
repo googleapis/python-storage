@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import io
 import re
 import tempfile
 
@@ -113,30 +114,34 @@ def test_download_blob_to_file_w_etag(
     blob.upload_from_string(payload)
     blobs_to_delete.append(blob)
 
-    with tempfile.NamedTemporaryFile() as temp_f:
-        with open(temp_f.name, "wb") as file_obj:
-            with pytest.raises(exceptions.NotModified):
-                storage_client.download_blob_to_file(
-                    "gs://" + shared_bucket.name + "/" + filename,
-                    file_obj,
-                    if_etag_not_match=blob.etag,
-                )
+    buffer = io.BytesIO()
+    with pytest.raises(exceptions.NotModified):
+        storage_client.download_blob_to_file(
+            "gs://" + shared_bucket.name + "/" + filename,
+            buffer,
+            if_etag_not_match=blob.etag,
+        )
 
-            with pytest.raises(exceptions.PreconditionFailed):
-                storage_client.download_blob_to_file(
-                    "gs://" + shared_bucket.name + "/" + filename,
-                    file_obj,
-                    if_etag_match="kittens",
-                )
+    buffer = io.BytesIO()
+    with pytest.raises(exceptions.PreconditionFailed):
+        storage_client.download_blob_to_file(
+            "gs://" + shared_bucket.name + "/" + filename,
+            buffer,
+            if_etag_match="kittens",
+        )
 
-            storage_client.download_blob_to_file(
-                "gs://" + shared_bucket.name + "/" + filename,
-                file_obj,
-                if_etag_not_match="kittens",
-            )
+    buffer = io.BytesIO()
+    storage_client.download_blob_to_file(
+        "gs://" + shared_bucket.name + "/" + filename,
+        buffer,
+        if_etag_not_match="kittens",
+    )
+    assert buffer.getvalue() == payload
 
-            storage_client.download_blob_to_file(
-                "gs://" + shared_bucket.name + "/" + filename,
-                file_obj,
-                if_etag_match=blob.etag,
-            )
+    buffer = io.BytesIO()
+    storage_client.download_blob_to_file(
+        "gs://" + shared_bucket.name + "/" + filename,
+        buffer,
+        if_etag_match=blob.etag,
+    )
+    assert buffer.getvalue() == payload

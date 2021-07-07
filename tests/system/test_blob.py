@@ -268,8 +268,8 @@ def test_blob_crud_w_etag_match(
     with pytest.raises(exceptions.NotModified):
         blob.reload(if_etag_not_match=etag)
 
-    blob.reload(if_etag_match=etag)
-    blob.reload(if_etag_not_match=wrong_etag)
+    blob.reload(if_etag_match=etag)  # no raise
+    blob.reload(if_etag_not_match=wrong_etag)  # no raise
 
     # Exercise 'objects.get' (media) w/ etag match.
     assert blob.download_as_bytes(if_etag_match=etag) == payload
