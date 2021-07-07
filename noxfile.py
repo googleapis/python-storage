@@ -33,6 +33,7 @@ UNIT_TEST_PYTHON_VERSIONS = ["2.7", "3.6", "3.7", "3.8", "3.9"]
 
 CURRENT_DIRECTORY = pathlib.Path(__file__).parent.absolute()
 
+
 @nox.session(python=DEFAULT_PYTHON_VERSION)
 def lint(session):
     """Run linters.
@@ -136,7 +137,8 @@ def system(session):
         "google-cloud-iam",
         "google-cloud-pubsub < 2.0.0",
         "google-cloud-kms < 2.0dev",
-        "-c", constraints_path,
+        "-c",
+        constraints_path,
     )
 
     # Run py.test against the system tests.
