@@ -140,8 +140,6 @@ def test_download_blob_to_file_w_etag(
 
     buffer = io.BytesIO()
     storage_client.download_blob_to_file(
-        "gs://" + shared_bucket.name + "/" + filename,
-        buffer,
-        if_etag_match=blob.etag,
+        "gs://" + shared_bucket.name + "/" + filename, buffer, if_etag_match=blob.etag,
     )
     assert buffer.getvalue() == payload
