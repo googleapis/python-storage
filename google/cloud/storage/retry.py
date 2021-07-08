@@ -18,9 +18,6 @@ from google.api_core import exceptions as api_exceptions
 from google.api_core import retry
 from google.auth import exceptions as auth_exceptions
 
-import json
-import six
-
 
 # ConnectionError is a built-in exception only in Python3 and not in Python2.
 try:
@@ -124,19 +121,11 @@ def is_metageneration_specified(query_params):
 def is_etag_in_json(data):
     """Return True if an etag is contained in the JSON body.
 
-    :type data: str or dict
-    :param data: A string containing a JSON-encoded dict, or the dict itself.
+    :type data: dict or None
+    :param data: A dict containing the JSON body. If not passed, returns False.
 
     Intended for use on calls with relatively short JSON payloads."""
-    if isinstance(data, six.text_type):
-        try:
-            data = json.loads(data)
-        # Though this method should only be called when a JSON body is expected,
-        # the retry policy should be robust to unexpected payloads.
-        # In Python 3 a JSONDecodeError is possible, but it is a subclass of ValueError.
-        except (ValueError, TypeError):
-            return False
-    return "etag" in data
+    return data is not None and "etag" in data
 
 
 DEFAULT_RETRY_IF_GENERATION_SPECIFIED = ConditionalRetryPolicy(
