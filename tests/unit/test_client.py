@@ -29,7 +29,6 @@ from google.api_core import exceptions
 from google.oauth2.service_account import Credentials
 from . import _read_local_json
 
-from google.cloud.storage import _helpers
 from google.cloud.storage.retry import DEFAULT_RETRY
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_GENERATION_SPECIFIED
 
