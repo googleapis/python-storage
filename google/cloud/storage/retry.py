@@ -122,7 +122,7 @@ def is_etag_in_json(data):
     """Return True if an etag is contained in the JSON body.
 
     :type data: dict or None
-    :param data: A dict containing the JSON body. If not passed, returns False.
+    :param data: A dict representing the JSON body. If not passed, returns False.
 
     Intended for use on calls with relatively short JSON payloads."""
     return data is not None and "etag" in data
