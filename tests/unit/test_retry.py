@@ -166,11 +166,11 @@ class Test_is_metageneration_specified(unittest.TestCase):
         self.assertTrue(self._call_fut(query_params))
 
 
-class Test_is_etag_in_json(unittest.TestCase):
+class Test_is_etag_in_data(unittest.TestCase):
     def _call_fut(self, data):
         from google.cloud.storage import retry
 
-        return retry.is_etag_in_json(data)
+        return retry.is_etag_in_data(data)
 
     def test_w_none(self):
         data = None

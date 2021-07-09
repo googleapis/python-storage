@@ -118,13 +118,21 @@ def is_metageneration_specified(query_params):
     return if_metageneration_match
 
 
-def is_etag_in_json(data):
-    """Return True if an etag is contained in the JSON body.
+def is_etag_in_data(data):
+    """Return True if an etag is contained in the request body.
 
     :type data: dict or None
-    :param data: A dict representing the JSON body. If not passed, returns False.
+    :param data: A dict representing the request JSON body. If not passed, returns False.
     """
     return data is not None and "etag" in data
+
+
+def is_etag_in_json(data):
+    """
+    ``is_etag_in_json`` is supported for backwards-compatibility reasons only;
+    please use ``is_etag_in_data`` instead.
+    """
+    return is_etag_in_data(data)
 
 
 DEFAULT_RETRY_IF_GENERATION_SPECIFIED = ConditionalRetryPolicy(
