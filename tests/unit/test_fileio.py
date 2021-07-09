@@ -15,11 +15,11 @@
 # limitations under the License.
 
 import unittest
-import mock
 import io
 import string
 
-from google.cloud.storage.fileio import BlobReader, BlobWriter, SlidingBuffer
+import mock
+
 from google.api_core.exceptions import RequestRangeNotSatisfiable
 from google.cloud.storage.retry import DEFAULT_RETRY
 
@@ -30,11 +30,27 @@ PLAIN_CONTENT_TYPE = "text/plain"
 NUM_RETRIES = 2
 
 
-class TestBlobReaderBinary(unittest.TestCase):
+class _BlobReaderBase:
+    @staticmethod
+    def _make_blob_reader(*args, **kwargs):
+        from google.cloud.storage.fileio import BlobReader
+
+        return BlobReader(*args, **kwargs)
+
+
+class _BlobWriterBase:
+    @staticmethod
+    def _make_blob_writer(*args, **kwargs):
+        from google.cloud.storage.fileio import BlobWriter
+
+        return BlobWriter(*args, **kwargs)
+
+
+class TestBlobReaderBinary(unittest.TestCase, _BlobReaderBase):
     def test_attributes(self):
         blob = mock.Mock()
         blob.chunk_size = 256
-        reader = BlobReader(blob)
+        reader = self._make_blob_reader(blob)
         self.assertTrue(reader.seekable())
         self.assertTrue(reader.readable())
         self.assertFalse(reader.writable())
@@ -44,7 +60,7 @@ class TestBlobReaderBinary(unittest.TestCase):
     def test_attributes_explict(self):
         blob = mock.Mock()
         blob.chunk_size = 256
-        reader = BlobReader(blob, chunk_size=1024, retry=None)
+        reader = self._make_blob_reader(blob, chunk_size=1024, retry=None)
         self.assertEqual(reader._chunk_size, 1024)
         self.assertIsNone(reader._retry)
 
@@ -56,7 +72,7 @@ class TestBlobReaderBinary(unittest.TestCase):
 
         blob.download_as_bytes = mock.Mock(side_effect=read_from_fake_data)
         download_kwargs = {"if_metageneration_match": 1}
-        reader = BlobReader(blob, chunk_size=8, **download_kwargs)
+        reader = self._make_blob_reader(blob, chunk_size=8, **download_kwargs)
 
         # Read and trigger the first download of chunk_size.
         self.assertEqual(reader.read(1), TEST_BINARY_DATA[0:1])
@@ -101,7 +117,9 @@ class TestBlobReaderBinary(unittest.TestCase):
 
         blob.download_as_bytes = mock.Mock(side_effect=read_from_fake_data)
         download_kwargs = {"if_metageneration_match": 1}
-        reader = BlobReader(blob, chunk_size=8, retry=None, **download_kwargs)
+        reader = self._make_blob_reader(
+            blob, chunk_size=8, retry=None, **download_kwargs
+        )
 
         # Read and trigger the first download of chunk_size.
         self.assertEqual(reader.read(1), TEST_BINARY_DATA[0:1])
@@ -117,7 +135,7 @@ class TestBlobReaderBinary(unittest.TestCase):
             side_effect=RequestRangeNotSatisfiable("message")
         )
 
-        reader = BlobReader(blob)
+        reader = self._make_blob_reader(blob)
         self.assertEqual(reader.read(), b"")
 
     def test_readline(self):
@@ -127,7 +145,7 @@ class TestBlobReaderBinary(unittest.TestCase):
             return TEST_BINARY_DATA[start:end]
 
         blob.download_as_bytes = mock.Mock(side_effect=read_from_fake_data)
-        reader = BlobReader(blob, chunk_size=10)
+        reader = self._make_blob_reader(blob, chunk_size=10)
 
         # Read a line. With chunk_size=10, expect three chunks downloaded.
         self.assertEqual(reader.readline(), TEST_BINARY_DATA[:27])
@@ -167,7 +185,7 @@ class TestBlobReaderBinary(unittest.TestCase):
         blob.download_as_bytes = mock.Mock(side_effect=read_from_fake_data)
         blob.size = None
         download_kwargs = {"if_metageneration_match": 1}
-        reader = BlobReader(blob, chunk_size=8, **download_kwargs)
+        reader = self._make_blob_reader(blob, chunk_size=8, **download_kwargs)
 
         # Seek needs the blob size to work and should call reload() if the size
         # is not known. Set a mock to initialize the size if reload() is called.
@@ -213,7 +231,7 @@ class TestBlobReaderBinary(unittest.TestCase):
 
     def test_close(self):
         blob = mock.Mock()
-        reader = BlobReader(blob)
+        reader = self._make_blob_reader(blob)
 
         reader.close()
 
@@ -226,20 +244,20 @@ class TestBlobReaderBinary(unittest.TestCase):
     def test_context_mgr(self):
         # Just very that the context manager form doesn't crash.
         blob = mock.Mock()
-        with BlobReader(blob) as reader:
+        with self._make_blob_reader(blob) as reader:
             reader.close()
 
     def test_rejects_invalid_kwargs(self):
         blob = mock.Mock()
         with self.assertRaises(ValueError):
-            BlobReader(blob, invalid_kwarg=1)
+            self._make_blob_reader(blob, invalid_kwarg=1)
 
 
-class TestBlobWriterBinary(unittest.TestCase):
+class TestBlobWriterBinary(unittest.TestCase, _BlobWriterBase):
     def test_attributes(self):
         blob = mock.Mock()
         blob.chunk_size = 256 * 1024
-        writer = BlobWriter(blob)
+        writer = self._make_blob_writer(blob)
         self.assertFalse(writer.seekable())
         self.assertFalse(writer.readable())
         self.assertTrue(writer.writable())
@@ -248,7 +266,9 @@ class TestBlobWriterBinary(unittest.TestCase):
     def test_attributes_explicit(self):
         blob = mock.Mock()
         blob.chunk_size = 256 * 1024
-        writer = BlobWriter(blob, chunk_size=512 * 1024, retry=DEFAULT_RETRY)
+        writer = self._make_blob_writer(
+            blob, chunk_size=512 * 1024, retry=DEFAULT_RETRY
+        )
         self.assertEqual(writer._chunk_size, 512 * 1024)
         self.assertEqual(writer._retry, DEFAULT_RETRY)
 
@@ -256,7 +276,7 @@ class TestBlobWriterBinary(unittest.TestCase):
         blob = mock.Mock()
         blob.chunk_size = 123
         with self.assertRaises(ValueError):
-            _ = BlobWriter(blob)
+            _ = self._make_blob_writer(blob)
 
     @mock.patch("warnings.warn")
     def test_write(self, mock_warn):
@@ -275,7 +295,7 @@ class TestBlobWriterBinary(unittest.TestCase):
             # gives us more control over close() for test purposes.
             upload_kwargs = {"if_metageneration_match": 1}
             chunk_size = 8  # Note: Real upload requires a multiple of 256KiB.
-            writer = BlobWriter(
+            writer = self._make_blob_writer(
                 blob,
                 chunk_size=chunk_size,
                 num_retries=NUM_RETRIES,
@@ -322,14 +342,14 @@ class TestBlobWriterBinary(unittest.TestCase):
 
     def test_flush_fails(self):
         blob = mock.Mock(chunk_size=None)
-        writer = BlobWriter(blob)
+        writer = self._make_blob_writer(blob)
 
         with self.assertRaises(io.UnsupportedOperation):
             writer.flush()
 
     def test_seek_fails(self):
         blob = mock.Mock(chunk_size=None)
-        writer = BlobWriter(blob)
+        writer = self._make_blob_writer(blob)
 
         with self.assertRaises(io.UnsupportedOperation):
             writer.seek()
@@ -347,7 +367,7 @@ class TestBlobWriterBinary(unittest.TestCase):
             # It would be normal to use a context manager here, but not doing so
             # gives us more control over close() for test purposes.
             chunk_size = 8  # Note: Real upload requires a multiple of 256KiB.
-            writer = BlobWriter(
+            writer = self._make_blob_writer(
                 blob, chunk_size=chunk_size, content_type=PLAIN_CONTENT_TYPE,
             )
 
@@ -396,7 +416,7 @@ class TestBlobWriterBinary(unittest.TestCase):
             # It would be normal to use a context manager here, but not doing so
             # gives us more control over close() for test purposes.
             chunk_size = 8  # Note: Real upload requires a multiple of 256KiB.
-            writer = BlobWriter(
+            writer = self._make_blob_writer(
                 blob,
                 chunk_size=chunk_size,
                 content_type=PLAIN_CONTENT_TYPE,
@@ -449,7 +469,7 @@ class TestBlobWriterBinary(unittest.TestCase):
             # It would be normal to use a context manager here, but not doing so
             # gives us more control over close() for test purposes.
             chunk_size = 8  # Note: Real upload requires a multiple of 256KiB.
-            writer = BlobWriter(
+            writer = self._make_blob_writer(
                 blob,
                 chunk_size=chunk_size,
                 content_type=PLAIN_CONTENT_TYPE,
@@ -500,7 +520,7 @@ class TestBlobWriterBinary(unittest.TestCase):
             # It would be normal to use a context manager here, but not doing so
             # gives us more control over close() for test purposes.
             chunk_size = 8  # Note: Real upload requires a multiple of 256KiB.
-            writer = BlobWriter(
+            writer = self._make_blob_writer(
                 blob,
                 chunk_size=chunk_size,
                 content_type=PLAIN_CONTENT_TYPE,
@@ -547,7 +567,7 @@ class TestBlobWriterBinary(unittest.TestCase):
             # It would be normal to use a context manager here, but not doing so
             # gives us more control over close() for test purposes.
             chunk_size = 8  # Note: Real upload requires a multiple of 256KiB.
-            writer = BlobWriter(
+            writer = self._make_blob_writer(
                 blob,
                 chunk_size=chunk_size,
                 content_type=PLAIN_CONTENT_TYPE,
@@ -592,12 +612,18 @@ class TestBlobWriterBinary(unittest.TestCase):
     def test_rejects_invalid_kwargs(self):
         blob = mock.Mock()
         with self.assertRaises(ValueError):
-            BlobWriter(blob, invalid_kwarg=1)
+            self._make_blob_writer(blob, invalid_kwarg=1)
 
 
 class Test_SlidingBuffer(unittest.TestCase):
+    @staticmethod
+    def _make_sliding_buffer(*args, **kwargs):
+        from google.cloud.storage.fileio import SlidingBuffer
+
+        return SlidingBuffer(*args, **kwargs)
+
     def test_write_and_read(self):
-        buff = SlidingBuffer()
+        buff = self._make_sliding_buffer()
 
         # Write and verify tell() still reports 0 and len is correct.
         buff.write(TEST_BINARY_DATA)
@@ -610,7 +636,7 @@ class Test_SlidingBuffer(unittest.TestCase):
         self.assertEqual(len(buff), len(TEST_BINARY_DATA))
 
     def test_flush(self):
-        buff = SlidingBuffer()
+        buff = self._make_sliding_buffer()
 
         # Write and verify tell() still reports 0 and len is correct.
         buff.write(TEST_BINARY_DATA)
@@ -633,7 +659,7 @@ class Test_SlidingBuffer(unittest.TestCase):
         self.assertEqual(len(buff), len(TEST_BINARY_DATA[8:]))
 
     def test_seek(self):
-        buff = SlidingBuffer()
+        buff = self._make_sliding_buffer()
         buff.write(TEST_BINARY_DATA)
 
         # Try to seek forward. Verify the tell() doesn't change.
@@ -656,16 +682,16 @@ class Test_SlidingBuffer(unittest.TestCase):
         self.assertEqual(pos, buff.tell())
 
     def test_close(self):
-        buff = SlidingBuffer()
+        buff = self._make_sliding_buffer()
         buff.close()
         with self.assertRaises(ValueError):
             buff.read()
 
 
-class TestBlobReaderText(unittest.TestCase):
+class TestBlobReaderText(unittest.TestCase, _BlobReaderBase):
     def test_attributes(self):
         blob = mock.Mock()
-        reader = io.TextIOWrapper(BlobReader(blob))
+        reader = io.TextIOWrapper(self._make_blob_reader(blob))
         self.assertTrue(reader.seekable())
         self.assertTrue(reader.readable())
         self.assertFalse(reader.writable())
@@ -680,7 +706,7 @@ class TestBlobReaderText(unittest.TestCase):
         blob.chunk_size = None
         blob.size = len(TEST_TEXT_DATA.encode("utf-8"))
         download_kwargs = {"if_metageneration_match": 1}
-        reader = io.TextIOWrapper(BlobReader(blob, **download_kwargs))
+        reader = io.TextIOWrapper(self._make_blob_reader(blob, **download_kwargs))
 
         # The TextIOWrapper class has an internally defined chunk size which
         # will override ours. The wrapper class is not under test.
@@ -711,7 +737,7 @@ class TestBlobReaderText(unittest.TestCase):
         blob.chunk_size = None
         blob.size = len(TEST_MULTIBYTE_TEXT_DATA.encode("utf-8"))
         download_kwargs = {"if_metageneration_match": 1}
-        reader = io.TextIOWrapper(BlobReader(blob, **download_kwargs))
+        reader = io.TextIOWrapper(self._make_blob_reader(blob, **download_kwargs))
 
         # The TextIOWrapper class has an internally defined chunk size which
         # will override ours. The wrapper class is not under test.
@@ -742,7 +768,7 @@ class TestBlobReaderText(unittest.TestCase):
         blob.size = None
         blob.chunk_size = None
         download_kwargs = {"if_metageneration_match": 1}
-        reader = io.TextIOWrapper(BlobReader(blob, **download_kwargs))
+        reader = io.TextIOWrapper(self._make_blob_reader(blob, **download_kwargs))
 
         # Seek needs the blob size to work and should call reload() if the size
         # is not known. Set a mock to initialize the size if reload() is called.
@@ -775,7 +801,7 @@ class TestBlobReaderText(unittest.TestCase):
         blob.size = None
         blob.chunk_size = None
         download_kwargs = {"if_metageneration_match": 1}
-        reader = io.TextIOWrapper(BlobReader(blob, **download_kwargs))
+        reader = io.TextIOWrapper(self._make_blob_reader(blob, **download_kwargs))
 
         # Seek needs the blob size to work and should call reload() if the size
         # is not known. Set a mock to initialize the size if reload() is called.
@@ -801,7 +827,7 @@ class TestBlobReaderText(unittest.TestCase):
 
     def test_close(self):
         blob = mock.Mock()
-        reader = BlobReader(blob)
+        reader = self._make_blob_reader(blob)
 
         reader.close()
 
@@ -812,7 +838,7 @@ class TestBlobReaderText(unittest.TestCase):
             reader.seek(0)
 
 
-class TestBlobWriterText(unittest.TestCase):
+class TestBlobWriterText(unittest.TestCase, _BlobWriterBase):
     @mock.patch("warnings.warn")
     def test_write(self, mock_warn):
         from google.cloud.storage._helpers import _NUM_RETRIES_MESSAGE
@@ -828,7 +854,7 @@ class TestBlobWriterText(unittest.TestCase):
             # It would be normal to use a context manager here, but not doing so
             # gives us more control over close() for test purposes.
             chunk_size = 8  # Note: Real upload requires a multiple of 256KiB.
-            unwrapped_writer = BlobWriter(
+            unwrapped_writer = self._make_blob_writer(
                 blob,
                 chunk_size=chunk_size,
                 text_mode=True,
