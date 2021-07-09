@@ -19,7 +19,6 @@ import mock
 import io
 import string
 
-from google.cloud.storage._helpers import _NUM_RETRIES_MESSAGE
 from google.cloud.storage.fileio import BlobReader, BlobWriter, SlidingBuffer
 from google.api_core.exceptions import RequestRangeNotSatisfiable
 from google.cloud.storage.retry import DEFAULT_RETRY
@@ -259,9 +258,11 @@ class TestBlobWriterBinary(unittest.TestCase):
         with self.assertRaises(ValueError):
             _ = BlobWriter(blob)
 
-    def test_write(self):
-        blob = mock.Mock()
+    @mock.patch("warnings.warn")
+    def test_write(self, mock_warn):
+        from google.cloud.storage._helpers import _NUM_RETRIES_MESSAGE
 
+        blob = mock.Mock()
         upload = mock.Mock()
         transport = mock.Mock()
 
@@ -314,6 +315,10 @@ class TestBlobWriterBinary(unittest.TestCase):
         self.assertEqual(writer.tell(), 33)
         writer.close()
         self.assertEqual(upload.transmit_next_chunk.call_count, 5)
+
+        mock_warn.assert_called_once_with(
+            _NUM_RETRIES_MESSAGE, DeprecationWarning, stacklevel=2,
+        )
 
     def test_flush_fails(self):
         blob = mock.Mock(chunk_size=None)
@@ -431,8 +436,7 @@ class TestBlobWriterBinary(unittest.TestCase):
         writer.close()
         self.assertEqual(upload.transmit_next_chunk.call_count, 5)
 
-    @mock.patch("warnings.warn")
-    def test_forced_default_retry(self, mock_warn):
+    def test_forced_default_retry(self):
         blob = mock.Mock()
 
         upload = mock.Mock()
@@ -483,7 +487,10 @@ class TestBlobWriterBinary(unittest.TestCase):
         writer.close()
         self.assertEqual(upload.transmit_next_chunk.call_count, 5)
 
-    def test_num_retries_and_retry_conflict(self):
+    @mock.patch("warnings.warn")
+    def test_num_retries_and_retry_conflict(self, mock_warn):
+        from google.cloud.storage._helpers import _NUM_RETRIES_MESSAGE
+
         blob = mock.Mock()
 
         blob._initiate_resumable_upload.side_effect = ValueError
@@ -521,10 +528,15 @@ class TestBlobWriterBinary(unittest.TestCase):
             retry=DEFAULT_RETRY,
         )
 
+        mock_warn.assert_called_once_with(
+            _NUM_RETRIES_MESSAGE, DeprecationWarning, stacklevel=2,
+        )
+
     @mock.patch("warnings.warn")
     def test_num_retries_only(self, mock_warn):
-        blob = mock.Mock()
+        from google.cloud.storage._helpers import _NUM_RETRIES_MESSAGE
 
+        blob = mock.Mock()
         upload = mock.Mock()
         transport = mock.Mock()
 
@@ -567,6 +579,7 @@ class TestBlobWriterBinary(unittest.TestCase):
         )
         upload.transmit_next_chunk.assert_called_with(transport)
         self.assertEqual(upload.transmit_next_chunk.call_count, 4)
+
         mock_warn.assert_called_once_with(
             _NUM_RETRIES_MESSAGE, DeprecationWarning, stacklevel=2
         )
@@ -800,9 +813,11 @@ class TestBlobReaderText(unittest.TestCase):
 
 
 class TestBlobWriterText(unittest.TestCase):
-    def test_write(self):
-        blob = mock.Mock()
+    @mock.patch("warnings.warn")
+    def test_write(self, mock_warn):
+        from google.cloud.storage._helpers import _NUM_RETRIES_MESSAGE
 
+        blob = mock.Mock()
         upload = mock.Mock()
         transport = mock.Mock()
 
@@ -848,3 +863,7 @@ class TestBlobWriterText(unittest.TestCase):
             retry=None,
         )
         upload.transmit_next_chunk.assert_called_with(transport)
+
+        mock_warn.assert_called_once_with(
+            _NUM_RETRIES_MESSAGE, DeprecationWarning, stacklevel=2,
+        )
