@@ -13,11 +13,11 @@
 # limitations under the License.
 
 import os
-import pytest
 import requests
 import tempfile
 import uuid
 import logging
+import functools
 
 from google.cloud import storage
 
@@ -458,7 +458,9 @@ def _populate_resource_object(client, resources):
     bucket_name = resources["bucket"].name
     bucket = client.get_bucket(bucket_name)
     blob = bucket.blob(uuid.uuid4().hex)
-    blob.upload_from_string("hello world")
+    blob.upload_from_string(
+        "hello world", checksum="crc32c"
+    )  # add checksum to trigger emulator behavior
     blob.reload()
     resources["object"] = blob
 
@@ -542,39 +544,11 @@ def _delete_retry_test(host, id):
 
 
 ########################################################################################################################################
-### Run Conformance Tests for Retry Strategy ###########################################################################################
+### Run Test Case for Retry Strategy ###################################################################################################
 ########################################################################################################################################
 
 
-def pytest_generate_tests(metafunc):
-    for test_data in _CONFORMANCE_TESTS:
-        scenario_id = test_data["id"]
-        m = "s{}method".format(scenario_id)
-        c = "s{}case".format(scenario_id)
-        s = "s{}".format(scenario_id)
-        if s in metafunc.fixturenames:
-            metafunc.parametrize(s, [scenario_id])
-        if m in metafunc.fixturenames:
-            metafunc.parametrize(m, test_data["methods"])
-        if c in metafunc.fixturenames:
-            metafunc.parametrize(c, test_data["cases"])
-
-
-def test_retry_s1_always_idempotent(s1, s1method, s1case):
-    run_retry_stragegy_conformance_test(s1, s1method, s1case)
-
-
-def test_retry_s2_conditionally_idempotent_w_preconditions(s2, s2method, s2case):
-    run_retry_stragegy_conformance_test(s2, s2method, s2case)
-
-
-def run_retry_stragegy_conformance_test(scenario_id, method, case):
-    host = os.environ.get(STORAGE_EMULATOR_ENV_VAR)
-    if host is None:
-        pytest.skip(
-            "This test must use the testbench emulator; set STORAGE_EMULATOR_HOST to run."
-        )
-
+def run_test_case(scenario_id, method, case, lib_func, host):
     # Create client to use for setup steps.
     client = storage.Client(client_options={"api_endpoint": host})
     scenario = _CONFORMANCE_TESTS[scenario_id - 1]
@@ -584,53 +558,77 @@ def run_retry_stragegy_conformance_test(scenario_id, method, case):
     method_name = method["name"]
     instructions = case["instructions"]
 
-    if method_name not in method_mapping:
-        pytest.skip("No tests for operation {}".format(method_name),)
+    try:
+        r = _create_retry_test(host, method_name, instructions)
+        id = r["id"]
+    except Exception as e:
+        raise Exception(
+            "Error creating retry test for {}: {}".format(method_name, e)
+        ).with_traceback(e.__traceback__)
 
-    for function in method_mapping[method_name]:
-        # Create the retry test in the emulator to handle instructions.
-        try:
-            r = _create_retry_test(host, method_name, instructions)
-            id = r["id"]
-        except Exception as e:
-            raise Exception(
-                "Error creating retry test for {}: {}".format(method_name, e)
-            ).with_traceback(e.__traceback__)
+    # Populate resources.
+    try:
+        resources = _populate_resources(client, json_resources)
+    except Exception as e:
+        raise Exception(
+            "Error populating resources for {}: {}".format(method_name, e)
+        ).with_traceback(e.__traceback__)
 
-        # Populate resources.
-        try:
-            resources = _populate_resources(client, json_resources)
-        except Exception as e:
-            raise Exception(
-                "Error populating resources for {}: {}".format(method_name, e)
-            ).with_traceback(e.__traceback__)
-
-        # Run retry tests on library methods.
-        try:
-            _run_retry_test(host, id, function, precondition_provided, **resources)
-        except Exception as e:
-            logging.exception(
-                "Caught an exception while running retry instructions\n {}".format(e)
-            )
-            success_results = False
-        else:
-            success_results = True
-
-        # Assert expected success for each scenario.
-        assert (
-            expect_success == success_results
-        ), "S{}-{}-{}: expected_success was {}, should be {}".format(
-            scenario_id, method_name, function.__name__, success_results, expect_success
+    # Run retry tests on library methods.
+    try:
+        _run_retry_test(host, id, lib_func, precondition_provided, **resources)
+    except Exception as e:
+        logging.exception(
+            "Caught an exception while running retry instructions\n {}".format(e)
         )
+        success_results = False
+    else:
+        success_results = True
 
-        # Verify that all instructions were used up during the test
-        # (indicates that the client sent the correct requests).
-        status_response = _get_retry_test(host, id)
-        assert (
-            status_response["completed"] is True
-        ), "S{}-{}-{}: test not completed; unused instructions:{}".format(
-            scenario_id, method_name, function.__name__, status_response["instructions"]
+    # Assert expected success for each scenario.
+    assert (
+        expect_success == success_results
+    ), "Retry API call expected_success was {}, should be {}".format(
+        success_results, expect_success
+    )
+
+    # Verify that all instructions were used up during the test
+    # (indicates that the client sent the correct requests).
+    status_response = _get_retry_test(host, id)
+    assert (
+        status_response["completed"] is True
+    ), "Retry test not completed; unused instructions:{}".format(
+        status_response["instructions"]
+    )
+
+    # Clean up and close out test in emulator.
+    _delete_retry_test(host, id)
+
+
+########################################################################################################################################
+### Run Conformance Tests for Retry Strategy ###########################################################################################
+########################################################################################################################################
+
+for scenario in _CONFORMANCE_TESTS:
+    host = os.environ.get(STORAGE_EMULATOR_ENV_VAR)
+    if host is None:
+        logging.error(
+            "This test must use the testbench emulator; set STORAGE_EMULATOR_HOST to run."
         )
+        break
 
-        # Clean up and close out test in emulator.
-        _delete_retry_test(host, id)
+    id = scenario["id"]
+    methods = scenario["methods"]
+    cases = scenario["cases"]
+    for c in cases:
+        for m in methods:
+            method_name = m["name"]
+            if method_name not in method_mapping:
+                logging.info("No tests for operation {}".format(method_name))
+                continue
+
+            for lib_func in method_mapping[method_name]:
+                test_name = "test-S{}-{}-{}".format(id, method_name, lib_func.__name__)
+                globals()[test_name] = functools.partial(
+                    run_test_case, id, m, c, lib_func, host
+                )
