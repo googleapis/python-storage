@@ -41,13 +41,13 @@ _CONF_TEST_SERVICE_ACCOUNT_EMAIL = (
 ########################################################################################################################################
 
 
-def list_buckets(client, _preconditions, **_):
+def client_list_buckets(client, _preconditions, **_):
     buckets = client.list_buckets()
     for b in buckets:
         pass
 
 
-def list_blobs(client, _preconditions, bucket, **_):
+def client_list_blobs(client, _preconditions, bucket, **_):
     blobs = client.list_blobs(bucket.name)
     for b in blobs:
         pass
@@ -59,7 +59,7 @@ def bucket_list_blobs(client, _preconditions, bucket, **_):
         pass
 
 
-def get_blob(client, _preconditions, bucket, object):
+def bucket_get_blob(client, _preconditions, bucket, object):
     bucket = client.bucket(bucket.name)
     bucket.get_blob(object.name)
 
@@ -85,7 +85,7 @@ def blob_download_to_filename(client, _preconditions, bucket, object):
         blob.download_to_filename(temp_f.name)
 
 
-def client_download_to_file(client, _preconditions, object, **_):
+def client_download_blob_to_file(client, _preconditions, object, **_):
     with tempfile.NamedTemporaryFile() as temp_f:
         with open(temp_f.name, "wb") as file_obj:
             client.download_blob_to_file(object, file_obj)
@@ -99,16 +99,16 @@ def blobreader_read(client, _preconditions, bucket, object):
     blob_reader.read()
 
 
-def reload_bucket(client, _preconditions, bucket):
+def bucket_reload(client, _preconditions, bucket):
     bucket = client.bucket(bucket.name)
     bucket.reload()
 
 
-def get_bucket(client, _preconditions, bucket):
+def client_get_bucket(client, _preconditions, bucket):
     client.get_bucket(bucket.name)
 
 
-def lookup_bucket(client, _preconditions, bucket):
+def client_lookup_bucket(client, _preconditions, bucket):
     client.lookup_bucket(bucket.name)
 
 
@@ -117,7 +117,7 @@ def bucket_exists(client, _preconditions, bucket):
     bucket.exists()
 
 
-def create_bucket(client, _preconditions):
+def client_create_bucket(client, _preconditions):
     bucket = client.bucket(uuid.uuid4().hex)
     client.create_bucket(bucket)
 
@@ -127,7 +127,7 @@ def bucket_create(client, _preconditions):
     bucket.create()
 
 
-def upload_from_string(client, _preconditions, bucket):
+def blob_upload_from_string(client, _preconditions, bucket):
     blob = client.bucket(bucket.name).blob(uuid.uuid4().hex)
     if _preconditions:
         blob.upload_from_string("upload from string", if_generation_match=0)
@@ -171,27 +171,29 @@ def blobwriter_write(client, _preconditions, bucket):
 
 def blob_create_resumable_upload_session(client, _preconditions, bucket):
     blob = client.bucket(bucket.name).blob(uuid.uuid4().hex)
-    blob.create_resumable_upload_session()
+    if _preconditions:
+        blob.create_resumable_upload_session(if_generation_match=0)
+    else:
+        blob.create_resumable_upload_session()
 
 
-def create_notification(client, _preconditions, bucket):
+def notification_create(client, _preconditions, bucket):
     bucket = client.get_bucket(bucket.name)
     notification = bucket.notification()
     notification.create()
 
 
-def list_notifications(client, _preconditions, bucket, **_):
-    bucket = client.get_bucket(bucket.name)
-    notifications = bucket.list_notifications()
+def bucket_list_notifications(client, _preconditions, bucket, **_):
+    notifications = client.bucket(bucket.name).list_notifications()
     for n in notifications:
         pass
 
 
-def get_notification(client, _preconditions, bucket, notification):
+def bucket_get_notification(client, _preconditions, bucket, notification):
     client.bucket(bucket.name).get_notification(notification.notification_id)
 
 
-def reload_notification(client, _preconditions, bucket, notification):
+def notification_reload(client, _preconditions, bucket, notification):
     notification = client.bucket(bucket.name).notification(
         notification_id=notification.notification_id
     )
@@ -205,40 +207,40 @@ def notification_exists(client, _preconditions, bucket, notification):
     notification.exists()
 
 
-def delete_notification(client, _preconditions, bucket, notification):
+def notification_delete(client, _preconditions, bucket, notification):
     notification = client.bucket(bucket.name).notification(
         notification_id=notification.notification_id
     )
     notification.delete()
 
 
-def list_hmac_keys(client, _preconditions, **_):
+def client_list_hmac_keys(client, _preconditions, **_):
     hmac_keys = client.list_hmac_keys()
     for k in hmac_keys:
         pass
 
 
-def delete_bucket(client, _preconditions, bucket, **_):
+def bucket_delete(client, _preconditions, bucket, **_):
     bucket = client.bucket(bucket.name)
     bucket.delete(force=True)
 
 
-def get_iam_policy(client, _preconditions, bucket):
+def bucket_get_iam_policy(client, _preconditions, bucket):
     bucket = client.bucket(bucket.name)
     bucket.get_iam_policy()
 
 
-def get_iam_permissions(client, _preconditions, bucket):
+def bucket_test_iam_permissions(client, _preconditions, bucket):
     bucket = client.bucket(bucket.name)
     permissions = ["storage.buckets.get", "storage.buckets.create"]
     bucket.test_iam_permissions(permissions)
 
 
-def get_service_account_email(client, _preconditions):
+def client_get_service_account_email(client, _preconditions):
     client.get_service_account_email()
 
 
-def make_bucket_public(client, _preconditions, bucket):
+def bucket_make_public(client, _preconditions, bucket):
     bucket = client.bucket(bucket.name)
     bucket.make_public()
 
@@ -271,14 +273,14 @@ def blob_delete(client, _preconditions, bucket, object):
 
 
 # TODO(cathyo@): fix emulator issue and assign metageneration to buckets.insert
-def lock_retention_policy(client, _preconditions, bucket):
+def bucket_lock_retention_policy(client, _preconditions, bucket):
     bucket2 = client.bucket(bucket.name)
     bucket2.retention_period = 60
     bucket2.patch()
     bucket2.lock_retention_policy()
 
 
-def patch_bucket(client, _preconditions, bucket):
+def bucket_patch(client, _preconditions, bucket):
     bucket = client.get_bucket("bucket")
     metageneration = bucket.metageneration
     bucket.storage_class = "COLDLINE"
@@ -288,7 +290,7 @@ def patch_bucket(client, _preconditions, bucket):
         bucket.patch()
 
 
-def update_bucket(client, _preconditions, bucket):
+def bucket_update(client, _preconditions, bucket):
     bucket = client.get_bucket("bucket")
     metageneration = bucket.metageneration
     bucket._properties = {"storageClass": "STANDARD"}
@@ -298,7 +300,7 @@ def update_bucket(client, _preconditions, bucket):
         bucket.update()
 
 
-def patch_blob(client, _preconditions, bucket, object):
+def blob_patch(client, _preconditions, bucket, object):
     blob = client.bucket(bucket.name).blob(object.name)
     blob.metadata = {"foo": "bar"}
     if _preconditions:
@@ -307,7 +309,7 @@ def patch_blob(client, _preconditions, bucket, object):
         blob.patch()
 
 
-def update_blob(client, _preconditions, bucket, object):
+def blob_update(client, _preconditions, bucket, object):
     blob = client.bucket(bucket.name).blob(object.name)
     blob.metadata = {"foo": "bar"}
     if _preconditions:
@@ -316,7 +318,7 @@ def update_blob(client, _preconditions, bucket, object):
         blob.update()
 
 
-def copy_blob(client, _preconditions, bucket, object):
+def bucket_copy_blob(client, _preconditions, bucket, object):
     bucket = client.bucket(bucket.name)
     destination = client.bucket("bucket")
     if _preconditions:
@@ -327,21 +329,22 @@ def copy_blob(client, _preconditions, bucket, object):
         bucket.copy_blob(object, destination)
 
 
-def rename_blob(client, _preconditions, bucket, object):
+def bucket_rename_blob(client, _preconditions, bucket, object):
     bucket = client.bucket(bucket.name)
+    blob = bucket.blob(object.name)
     new_name = uuid.uuid4().hex
     if _preconditions:
         bucket.rename_blob(
-            object,
+            blob,
             new_name,
             if_generation_match=0,
             if_source_generation_match=object.generation,
         )
     else:
-        bucket.rename_blob(object, new_name)
+        bucket.rename_blob(blob, new_name)
 
 
-def rewrite_blob(client, _preconditions, bucket, object):
+def blob_rewrite(client, _preconditions, bucket, object):
     new_blob = client.bucket(bucket.name).blob(uuid.uuid4().hex)
     new_blob.metadata = {"foo": "bar"}
     if _preconditions:
@@ -359,7 +362,7 @@ def blob_update_storage_class(client, _preconditions, bucket, object):
         blob.update_storage_class(storage_class)
 
 
-def compose_blob(client, _preconditions, bucket, object):
+def blob_compose(client, _preconditions, bucket, object):
     blob = client.bucket(bucket.name).blob(object.name)
     blob_2 = bucket.blob(uuid.uuid4().hex)
     blob_2.upload_from_string("foo")
@@ -396,51 +399,62 @@ def bucket_set_iam_policy(client, _preconditions, bucket):
 # read or just a metadata get).
 
 method_mapping = {
-    "storage.buckets.delete": [delete_bucket],  # S1 start
-    "storage.buckets.get": [get_bucket, reload_bucket, lookup_bucket, bucket_exists],
-    "storage.buckets.getIamPolicy": [get_iam_policy],
-    "storage.buckets.insert": [create_bucket, bucket_create],
-    "storage.buckets.list": [list_buckets],
-    "storage.buckets.lockRententionPolicy": [],  # lock_retention_policy
-    "storage.buckets.testIamPermission": [get_iam_permissions],
-    "storage.notifications.delete": [delete_notification],
-    "storage.notifications.get": [
-        get_notification,
-        notification_exists,
-        reload_notification,
+    "storage.buckets.delete": [bucket_delete],  # S1 start
+    "storage.buckets.get": [
+        client_get_bucket,
+        bucket_reload,
+        client_lookup_bucket,
+        bucket_exists,
     ],
-    "storage.notifications.list": [list_notifications],
+    "storage.buckets.getIamPolicy": [bucket_get_iam_policy],
+    "storage.buckets.insert": [client_create_bucket, bucket_create],
+    "storage.buckets.list": [client_list_buckets],
+    "storage.buckets.lockRententionPolicy": [],  # bucket_lock_retention_policy
+    "storage.buckets.testIamPermission": [bucket_test_iam_permissions],
+    "storage.notifications.delete": [notification_delete],
+    "storage.notifications.get": [
+        bucket_get_notification,
+        notification_exists,
+        notification_reload,
+    ],
+    "storage.notifications.list": [bucket_list_notifications],
     "storage.objects.get": [
-        get_blob,
+        bucket_get_blob,
         blob_exists,
-        client_download_to_file,
+        client_download_blob_to_file,
         blob_download_to_filename,
         blob_download_as_bytes,
         blob_download_as_text,
         blobreader_read,
     ],
-    "storage.objects.list": [list_blobs, bucket_list_blobs, delete_bucket],  # S1 end
-    "storage.buckets.patch": [patch_bucket],  # S2 start
-    "storage.buckets.setIamPolicy": [],  # bucket_set_iam_policy
-    "storage.buckets.update": [update_bucket],
-    "storage.objects.compose": [compose_blob],
-    "storage.objects.copy": [copy_blob, rename_blob],
+    "storage.objects.list": [
+        client_list_blobs,
+        bucket_list_blobs,
+        bucket_delete,
+    ],  # S1 end
+    "storage.buckets.patch": [bucket_patch],  # S2 start
+    "storage.buckets.setIamPolicy": [bucket_set_iam_policy],
+    "storage.buckets.update": [bucket_update],
+    "storage.objects.compose": [blob_compose],
+    "storage.objects.copy": [bucket_copy_blob, bucket_rename_blob],
     "storage.objects.delete": [
         bucket_delete_blob,
         bucket_delete_blobs,
-        delete_bucket,
+        bucket_delete,
         blob_delete,
-    ],  # rename_blob
+        bucket_rename_blob,
+    ],
     "storage.objects.insert": [
-        upload_from_string,
+        blob_upload_from_string,
         blob_upload_from_file,
         blob_upload_from_filename,
         blobwriter_write,
+        blob_create_resumable_upload_session,
     ],
-    "storage.objects.patch": [patch_blob],
-    "storage.objects.rewrite": [rewrite_blob, blob_update_storage_class],
-    "storage.objects.update": [update_blob],  # S2 end
-    "storage.notifications.insert": [create_notification],  # S4
+    "storage.objects.patch": [blob_patch],
+    "storage.objects.rewrite": [blob_rewrite, blob_update_storage_class],
+    "storage.objects.update": [blob_update],  # S2 end
+    "storage.notifications.insert": [notification_create],  # S4
 }
 
 ########################################################################################################################################
