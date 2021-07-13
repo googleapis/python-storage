@@ -47,87 +47,103 @@ def client_list_buckets(client, _preconditions, **_):
         pass
 
 
-def client_list_blobs(client, _preconditions, bucket, **_):
+def client_list_blobs(client, _preconditions, **resources):
+    bucket = resources.get("bucket")
     blobs = client.list_blobs(bucket.name)
     for b in blobs:
         pass
 
 
-def bucket_list_blobs(client, _preconditions, bucket, **_):
+def bucket_list_blobs(client, _preconditions, **resources):
+    bucket = resources.get("bucket")
     blobs = client.bucket(bucket.name).list_blobs()
     for b in blobs:
         pass
 
 
-def bucket_get_blob(client, _preconditions, bucket, object):
+def bucket_get_blob(client, _preconditions, **resources):
+    bucket = resources.get("bucket")
+    object = resources.get("object")
     bucket = client.bucket(bucket.name)
     bucket.get_blob(object.name)
 
 
-def blob_exists(client, _preconditions, bucket, object):
+def blob_exists(client, _preconditions, **resources):
+    bucket = resources.get("bucket")
+    object = resources.get("object")
     blob = client.bucket(bucket.name).blob(object.name)
     blob.exists()
 
 
-def blob_download_as_bytes(client, _preconditions, bucket, object):
+def blob_download_as_bytes(client, _preconditions, **resources):
+    bucket = resources.get("bucket")
+    object = resources.get("object")
     blob = client.bucket(bucket.name).blob(object.name)
     blob.download_as_bytes()
 
 
-def blob_download_as_text(client, _preconditions, bucket, object):
+def blob_download_as_text(client, _preconditions, **resources):
+    bucket = resources.get("bucket")
+    object = resources.get("object")
     blob = client.bucket(bucket.name).blob(object.name)
     blob.download_as_text()
 
 
-def blob_download_to_filename(client, _preconditions, bucket, object):
+def blob_download_to_filename(client, _preconditions, **resources):
+    bucket = resources.get("bucket")
+    object = resources.get("object")
     blob = client.bucket(bucket.name).blob(object.name)
     with tempfile.NamedTemporaryFile() as temp_f:
         blob.download_to_filename(temp_f.name)
 
 
-def client_download_blob_to_file(client, _preconditions, object, **_):
+def client_download_blob_to_file(client, _preconditions, **resources):
+    object = resources.get("object")
     with tempfile.NamedTemporaryFile() as temp_f:
         with open(temp_f.name, "wb") as file_obj:
             client.download_blob_to_file(object, file_obj)
 
 
-def blobreader_read(client, _preconditions, bucket, object):
+def blobreader_read(client, _preconditions, **resources):
     from google.cloud.storage.fileio import BlobReader
 
+    bucket = resources.get("bucket")
+    object = resources.get("object")
     blob = client.bucket(bucket.name).blob(object.name)
     blob_reader = BlobReader(blob)
     blob_reader.read()
 
 
-def bucket_reload(client, _preconditions, bucket):
-    bucket = client.bucket(bucket.name)
+def bucket_reload(client, _preconditions, **resources):
+    bucket = client.bucket(resources.get("bucket").name)
     bucket.reload()
 
 
-def client_get_bucket(client, _preconditions, bucket):
-    client.get_bucket(bucket.name)
+def client_get_bucket(client, _preconditions, **resources):
+    client.get_bucket(resources.get("bucket").name)
 
 
-def client_lookup_bucket(client, _preconditions, bucket):
-    client.lookup_bucket(bucket.name)
+def client_lookup_bucket(client, _preconditions, **resources):
+    client.lookup_bucket(resources.get("bucket").name)
 
 
-def bucket_exists(client, _preconditions, bucket):
-    bucket = client.bucket(bucket.name)
+def bucket_exists(client, _preconditions, **resources):
+    bucket = client.bucket(resources.get("bucket").name)
     bucket.exists()
 
 
-def client_create_bucket(client, _preconditions):
+def client_create_bucket(client, _preconditions, **_):
     bucket = client.bucket(uuid.uuid4().hex)
     client.create_bucket(bucket)
 
 
-def bucket_create(client, _preconditions):
+def bucket_create(client, _preconditions, **_):
     bucket = client.bucket(uuid.uuid4().hex)
     bucket.create()
 
 
-def blob_upload_from_string(client, _preconditions, bucket):
+def blob_upload_from_string(client, _preconditions, **resources):
+    bucket = resources.get("bucket")
     blob = client.bucket(bucket.name).blob(uuid.uuid4().hex)
     if _preconditions:
         blob.upload_from_string("upload from string", if_generation_match=0)
@@ -135,10 +151,11 @@ def blob_upload_from_string(client, _preconditions, bucket):
         blob.upload_from_string("upload from string")
 
 
-def blob_upload_from_file(client, _preconditions, bucket):
+def blob_upload_from_file(client, _preconditions, **resources):
     from io import BytesIO
 
     file_obj = BytesIO()
+    bucket = resources.get("bucket")
     blob = client.bucket(bucket.name).blob(uuid.uuid4().hex)
     if _preconditions:
         blob.upload_from_file(file_obj, if_generation_match=0)
@@ -146,7 +163,8 @@ def blob_upload_from_file(client, _preconditions, bucket):
         blob.upload_from_file(file_obj)
 
 
-def blob_upload_from_filename(client, _preconditions, bucket):
+def blob_upload_from_filename(client, _preconditions, **resources):
+    bucket = resources.get("bucket")
     blob = client.bucket(bucket.name).blob(uuid.uuid4().hex)
     with tempfile.NamedTemporaryFile() as temp_f:
         if _preconditions:
@@ -155,11 +173,12 @@ def blob_upload_from_filename(client, _preconditions, bucket):
             blob.upload_from_filename(temp_f.name)
 
 
-def blobwriter_write(client, _preconditions, bucket):
+def blobwriter_write(client, _preconditions, **resources):
     import os
     from google.cloud.storage.fileio import BlobWriter
 
     chunk_size = 256 * 1024
+    bucket = resources.get("bucket")
     blob = client.bucket(bucket.name).blob(uuid.uuid4().hex)
     if _preconditions:
         blob_writer = BlobWriter(blob, chunk_size=chunk_size, if_generation_match=0)
@@ -169,7 +188,8 @@ def blobwriter_write(client, _preconditions, bucket):
         blob_writer.write(bytearray(os.urandom(262144)))
 
 
-def blob_create_resumable_upload_session(client, _preconditions, bucket):
+def blob_create_resumable_upload_session(client, _preconditions, **resources):
+    bucket = resources.get("bucket")
     blob = client.bucket(bucket.name).blob(uuid.uuid4().hex)
     if _preconditions:
         blob.create_resumable_upload_session(if_generation_match=0)
@@ -177,39 +197,42 @@ def blob_create_resumable_upload_session(client, _preconditions, bucket):
         blob.create_resumable_upload_session()
 
 
-def notification_create(client, _preconditions, bucket):
-    bucket = client.get_bucket(bucket.name)
+def notification_create(client, _preconditions, **resources):
+    bucket = client.get_bucket(resources.get("bucket").name)
     notification = bucket.notification()
     notification.create()
 
 
-def bucket_list_notifications(client, _preconditions, bucket, **_):
+def bucket_list_notifications(client, _preconditions, **resources):
+    bucket = resources.get("bucket")
     notifications = client.bucket(bucket.name).list_notifications()
     for n in notifications:
         pass
 
 
-def bucket_get_notification(client, _preconditions, bucket, notification):
+def bucket_get_notification(client, _preconditions, **resources):
+    bucket = resources.get("bucket")
+    notification = resources.get("notification")
     client.bucket(bucket.name).get_notification(notification.notification_id)
 
 
-def notification_reload(client, _preconditions, bucket, notification):
-    notification = client.bucket(bucket.name).notification(
-        notification_id=notification.notification_id
+def notification_reload(client, _preconditions, **resources):
+    notification = client.bucket(resources.get("bucket").name).notification(
+        notification_id=resources.get("notification").notification_id
     )
     notification.reload()
 
 
-def notification_exists(client, _preconditions, bucket, notification):
-    notification = client.bucket(bucket.name).notification(
-        notification_id=notification.notification_id
+def notification_exists(client, _preconditions, **resources):
+    notification = client.bucket(resources.get("bucket").name).notification(
+        notification_id=resources.get("notification").notification_id
     )
     notification.exists()
 
 
-def notification_delete(client, _preconditions, bucket, notification):
-    notification = client.bucket(bucket.name).notification(
-        notification_id=notification.notification_id
+def notification_delete(client, _preconditions, **resources):
+    notification = client.bucket(resources.get("bucket").name).notification(
+        notification_id=resources.get("notification").notification_id
     )
     notification.delete()
 
@@ -220,33 +243,34 @@ def client_list_hmac_keys(client, _preconditions, **_):
         pass
 
 
-def bucket_delete(client, _preconditions, bucket, **_):
-    bucket = client.bucket(bucket.name)
+def bucket_delete(client, _preconditions, **resources):
+    bucket = client.bucket(resources.get("bucket").name)
     bucket.delete(force=True)
 
 
-def bucket_get_iam_policy(client, _preconditions, bucket):
-    bucket = client.bucket(bucket.name)
+def bucket_get_iam_policy(client, _preconditions, **resources):
+    bucket = client.bucket(resources.get("bucket").name)
     bucket.get_iam_policy()
 
 
-def bucket_test_iam_permissions(client, _preconditions, bucket):
-    bucket = client.bucket(bucket.name)
+def bucket_test_iam_permissions(client, _preconditions, **resources):
+    bucket = client.bucket(resources.get("bucket").name)
     permissions = ["storage.buckets.get", "storage.buckets.create"]
     bucket.test_iam_permissions(permissions)
 
 
-def client_get_service_account_email(client, _preconditions):
+def client_get_service_account_email(client, _preconditions, **_):
     client.get_service_account_email()
 
 
-def bucket_make_public(client, _preconditions, bucket):
-    bucket = client.bucket(bucket.name)
+def bucket_make_public(client, _preconditions, **resources):
+    bucket = client.bucket(resources.get("bucket").name)
     bucket.make_public()
 
 
-def bucket_delete_blob(client, _preconditions, bucket, object):
-    bucket = client.bucket(bucket.name)
+def bucket_delete_blob(client, _preconditions, **resources):
+    object = resources.get("object")
+    bucket = client.bucket(resources.get("bucket").name)
     if _preconditions:
         generation = object.generation
         bucket.delete_blob(object.name, if_generation_match=generation)
@@ -254,8 +278,9 @@ def bucket_delete_blob(client, _preconditions, bucket, object):
         bucket.delete_blob(object.name)
 
 
-def bucket_delete_blobs(client, _preconditions, bucket, object):
-    bucket = client.bucket(bucket.name)
+def bucket_delete_blobs(client, _preconditions, **resources):
+    object = resources.get("object")
+    bucket = client.bucket(resources.get("bucket").name)
     sources = [object]
     source_generations = [object.generation]
     if _preconditions:
@@ -264,7 +289,9 @@ def bucket_delete_blobs(client, _preconditions, bucket, object):
         bucket.delete_blobs(sources)
 
 
-def blob_delete(client, _preconditions, bucket, object):
+def blob_delete(client, _preconditions, **resources):
+    bucket = resources.get("bucket")
+    object = resources.get("object")
     blob = client.bucket(bucket.name).blob(object.name)
     if _preconditions:
         blob.delete(if_generation_match=object.generation)
@@ -273,14 +300,14 @@ def blob_delete(client, _preconditions, bucket, object):
 
 
 # TODO(cathyo@): fix emulator issue and assign metageneration to buckets.insert
-def bucket_lock_retention_policy(client, _preconditions, bucket):
-    bucket2 = client.bucket(bucket.name)
-    bucket2.retention_period = 60
-    bucket2.patch()
-    bucket2.lock_retention_policy()
+def bucket_lock_retention_policy(client, _preconditions, **resources):
+    bucket = client.bucket(resources.get("bucket").name)
+    bucket.retention_period = 60
+    bucket.patch()
+    bucket.lock_retention_policy()
 
 
-def bucket_patch(client, _preconditions, bucket):
+def bucket_patch(client, _preconditions, **_):
     bucket = client.get_bucket("bucket")
     metageneration = bucket.metageneration
     bucket.storage_class = "COLDLINE"
@@ -290,7 +317,7 @@ def bucket_patch(client, _preconditions, bucket):
         bucket.patch()
 
 
-def bucket_update(client, _preconditions, bucket):
+def bucket_update(client, _preconditions, **resources):
     bucket = client.get_bucket("bucket")
     metageneration = bucket.metageneration
     bucket._properties = {"storageClass": "STANDARD"}
@@ -300,7 +327,9 @@ def bucket_update(client, _preconditions, bucket):
         bucket.update()
 
 
-def blob_patch(client, _preconditions, bucket, object):
+def blob_patch(client, _preconditions, **resources):
+    bucket = resources.get("bucket")
+    object = resources.get("object")
     blob = client.bucket(bucket.name).blob(object.name)
     blob.metadata = {"foo": "bar"}
     if _preconditions:
@@ -309,7 +338,9 @@ def blob_patch(client, _preconditions, bucket, object):
         blob.patch()
 
 
-def blob_update(client, _preconditions, bucket, object):
+def blob_update(client, _preconditions, **resources):
+    bucket = resources.get("bucket")
+    object = resources.get("object")
     blob = client.bucket(bucket.name).blob(object.name)
     blob.metadata = {"foo": "bar"}
     if _preconditions:
@@ -318,8 +349,9 @@ def blob_update(client, _preconditions, bucket, object):
         blob.update()
 
 
-def bucket_copy_blob(client, _preconditions, bucket, object):
-    bucket = client.bucket(bucket.name)
+def bucket_copy_blob(client, _preconditions, **resources):
+    object = resources.get("object")
+    bucket = client.bucket(resources.get("bucket").name)
     destination = client.bucket("bucket")
     if _preconditions:
         bucket.copy_blob(
@@ -329,9 +361,10 @@ def bucket_copy_blob(client, _preconditions, bucket, object):
         bucket.copy_blob(object, destination)
 
 
-def bucket_rename_blob(client, _preconditions, bucket, object):
-    bucket = client.bucket(bucket.name)
-    blob = bucket.blob(object.name)
+def bucket_rename_blob(client, _preconditions, **resources):
+    object = resources.get("object")
+    bucket = client.bucket(resources.get("bucket").name)
+    blob = bucket.blob(resources.get("object").name)
     new_name = uuid.uuid4().hex
     if _preconditions:
         bucket.rename_blob(
@@ -344,7 +377,9 @@ def bucket_rename_blob(client, _preconditions, bucket, object):
         bucket.rename_blob(blob, new_name)
 
 
-def blob_rewrite(client, _preconditions, bucket, object):
+def blob_rewrite(client, _preconditions, **resources):
+    bucket = resources.get("bucket")
+    object = resources.get("object")
     new_blob = client.bucket(bucket.name).blob(uuid.uuid4().hex)
     new_blob.metadata = {"foo": "bar"}
     if _preconditions:
@@ -353,7 +388,9 @@ def blob_rewrite(client, _preconditions, bucket, object):
         new_blob.rewrite(object)
 
 
-def blob_update_storage_class(client, _preconditions, bucket, object):
+def blob_update_storage_class(client, _preconditions, **resources):
+    bucket = resources.get("bucket")
+    object = resources.get("object")
     blob = client.bucket(bucket.name).blob(object.name)
     storage_class = "STANDARD"
     if _preconditions:
@@ -362,7 +399,9 @@ def blob_update_storage_class(client, _preconditions, bucket, object):
         blob.update_storage_class(storage_class)
 
 
-def blob_compose(client, _preconditions, bucket, object):
+def blob_compose(client, _preconditions, **resources):
+    bucket = resources.get("bucket")
+    object = resources.get("object")
     blob = client.bucket(bucket.name).blob(object.name)
     blob_2 = bucket.blob(uuid.uuid4().hex)
     blob_2.upload_from_string("foo")
@@ -374,8 +413,8 @@ def blob_compose(client, _preconditions, bucket, object):
         blob.compose(sources)
 
 
-def bucket_set_iam_policy(client, _preconditions, bucket):
-    bucket = client.get_bucket(bucket.name)
+def bucket_set_iam_policy(client, _preconditions, **resources):
+    bucket = client.get_bucket(resources.get("bucket").name)
     role = "roles/storage.objectViewer"
     member = _CONF_TEST_SERVICE_ACCOUNT_EMAIL
 
