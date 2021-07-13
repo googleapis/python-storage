@@ -36,29 +36,10 @@ _CONF_TEST_SERVICE_ACCOUNT_EMAIL = (
     "my-service-account@my-project-id.iam.gserviceaccount.com"
 )
 
+
 ########################################################################################################################################
 ### Library methods for mapping ########################################################################################################
 ########################################################################################################################################
-
-
-def client_list_buckets(client, _preconditions, **_):
-    buckets = client.list_buckets()
-    for b in buckets:
-        pass
-
-
-def client_list_blobs(client, _preconditions, **resources):
-    bucket = resources.get("bucket")
-    blobs = client.list_blobs(bucket.name)
-    for b in blobs:
-        pass
-
-
-def bucket_list_blobs(client, _preconditions, **resources):
-    bucket = resources.get("bucket")
-    blobs = client.bucket(bucket.name).list_blobs()
-    for b in blobs:
-        pass
 
 
 def bucket_get_blob(client, _preconditions, **resources):
@@ -114,6 +95,25 @@ def blobreader_read(client, _preconditions, **resources):
     blob_reader.read()
 
 
+def client_list_blobs(client, _preconditions, **resources):
+    bucket = resources.get("bucket")
+    blobs = client.list_blobs(bucket.name)
+    for b in blobs:
+        pass
+
+
+def bucket_list_blobs(client, _preconditions, **resources):
+    bucket = resources.get("bucket")
+    blobs = client.bucket(bucket.name).list_blobs()
+    for b in blobs:
+        pass
+
+
+def bucket_delete(client, _preconditions, **resources):
+    bucket = client.bucket(resources.get("bucket").name)
+    bucket.delete(force=True)
+
+
 def bucket_reload(client, _preconditions, **resources):
     bucket = client.bucket(resources.get("bucket").name)
     bucket.reload()
@@ -142,59 +142,29 @@ def bucket_create(client, _preconditions, **_):
     bucket.create()
 
 
-def blob_upload_from_string(client, _preconditions, **resources):
-    bucket = resources.get("bucket")
-    blob = client.bucket(bucket.name).blob(uuid.uuid4().hex)
-    if _preconditions:
-        blob.upload_from_string("upload from string", if_generation_match=0)
-    else:
-        blob.upload_from_string("upload from string")
+def client_list_buckets(client, _preconditions, **_):
+    buckets = client.list_buckets()
+    for b in buckets:
+        pass
 
 
-def blob_upload_from_file(client, _preconditions, **resources):
-    from io import BytesIO
-
-    file_obj = BytesIO()
-    bucket = resources.get("bucket")
-    blob = client.bucket(bucket.name).blob(uuid.uuid4().hex)
-    if _preconditions:
-        blob.upload_from_file(file_obj, if_generation_match=0)
-    else:
-        blob.upload_from_file(file_obj)
+def bucket_get_iam_policy(client, _preconditions, **resources):
+    bucket = client.bucket(resources.get("bucket").name)
+    bucket.get_iam_policy()
 
 
-def blob_upload_from_filename(client, _preconditions, **resources):
-    bucket = resources.get("bucket")
-    blob = client.bucket(bucket.name).blob(uuid.uuid4().hex)
-    with tempfile.NamedTemporaryFile() as temp_f:
-        if _preconditions:
-            blob.upload_from_filename(temp_f.name, if_generation_match=0)
-        else:
-            blob.upload_from_filename(temp_f.name)
+def bucket_test_iam_permissions(client, _preconditions, **resources):
+    bucket = client.bucket(resources.get("bucket").name)
+    permissions = ["storage.buckets.get", "storage.buckets.create"]
+    bucket.test_iam_permissions(permissions)
 
 
-def blobwriter_write(client, _preconditions, **resources):
-    import os
-    from google.cloud.storage.fileio import BlobWriter
-
-    chunk_size = 256 * 1024
-    bucket = resources.get("bucket")
-    blob = client.bucket(bucket.name).blob(uuid.uuid4().hex)
-    if _preconditions:
-        blob_writer = BlobWriter(blob, chunk_size=chunk_size, if_generation_match=0)
-        blob_writer.write(bytearray(os.urandom(262144)))
-    else:
-        blob_writer = BlobWriter(blob, chunk_size=chunk_size)
-        blob_writer.write(bytearray(os.urandom(262144)))
-
-
-def blob_create_resumable_upload_session(client, _preconditions, **resources):
-    bucket = resources.get("bucket")
-    blob = client.bucket(bucket.name).blob(uuid.uuid4().hex)
-    if _preconditions:
-        blob.create_resumable_upload_session(if_generation_match=0)
-    else:
-        blob.create_resumable_upload_session()
+# TODO(cathyo@): fix emulator issue and assign metageneration to buckets.insert
+def bucket_lock_retention_policy(client, _preconditions, **resources):
+    bucket = client.bucket(resources.get("bucket").name)
+    bucket.retention_period = 60
+    bucket.patch()
+    bucket.lock_retention_policy()
 
 
 def notification_create(client, _preconditions, **resources):
@@ -243,29 +213,41 @@ def client_list_hmac_keys(client, _preconditions, **_):
         pass
 
 
-def bucket_delete(client, _preconditions, **resources):
-    bucket = client.bucket(resources.get("bucket").name)
-    bucket.delete(force=True)
-
-
-def bucket_get_iam_policy(client, _preconditions, **resources):
-    bucket = client.bucket(resources.get("bucket").name)
-    bucket.get_iam_policy()
-
-
-def bucket_test_iam_permissions(client, _preconditions, **resources):
-    bucket = client.bucket(resources.get("bucket").name)
-    permissions = ["storage.buckets.get", "storage.buckets.create"]
-    bucket.test_iam_permissions(permissions)
-
-
 def client_get_service_account_email(client, _preconditions, **_):
     client.get_service_account_email()
 
 
-def bucket_make_public(client, _preconditions, **resources):
-    bucket = client.bucket(resources.get("bucket").name)
-    bucket.make_public()
+def bucket_patch(client, _preconditions, **_):
+    bucket = client.get_bucket("bucket")
+    metageneration = bucket.metageneration
+    bucket.storage_class = "COLDLINE"
+    if _preconditions:
+        bucket.patch(if_metageneration_match=metageneration)
+    else:
+        bucket.patch()
+
+
+def bucket_update(client, _preconditions, **resources):
+    bucket = client.get_bucket("bucket")
+    metageneration = bucket.metageneration
+    bucket._properties = {"storageClass": "STANDARD"}
+    if _preconditions:
+        bucket.update(if_metageneration_match=metageneration)
+    else:
+        bucket.update()
+
+
+def bucket_set_iam_policy(client, _preconditions, **resources):
+    bucket = client.get_bucket(resources.get("bucket").name)
+    role = "roles/storage.objectViewer"
+    member = _CONF_TEST_SERVICE_ACCOUNT_EMAIL
+
+    policy = bucket.get_iam_policy(requested_policy_version=3)
+    policy.bindings.append({"role": role, "members": {member}})
+    if _preconditions:
+        bucket.set_iam_policy(policy)
+    else:
+        bucket.set_iam_policy(policy)
 
 
 def bucket_delete_blob(client, _preconditions, **resources):
@@ -297,34 +279,6 @@ def blob_delete(client, _preconditions, **resources):
         blob.delete(if_generation_match=object.generation)
     else:
         blob.delete()
-
-
-# TODO(cathyo@): fix emulator issue and assign metageneration to buckets.insert
-def bucket_lock_retention_policy(client, _preconditions, **resources):
-    bucket = client.bucket(resources.get("bucket").name)
-    bucket.retention_period = 60
-    bucket.patch()
-    bucket.lock_retention_policy()
-
-
-def bucket_patch(client, _preconditions, **_):
-    bucket = client.get_bucket("bucket")
-    metageneration = bucket.metageneration
-    bucket.storage_class = "COLDLINE"
-    if _preconditions:
-        bucket.patch(if_metageneration_match=metageneration)
-    else:
-        bucket.patch()
-
-
-def bucket_update(client, _preconditions, **resources):
-    bucket = client.get_bucket("bucket")
-    metageneration = bucket.metageneration
-    bucket._properties = {"storageClass": "STANDARD"}
-    if _preconditions:
-        bucket.update(if_metageneration_match=metageneration)
-    else:
-        bucket.update()
 
 
 def blob_patch(client, _preconditions, **resources):
@@ -406,25 +360,66 @@ def blob_compose(client, _preconditions, **resources):
     blob_2 = bucket.blob(uuid.uuid4().hex)
     blob_2.upload_from_string("foo")
     sources = [blob_2]
-
     if _preconditions:
         blob.compose(sources, if_generation_match=object.generation)
     else:
         blob.compose(sources)
 
 
-def bucket_set_iam_policy(client, _preconditions, **resources):
-    bucket = client.get_bucket(resources.get("bucket").name)
-    role = "roles/storage.objectViewer"
-    member = _CONF_TEST_SERVICE_ACCOUNT_EMAIL
-
-    policy = bucket.get_iam_policy(requested_policy_version=3)
-    policy.bindings.append({"role": role, "members": {member}})
-
+def blob_upload_from_string(client, _preconditions, **resources):
+    bucket = resources.get("bucket")
+    blob = client.bucket(bucket.name).blob(uuid.uuid4().hex)
     if _preconditions:
-        bucket.set_iam_policy(policy)
+        blob.upload_from_string("upload from string", if_generation_match=0)
     else:
-        bucket.set_iam_policy(policy)
+        blob.upload_from_string("upload from string")
+
+
+def blob_upload_from_file(client, _preconditions, **resources):
+    from io import BytesIO
+
+    file_obj = BytesIO()
+    bucket = resources.get("bucket")
+    blob = client.bucket(bucket.name).blob(uuid.uuid4().hex)
+    if _preconditions:
+        blob.upload_from_file(file_obj, if_generation_match=0)
+    else:
+        blob.upload_from_file(file_obj)
+
+
+def blob_upload_from_filename(client, _preconditions, **resources):
+    bucket = resources.get("bucket")
+    blob = client.bucket(bucket.name).blob(uuid.uuid4().hex)
+
+    with tempfile.NamedTemporaryFile() as temp_f:
+        if _preconditions:
+            blob.upload_from_filename(temp_f.name, if_generation_match=0)
+        else:
+            blob.upload_from_filename(temp_f.name)
+
+
+def blobwriter_write(client, _preconditions, **resources):
+    import os
+    from google.cloud.storage.fileio import BlobWriter
+
+    chunk_size = 256 * 1024
+    bucket = resources.get("bucket")
+    blob = client.bucket(bucket.name).blob(uuid.uuid4().hex)
+    if _preconditions:
+        blob_writer = BlobWriter(blob, chunk_size=chunk_size, if_generation_match=0)
+        blob_writer.write(bytearray(os.urandom(262144)))
+    else:
+        blob_writer = BlobWriter(blob, chunk_size=chunk_size)
+        blob_writer.write(bytearray(os.urandom(262144)))
+
+
+def blob_create_resumable_upload_session(client, _preconditions, **resources):
+    bucket = resources.get("bucket")
+    blob = client.bucket(bucket.name).blob(uuid.uuid4().hex)
+    if _preconditions:
+        blob.create_resumable_upload_session(if_generation_match=0)
+    else:
+        blob.create_resumable_upload_session()
 
 
 ########################################################################################################################################
@@ -448,7 +443,7 @@ method_mapping = {
     "storage.buckets.getIamPolicy": [bucket_get_iam_policy],
     "storage.buckets.insert": [client_create_bucket, bucket_create],
     "storage.buckets.list": [client_list_buckets],
-    "storage.buckets.lockRententionPolicy": [],  # bucket_lock_retention_policy
+    "storage.buckets.lockRententionPolicy": [],
     "storage.buckets.testIamPermission": [bucket_test_iam_permissions],
     "storage.notifications.delete": [notification_delete],
     "storage.notifications.get": [

@@ -239,33 +239,10 @@
         "description": "conditionally idempotent no retries when precondition is absent",
         "cases": [
           {
-            "instructions": [
-              "return-503"
-            ]
+            "instructions": []
           }
         ],
-        "methods": [
-          {
-            "name": "storage.buckets.patch",
-            "resources": [
-              "BUCKET"
-            ]
-          },
-          {
-            "name": "storage.objects.patch",
-            "resources": [
-              "BUCKET",
-              "OBJECT"
-            ]
-          },
-          {
-            "name": "storage.objects.update",
-            "resources": [
-              "BUCKET",
-              "OBJECT"
-            ]
-          }
-        ],
+        "methods": [],
         "preconditionProvided": false,
         "expectSuccess": false
       },
@@ -274,25 +251,10 @@
         "description": "non idempotent",
         "cases": [
           {
-            "instructions": [
-              "return-503"
-            ]
+            "instructions": []
           }
         ],
-        "methods": [
-          {
-            "name": "storage.notifications.insert",
-            "resources": [
-              "BUCKET"
-            ]
-          },
-          {
-            "name": "storage.bucket_acl.patch",
-            "resources": [
-              "BUCKET"
-            ]
-          }
-        ],
+        "methods": [],
         "preconditionProvided": false,
         "expectSuccess": false
       }

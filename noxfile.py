@@ -173,19 +173,8 @@ def conformance(session):
     if not conformance_test_exists and not conformance_test_folder_exists:
         session.skip("Conformance tests were not found")
 
-    # Install all test dependencies, then install this package into the
-    # virtualenv's dist-packages.
-    # 2021-05-06: defer installing 'google-cloud-*' to after this package,
-    #             in order to work around Python 2.7 googolapis-common-protos
-    #             issue.
     session.install("pytest",)
     session.install("-e", ".")
-    session.install(
-        "google-cloud-testutils",
-        "google-cloud-iam",
-        "google-cloud-pubsub < 2.0.0",
-        "google-cloud-kms < 2.0dev",
-    )
 
     # Run py.test against the conformance tests.
     if conformance_test_exists:
