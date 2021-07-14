@@ -18,6 +18,7 @@ import tempfile
 import uuid
 import logging
 import functools
+import pytest
 
 from google.cloud import storage
 
@@ -35,7 +36,6 @@ _CONF_TEST_PROJECT_ID = "my-project-id"
 _CONF_TEST_SERVICE_ACCOUNT_EMAIL = (
     "my-service-account@my-project-id.iam.gserviceaccount.com"
 )
-
 
 ########################################################################################################################################
 ### Library methods for mapping ########################################################################################################
@@ -488,63 +488,71 @@ method_mapping = {
     "storage.objects.patch": [blob_patch],
     "storage.objects.rewrite": [blob_rewrite, blob_update_storage_class],
     "storage.objects.update": [blob_update],  # S2 end
-    "storage.notifications.insert": [notification_create],  # S4
 }
 
+
 ########################################################################################################################################
-### Helper Methods for Populating Resources ############################################################################################
+### Pytest Fixtures for Populating Resources ############################################################################################
 ########################################################################################################################################
 
 
-def _populate_resource_bucket(client, resources):
+@pytest.fixture
+def client():
+    host = os.environ.get(STORAGE_EMULATOR_ENV_VAR)
+    client = storage.Client(client_options={"api_endpoint": host})
+    return client
+
+
+@pytest.fixture
+def bucket(client):
     bucket = client.bucket(uuid.uuid4().hex)
     client.create_bucket(bucket)
-    resources["bucket"] = bucket
+    yield bucket
+    try:
+        bucket.delete(force=True)
+    except Exception:  # in cases where resources are deleted within the test
+        pass
 
 
-def _populate_resource_object(client, resources):
-    bucket_name = resources["bucket"].name
-    bucket = client.get_bucket(bucket_name)
+@pytest.fixture
+def object(client, bucket):
+    bucket = client.get_bucket(bucket.name)
     blob = bucket.blob(uuid.uuid4().hex)
-    blob.upload_from_string(
-        "hello world", checksum="crc32c"
-    )  # add checksum to trigger emulator behavior
+    blob.upload_from_string("hello world", checksum="crc32c")
     blob.reload()
-    resources["object"] = blob
+    yield blob
+    try:
+        blob.delete()
+    except Exception:  # in cases where resources are deleted within the test
+        pass
 
 
-def _populate_resource_notification(client, resources):
-    bucket_name = resources["bucket"].name
-    bucket = client.get_bucket(bucket_name)
+@pytest.fixture
+def notification(client, bucket):
+    bucket = client.get_bucket(bucket.name)
     notification = bucket.notification()
     notification.create()
     notification.reload()
-    resources["notification"] = notification
+    yield notification
+    try:
+        notification.delete()
+    except Exception:  # in cases where resources are deleted within the test
+        pass
 
 
-def _populate_resource_hmackey(client, resources):
+@pytest.fixture
+def hmac_key(client):
     hmac_key, secret = client.create_hmac_key(
         service_account_email=_CONF_TEST_SERVICE_ACCOUNT_EMAIL,
         project_id=_CONF_TEST_PROJECT_ID,
     )
-    resources["hmac_key"] = hmac_key
-
-
-resource_mapping = {
-    "BUCKET": _populate_resource_bucket,
-    "OBJECT": _populate_resource_object,
-    "NOTIFICATION": _populate_resource_notification,
-    "HMAC_KEY": _populate_resource_hmackey,
-}
-
-
-def _populate_resources(client, json_resource):
-    resources = {}
-    for r in json_resource:
-        func = resource_mapping[r]
-        func(client, resources)
-
-    return resources
+    yield hmac_key
+    try:
+        hmac_key.state = "INACTIVE"
+        hmac_key.update()
+        hmac_key.delete()
+    except Exception:  # in cases where resources are deleted within the test
+        pass
 
 
 ########################################################################################################################################
@@ -576,14 +584,23 @@ def _get_retry_test(host, id):
     return r.json()
 
 
-def _run_retry_test(host, id, func, _preconditions, **resources):
+def _run_retry_test(
+    host, id, lib_func, _preconditions, bucket, object, notification, hmac_key
+):
     """
     To execute tests against the list of instrucions sent to the Retry API, create a client to send the retry test ID using the x-retry-test-id header in each request.
     For incoming requests which match the given API method, the emulator will pop off the next instruction from the list and force the listed failure case.
     """
     client = storage.Client(client_options={"api_endpoint": host})
     client._http.headers.update({"x-retry-test-id": id})
-    func(client, _preconditions, **resources)
+    lib_func(
+        client,
+        _preconditions,
+        bucket=bucket,
+        object=object,
+        notification=notification,
+        hmac_key=hmac_key,
+    )
 
 
 def _delete_retry_test(host, id):
@@ -596,13 +613,12 @@ def _delete_retry_test(host, id):
 ########################################################################################################################################
 
 
-def run_test_case(scenario_id, method, case, lib_func, host):
-    # Create client to use for setup steps.
-    client = storage.Client(client_options={"api_endpoint": host})
+def run_test_case(
+    scenario_id, method, case, lib_func, host, bucket, object, notification, hmac_key
+):
     scenario = _CONFORMANCE_TESTS[scenario_id - 1]
     expect_success = scenario["expectSuccess"]
     precondition_provided = scenario["preconditionProvided"]
-    json_resources = method["resources"]
     method_name = method["name"]
     instructions = case["instructions"]
 
@@ -614,17 +630,18 @@ def run_test_case(scenario_id, method, case, lib_func, host):
             "Error creating retry test for {}: {}".format(method_name, e)
         ).with_traceback(e.__traceback__)
 
-    # Populate resources.
-    try:
-        resources = _populate_resources(client, json_resources)
-    except Exception as e:
-        raise Exception(
-            "Error populating resources for {}: {}".format(method_name, e)
-        ).with_traceback(e.__traceback__)
-
     # Run retry tests on library methods.
     try:
-        _run_retry_test(host, id, lib_func, precondition_provided, **resources)
+        _run_retry_test(
+            host,
+            id,
+            lib_func,
+            precondition_provided,
+            bucket,
+            object,
+            notification,
+            hmac_key,
+        )
     except Exception as e:
         logging.exception(
             "Caught an exception while running retry instructions\n {}".format(e)
