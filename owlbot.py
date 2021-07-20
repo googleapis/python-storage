@@ -26,6 +26,7 @@ common = gcp.CommonTemplates()
 # ----------------------------------------------------------------------------
 templated_files = common.py_library(
     cov_level=100,
+    split_system_tests=True,
     system_test_external_dependencies=[
         "google-cloud-iam",
         "google-cloud-pubsub < 2.0.0",
@@ -43,22 +44,6 @@ s.move(
         "noxfile.py",
         "CONTRIBUTING.rst",
     ],
-)
-
-# Include custom system tests jobs for performance.
-# https://github.com/googleapis/python-storage/issues/515
-s.replace(
-    ".kokoro/presubmit/presubmit.cfg",
-    r"# Format: //devtools/kokoro/config/proto/build\.proto",
-    """\
-# Format: //devtools/kokoro/config/proto/build.proto
-
-# Disable system tests.
-env_vars: {
-    key: "RUN_SYSTEM_TESTS"
-    value: "false"
-}
-""",
 )
 
 s.shell.run(["nox", "-s", "blacken"], hide_output=False)
