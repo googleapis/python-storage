@@ -15,7 +15,7 @@
 
 ### Documentation
 
-* remove and replace deprecated function download_as_string() ([#508](https://www.github.com/googleapis/python-storage/issues/508)) ([8dfa4d4](https://www.github.com/googleapis/python-storage/commit/8dfa4d429dce94b671dc3e3755e52ab82733f61a))
+* replace usage of deprecated function `download_as_string` in docs ([#508](https://www.github.com/googleapis/python-storage/issues/508)) ([8dfa4d4](https://www.github.com/googleapis/python-storage/commit/8dfa4d429dce94b671dc3e3755e52ab82733f61a))
 
 ## [1.41.0](https://www.github.com/googleapis/python-storage/compare/v1.40.0...v1.41.0) (2021-07-13)
 
