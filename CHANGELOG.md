@@ -9,7 +9,7 @@
 
 ### Bug Fixes
 
-* **deps:** pin 'api,cloud}-core', 'auth' to allow 2.x versions on Python 3 ([#512](https://www.github.com/googleapis/python-storage/issues/512)) ([4d7500e](https://www.github.com/googleapis/python-storage/commit/4d7500e39c51efd817b8363b69c88be040f3edb8))
+* **deps:** pin `{api,cloud}-core`, `auth` to allow 2.x versions on Python 3 ([#512](https://www.github.com/googleapis/python-storage/issues/512)) ([4d7500e](https://www.github.com/googleapis/python-storage/commit/4d7500e39c51efd817b8363b69c88be040f3edb8))
 * remove trailing commas from error message constants ([#505](https://www.github.com/googleapis/python-storage/issues/505)) ([d4a86ce](https://www.github.com/googleapis/python-storage/commit/d4a86ceb7a7c5e00ba7bae37c7078d52478040ff)), closes [#501](https://www.github.com/googleapis/python-storage/issues/501)
 * skip test__signing tests for mtls ([#511](https://www.github.com/googleapis/python-storage/issues/511)) ([ddd013c](https://www.github.com/googleapis/python-storage/commit/ddd013c318802cf44a12aa23bc5663ecf10072e0))
 
