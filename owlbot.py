@@ -38,7 +38,27 @@ templated_files = common.py_library(
 )
 
 s.move(
-    templated_files, excludes=["docs/multiprocessing.rst", "noxfile.py", "CONTRIBUTING.rst"],
+    templated_files, excludes=[
+        "docs/multiprocessing.rst",
+        "noxfile.py",
+        "CONTRIBUTING.rst",
+    ],
+)
+
+# Include custom system tests jobs for performance.
+# https://github.com/googleapis/python-storage/issues/515
+s.replace(
+    ".kokoro/presubmit/presubmit.cfg",
+    r"# Format: //devtools/kokoro/config/proto/build\.proto",
+    """\
+# Format: //devtools/kokoro/config/proto/build.proto
+
+# Disable system tests.
+env_vars: {
+    key: "RUN_SYSTEM_TESTS"
+    value: "false"
+}
+""",
 )
 
 s.shell.run(["nox", "-s", "blacken"], hide_output=False)
