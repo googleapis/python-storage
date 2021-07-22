@@ -4,6 +4,13 @@
 
 [1]: https://pypi.org/project/google-cloud-storage/#history
 
+### [1.41.2](https://www.github.com/googleapis/python-storage/compare/v1.41.1...v1.41.2) (2021-07-22)
+
+
+### Documentation
+
+* update supported / removed Python versions in README ([#519](https://www.github.com/googleapis/python-storage/issues/519)) ([1f1b138](https://www.github.com/googleapis/python-storage/commit/1f1b138865fb171535ee0cf768aff1987ed58914))
+
 ### [1.41.1](https://www.github.com/googleapis/python-storage/compare/v1.41.0...v1.41.1) (2021-07-20)
 
 
