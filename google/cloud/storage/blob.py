@@ -875,11 +875,19 @@ class Blob(_PropertyMixin):
             :class requests.models.Response
         :param response: The server response from downloading a non-chunked file
         """
-        self._properties["contentEncoding"] = response.headers.get("Content-Encoding", None)
-        self._properties[_CONTENT_TYPE_FIELD] = response.headers.get("Content-Type", None)
+        self._properties["contentEncoding"] = response.headers.get(
+            "Content-Encoding", None
+        )
+        self._properties[_CONTENT_TYPE_FIELD] = response.headers.get(
+            "Content-Type", None
+        )
         self._properties["cacheControl"] = response.headers.get("Cache-Control", None)
-        self._properties["storageClass"] = response.headers.get("X-Goog-Storage-Class", None)
-        self._properties["contentLanguage"] = response.headers.get("Content-Language", None)
+        self._properties["storageClass"] = response.headers.get(
+            "X-Goog-Storage-Class", None
+        )
+        self._properties["contentLanguage"] = response.headers.get(
+            "Content-Language", None
+        )
         self._properties["etag"] = response.headers.get("ETag", None)
         self._properties["generation"] = response.headers.get("X-goog-generation", None)
         self._properties["metageneration"] = response.headers.get(
