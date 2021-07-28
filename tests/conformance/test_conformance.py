@@ -29,13 +29,17 @@ _CONFORMANCE_TESTS = _read_local_json("retry_strategy_test_data.json")[
     "retryStrategyTests"
 ]
 
-STORAGE_EMULATOR_ENV_VAR = "STORAGE_EMULATOR_HOST"
+_STORAGE_EMULATOR_ENV_VAR = "STORAGE_EMULATOR_HOST"
 """Environment variable defining host for Storage emulator."""
 
 _CONF_TEST_PROJECT_ID = "my-project-id"
 _CONF_TEST_SERVICE_ACCOUNT_EMAIL = (
     "my-service-account@my-project-id.iam.gserviceaccount.com"
 )
+
+_STRING_CONTENT = "hello world"
+_BYTE_CONTENT = b"12345678"
+
 
 ########################################################################################################################################
 ### Library methods for mapping ########################################################################################################
@@ -86,13 +90,11 @@ def client_download_blob_to_file(client, _preconditions, **resources):
 
 
 def blobreader_read(client, _preconditions, **resources):
-    from google.cloud.storage.fileio import BlobReader
-
     bucket = resources.get("bucket")
     object = resources.get("object")
     blob = client.bucket(bucket.name).blob(object.name)
-    blob_reader = BlobReader(blob)
-    blob_reader.read()
+    with blob.open() as reader:
+        reader.read()
 
 
 def client_list_blobs(client, _preconditions, **resources):
@@ -358,7 +360,7 @@ def blob_compose(client, _preconditions, **resources):
     object = resources.get("object")
     blob = client.bucket(bucket.name).blob(object.name)
     blob_2 = bucket.blob(uuid.uuid4().hex)
-    blob_2.upload_from_string("foo")
+    blob_2.upload_from_string(_STRING_CONTENT)
     sources = [blob_2]
     if _preconditions:
         blob.compose(sources, if_generation_match=object.generation)
@@ -370,9 +372,9 @@ def blob_upload_from_string(client, _preconditions, **resources):
     bucket = resources.get("bucket")
     blob = client.bucket(bucket.name).blob(uuid.uuid4().hex)
     if _preconditions:
-        blob.upload_from_string("upload from string", if_generation_match=0)
+        blob.upload_from_string(_STRING_CONTENT, if_generation_match=0)
     else:
-        blob.upload_from_string("upload from string")
+        blob.upload_from_string(_STRING_CONTENT)
 
 
 def blob_upload_from_file(client, _preconditions, **resources):
@@ -399,18 +401,15 @@ def blob_upload_from_filename(client, _preconditions, **resources):
 
 
 def blobwriter_write(client, _preconditions, **resources):
-    import os
-    from google.cloud.storage.fileio import BlobWriter
-
     chunk_size = 256 * 1024
     bucket = resources.get("bucket")
     blob = client.bucket(bucket.name).blob(uuid.uuid4().hex)
     if _preconditions:
-        blob_writer = BlobWriter(blob, chunk_size=chunk_size, if_generation_match=0)
-        blob_writer.write(bytearray(os.urandom(262144)))
+        with blob.open("wb", chunk_size=chunk_size, if_generation_match=0) as writer:
+            writer.write(_BYTE_CONTENT)
     else:
-        blob_writer = BlobWriter(blob, chunk_size=chunk_size)
-        blob_writer.write(bytearray(os.urandom(262144)))
+        with blob.open("wb", chunk_size=chunk_size) as writer:
+            writer.write(_BYTE_CONTENT)
 
 
 def blob_create_resumable_upload_session(client, _preconditions, **resources):
@@ -498,7 +497,7 @@ method_mapping = {
 
 @pytest.fixture
 def client():
-    host = os.environ.get(STORAGE_EMULATOR_ENV_VAR)
+    host = os.environ.get(_STORAGE_EMULATOR_ENV_VAR)
     client = storage.Client(client_options={"api_endpoint": host})
     return client
 
@@ -518,7 +517,7 @@ def bucket(client):
 def object(client, bucket):
     bucket = client.get_bucket(bucket.name)
     blob = bucket.blob(uuid.uuid4().hex)
-    blob.upload_from_string("hello world", checksum="crc32c")
+    blob.upload_from_string(_STRING_CONTENT, checksum="crc32c")
     blob.reload()
     yield blob
     try:
@@ -562,9 +561,12 @@ def hmac_key(client):
 
 def _create_retry_test(host, method_name, instructions):
     """
-    Initialize a Retry Test resource with a list of instructions and an API method.
-    This offers a mechanism to send multiple retry instructions while sending a single, constant header through all the HTTP requests in a test.
-    See also: https://github.com/googleapis/google-cloud-cpp/tree/main/google/cloud/storage/emulator
+    For each test case, initialize a Retry Test resource by loading a set of
+    instructions to the emulator host. The instructions include an API method
+    and a list of errors. An unique id is created for each Retry Test resouce.
+    This offers a mechanism to send multiple retry instructions while sending a
+    single, constant header through all the HTTP requests in a test.
+    See also: https://github.com/googleapis/storage-testbench
     """
     import json
 
@@ -579,6 +581,11 @@ def _create_retry_test(host, method_name, instructions):
 
 
 def _get_retry_test(host, id):
+    """
+    Retrieve the state of the Retry Test resource, including the unique id,
+    instructions, and a boolean status "completed". This can be used to verify
+    if all instructions were used as expected.
+    """
     status_get_uri = "{base}{retry}/{id}".format(base=host, retry="/retry_test", id=id)
     r = requests.get(status_get_uri)
     return r.json()
@@ -588,8 +595,11 @@ def _run_retry_test(
     host, id, lib_func, _preconditions, bucket, object, notification, hmac_key
 ):
     """
-    To execute tests against the list of instrucions sent to the Retry API, create a client to send the retry test ID using the x-retry-test-id header in each request.
-    For incoming requests which match the given API method, the emulator will pop off the next instruction from the list and force the listed failure case.
+    To execute tests against the list of instrucions sent to the Retry API,
+    create a client to send the retry test ID using the x-retry-test-id header
+    in each request. For incoming requests which match the given API method,
+    the emulator will pop off the next instruction from the list and force the
+    listed failure case.
     """
     client = storage.Client(client_options={"api_endpoint": host})
     client._http.headers.update({"x-retry-test-id": id})
@@ -604,6 +614,9 @@ def _run_retry_test(
 
 
 def _delete_retry_test(host, id):
+    """
+    Delete the Retry Test resource by id.
+    """
     status_get_uri = "{base}{retry}/{id}".format(base=host, retry="/retry_test", id=id)
     requests.delete(status_get_uri)
 
@@ -675,7 +688,7 @@ def run_test_case(
 ########################################################################################################################################
 
 for scenario in _CONFORMANCE_TESTS:
-    host = os.environ.get(STORAGE_EMULATOR_ENV_VAR)
+    host = os.environ.get(_STORAGE_EMULATOR_ENV_VAR)
     if host is None:
         logging.error(
             "This test must use the testbench emulator; set STORAGE_EMULATOR_HOST to run."
