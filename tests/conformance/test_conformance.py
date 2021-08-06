@@ -1,4 +1,4 @@
-# Copyright 2020 Google LLC
+# Copyright 2021 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Conformance tests for retry. Verifies correct behavior around retryable errors, idempotency and preconditions."""
+
 import os
 import requests
 import tempfile
@@ -21,6 +23,7 @@ import functools
 import pytest
 
 from google.cloud import storage
+from google.auth.credentials import AnonymousCredentials
 
 from . import _read_local_json
 
@@ -378,15 +381,13 @@ def blob_upload_from_string(client, _preconditions, **resources):
 
 
 def blob_upload_from_file(client, _preconditions, **resources):
-    from io import BytesIO
-
-    file_obj = BytesIO()
     bucket = resources.get("bucket")
     blob = client.bucket(bucket.name).blob(uuid.uuid4().hex)
-    if _preconditions:
-        blob.upload_from_file(file_obj, if_generation_match=0)
-    else:
-        blob.upload_from_file(file_obj)
+    with tempfile.NamedTemporaryFile() as temp_f:
+        if _preconditions:
+            blob.upload_from_file(temp_f, if_generation_match=0)
+        else:
+            blob.upload_from_file(temp_f)
 
 
 def blob_upload_from_filename(client, _preconditions, **resources):
@@ -425,7 +426,7 @@ def blob_create_resumable_upload_session(client, _preconditions, **resources):
 ### Method Invocation Mapping ##########################################################################################################
 ########################################################################################################################################
 
-# Method invocation mapping. Methods to retry. This is a map whose keys are a string describing a standard
+# Method invocation mapping is a map whose keys are a string describing a standard
 # API call (e.g. storage.objects.get) and values are a list of functions which
 # wrap library methods that implement these calls. There may be multiple values
 # because multiple library methods may use the same call (e.g. get could be a
@@ -498,7 +499,11 @@ method_mapping = {
 @pytest.fixture
 def client():
     host = os.environ.get(_STORAGE_EMULATOR_ENV_VAR)
-    client = storage.Client(client_options={"api_endpoint": host})
+    client = storage.Client(
+        project=_CONF_TEST_PROJECT_ID,
+        credentials=AnonymousCredentials(),
+        client_options={"api_endpoint": host},
+    )
     return client
 
 
@@ -509,7 +514,9 @@ def bucket(client):
     yield bucket
     try:
         bucket.delete(force=True)
-    except Exception:  # in cases where resources are deleted within the test
+    except Exception:
+        # in cases where resources are deleted within the test
+        # TODO(cathyo@): narrow except to NotFound once the emulator response issue is resolved
         pass
 
 
@@ -597,11 +604,15 @@ def _run_retry_test(
     """
     To execute tests against the list of instrucions sent to the Retry API,
     create a client to send the retry test ID using the x-retry-test-id header
-    in each request. For incoming requests which match the given API method,
+    in each request. For incoming requests that match the test ID and API method,
     the emulator will pop off the next instruction from the list and force the
     listed failure case.
     """
-    client = storage.Client(client_options={"api_endpoint": host})
+    client = storage.Client(
+        project=_CONF_TEST_PROJECT_ID,
+        credentials=AnonymousCredentials(),
+        client_options={"api_endpoint": host},
+    )
     client._http.headers.update({"x-retry-test-id": id})
     lib_func(
         client,

@@ -152,8 +152,8 @@ def system(session):
 
 
 @nox.session(python=CONFORMANCE_TEST_PYTHON_VERSIONS)
-def conformance(session):
-    """Run the conformance test suite."""
+def conftest_retry(session):
+    """Run the retry conformance test suite."""
     conformance_test_path = os.path.join("tests", "conformance.py")
     conformance_test_folder_path = os.path.join("tests", "conformance")
 
@@ -163,9 +163,6 @@ def conformance(session):
         == _DEFAULT_STORAGE_HOST
     ):
         session.skip("Set STORAGE_EMULATOR_HOST to run, skipping")
-    # Environment check: Only run tests if the environment variable is set.
-    if not os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", ""):
-        session.skip("Credentials must be set via environment variable")
 
     conformance_test_exists = os.path.exists(conformance_test_path)
     conformance_test_folder_exists = os.path.exists(conformance_test_folder_path)
