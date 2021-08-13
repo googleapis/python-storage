@@ -1,7 +1,7 @@
 Python Client for Google Cloud Storage
 ======================================
 
-|GA| |pypi| |versions| 
+|GA| |pypi| |versions|
 
 `Google Cloud Storage`_ allows you to store data on
 Google infrastructure with very high reliability, performance and
@@ -52,12 +52,16 @@ dependencies.
 
 Supported Python Versions
 ^^^^^^^^^^^^^^^^^^^^^^^^^
-Python >= 3.5
+Python >= 3.6
 
 Deprecated Python Versions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
-Python == 2.7. Python 2.7 support will be removed on January 1, 2020.
+Python == 2.7: Python 2.7 support will be removed sometime after January 1, 2020.
 
+Unsupported Python Versions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Python == 3.5: the last released version which supported Python 3.5 was
+``google-cloud-storage 1.32.0``, released 2020-10-16.
 
 Mac/Linux
 ^^^^^^^^^
@@ -98,7 +102,7 @@ how to create a bucket.
     bucket = client.get_bucket('bucket-id-here')
     # Then do other things...
     blob = bucket.get_blob('remote/path/to/file.txt')
-    print(blob.download_as_string())
+    print(blob.download_as_bytes())
     blob.upload_from_string('New contents!')
     blob2 = bucket.blob('remote/path/storage.txt')
     blob2.upload_from_filename(filename='/local/path.txt')

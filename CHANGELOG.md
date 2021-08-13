@@ -4,6 +4,86 @@
 
 [1]: https://pypi.org/project/google-cloud-storage/#history
 
+## [1.42.0](https://www.github.com/googleapis/python-storage/compare/v1.41.1...v1.42.0) (2021-08-05)
+
+
+### Features
+
+* add 'page_size' parameter to 'Bucket.list_blobs, list_buckets ([#520](https://www.github.com/googleapis/python-storage/issues/520)) ([c5f4ad8](https://www.github.com/googleapis/python-storage/commit/c5f4ad8fddd1849a4229b0126c4c022bccb90128))
+
+
+### Bug Fixes
+
+* **deps:** add explicit ranges for 'google-api-core' and 'google-auth' ([#530](https://www.github.com/googleapis/python-storage/issues/530)) ([310f207](https://www.github.com/googleapis/python-storage/commit/310f207411da0382af310172344f19c644c14e6a))
+* downloading no longer marks metadata fields as 'changed' ([#523](https://www.github.com/googleapis/python-storage/issues/523)) ([160d1ec](https://www.github.com/googleapis/python-storage/commit/160d1ecb41f1f269b25cb68b2d2f7daf418bf01c))
+* make 'requests.exceptions.ChunkedEncodingError retryable by default ([#526](https://www.github.com/googleapis/python-storage/issues/526)) ([4abb403](https://www.github.com/googleapis/python-storage/commit/4abb40310eca7ec45afc4bc5e4dfafbe083e74d2))
+
+
+### Documentation
+
+* update supported / removed Python versions in README ([#519](https://www.github.com/googleapis/python-storage/issues/519)) ([1f1b138](https://www.github.com/googleapis/python-storage/commit/1f1b138865fb171535ee0cf768aff1987ed58914))
+
+### [1.41.1](https://www.github.com/googleapis/python-storage/compare/v1.41.0...v1.41.1) (2021-07-20)
+
+
+### Bug Fixes
+
+* **deps:** pin `{api,cloud}-core`, `auth` to allow 2.x versions on Python 3 ([#512](https://www.github.com/googleapis/python-storage/issues/512)) ([4d7500e](https://www.github.com/googleapis/python-storage/commit/4d7500e39c51efd817b8363b69c88be040f3edb8))
+* remove trailing commas from error message constants ([#505](https://www.github.com/googleapis/python-storage/issues/505)) ([d4a86ce](https://www.github.com/googleapis/python-storage/commit/d4a86ceb7a7c5e00ba7bae37c7078d52478040ff)), closes [#501](https://www.github.com/googleapis/python-storage/issues/501)
+
+
+### Documentation
+
+* replace usage of deprecated function `download_as_string` in docs ([#508](https://www.github.com/googleapis/python-storage/issues/508)) ([8dfa4d4](https://www.github.com/googleapis/python-storage/commit/8dfa4d429dce94b671dc3e3755e52ab82733f61a))
+
+## [1.41.0](https://www.github.com/googleapis/python-storage/compare/v1.40.0...v1.41.0) (2021-07-13)
+
+
+### Features
+
+* add support for Etag headers on reads ([#489](https://www.github.com/googleapis/python-storage/issues/489)) ([741d3fd](https://www.github.com/googleapis/python-storage/commit/741d3fda4e4280022cede29ebeb7c2ea09e73b6f))
+
+
+### Bug Fixes
+
+* **deps:** update minimum dependency versions to pick up bugfixes ([#496](https://www.github.com/googleapis/python-storage/issues/496)) ([92251a5](https://www.github.com/googleapis/python-storage/commit/92251a5c8ea4d663773506eb1c630201a657aa69)), closes [#494](https://www.github.com/googleapis/python-storage/issues/494)
+* populate etag / generation / metageneration properties during download ([#488](https://www.github.com/googleapis/python-storage/issues/488)) ([49ba14c](https://www.github.com/googleapis/python-storage/commit/49ba14c9c47dbe6bc2bb45d53bbe5621c131fbcb))
+* revise and rename is_etag_in_json(data) ([#483](https://www.github.com/googleapis/python-storage/issues/483)) ([0a52546](https://www.github.com/googleapis/python-storage/commit/0a5254647bf1155874fe48f3891bcc34a76b0b81))
+
+## [1.40.0](https://www.github.com/googleapis/python-storage/compare/v1.39.0...v1.40.0) (2021-06-30)
+
+
+### Features
+
+* add preconditions and retry configuration to blob.create_resumable_upload_session ([#484](https://www.github.com/googleapis/python-storage/issues/484)) ([0ae35ee](https://www.github.com/googleapis/python-storage/commit/0ae35eef0fe82fe60bc095c4b183102bb1dabeeb))
+* add public access prevention to bucket IAM configuration ([#304](https://www.github.com/googleapis/python-storage/issues/304)) ([e3e57a9](https://www.github.com/googleapis/python-storage/commit/e3e57a9c779d6b87852063787f19e27c76b1bb14))
+
+
+### Bug Fixes
+
+* replace default retry for upload operations ([#480](https://www.github.com/googleapis/python-storage/issues/480)) ([c027ccf](https://www.github.com/googleapis/python-storage/commit/c027ccf4279fb05e041754294f10744b7d81beea))
+
+## [1.39.0](https://www.github.com/googleapis/python-storage/compare/v1.38.0...v1.39.0) (2021-06-21)
+
+
+### Features
+
+* media operation retries can be configured using the same interface as with non-media operation ([#447](https://www.github.com/googleapis/python-storage/issues/447)) ([0dbbb8a](https://www.github.com/googleapis/python-storage/commit/0dbbb8ac17a4b632707485ee6c7cc15e4670efaa))
+
+
+### Bug Fixes
+
+* add ConnectionError to default retry ([#445](https://www.github.com/googleapis/python-storage/issues/445)) ([8344253](https://www.github.com/googleapis/python-storage/commit/8344253a1969b9d04b81f87a6d7bddd3ddb55006))
+* apply idempotency policies for ACLs ([#458](https://www.github.com/googleapis/python-storage/issues/458)) ([2232f38](https://www.github.com/googleapis/python-storage/commit/2232f38933dbdfeb4f6585291794d332771ffdf2))
+* replace python lifecycle action parsing ValueError with warning ([#437](https://www.github.com/googleapis/python-storage/issues/437)) ([2532d50](https://www.github.com/googleapis/python-storage/commit/2532d506b44fc1ef0fa0a996822d29e7459c465a))
+* revise blob.compose query parameters `if_generation_match` ([#454](https://www.github.com/googleapis/python-storage/issues/454)) ([70d19e7](https://www.github.com/googleapis/python-storage/commit/70d19e72831dee112bb07f38b50beef4890c1155))
+
+
+### Documentation
+
+* streamline 'timeout' / 'retry' docs in docstrings ([#461](https://www.github.com/googleapis/python-storage/issues/461)) ([78b2eba](https://www.github.com/googleapis/python-storage/commit/78b2eba81003b437cd24f2b8d269ea2455682507))
+* streamline docstrings for conditional parmas ([#464](https://www.github.com/googleapis/python-storage/issues/464)) ([6999370](https://www.github.com/googleapis/python-storage/commit/69993702390322df07cc2e818003186a47524c2b))
+
 ## [1.38.0](https://www.github.com/googleapis/python-storage/compare/v1.37.1...v1.38.0) (2021-04-26)
 
 

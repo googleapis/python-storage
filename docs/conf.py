@@ -80,9 +80,9 @@ source_suffix = [".rst", ".md"]
 master_doc = "index"
 
 # General information about the project.
-project = u"google-cloud-storage"
-copyright = u"2019, Google"
-author = u"Google APIs"
+project = "google-cloud-storage"
+copyright = "2019, Google"
+author = "Google APIs"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -110,6 +110,7 @@ language = None
 # directories to ignore when looking for source files.
 exclude_patterns = [
     "_build",
+    "**/.nox/**/*",
     "samples/AUTHORING_GUIDE.md",
     "samples/CONTRIBUTING.md",
     "samples/snippets/README.rst",
@@ -281,7 +282,7 @@ latex_documents = [
     (
         master_doc,
         "google-cloud-storage.tex",
-        u"google-cloud-storage Documentation",
+        "google-cloud-storage Documentation",
         author,
         "manual",
     )
@@ -316,7 +317,7 @@ man_pages = [
     (
         master_doc,
         "google-cloud-storage",
-        u"google-cloud-storage Documentation",
+        "google-cloud-storage Documentation",
         [author],
         1,
     )
@@ -335,7 +336,7 @@ texinfo_documents = [
     (
         master_doc,
         "google-cloud-storage",
-        u"google-cloud-storage Documentation",
+        "google-cloud-storage Documentation",
         author,
         "google-cloud-storage",
         "google-cloud-storage Library",
@@ -363,6 +364,8 @@ intersphinx_mapping = {
     "google.api_core": ("https://googleapis.dev/python/google-api-core/latest/", None,),
     "grpc": ("https://grpc.github.io/grpc/python/", None),
     "proto-plus": ("https://proto-plus-python.readthedocs.io/en/latest/", None),
+    "protobuf": ("https://googleapis.dev/python/protobuf/latest/", None),
+    "requests": ("https://docs.python-requests.org/en/master/", None),
 }
 
 

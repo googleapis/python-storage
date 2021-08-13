@@ -69,6 +69,12 @@ class Test_should_retry(unittest.TestCase):
         exc = requests.ConnectionError()
         self.assertTrue(self._call_fut(exc))
 
+    def test_w_requests_chunked_encoding_error(self):
+        import requests.exceptions
+
+        exc = requests.exceptions.ChunkedEncodingError()
+        self.assertTrue(self._call_fut(exc))
+
     def test_miss_w_stdlib_error(self):
         exc = ValueError("testing")
         self.assertFalse(self._call_fut(exc))
@@ -166,30 +172,24 @@ class Test_is_metageneration_specified(unittest.TestCase):
         self.assertTrue(self._call_fut(query_params))
 
 
-class Test_is_etag_in_json(unittest.TestCase):
+class Test_is_etag_in_data(unittest.TestCase):
     def _call_fut(self, data):
         from google.cloud.storage import retry
 
-        return retry.is_etag_in_json(data)
+        return retry.is_etag_in_data(data)
 
-    @staticmethod
-    def _make_json_data(**kw):
-        import json
-
-        return json.dumps(kw)
-
-    def test_w_empty(self):
-        data = self._make_json_data()
+    def test_w_none(self):
+        data = None
 
         self.assertFalse(self._call_fut(data))
 
     def test_w_etag_in_data(self):
-        data = self._make_json_data(etag="123")
+        data = {"etag": "123"}
 
         self.assertTrue(self._call_fut(data))
 
     def test_w_empty_data(self):
-        data = ""
+        data = {}
 
         self.assertFalse(self._call_fut(data))
 

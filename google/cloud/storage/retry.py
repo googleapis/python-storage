@@ -13,12 +13,11 @@
 # limitations under the License.
 
 import requests
+import requests.exceptions as requests_exceptions
 
 from google.api_core import exceptions as api_exceptions
 from google.api_core import retry
 from google.auth import exceptions as auth_exceptions
-
-import json
 
 
 # ConnectionError is a built-in exception only in Python3 and not in Python2.
@@ -35,6 +34,7 @@ _RETRYABLE_TYPES = _RETRYABLE_STDLIB_TYPES + (
     api_exceptions.ServiceUnavailable,  # 503
     api_exceptions.GatewayTimeout,  # 504
     requests.ConnectionError,
+    requests_exceptions.ChunkedEncodingError,
 )
 
 
@@ -120,28 +120,49 @@ def is_metageneration_specified(query_params):
     return if_metageneration_match
 
 
-def is_etag_in_json(data):
-    """Return True if an etag is contained in the JSON body.
+def is_etag_in_data(data):
+    """Return True if an etag is contained in the request body.
 
-    Indended for use on calls with relatively short JSON payloads."""
-    try:
-        content = json.loads(data)
-        if content.get("etag"):
-            return True
-    # Though this method should only be called when a JSON body is expected,
-    # the retry policy should be robust to unexpected payloads.
-    # In Python 3 a JSONDecodeError is possible, but it is a subclass of ValueError.
-    except (ValueError, TypeError):
-        pass
-    return False
+    :type data: dict or None
+    :param data: A dict representing the request JSON body. If not passed, returns False.
+    """
+    return data is not None and "etag" in data
+
+
+def is_etag_in_json(data):
+    """
+    ``is_etag_in_json`` is supported for backwards-compatibility reasons only;
+    please use ``is_etag_in_data`` instead.
+    """
+    return is_etag_in_data(data)
 
 
 DEFAULT_RETRY_IF_GENERATION_SPECIFIED = ConditionalRetryPolicy(
     DEFAULT_RETRY, is_generation_specified, ["query_params"]
 )
+"""Conditional wrapper for the default retry object.
+
+This retry setting will retry all _RETRYABLE_TYPES and any status codes from
+_ADDITIONAL_RETRYABLE_STATUS_CODES, but only if the request included an
+``ifGenerationMatch`` header.
+"""
+
 DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED = ConditionalRetryPolicy(
     DEFAULT_RETRY, is_metageneration_specified, ["query_params"]
 )
+"""Conditional wrapper for the default retry object.
+
+This retry setting will retry all _RETRYABLE_TYPES and any status codes from
+_ADDITIONAL_RETRYABLE_STATUS_CODES, but only if the request included an
+``ifMetagenerationMatch`` header.
+"""
+
 DEFAULT_RETRY_IF_ETAG_IN_JSON = ConditionalRetryPolicy(
     DEFAULT_RETRY, is_etag_in_json, ["data"]
 )
+"""Conditional wrapper for the default retry object.
+
+This retry setting will retry all _RETRYABLE_TYPES and any status codes from
+_ADDITIONAL_RETRYABLE_STATUS_CODES, but only if the request included an
+``ETAG`` entry in its payload.
+"""
