@@ -25,6 +25,7 @@ common = gcp.CommonTemplates()
 # Add templated files
 # ----------------------------------------------------------------------------
 templated_files = common.py_library(
+python.py_samples(skip_readmes=True)
     cov_level=100,
     split_system_tests=True,
     system_test_external_dependencies=[
