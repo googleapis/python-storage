@@ -33,7 +33,7 @@ _CONFORMANCE_TESTS = _read_local_json("retry_strategy_test_data.json")[
 ]
 
 _STORAGE_EMULATOR_ENV_VAR = "STORAGE_EMULATOR_HOST"
-"""Environment variable defining host for Storage emulator."""
+"""Environment variable defining host for Storage testbench emulator."""
 
 _CONF_TEST_PROJECT_ID = "my-project-id"
 _CONF_TEST_SERVICE_ACCOUNT_EMAIL = (
@@ -164,7 +164,7 @@ def bucket_test_iam_permissions(client, _preconditions, **resources):
     bucket.test_iam_permissions(permissions)
 
 
-# TODO(cathyo@): fix emulator issue and assign metageneration to buckets.insert
+# TODO(cathyo@): issue resolved in the new testbench where buckets have a valid metageneration
 def bucket_lock_retention_policy(client, _preconditions, **resources):
     bucket = client.bucket(resources.get("bucket").name)
     bucket.retention_period = 60
@@ -492,7 +492,7 @@ method_mapping = {
 
 
 ########################################################################################################################################
-### Pytest Fixtures for Populating Resources ############################################################################################
+### Pytest Fixtures to Populate Resources ##############################################################################################
 ########################################################################################################################################
 
 
@@ -522,8 +522,7 @@ def bucket(client):
 
 @pytest.fixture
 def object(client, bucket):
-    bucket = client.get_bucket(bucket.name)
-    blob = bucket.blob(uuid.uuid4().hex)
+    blob = client.bucket(bucket.name).blob(uuid.uuid4().hex)
     blob.upload_from_string(_STRING_CONTENT, checksum="crc32c")
     blob.reload()
     yield blob
@@ -535,8 +534,7 @@ def object(client, bucket):
 
 @pytest.fixture
 def notification(client, bucket):
-    bucket = client.get_bucket(bucket.name)
-    notification = bucket.notification()
+    notification = client.bucket(bucket.name).notification()
     notification.create()
     notification.reload()
     yield notification
@@ -548,7 +546,7 @@ def notification(client, bucket):
 
 @pytest.fixture
 def hmac_key(client):
-    hmac_key, secret = client.create_hmac_key(
+    hmac_key, _secret = client.create_hmac_key(
         service_account_email=_CONF_TEST_SERVICE_ACCOUNT_EMAIL,
         project_id=_CONF_TEST_PROJECT_ID,
     )
@@ -562,28 +560,32 @@ def hmac_key(client):
 
 
 ########################################################################################################################################
-### Helper Methods for Emulator Retry API ##############################################################################################
+### Helper Methods for Testbench Retry Test API ########################################################################################
 ########################################################################################################################################
+
+
+"""
+The Retry Test API in the testbench is used to run the retry conformance tests. It offers a mechanism to describe more complex
+retry scenarios while sending a single, constant header through all the HTTP requests from a test program. The Retry Test API
+can be accessed by adding the path "/retry-test" to the host. See also: https://github.com/googleapis/storage-testbench
+"""
 
 
 def _create_retry_test(host, method_name, instructions):
     """
     For each test case, initialize a Retry Test resource by loading a set of
-    instructions to the emulator host. The instructions include an API method
-    and a list of errors. An unique id is created for each Retry Test resouce.
-    This offers a mechanism to send multiple retry instructions while sending a
-    single, constant header through all the HTTP requests in a test.
-    See also: https://github.com/googleapis/storage-testbench
+    instructions to the testbench host. The instructions include an API method
+    and a list of errors. An unique id is created for each Retry Test resource.
     """
     import json
 
-    preflight_post_uri = host + "/retry_test"
+    retry_test_uri = host + "/retry_test"
     headers = {
         "Content-Type": "application/json",
     }
     data_dict = {"instructions": {method_name: instructions}}
     data = json.dumps(data_dict)
-    r = requests.post(preflight_post_uri, headers=headers, data=data)
+    r = requests.post(retry_test_uri, headers=headers, data=data)
     return r.json()
 
 
@@ -593,8 +595,10 @@ def _get_retry_test(host, id):
     instructions, and a boolean status "completed". This can be used to verify
     if all instructions were used as expected.
     """
-    status_get_uri = "{base}{retry}/{id}".format(base=host, retry="/retry_test", id=id)
-    r = requests.get(status_get_uri)
+    get_retry_test_uri = "{base}{retry}/{id}".format(
+        base=host, retry="/retry_test", id=id
+    )
+    r = requests.get(get_retry_test_uri)
     return r.json()
 
 
@@ -602,10 +606,10 @@ def _run_retry_test(
     host, id, lib_func, _preconditions, bucket, object, notification, hmac_key
 ):
     """
-    To execute tests against the list of instrucions sent to the Retry API,
+    To execute tests against the list of instrucions sent to the Retry Test API,
     create a client to send the retry test ID using the x-retry-test-id header
     in each request. For incoming requests that match the test ID and API method,
-    the emulator will pop off the next instruction from the list and force the
+    the testbench will pop off the next instruction from the list and force the
     listed failure case.
     """
     client = storage.Client(
@@ -628,8 +632,10 @@ def _delete_retry_test(host, id):
     """
     Delete the Retry Test resource by id.
     """
-    status_get_uri = "{base}{retry}/{id}".format(base=host, retry="/retry_test", id=id)
-    requests.delete(status_get_uri)
+    get_retry_test_uri = "{base}{retry}/{id}".format(
+        base=host, retry="/retry_test", id=id
+    )
+    requests.delete(get_retry_test_uri)
 
 
 ########################################################################################################################################
@@ -690,7 +696,7 @@ def run_test_case(
         status_response["instructions"]
     )
 
-    # Clean up and close out test in emulator.
+    # Clean up and close out test in testbench.
     _delete_retry_test(host, id)
 
 
