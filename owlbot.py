@@ -25,7 +25,6 @@ common = gcp.CommonTemplates()
 # Add templated files
 # ----------------------------------------------------------------------------
 templated_files = common.py_library(
-python.py_samples(skip_readmes=True)
     cov_level=100,
     split_system_tests=True,
     system_test_external_dependencies=[
@@ -46,5 +45,7 @@ s.move(
         "CONTRIBUTING.rst",
     ],
 )
+
+python.py_samples(skip_readmes=True)
 
 s.shell.run(["nox", "-s", "blacken"], hide_output=False)
