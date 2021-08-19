@@ -405,7 +405,7 @@ class Blob(_PropertyMixin):
             >>> from google.cloud import storage
             >>> from google.cloud.storage.blob import Blob
             >>> client = storage.Client()
-            >>> blob = Blob.from_string("gs://bucket/object")
+            >>> blob = Blob.from_string("gs://bucket/object", client=client)
         """
         from google.cloud.storage.bucket import Bucket
 

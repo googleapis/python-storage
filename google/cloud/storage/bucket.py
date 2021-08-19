@@ -667,7 +667,7 @@ class Bucket(_PropertyMixin):
             >>> from google.cloud import storage
             >>> from google.cloud.storage.bucket import Bucket
             >>> client = storage.Client()
-            >>> bucket = Bucket.from_string("gs://bucket", client)
+            >>> bucket = Bucket.from_string("gs://bucket", client=client)
         """
         scheme, netloc, path, query, frag = urlsplit(uri)
 
