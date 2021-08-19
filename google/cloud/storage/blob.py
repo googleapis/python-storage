@@ -393,8 +393,8 @@ class Blob(_PropertyMixin):
 
         :type client: :class:`~google.cloud.storage.client.Client`
         :param client:
-            (Optional) The client to use.  If not passed, falls back to the
-            ``client`` stored on the blob's bucket.
+            (Optional) The client to use.  Application code should
+            *always* pass ``client``.
 
         :rtype: :class:`google.cloud.storage.blob.Blob`
         :returns: The blob object created.

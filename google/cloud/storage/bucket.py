@@ -656,7 +656,8 @@ class Bucket(_PropertyMixin):
 
         :type client: :class:`~google.cloud.storage.client.Client` or
                       ``NoneType``
-        :param client: (Optional) The client to use.
+        :param client: (Optional) The client to use.  Application code should
+            *always* pass ``client``.
 
         :rtype: :class:`google.cloud.storage.bucket.Bucket`
         :returns: The bucket object created.
