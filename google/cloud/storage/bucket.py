@@ -22,6 +22,7 @@ from urllib.parse import urlsplit
 import warnings
 
 from google.api_core import datetime_helpers
+from google.cloud import storage
 from google.cloud._helpers import _datetime_to_rfc3339
 from google.cloud._helpers import _NOW
 from google.cloud._helpers import _rfc3339_nanos_to_datetime
@@ -608,7 +609,7 @@ class Bucket(_PropertyMixin):
         """
         name = _validate_name(name)
         super(Bucket, self).__init__(name=name)
-        self._client = client
+        self._client = client or storage.Client()
         self._acl = BucketACL(self)
         self._default_object_acl = DefaultObjectACL(self)
         self._label_removals = set()
