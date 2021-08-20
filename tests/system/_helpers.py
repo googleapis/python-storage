@@ -82,7 +82,7 @@ def delete_blob(blob):
         retry(blob.delete)(timeout=120)  # seconds
     except exceptions.NotFound:  # race
         pass
-    except exceptions.Forbidden:  # even-based hold
+    except exceptions.Forbidden:  # event-based hold
         blob.event_based_hold = False
         blob.patch()
         retry_no_event_based_hold(blob.reload)()
