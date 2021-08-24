@@ -443,8 +443,8 @@ method_mapping = {
     "storage.buckets.getIamPolicy": [bucket_get_iam_policy],
     "storage.buckets.insert": [client_create_bucket, bucket_create],
     "storage.buckets.list": [client_list_buckets],
-    "storage.buckets.lockRententionPolicy": [bucket_lock_retention_policy],
-    "storage.buckets.testIamPermission": [bucket_test_iam_permissions],
+    "storage.buckets.lockRetentionPolicy": [bucket_lock_retention_policy],
+    "storage.buckets.testIamPermissions": [bucket_test_iam_permissions],
     "storage.notifications.delete": [notification_delete],
     "storage.notifications.get": [
         bucket_get_notification,
