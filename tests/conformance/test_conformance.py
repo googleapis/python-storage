@@ -251,6 +251,7 @@ def bucket_set_iam_policy(client, _preconditions, **resources):
     if _preconditions:
         bucket.set_iam_policy(policy)
     else:
+        # IAM policies have no metageneration:  clear ETag to avoid checking that it matches.
         policy.etag = None
         bucket.set_iam_policy(policy)
 
