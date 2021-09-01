@@ -81,15 +81,15 @@
           },
           {
             "name": "storage.hmacKey.delete",
-            "resources": []
+            "resources": ["HMAC_KEY"]
           },
           {
             "name": "storage.hmacKey.get",
-            "resources": []
+            "resources": ["HMAC_KEY"]
           },
           {
             "name": "storage.hmacKey.list",
-            "resources": []
+            "resources": ["HMAC_KEY"]
           },
           {
             "name": "storage.notifications.delete",
@@ -180,7 +180,7 @@
           },
           {
             "name": "storage.hmacKey.update",
-            "resources": []
+            "resources": ["HMAC_KEY"]
           },
           {
             "name": "storage.objects.compose",
@@ -239,10 +239,83 @@
         "description": "conditionally idempotent no retries when precondition is absent",
         "cases": [
           {
-            "instructions": []
+            "instructions": [
+              "return-503"
+            ]
           }
         ],
-        "methods": [],
+        "methods": [
+          {
+            "name": "storage.buckets.patch",
+            "resources": [
+              "BUCKET"
+            ]
+          },
+          {
+            "name": "storage.buckets.setIamPolicy",
+            "resources": [
+              "BUCKET"
+            ]
+          },
+          {
+            "name": "storage.buckets.update",
+            "resources": [
+              "BUCKET"
+            ]
+          },
+          {
+            "name": "storage.hmacKey.update",
+            "resources": ["HMAC_KEY"]
+          },
+          {
+            "name": "storage.objects.compose",
+            "resources": [
+              "BUCKET",
+              "OBJECT"
+            ]
+          },
+          {
+            "name": "storage.objects.copy",
+            "resources": [
+              "BUCKET",
+              "OBJECT"
+            ]
+          },
+          {
+            "name": "storage.objects.delete",
+            "resources": [
+              "BUCKET",
+              "OBJECT"
+            ]
+          },
+          {
+            "name": "storage.objects.insert",
+            "resources": [
+              "BUCKET"
+            ]
+          },
+          {
+            "name": "storage.objects.patch",
+            "resources": [
+              "BUCKET",
+              "OBJECT"
+            ]
+          },
+          {
+            "name": "storage.objects.rewrite",
+            "resources": [
+              "BUCKET",
+              "OBJECT"
+            ]
+          },
+          {
+            "name": "storage.objects.update",
+            "resources": [
+              "BUCKET",
+              "OBJECT"
+            ]
+          }
+        ],
         "preconditionProvided": false,
         "expectSuccess": false
       },
