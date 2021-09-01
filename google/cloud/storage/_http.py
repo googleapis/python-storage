@@ -57,7 +57,7 @@ class Connection(_http.JSONConnection):
         if self._client_info.user_agent is None:  # pragma: no branch
             self._client_info.user_agent = ""
         agent_version = "gcloud-python/{}".format(__version__)
-        if  agent_version not in self._client_info.user_agent:
+        if agent_version not in self._client_info.user_agent:
             self._client_info.user_agent += " {} ".format(agent_version)
 
     API_VERSION = "v1"
