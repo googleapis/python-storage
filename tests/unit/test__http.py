@@ -228,3 +228,16 @@ class TestConnection(unittest.TestCase):
         self.assertEqual(conn.ALLOW_AUTO_SWITCH_TO_MTLS_URL, False)
         self.assertEqual(conn.API_BASE_URL, "http://foo")
         self.assertEqual(conn.API_BASE_MTLS_URL, "https://storage.mtls.googleapis.com")
+    
+    def test_duplicate_user_agent(self):
+        # Regression test for issue #565
+        from google.cloud._http import ClientInfo
+        from google.cloud.storage.client import Client
+        from google.cloud.storage.batch import Batch
+
+        client_info = ClientInfo(user_agent="test/123")
+        client = Client(project="test-project", client_info=client_info)
+        conn = self._make_one(client, client_info)
+        self.assertEqual(conn._client_info.user_agent, "test/123 gcloud-python/1.42.0 ")
+        batch = Batch(client)
+        self.assertEqual(batch._client_info.user_agent, "test/123 gcloud-python/1.42.0 ")
