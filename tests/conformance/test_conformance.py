@@ -251,6 +251,16 @@ def client_create_hmac_key(client, _preconditions, **_):
     client.create_hmac_key(service_account_email=_CONF_TEST_SERVICE_ACCOUNT_EMAIL)
 
 
+def hmac_key_update(client, _preconditions, **resources):
+    access_id = resources.get("hmac_key").access_id
+    etag = resources.get("hmac_key").etag
+    hmac_key = HMACKeyMetadata(client, access_id=access_id)
+    if _preconditions:
+        hmac_key.etag = etag
+    hmac_key.state = "INACTIVE"
+    hmac_key.update()
+
+
 def bucket_patch(client, _preconditions, **resources):
     bucket = client.get_bucket(resources.get("bucket").name)
     metageneration = bucket.metageneration
@@ -504,6 +514,7 @@ method_mapping = {
     "storage.buckets.patch": [bucket_patch],  # S2/S3 start
     "storage.buckets.setIamPolicy": [bucket_set_iam_policy],
     "storage.buckets.update": [bucket_update],
+    "storage.hmacKey.update": [hmac_key_update],
     "storage.objects.compose": [blob_compose],
     "storage.objects.copy": [bucket_copy_blob, bucket_rename_blob],
     "storage.objects.delete": [
