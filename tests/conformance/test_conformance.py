@@ -24,6 +24,7 @@ import pytest
 
 from google.cloud import storage
 from google.auth.credentials import AnonymousCredentials
+from google.cloud.storage.hmac_key import HMACKeyMetadata
 
 from . import _read_local_json
 
@@ -171,6 +172,10 @@ def bucket_lock_retention_policy(client, _preconditions, **resources):
     bucket.lock_retention_policy()
 
 
+def client_get_service_account_email(client, _preconditions, **_):
+    client.get_service_account_email()
+
+
 def notification_create(client, _preconditions, **resources):
     bucket = client.get_bucket(resources.get("bucket").name)
     notification = bucket.notification()
@@ -217,8 +222,33 @@ def client_list_hmac_keys(client, _preconditions, **_):
         pass
 
 
-def client_get_service_account_email(client, _preconditions, **_):
-    client.get_service_account_email()
+def client_get_hmac_key_metadata(client, _preconditions, **resources):
+    access_id = resources.get("hmac_key").access_id
+    client.get_hmac_key_metadata(access_id=access_id)
+
+
+def hmac_key_exists(client, _preconditions, **resources):
+    access_id = resources.get("hmac_key").access_id
+    hmac_key = HMACKeyMetadata(client, access_id=access_id)
+    hmac_key.exists()
+
+
+def hmac_key_reload(client, _preconditions, **resources):
+    access_id = resources.get("hmac_key").access_id
+    hmac_key = HMACKeyMetadata(client, access_id=access_id)
+    hmac_key.reload()
+
+
+def hmac_key_delete(client, _preconditions, **resources):
+    access_id = resources.get("hmac_key").access_id
+    hmac_key = HMACKeyMetadata(client, access_id=access_id)
+    hmac_key.state = "INACTIVE"
+    hmac_key.update()
+    hmac_key.delete()
+
+
+def client_create_hmac_key(client, _preconditions, **_):
+    client.create_hmac_key(service_account_email=_CONF_TEST_SERVICE_ACCOUNT_EMAIL)
 
 
 def bucket_patch(client, _preconditions, **resources):
@@ -446,6 +476,13 @@ method_mapping = {
     "storage.buckets.list": [client_list_buckets],
     "storage.buckets.lockRetentionPolicy": [bucket_lock_retention_policy],
     "storage.buckets.testIamPermissions": [bucket_test_iam_permissions],
+    "storage.hmacKey.delete": [hmac_key_delete],
+    "storage.hmacKey.get": [
+        client_get_hmac_key_metadata,
+        hmac_key_exists,
+        hmac_key_reload,
+    ],
+    "storage.hmacKey.list": [client_list_hmac_keys],
     "storage.notifications.delete": [notification_delete],
     "storage.notifications.get": [
         bucket_get_notification,
@@ -462,11 +499,8 @@ method_mapping = {
         blob_download_as_text,
         blobreader_read,
     ],
-    "storage.objects.list": [
-        client_list_blobs,
-        bucket_list_blobs,
-        bucket_delete,
-    ],  # S1 end
+    "storage.objects.list": [client_list_blobs, bucket_list_blobs, bucket_delete],
+    "storage.serviceaccount.get": [client_get_service_account_email],  # S1 end
     "storage.buckets.patch": [bucket_patch],  # S2/S3 start
     "storage.buckets.setIamPolicy": [bucket_set_iam_policy],
     "storage.buckets.update": [bucket_update],
@@ -488,6 +522,8 @@ method_mapping = {
     "storage.objects.patch": [blob_patch],
     "storage.objects.rewrite": [blob_rewrite, blob_update_storage_class],
     "storage.objects.update": [blob_update],  # S2/S3 end
+    "storage.hmacKey.create": [client_create_hmac_key],  # S4 start
+    "storage.notifications.insert": [notification_create],
 }
 
 
