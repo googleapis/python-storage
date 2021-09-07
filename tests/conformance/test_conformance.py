@@ -911,7 +911,7 @@ for scenario in _CONFORMANCE_TESTS:
     id = scenario["id"]
     methods = scenario["methods"]
     cases = scenario["cases"]
-    for c in cases:
+    for i, c in enumerate(cases):
         for m in methods:
             method_name = m["name"]
             if method_name not in method_mapping:
@@ -919,7 +919,9 @@ for scenario in _CONFORMANCE_TESTS:
                 continue
 
             for lib_func in method_mapping[method_name]:
-                test_name = "test-S{}-{}-{}".format(id, method_name, lib_func.__name__)
+                test_name = "test-S{}-{}-{}-{}".format(
+                    id, method_name, lib_func.__name__, i
+                )
                 globals()[test_name] = functools.partial(
                     run_test_case, id, m, c, lib_func, host
                 )
