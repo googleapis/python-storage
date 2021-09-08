@@ -517,7 +517,7 @@ def bucket_acl_save_predefined(client, _preconditions, **resources):
     if _preconditions:
         pytest.skip(_BUCKET_ACL_PATCH_MSG)
     bucket = client.bucket(resources.get("bucket").name)
-    bucket.acl.save("bucketOwnerFullControl")
+    bucket.acl.save_predefined("bucketOwnerFullControl")
 
 
 def bucket_acl_clear(client, _preconditions, **resources):
@@ -546,7 +546,7 @@ def default_object_acl_save_predefined(client, _preconditions, **resources):
     if _preconditions:
         pytest.skip(_DEFAULT_OBJECT_ACL_PATCH_MSG)
     bucket = client.bucket(resources.get("bucket").name)
-    bucket.default_object_acl.save("bucketOwnerFullControl")
+    bucket.default_object_acl.save_predefined("bucketOwnerFullControl")
 
 
 def default_object_acl_clear(client, _preconditions, **resources):
@@ -580,7 +580,7 @@ def object_acl_save_predefined(client, _preconditions, **resources):
     bucket = resources.get("bucket")
     object = resources.get("object")
     blob = client.bucket(bucket.name).blob(object.name)
-    blob.acl.save("bucketOwnerFullControl")
+    blob.acl.save_predefined("bucketOwnerFullControl")
 
 
 def object_acl_clear(client, _preconditions, **resources):
