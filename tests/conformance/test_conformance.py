@@ -24,6 +24,8 @@ import pytest
 import subprocess
 import time
 
+from six.moves.urllib import parse as urlparse
+
 from google.cloud import storage
 from google.auth.credentials import AnonymousCredentials
 from google.cloud.storage.hmac_key import HMACKeyMetadata
@@ -34,15 +36,18 @@ from . import _read_local_json
 _CONFORMANCE_TESTS = _read_local_json("retry_strategy_test_data.json")[
     "retryStrategyTests"
 ]
-_STORAGE_EMULATOR_ENV_VAR = "STORAGE_EMULATOR_HOST"
-"""Environment variable defining host for Storage testbench emulator."""
 
+"""Environment variable defining host for Storage testbench emulator."""
+_STORAGE_EMULATOR_ENV_VAR = "STORAGE_EMULATOR_HOST"
+_HOST = os.environ.get(_STORAGE_EMULATOR_ENV_VAR)
+_PORT = urlparse.urlsplit(_HOST).port
+
+"""The storage testbench docker image info and commands."""
 _DEFAULT_IMAGE_NAME = "gcr.io/cloud-devrel-public-resources/storage-testbench"
 _DEFAULT_IMAGE_TAG = "latest"
-
 _DOCKER_IMAGE = "{}:{}".format(_DEFAULT_IMAGE_NAME, _DEFAULT_IMAGE_TAG)
 _PULL_CMD = ["docker", "pull", _DOCKER_IMAGE]
-_RUN_CMD = ["docker", "run", "--rm", "-d", "-p", "9000:9000", _DOCKER_IMAGE]
+_RUN_CMD = ["docker", "run", "--rm", "-d", "-p", "{}:9000".format(_PORT), _DOCKER_IMAGE]
 
 _CONF_TEST_PROJECT_ID = "my-project-id"
 _CONF_TEST_SERVICE_ACCOUNT_EMAIL = (
@@ -917,8 +922,7 @@ time.sleep(5)
 with subprocess.Popen(_RUN_CMD) as proc:
     # Run retry conformance tests
     for scenario in _CONFORMANCE_TESTS:
-        host = os.environ.get(_STORAGE_EMULATOR_ENV_VAR)
-        if host is None:
+        if _HOST is None:
             logging.error(
                 "This test must use the testbench emulator; set STORAGE_EMULATOR_HOST to run."
             )
@@ -939,7 +943,7 @@ with subprocess.Popen(_RUN_CMD) as proc:
                         id, method_name, lib_func.__name__, i
                     )
                     globals()[test_name] = functools.partial(
-                        run_test_case, id, m, c, lib_func, host
+                        run_test_case, id, m, c, lib_func, _HOST
                     )
     time.sleep(5)
     proc.kill()
