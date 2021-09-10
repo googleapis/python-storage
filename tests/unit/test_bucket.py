@@ -1995,7 +1995,7 @@ class Test_Bucket(unittest.TestCase):
             expected_patch_data,
             query_params=expected_patch_query_params,
             timeout=self._get_default_timeout(),
-            retry=None,
+            retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
         )
 
     def test_copy_blob_w_name_and_user_project(self):
@@ -3199,7 +3199,7 @@ class Test_Bucket(unittest.TestCase):
             expected_data,
             query_params=expected_query_params,
             timeout=self._get_default_timeout(),
-            retry=None,
+            retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
         )
 
     def _make_public_w_future_helper(self, default_object_acl_loaded=True):
@@ -3232,7 +3232,7 @@ class Test_Bucket(unittest.TestCase):
         expected_kw = {
             "query_params": {"projection": "full"},
             "timeout": self._get_default_timeout(),
-            "retry": None,
+            "retry": DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
         }
         client._patch_resource.assert_has_calls(
             [
@@ -3317,7 +3317,7 @@ class Test_Bucket(unittest.TestCase):
             expected_patch_data,
             query_params=expected_patch_query_params,
             timeout=timeout,
-            retry=None,
+            retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
         )
         client.list_blobs.assert_called_once()
 
@@ -3352,7 +3352,7 @@ class Test_Bucket(unittest.TestCase):
             expected_data,
             query_params=expected_query_params,
             timeout=self._get_default_timeout(),
-            retry=None,
+            retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
         )
 
         client.list_blobs.assert_called_once()
@@ -3380,7 +3380,7 @@ class Test_Bucket(unittest.TestCase):
             expected_data,
             query_params=expected_query_params,
             timeout=self._get_default_timeout(),
-            retry=None,
+            retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
         )
 
     def _make_private_w_future_helper(self, default_object_acl_loaded=True):
@@ -3414,7 +3414,7 @@ class Test_Bucket(unittest.TestCase):
         expected_kw = {
             "query_params": {"projection": "full"},
             "timeout": self._get_default_timeout(),
-            "retry": None,
+            "retry": DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
         }
         client._patch_resource.assert_has_calls(
             [
@@ -3497,7 +3497,7 @@ class Test_Bucket(unittest.TestCase):
             expected_patch_data,
             query_params=expected_patch_query_params,
             timeout=timeout,
-            retry=None,
+            retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
         )
 
         client.list_blobs.assert_called_once()
@@ -3531,7 +3531,7 @@ class Test_Bucket(unittest.TestCase):
             expected_data,
             query_params=expected_query_params,
             timeout=self._get_default_timeout(),
-            retry=None,
+            retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
         )
 
         client.list_blobs.assert_called_once()

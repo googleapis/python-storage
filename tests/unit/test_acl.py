@@ -16,7 +16,10 @@ import unittest
 
 import mock
 
-from google.cloud.storage.retry import DEFAULT_RETRY
+from google.cloud.storage.retry import (
+    DEFAULT_RETRY,
+    DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
+)
 
 
 class Test_ACLEntity(unittest.TestCase):
@@ -646,7 +649,7 @@ class Test_ACL(unittest.TestCase):
             expected_data,
             query_params=expected_query_params,
             timeout=self._get_default_timeout(),
-            retry=None,
+            retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
         )
 
     def test_save_no_acl_w_timeout(self):
@@ -673,7 +676,7 @@ class Test_ACL(unittest.TestCase):
             expected_data,
             query_params=expected_query_params,
             timeout=timeout,
-            retry=None,
+            retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
         )
 
     def test_save_w_acl_w_user_project(self):
@@ -705,7 +708,7 @@ class Test_ACL(unittest.TestCase):
             expected_data,
             query_params=expected_query_params,
             timeout=self._get_default_timeout(),
-            retry=None,
+            retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
         )
 
     def test_save_prefefined_invalid(self):
@@ -749,7 +752,7 @@ class Test_ACL(unittest.TestCase):
             expected_data,
             query_params=expected_query_params,
             timeout=self._get_default_timeout(),
-            retry=None,
+            retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
         )
 
     def test_save_predefined_w_XML_alias_w_timeout(self):
@@ -779,7 +782,7 @@ class Test_ACL(unittest.TestCase):
             expected_data,
             query_params=expected_query_params,
             timeout=timeout,
-            retry=None,
+            retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
         )
 
     def test_save_predefined_w_alternate_query_param(self):
@@ -809,7 +812,7 @@ class Test_ACL(unittest.TestCase):
             expected_data,
             query_params=expected_query_params,
             timeout=self._get_default_timeout(),
-            retry=None,
+            retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
         )
 
     def test_clear_w_defaults(self):
@@ -842,7 +845,7 @@ class Test_ACL(unittest.TestCase):
             expected_data,
             query_params=expected_query_params,
             timeout=self._get_default_timeout(),
-            retry=None,
+            retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
         )
 
     def test_clear_w_explicit_client_w_timeout(self):
@@ -872,7 +875,7 @@ class Test_ACL(unittest.TestCase):
             expected_data,
             query_params=expected_query_params,
             timeout=timeout,
-            retry=None,
+            retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
         )
 
 

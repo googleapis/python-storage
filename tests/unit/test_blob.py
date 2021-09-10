@@ -27,7 +27,10 @@ import six
 from six.moves import http_client
 from six.moves.urllib.parse import urlencode
 
-from google.cloud.storage.retry import DEFAULT_RETRY
+from google.cloud.storage.retry import (
+    DEFAULT_RETRY,
+    DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
+)
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_ETAG_IN_JSON
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_GENERATION_SPECIFIED
 
@@ -3936,7 +3939,7 @@ class Test_Blob(unittest.TestCase):
             expected_patch_data,
             query_params=expected_query_params,
             timeout=self._get_default_timeout(),
-            retry=None,
+            retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
         )
 
     def test_make_public_w_timeout(self):
@@ -3963,7 +3966,7 @@ class Test_Blob(unittest.TestCase):
             expected_patch_data,
             query_params=expected_query_params,
             timeout=timeout,
-            retry=None,
+            retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
         )
 
     def test_make_private_w_defaults(self):
@@ -3987,7 +3990,7 @@ class Test_Blob(unittest.TestCase):
             expected_patch_data,
             query_params=expected_query_params,
             timeout=self._get_default_timeout(),
-            retry=None,
+            retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
         )
 
     def test_make_private_w_timeout(self):
@@ -4012,7 +4015,7 @@ class Test_Blob(unittest.TestCase):
             expected_patch_data,
             query_params=expected_query_params,
             timeout=timeout,
-            retry=None,
+            retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
         )
 
     def test_compose_wo_content_type_set(self):
