@@ -711,6 +711,45 @@ class Test_ACL(unittest.TestCase):
             retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
         )
 
+    def test_save_w_acl_w_preconditions(self):
+        save_path = "/testing"
+        role1 = "role1"
+        role2 = "role2"
+        sticky = {"entity": "allUsers", "role": role2}
+        new_acl = [{"entity": "allUsers", "role": role1}]
+        api_response = {"acl": [sticky] + new_acl}
+        client = mock.Mock(spec=["_patch_resource"])
+        client._patch_resource.return_value = api_response
+        acl = self._make_one()
+        acl.save_path = save_path
+        acl.loaded = True
+
+        acl.save(
+            new_acl,
+            client=client,
+            if_metageneration_match=2,
+            if_metageneration_not_match=1,
+        )
+
+        entries = list(acl)
+        self.assertEqual(len(entries), 2)
+        self.assertTrue(sticky in entries)
+        self.assertTrue(new_acl[0] in entries)
+
+        expected_data = {"acl": new_acl}
+        expected_query_params = {
+            "projection": "full",
+            "ifMetagenerationMatch": 2,
+            "ifMetagenerationNotMatch": 1,
+        }
+        client._patch_resource.assert_called_once_with(
+            save_path,
+            expected_data,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
+        )
+
     def test_save_prefefined_invalid(self):
         save_path = "/testing"
         client = mock.Mock(spec=["_patch_resource"])
@@ -815,6 +854,41 @@ class Test_ACL(unittest.TestCase):
             retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
         )
 
+    def test_save_predefined_w_preconditions(self):
+        save_path = "/testing"
+        predefined = "private"
+        api_response = {"acl": []}
+        client = mock.Mock(spec=["_patch_resource"])
+        client._patch_resource.return_value = api_response
+        acl = self._make_one()
+        acl.save_path = save_path
+        acl.loaded = True
+
+        acl.save_predefined(
+            predefined,
+            client=client,
+            if_metageneration_match=2,
+            if_metageneration_not_match=1,
+        )
+
+        entries = list(acl)
+        self.assertEqual(len(entries), 0)
+
+        expected_data = {"acl": []}
+        expected_query_params = {
+            "projection": "full",
+            "predefinedAcl": predefined,
+            "ifMetagenerationMatch": 2,
+            "ifMetagenerationNotMatch": 1,
+        }
+        client._patch_resource.assert_called_once_with(
+            save_path,
+            expected_data,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
+        )
+
     def test_clear_w_defaults(self):
         class Derived(self._get_target_class()):
             client = None
@@ -875,6 +949,39 @@ class Test_ACL(unittest.TestCase):
             expected_data,
             query_params=expected_query_params,
             timeout=timeout,
+            retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
+        )
+
+    def test_clear_w_explicit_client_w_preconditions(self):
+        save_path = "/testing"
+        role1 = "role1"
+        role2 = "role2"
+        sticky = {"entity": "allUsers", "role": role2}
+        api_response = {"acl": [sticky]}
+        client = mock.Mock(spec=["_patch_resource"])
+        client._patch_resource.return_value = api_response
+        acl = self._make_one()
+        acl.save_path = save_path
+        acl.loaded = True
+        acl.entity("allUsers", role1)
+
+        acl.clear(
+            client=client, if_metageneration_match=2, if_metageneration_not_match=1
+        )
+
+        self.assertEqual(list(acl), [sticky])
+
+        expected_data = {"acl": []}
+        expected_query_params = {
+            "projection": "full",
+            "ifMetagenerationMatch": 2,
+            "ifMetagenerationNotMatch": 1,
+        }
+        client._patch_resource.assert_called_once_with(
+            save_path,
+            expected_data,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
             retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
         )
 
