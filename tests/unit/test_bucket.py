@@ -3202,6 +3202,38 @@ class Test_Bucket(unittest.TestCase):
             retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
         )
 
+    def test_make_public_w_preconditions(self):
+        from google.cloud.storage.acl import _ACLEntity
+
+        name = "name"
+        permissive = [{"entity": "allUsers", "role": _ACLEntity.READER_ROLE}]
+        api_response = {"acl": permissive, "defaultObjectAcl": []}
+        client = mock.Mock(spec=["_patch_resource"])
+        client._patch_resource.return_value = api_response
+        bucket = self._make_one(client=client, name=name)
+        bucket.acl.loaded = True
+        bucket.default_object_acl.loaded = True
+
+        bucket.make_public(if_metageneration_match=2, if_metageneration_not_match=1)
+
+        self.assertEqual(list(bucket.acl), permissive)
+        self.assertEqual(list(bucket.default_object_acl), [])
+
+        expected_path = bucket.path
+        expected_data = {"acl": permissive}
+        expected_query_params = {
+            "projection": "full",
+            "ifMetagenerationMatch": 2,
+            "ifMetagenerationNotMatch": 1,
+        }
+        client._patch_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
+        )
+
     def _make_public_w_future_helper(self, default_object_acl_loaded=True):
         from google.cloud.storage.acl import _ACLEntity
 
@@ -3375,6 +3407,36 @@ class Test_Bucket(unittest.TestCase):
         expected_path = bucket.path
         expected_data = {"acl": no_permissions}
         expected_query_params = {"projection": "full"}
+        client._patch_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
+        )
+
+    def test_make_private_w_preconditions(self):
+        name = "name"
+        no_permissions = []
+        api_response = {"acl": no_permissions, "defaultObjectAcl": []}
+        client = mock.Mock(spec=["_patch_resource"])
+        client._patch_resource.return_value = api_response
+        bucket = self._make_one(client=client, name=name)
+        bucket.acl.loaded = True
+        bucket.default_object_acl.loaded = True
+
+        bucket.make_private(if_metageneration_match=2, if_metageneration_not_match=1)
+
+        self.assertEqual(list(bucket.acl), no_permissions)
+        self.assertEqual(list(bucket.default_object_acl), [])
+
+        expected_path = bucket.path
+        expected_data = {"acl": no_permissions}
+        expected_query_params = {
+            "projection": "full",
+            "ifMetagenerationMatch": 2,
+            "ifMetagenerationNotMatch": 1,
+        }
         client._patch_resource.assert_called_once_with(
             expected_path,
             expected_data,
