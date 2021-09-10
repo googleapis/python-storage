@@ -83,6 +83,7 @@ from google.cloud.storage.retry import ConditionalRetryPolicy
 from google.cloud.storage.retry import DEFAULT_RETRY
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_ETAG_IN_JSON
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_GENERATION_SPECIFIED
+from google.cloud.storage.retry import DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED
 from google.cloud.storage.fileio import BlobReader
 from google.cloud.storage.fileio import BlobWriter
 
@@ -3226,7 +3227,16 @@ class Blob(_PropertyMixin):
 
         return resp.get("permissions", [])
 
-    def make_public(self, client=None, timeout=_DEFAULT_TIMEOUT):
+    def make_public(
+        self,
+        client=None,
+        timeout=_DEFAULT_TIMEOUT,
+        if_generation_match=None,
+        if_generation_not_match=None,
+        if_metageneration_match=None,
+        if_metageneration_not_match=None,
+        retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
+    ):
         """Update blob's ACL, granting read access to anonymous users.
 
         :type client: :class:`~google.cloud.storage.client.Client` or
@@ -3241,9 +3251,26 @@ class Blob(_PropertyMixin):
 
         """
         self.acl.all().grant_read()
-        self.acl.save(client=client, timeout=timeout)
+        self.acl.save(
+            client=client,
+            timeout=timeout,
+            if_generation_match=if_generation_match,
+            if_generation_not_match=if_generation_not_match,
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
+            retry=retry,
+        )
 
-    def make_private(self, client=None, timeout=_DEFAULT_TIMEOUT):
+    def make_private(
+        self,
+        client=None,
+        timeout=_DEFAULT_TIMEOUT,
+        if_generation_match=None,
+        if_generation_not_match=None,
+        if_metageneration_match=None,
+        if_metageneration_not_match=None,
+        retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
+    ):
         """Update blob's ACL, revoking read access for anonymous users.
 
         :type client: :class:`~google.cloud.storage.client.Client` or
@@ -3257,7 +3284,15 @@ class Blob(_PropertyMixin):
             for the server response.  See: :ref:`configuring_timeouts`
         """
         self.acl.all().revoke_read()
-        self.acl.save(client=client, timeout=timeout)
+        self.acl.save(
+            client=client,
+            timeout=timeout,
+            if_generation_match=if_generation_match,
+            if_generation_not_match=if_generation_not_match,
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
+            retry=retry,
+        )
 
     def compose(
         self,
