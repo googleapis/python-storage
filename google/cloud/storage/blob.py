@@ -3249,6 +3249,25 @@ class Blob(_PropertyMixin):
             (Optional) The amount of time, in seconds, to wait
             for the server response.  See: :ref:`configuring_timeouts`
 
+        :type if_generation_match: long
+        :param if_generation_match:
+            (Optional) See :ref:`using-if-generation-match`
+
+        :type if_generation_not_match: long
+        :param if_generation_not_match:
+            (Optional) See :ref:`using-if-generation-not-match`
+
+        :type if_metageneration_match: long
+        :param if_metageneration_match:
+            (Optional) See :ref:`using-if-metageneration-match`
+
+        :type if_metageneration_not_match: long
+        :param if_metageneration_not_match:
+            (Optional) See :ref:`using-if-metageneration-not-match`
+
+        :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
+        :param retry:
+            (Optional) How to retry the RPC. See: :ref:`configuring_retries`
         """
         self.acl.all().grant_read()
         self.acl.save(
@@ -3282,6 +3301,26 @@ class Blob(_PropertyMixin):
         :param timeout:
             (Optional) The amount of time, in seconds, to wait
             for the server response.  See: :ref:`configuring_timeouts`
+
+        :type if_generation_match: long
+        :param if_generation_match:
+            (Optional) See :ref:`using-if-generation-match`
+
+        :type if_generation_not_match: long
+        :param if_generation_not_match:
+            (Optional) See :ref:`using-if-generation-not-match`
+
+        :type if_metageneration_match: long
+        :param if_metageneration_match:
+            (Optional) See :ref:`using-if-metageneration-match`
+
+        :type if_metageneration_not_match: long
+        :param if_metageneration_not_match:
+            (Optional) See :ref:`using-if-metageneration-not-match`
+
+        :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
+        :param retry:
+            (Optional) How to retry the RPC. See: :ref:`configuring_retries`
         """
         self.acl.all().revoke_read()
         self.acl.save(

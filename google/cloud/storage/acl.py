@@ -494,12 +494,28 @@ class ACL(object):
         :param client: (Optional) The client to use.  If not passed, falls back
                        to the ``client`` stored on the ACL's parent.
 
+        :type if_generation_match: long
+        :param if_generation_match:
+            (Optional) See :ref:`using-if-generation-match`
+
+        :type if_generation_not_match: long
+        :param if_generation_not_match:
+            (Optional) See :ref:`using-if-generation-not-match`
+
+        :type if_metageneration_match: long
+        :param if_metageneration_match:
+            (Optional) See :ref:`using-if-metageneration-match`
+
+        :type if_metageneration_not_match: long
+        :param if_metageneration_not_match:
+            (Optional) See :ref:`using-if-metageneration-not-match`
+
         :type timeout: float or tuple
         :param timeout:
             (Optional) The amount of time, in seconds, to wait
             for the server response.  See: :ref:`configuring_timeouts`
 
-        :type retry: :class:`~google.api_core.retry.Retry`
+        :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
         :param retry:
             (Optional) How to retry the RPC. See: :ref:`configuring_retries`
         """
@@ -562,10 +578,30 @@ class ACL(object):
         :param client: (Optional) The client to use.  If not passed, falls back
                        to the ``client`` stored on the ACL's parent.
 
+        :type if_generation_match: long
+        :param if_generation_match:
+            (Optional) See :ref:`using-if-generation-match`
+
+        :type if_generation_not_match: long
+        :param if_generation_not_match:
+            (Optional) See :ref:`using-if-generation-not-match`
+
+        :type if_metageneration_match: long
+        :param if_metageneration_match:
+            (Optional) See :ref:`using-if-metageneration-match`
+
+        :type if_metageneration_not_match: long
+        :param if_metageneration_not_match:
+            (Optional) See :ref:`using-if-metageneration-not-match`
+
         :type timeout: float or tuple
         :param timeout:
             (Optional) The amount of time, in seconds, to wait
             for the server response.  See: :ref:`configuring_timeouts`
+
+        :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
+        :param retry:
+            (Optional) How to retry the RPC. See: :ref:`configuring_retries`
         """
         if acl is None:
             acl = self
@@ -613,10 +649,30 @@ class ACL(object):
         :param client: (Optional) The client to use.  If not passed, falls back
                        to the ``client`` stored on the ACL's parent.
 
+        :type if_generation_match: long
+        :param if_generation_match:
+            (Optional) See :ref:`using-if-generation-match`
+
+        :type if_generation_not_match: long
+        :param if_generation_not_match:
+            (Optional) See :ref:`using-if-generation-not-match`
+
+        :type if_metageneration_match: long
+        :param if_metageneration_match:
+            (Optional) See :ref:`using-if-metageneration-match`
+
+        :type if_metageneration_not_match: long
+        :param if_metageneration_not_match:
+            (Optional) See :ref:`using-if-metageneration-not-match`
+
         :type timeout: float or tuple
         :param timeout:
             (Optional) The amount of time, in seconds, to wait
             for the server response.  See: :ref:`configuring_timeouts`
+
+        :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
+        :param retry:
+            (Optional) How to retry the RPC. See: :ref:`configuring_retries`
         """
         predefined = self.validate_predefined(predefined)
         self._save(
@@ -655,10 +711,30 @@ class ACL(object):
         :param client: (Optional) The client to use.  If not passed, falls back
                        to the ``client`` stored on the ACL's parent.
 
+        :type if_generation_match: long
+        :param if_generation_match:
+            (Optional) See :ref:`using-if-generation-match`
+
+        :type if_generation_not_match: long
+        :param if_generation_not_match:
+            (Optional) See :ref:`using-if-generation-not-match`
+
+        :type if_metageneration_match: long
+        :param if_metageneration_match:
+            (Optional) See :ref:`using-if-metageneration-match`
+
+        :type if_metageneration_not_match: long
+        :param if_metageneration_not_match:
+            (Optional) See :ref:`using-if-metageneration-not-match`
+
         :type timeout: float or tuple
         :param timeout:
             (Optional) The amount of time, in seconds, to wait
             for the server response.  See: :ref:`configuring_timeouts`
+
+        :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
+        :param retry:
+            (Optional) How to retry the RPC. See: :ref:`configuring_retries`
         """
         self.save(
             [],

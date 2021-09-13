@@ -2867,6 +2867,18 @@ class Bucket(_PropertyMixin):
             (Optional) The amount of time, in seconds, to wait
             for the server response.  See: :ref:`configuring_timeouts`
 
+        :type if_metageneration_match: long
+        :param if_metageneration_match: (Optional) Make the operation conditional on whether the
+                                        blob's current metageneration matches the given value.
+
+        :type if_metageneration_not_match: long
+        :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
+                                            blob's current metageneration does not match the given value.
+
+        :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
+        :param retry:
+            (Optional) How to retry the RPC. See: :ref:`configuring_retries`
+
         :raises ValueError:
             If ``recursive`` is True, and the bucket contains more than 256
             blobs.  This is to prevent extremely long runtime of this
@@ -2951,6 +2963,16 @@ class Bucket(_PropertyMixin):
         :param timeout:
             (Optional) The amount of time, in seconds, to wait
             for the server response.  See: :ref:`configuring_timeouts`
+
+        :type if_metageneration_match: long
+        :param if_metageneration_match: (Optional) Make the operation conditional on whether the
+                                        blob's current metageneration matches the given value.
+        :type if_metageneration_not_match: long
+        :param if_metageneration_not_match: (Optional) Make the operation conditional on whether the
+                                            blob's current metageneration does not match the given value.
+        :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
+        :param retry:
+            (Optional) How to retry the RPC. See: :ref:`configuring_retries`
 
         :raises ValueError:
             If ``recursive`` is True, and the bucket contains more than 256
