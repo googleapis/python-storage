@@ -246,6 +246,48 @@ def test_bucket_acls_iam_w_user_project(
     with_user_project.set_iam_policy(policy)
 
 
+def test_bucket_acls_w_metageneration_match(storage_client, buckets_to_delete):
+    wrong_metageneration_number = 9
+    bucket_name = _helpers.unique_name("acl-w-metageneration-match")
+    bucket = _helpers.retry_429_503(storage_client.create_bucket)(bucket_name)
+    buckets_to_delete.append(bucket)
+
+    # Exercise bucket ACL with metageneration match
+    acl = bucket.acl
+    bucket.reload()
+
+    with pytest.raises(exceptions.PreconditionFailed):
+        acl.save_predefined(
+            "publicRead", if_metageneration_match=wrong_metageneration_number
+        )
+        assert "READER" not in acl.all().get_roles()
+
+    acl.save_predefined("publicRead", if_metageneration_match=bucket.metageneration)
+    assert "READER" in acl.all().get_roles()
+
+    bucket.reload()
+    del acl.entities["allUsers"]
+
+    with pytest.raises(exceptions.PreconditionFailed):
+        acl.save(if_metageneration_match=wrong_metageneration_number)
+        assert acl.has_entity("allUsers")
+
+    acl.save(if_metageneration_match=bucket.metageneration)
+    assert not acl.has_entity("allUsers")
+
+    # Exercise default object ACL w/ metageneration match
+    doa = bucket.default_object_acl
+    doa.all().grant_read()
+    bucket.reload()
+
+    with pytest.raises(exceptions.PreconditionFailed):
+        doa.save(if_metageneration_match=wrong_metageneration_number)
+        assert "READER" not in doa.all().get_roles()
+
+    doa.save(if_metageneration_match=bucket.metageneration)
+    assert "READER" in doa.all().get_roles()
+
+
 def test_bucket_copy_blob(
     storage_client, buckets_to_delete, blobs_to_delete, user_project,
 ):
