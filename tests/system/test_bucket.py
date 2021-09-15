@@ -254,38 +254,32 @@ def test_bucket_acls_w_metageneration_match(storage_client, buckets_to_delete):
 
     # Exercise bucket ACL with metageneration match
     acl = bucket.acl
+    acl.group("cloud-developer-relations@google.com").grant_read()
     bucket.reload()
-
-    with pytest.raises(exceptions.PreconditionFailed):
-        acl.save_predefined(
-            "publicRead", if_metageneration_match=wrong_metageneration_number
-        )
-        assert "READER" not in acl.all().get_roles()
-
-    acl.save_predefined("publicRead", if_metageneration_match=bucket.metageneration)
-    assert "READER" in acl.all().get_roles()
-
-    bucket.reload()
-    del acl.entities["allUsers"]
 
     with pytest.raises(exceptions.PreconditionFailed):
         acl.save(if_metageneration_match=wrong_metageneration_number)
-        assert acl.has_entity("allUsers")
+        assert (
+            "READER"
+            not in acl.group("cloud-developer-relations@google.com").get_roles()
+        )
 
     acl.save(if_metageneration_match=bucket.metageneration)
-    assert not acl.has_entity("allUsers")
+    assert "READER" in acl.group("cloud-developer-relations@google.com").get_roles()
 
     # Exercise default object ACL w/ metageneration match
     doa = bucket.default_object_acl
-    doa.all().grant_read()
+    doa.group("cloud-developer-relations@google.com").grant_owner()
     bucket.reload()
 
     with pytest.raises(exceptions.PreconditionFailed):
         doa.save(if_metageneration_match=wrong_metageneration_number)
-        assert "READER" not in doa.all().get_roles()
+        assert (
+            "OWNER" not in doa.group("cloud-developer-relations@google.com").get_roles()
+        )
 
     doa.save(if_metageneration_match=bucket.metageneration)
-    assert "READER" in doa.all().get_roles()
+    assert "OWNER" in doa.group("cloud-developer-relations@google.com").get_roles()
 
 
 def test_bucket_copy_blob(
