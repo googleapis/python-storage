@@ -26,8 +26,9 @@ import time
 
 from six.moves.urllib import parse as urlparse
 
-from google.cloud import storage
 from google.auth.credentials import AnonymousCredentials
+from google.cloud import storage
+from google.cloud.exceptions import NotFound
 from google.cloud.storage.hmac_key import HMACKeyMetadata
 
 from . import _read_local_json
@@ -743,9 +744,7 @@ def bucket(client):
     yield bucket
     try:
         bucket.delete(force=True)
-    except Exception:
-        # in cases where resources are deleted within the test
-        # TODO(cathyo@): narrow except to NotFound once the emulator response issue is resolved
+    except NotFound:  # in cases where bucket is deleted within the test
         pass
 
 
@@ -757,7 +756,7 @@ def object(client, bucket):
     yield blob
     try:
         blob.delete()
-    except Exception:  # in cases where resources are deleted within the test
+    except NotFound:  # in cases where object is deleted within the test
         pass
 
 
@@ -769,7 +768,7 @@ def notification(client, bucket):
     yield notification
     try:
         notification.delete()
-    except Exception:  # in cases where resources are deleted within the test
+    except NotFound:  # in cases where notification is deleted within the test
         pass
 
 
@@ -784,7 +783,7 @@ def hmac_key(client):
         hmac_key.state = "INACTIVE"
         hmac_key.update()
         hmac_key.delete()
-    except Exception:  # in cases where resources are deleted within the test
+    except NotFound:  # in cases where hmac_key is deleted within the test
         pass
 
 
