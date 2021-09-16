@@ -1,5 +1,5 @@
 ﻿{
-    "retryStrategyTests": [
+    "retryTests": [
       {
         "id": 1,
         "description": "always_idempotent",

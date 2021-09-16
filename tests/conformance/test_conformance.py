@@ -34,9 +34,7 @@ from google.cloud.storage.hmac_key import HMACKeyMetadata
 from . import _read_local_json
 
 
-_CONFORMANCE_TESTS = _read_local_json("retry_strategy_test_data.json")[
-    "retryStrategyTests"
-]
+_CONFORMANCE_TESTS = _read_local_json("retry_strategy_test_data.json")["retryTests"]
 
 """Environment variable or default host for Storage testbench emulator."""
 _HOST = os.environ.get("STORAGE_EMULATOR_HOST", "http://localhost:9000")
