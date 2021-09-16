@@ -14,15 +14,16 @@
 
 """Conformance tests for retry. Verifies correct behavior around retryable errors, idempotency and preconditions."""
 
-import os
-import requests
-import tempfile
-import uuid
-import logging
 import functools
-import pytest
+import logging
+import os
 import subprocess
+import tempfile
 import time
+import uuid
+
+import pytest
+import requests
 
 from six.moves.urllib import parse as urlparse
 
