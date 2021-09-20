@@ -11,9 +11,14 @@ The Retry Strategy Conformance tests leverage the conformance tests defined in [
 The test suite uses the [storage-testbench](https://github.com/googleapis/storage-testbench)
 to configure and generate tests cases which use fault injection to ensure conformance.
 
-## Running the Conformance Tests
+## Running the Conformance Test Suite
 
-The Retry Strategy Conformance test suite is included in `noxfile.py` and run as part of the Kokoro presubmits:
+#### Prerequisites
+1. Python 3.8
+2. Nox
+3. Docker
+
+The Retry Strategy Conformance test suite is included in [`noxfile.py`](https://github.com/googleapis/python-storage/blob/main/noxfile.py) and run automatically as part of the Kokoro presubmits:
 1. Running the testbench server via docker
 2. Setup, validation, cleanup of individual test cases with the testbench
 3. Test logs included in Kokoro build
