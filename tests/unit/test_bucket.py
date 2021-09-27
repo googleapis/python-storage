@@ -350,7 +350,6 @@ class Test_IAMConfiguration(unittest.TestCase):
 
         return mock.create_autospec(Bucket, instance=True)
 
-    @pytest.mark.skip(reason="Unspecified PAP is changing to inherited")
     def test_ctor_defaults(self):
         bucket = self._make_bucket()
 
