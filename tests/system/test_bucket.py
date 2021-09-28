@@ -818,12 +818,10 @@ def test_new_bucket_created_w_inherited_pap(
     buckets_to_delete.append(bucket)
 
     # TODO: Remove unspecified after changeover is complete
-    assert (
-        bucket.iam_configuration.public_access_prevention in [
-            constants.PUBLIC_ACCESS_PREVENTION_UNSPECIFIED,
-            constants.PUBLIC_ACCESS_PREVENTION_INHERITED
-        ]
-    )
+    assert bucket.iam_configuration.public_access_prevention in [
+        constants.PUBLIC_ACCESS_PREVENTION_UNSPECIFIED,
+        constants.PUBLIC_ACCESS_PREVENTION_INHERITED,
+    ]
 
     bucket.iam_configuration.public_access_prevention = (
         constants.PUBLIC_ACCESS_PREVENTION_ENFORCED
@@ -883,10 +881,8 @@ def test_new_bucket_created_w_enforced_pap(
     bucket.patch()
 
     # TODO: Remove unspecified after changeover is complete
-    assert (
-        bucket.iam_configuration.public_access_prevention in [
-            constants.PUBLIC_ACCESS_PREVENTION_UNSPECIFIED,
-            constants.PUBLIC_ACCESS_PREVENTION_INHERITED
-        ]
-    )
+    assert bucket.iam_configuration.public_access_prevention in [
+        constants.PUBLIC_ACCESS_PREVENTION_UNSPECIFIED,
+        constants.PUBLIC_ACCESS_PREVENTION_INHERITED,
+    ]
     assert not bucket.iam_configuration.uniform_bucket_level_access_enabled

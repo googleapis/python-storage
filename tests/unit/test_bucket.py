@@ -362,10 +362,7 @@ class Test_IAMConfiguration(unittest.TestCase):
         # TODO: Remove unspecified after changeover is complete
         self.assertIn(
             bucket.iam_configuration.public_access_prevention,
-            [
-                PUBLIC_ACCESS_PREVENTION_UNSPECIFIED,
-                PUBLIC_ACCESS_PREVENTION_INHERITED
-            ]
+            [PUBLIC_ACCESS_PREVENTION_UNSPECIFIED, PUBLIC_ACCESS_PREVENTION_INHERITED],
         )
         self.assertFalse(config.bucket_policy_only_enabled)
         self.assertIsNone(config.bucket_policy_only_locked_time)
@@ -406,10 +403,7 @@ class Test_IAMConfiguration(unittest.TestCase):
         # TODO: Remove unspecified after changeover is complete
         self.assertIn(
             bucket.iam_configuration.public_access_prevention,
-            [
-                PUBLIC_ACCESS_PREVENTION_UNSPECIFIED,
-                PUBLIC_ACCESS_PREVENTION_INHERITED
-            ]
+            [PUBLIC_ACCESS_PREVENTION_UNSPECIFIED, PUBLIC_ACCESS_PREVENTION_INHERITED],
         )
 
     def test_ctor_explicit_bpo(self):
