@@ -22,7 +22,8 @@ from google.cloud.storage.retry import DEFAULT_RETRY
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_ETAG_IN_JSON
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_GENERATION_SPECIFIED
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED
-from google.cloud.storage.constants import PUBLIC_ACCESS_PREVENTION_ENFORCED, PUBLIC_ACCESS_PREVENTION_INHERITED
+from google.cloud.storage.constants import PUBLIC_ACCESS_PREVENTION_ENFORCED
+from google.cloud.storage.constants import PUBLIC_ACCESS_PREVENTION_INHERITED
 from google.cloud.storage.constants import PUBLIC_ACCESS_PREVENTION_UNSPECIFIED
 
 
