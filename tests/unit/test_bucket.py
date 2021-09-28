@@ -361,7 +361,7 @@ class Test_IAMConfiguration(unittest.TestCase):
         self.assertIsNone(config.uniform_bucket_level_access_locked_time)
         # TODO: Remove unspecified after changeover is complete
         self.assertIn(
-            bucket.iam_configuration.public_access_prevention,
+            config.public_access_prevention,
             [
                 PUBLIC_ACCESS_PREVENTION_UNSPECIFIED,
                 PUBLIC_ACCESS_PREVENTION_INHERITED
@@ -405,7 +405,7 @@ class Test_IAMConfiguration(unittest.TestCase):
         config.public_access_prevention = PUBLIC_ACCESS_PREVENTION_UNSPECIFIED
         # TODO: Remove unspecified after changeover is complete
         self.assertIn(
-            bucket.iam_configuration.public_access_prevention,
+            config.public_access_prevention,
             [
                 PUBLIC_ACCESS_PREVENTION_UNSPECIFIED,
                 PUBLIC_ACCESS_PREVENTION_INHERITED
