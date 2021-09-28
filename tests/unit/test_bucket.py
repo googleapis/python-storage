@@ -402,7 +402,7 @@ class Test_IAMConfiguration(unittest.TestCase):
             config.public_access_prevention, PUBLIC_ACCESS_PREVENTION_ENFORCED
         )
 
-        config.public_access_prevention = PUBLIC_ACCESS_PREVENTION_UNSPECIFIED
+        config.public_access_prevention = PUBLIC_ACCESS_PREVENTION_INHERITED
         # TODO: Remove unspecified after changeover is complete
         self.assertIn(
             config.public_access_prevention,
