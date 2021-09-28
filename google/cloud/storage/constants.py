@@ -104,8 +104,15 @@ PUBLIC_ACCESS_PREVENTION_ENFORCED = "enforced"
 See: https://cloud.google.com/storage/docs/public-access-prevention
 """
 
+PUBLIC_ACCESS_PREVENTION_INHERITED = "inherited"
+"""Inherited public access prevention value.
+
+See: https://cloud.google.com/storage/docs/public-access-prevention
+"""
+
 PUBLIC_ACCESS_PREVENTION_UNSPECIFIED = "unspecified"
-"""Unspecified public access prevention value.
+"""Inherited public access prevention value.
+DEPRECATED: By 10/22, should be fully migrated to inherited
 
 See: https://cloud.google.com/storage/docs/public-access-prevention
 """
