@@ -106,6 +106,14 @@ See: https://cloud.google.com/storage/docs/public-access-prevention
 
 PUBLIC_ACCESS_PREVENTION_UNSPECIFIED = "unspecified"
 """Unspecified public access prevention value.
+DEPRECATED: Remove once change is fully complete in backend
+
+See: https://cloud.google.com/storage/docs/public-access-prevention
+"""
+
+PUBLIC_ACCESS_PREVENTION_INHERITED = "inherited"
+"""Inherited public access prevention value.
+Remove once change is fully complete in backend
 
 See: https://cloud.google.com/storage/docs/public-access-prevention
 """
