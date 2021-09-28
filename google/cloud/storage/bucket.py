@@ -389,7 +389,6 @@ class IAMConfiguration(dict):
     :params public_access_prevention:
         (Optional) Whether the public access prevention policy is 'inherited' (default) or 'enforced'
         See: https://cloud.google.com/storage/docs/public-access-prevention
-        See: https://cloud.google.com/storage/docs/public-access-prevention
 
     :type uniform_bucket_level_access_enabled: bool
     :params bucket_policy_only_enabled:
