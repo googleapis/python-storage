@@ -481,6 +481,7 @@ class IAMConfiguration(dict):
     @property
     def public_access_prevention(self):
         """Setting for public access prevention policy. Options are 'inherited' (default) or 'enforced'.
+
             See: https://cloud.google.com/storage/docs/public-access-prevention
 
         :rtype: string
