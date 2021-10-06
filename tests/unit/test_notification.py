@@ -242,6 +242,17 @@ class TestBucketNotification(unittest.TestCase):
 
         client._post_resource.assert_not_called()
 
+    def test_create_wo_topic_name(self):
+        client = mock.Mock(spec=["_post_resource", "project"])
+        client.project = self.BUCKET_PROJECT
+        bucket = self._make_bucket(client)
+        notification = self._make_one(bucket, None)
+
+        with self.assertRaises(ValueError):
+            notification.create()
+
+        client._post_resource.assert_not_called()
+
     def test_create_w_defaults(self):
         from google.cloud.storage.notification import NONE_PAYLOAD_FORMAT
 
