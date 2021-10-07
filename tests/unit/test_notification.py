@@ -248,7 +248,9 @@ class TestBucketNotification(unittest.TestCase):
 
         client = mock.Mock(spec=["_post_resource", "project"])
         client.project = self.BUCKET_PROJECT
-        client._post_resource.side_effect = BadRequest("Invalid Google Cloud Pub/Sub topic.")
+        client._post_resource.side_effect = BadRequest(
+            "Invalid Google Cloud Pub/Sub topic."
+        )
         bucket = self._make_bucket(client)
         notification = self._make_one(bucket, None)
 

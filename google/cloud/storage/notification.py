@@ -274,7 +274,9 @@ class BucketNotification(object):
         if self.topic_name is None:
             properties["topic"] = _TOPIC_REF_FMT.format(self.topic_project, "")
         else:
-            properties["topic"] = _TOPIC_REF_FMT.format(self.topic_project, self.topic_name)
+            properties["topic"] = _TOPIC_REF_FMT.format(
+                self.topic_project, self.topic_name
+            )
 
         self._properties = client._post_resource(
             path, properties, query_params=query_params, timeout=timeout, retry=retry,
