@@ -157,6 +157,8 @@ def test_notification_create_wo_topic_name(
     event_types,
     payload_format,
 ):
+    from google.cloud.exceptions import BadRequest
+
     bucket_name = _helpers.unique_name("notification-wo-name")
     bucket = _helpers.retry_429_503(storage_client.create_bucket)(bucket_name)
     buckets_to_delete.append(bucket)
@@ -171,7 +173,7 @@ def test_notification_create_wo_topic_name(
         payload_format=payload_format,
     )
 
-    with pytest.raises(ValueError):
+    with pytest.raises(BadRequest):
         notification.create()
 
 

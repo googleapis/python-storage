@@ -262,9 +262,6 @@ class BucketNotification(object):
                 "Notification already exists w/ id: {}".format(self.notification_id)
             )
 
-        if self.topic_name is None:
-            raise ValueError(_BAD_TOPIC.format(self.topic_name))
-
         client = self._require_client(client)
 
         query_params = {}
@@ -273,7 +270,12 @@ class BucketNotification(object):
 
         path = "/b/{}/notificationConfigs".format(self.bucket.name)
         properties = self._properties.copy()
-        properties["topic"] = _TOPIC_REF_FMT.format(self.topic_project, self.topic_name)
+
+        if self.topic_name is None:
+            properties["topic"] = _TOPIC_REF_FMT.format(self.topic_project, "")
+        else:
+            properties["topic"] = _TOPIC_REF_FMT.format(self.topic_project, self.topic_name)
+
         self._properties = client._post_resource(
             path, properties, query_params=query_params, timeout=timeout, retry=retry,
         )
