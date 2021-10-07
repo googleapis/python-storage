@@ -255,7 +255,6 @@ class BucketNotification(object):
             (Optional) How to retry the RPC. See: :ref:`configuring_retries`
 
         :raises ValueError: if the notification already exists.
-        :raises ValueError: if the topic name is not set.
         """
         if self.notification_id is not None:
             raise ValueError(
