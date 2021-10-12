@@ -106,7 +106,6 @@ def system(session):
         CURRENT_DIRECTORY / "testing" / f"constraints-{session.python}.txt"
     )
     """Run the system test suite."""
-    system_test_path = os.path.join("tests", "system.py")
     system_test_folder_path = os.path.join("tests", "system")
 
     # Check the value of `RUN_SYSTEM_TESTS` env var. It defaults to true.
