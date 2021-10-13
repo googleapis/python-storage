@@ -858,7 +858,9 @@ def test_new_bucket_created_w_inherited_pap(
 
 @pytest.mark.skip(reason="Unspecified PAP is changing to inherited")
 def test_new_bucket_created_w_enforced_pap(
-    storage_client, buckets_to_delete, blobs_to_delete,
+    storage_client,
+    buckets_to_delete,
+    blobs_to_delete,
 ):
     from google.cloud.storage import constants
 
