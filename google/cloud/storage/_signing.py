@@ -20,7 +20,7 @@ import datetime
 import hashlib
 import json
 
-import six
+import six  # type: ignore
 
 import google.auth.credentials
 

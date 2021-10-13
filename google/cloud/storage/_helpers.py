@@ -22,9 +22,9 @@ from hashlib import md5
 from datetime import datetime
 import os
 
-from six import string_types
-from six.moves.urllib.parse import urlsplit
-from google import resumable_media
+from six import string_types  # type: ignore
+from six.moves.urllib.parse import urlsplit  # type: ignore
+from google import resumable_media  # type: ignore
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 from google.cloud.storage.retry import DEFAULT_RETRY
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED

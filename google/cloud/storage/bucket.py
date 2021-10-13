@@ -20,8 +20,8 @@ import datetime
 import json
 import warnings
 
-import six
-from six.moves.urllib.parse import urlsplit
+import six  # type: ignore
+from six.moves.urllib.parse import urlsplit  # type: ignore
 
 from google.api_core import datetime_helpers
 from google.cloud._helpers import _datetime_to_rfc3339

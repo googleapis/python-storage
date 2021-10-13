@@ -37,14 +37,14 @@ import os
 import re
 import warnings
 
-import six
-from six.moves.urllib.parse import parse_qsl
+import six  # type: ignore
+from six.moves.urllib.parse import parse_qsl  # type: ignore
 from six.moves.urllib.parse import quote
 from six.moves.urllib.parse import urlencode
 from six.moves.urllib.parse import urlsplit
 from six.moves.urllib.parse import urlunsplit
 
-from google import resumable_media
+from google import resumable_media  # type: ignore
 from google.resumable_media.requests import ChunkedDownload
 from google.resumable_media.requests import Download
 from google.resumable_media.requests import RawDownload

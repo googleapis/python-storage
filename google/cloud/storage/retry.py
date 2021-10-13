@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import requests
-import requests.exceptions as requests_exceptions
+import requests  # type: ignore
+import requests.exceptions as requests_exceptions  # type: ignore
 
 from google.api_core import exceptions as api_exceptions
 from google.api_core import retry
@@ -24,7 +24,7 @@ from google.auth import exceptions as auth_exceptions
 try:
     _RETRYABLE_STDLIB_TYPES = (ConnectionError,)
 except NameError:
-    _RETRYABLE_STDLIB_TYPES = ()
+    _RETRYABLE_STDLIB_TYPES = ()  # type: ignore
 
 
 _RETRYABLE_TYPES = _RETRYABLE_STDLIB_TYPES + (
