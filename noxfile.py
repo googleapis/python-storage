@@ -137,7 +137,6 @@ def system(session):
         constraints_path,
     )
 
-
     if session.posargs:
         session.run("py.test", "--quiet", *session.posargs)
     else:
