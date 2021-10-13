@@ -889,6 +889,7 @@ def test_new_bucket_created_w_enforced_pap(
     ]
     assert not bucket.iam_configuration.uniform_bucket_level_access_enabled
 
+
 def test_new_bucket_with_rpo(
     storage_client,
     buckets_to_delete,
