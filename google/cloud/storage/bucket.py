@@ -55,6 +55,8 @@ from google.cloud.storage.constants import PUBLIC_ACCESS_PREVENTION_INHERITED
 from google.cloud.storage.constants import REGIONAL_LEGACY_STORAGE_CLASS
 from google.cloud.storage.constants import REGION_LOCATION_TYPE
 from google.cloud.storage.constants import STANDARD_STORAGE_CLASS
+from google.cloud.storage.constants import RPO_DEFAULT
+from google.cloud.storage.constants import RPO_ASYNC_TURBO
 from google.cloud.storage.notification import BucketNotification
 from google.cloud.storage.notification import NONE_PAYLOAD_FORMAT
 from google.cloud.storage.retry import DEFAULT_RETRY
@@ -632,6 +634,25 @@ class Bucket(_PropertyMixin):
         """
         self._label_removals.clear()
         return super(Bucket, self)._set_properties(value)
+
+    @property
+    def rpo(self):
+        """Get the RPO (Recovery Point Objective) of this bucket
+
+        "ASYNC_TURBO" or "DEFAULT"
+        :rtype: str
+        """
+        return self._properties.get("rpo")
+
+    @rpo.setter
+    def rpo(self, value):
+        """
+        Set the RPO (Recovery Point Objective) of this bucket.
+
+        :type value: str
+        :param value: "ASYNC_TURBO" or "DEFAULT"
+        """
+        self._patch_property("rpo", value)
 
     @property
     def user_project(self):
