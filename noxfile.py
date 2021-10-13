@@ -138,10 +138,10 @@ def system(session):
     )
 
     if session.posargs:
-        session.run("py.test", "--quiet", *session.posargs)
+        session.run("py.test", *session.posargs)
     else:
         # Run py.test against the system tests.
-        session.run("py.test", "--quiet", system_test_folder_path)
+        session.run("py.test", system_test_folder_path)
 
 
 @nox.session(python=CONFORMANCE_TEST_PYTHON_VERSIONS)
