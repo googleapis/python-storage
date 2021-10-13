@@ -893,7 +893,9 @@ def test_new_bucket_with_rpo(
     from google.cloud.storage import constants
 
     bucket_name = _helpers.unique_name("new-w-turbo-replication")
-    bucket = storage_client.create_bucket(bucket_name, location="NAM4", rpo=constants.RPO_ASYNC_TURBO)
+    bucket = storage_client.create_bucket(
+        bucket_name, location="NAM4", rpo=constants.RPO_ASYNC_TURBO
+    )
     buckets_to_delete.append(bucket)
 
     assert bucket.rpo == constants.RPO_ASYNC_TURBO
