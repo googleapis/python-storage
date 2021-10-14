@@ -832,7 +832,6 @@ class Client(ClientWithProject):
         location=None,
         predefined_acl=None,
         predefined_default_object_acl=None,
-        rpo=None,
         timeout=_DEFAULT_TIMEOUT,
         retry=DEFAULT_RETRY,
     ):
@@ -953,9 +952,6 @@ class Client(ClientWithProject):
 
         if location is not None:
             properties["location"] = location
-
-        if rpo is not None:
-            properties["rpo"] = rpo
 
         api_response = self._post_resource(
             "/b",

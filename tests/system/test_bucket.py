@@ -889,21 +889,19 @@ def test_new_bucket_created_w_enforced_pap(
 
 
 def test_new_bucket_with_rpo(
-    storage_client, buckets_to_delete, dblobs_to_delete,
+    storage_client, buckets_to_delete, blobs_to_delete,
 ):
     from google.cloud.storage import constants
 
     bucket_name = _helpers.unique_name("new-w-turbo-replication")
-    bucket = storage_client.create_bucket(
-        bucket_name, location="NAM4", rpo=constants.RPO_ASYNC_TURBO
-    )
+    bucket = storage_client.create_bucket(bucket_name, location="NAM4")
     buckets_to_delete.append(bucket)
 
-    assert bucket.rpo == constants.RPO_ASYNC_TURBO
+    assert bucket.rpo == constants.RPO_DEFAULT
 
-    bucket.rpo = constants.RPO_DEFAULT
+    bucket.rpo = constants.RPO_ASYNC_TURBO
     bucket.patch()
 
     bucket_from_server = storage_client.get_bucket(bucket_name)
 
-    assert bucket_from_server.rpo == constants.RPO_DEFAULT
+    assert bucket_from_server.rpo == constants.RPO_ASYNC_TURBO
