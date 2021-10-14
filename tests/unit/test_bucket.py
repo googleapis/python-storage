@@ -2483,6 +2483,7 @@ class Test_Bucket(unittest.TestCase):
         bucket.rpo = RPO_ASYNC_TURBO
         self.assertEqual(bucket.rpo, RPO_ASYNC_TURBO)
         bucket.rpo = RPO_DEFAULT
+        self.assertIn("rpo", bucket._changes)
         self.assertEqual(bucket.rpo, RPO_DEFAULT)
 
     def test_get_logging_w_prefix(self):
