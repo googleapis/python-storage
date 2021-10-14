@@ -637,6 +637,8 @@ class Bucket(_PropertyMixin):
     def rpo(self):
         """Get the RPO (Recovery Point Objective) of this bucket
 
+        See: https://cloud.google.com/storage/docs/managing-turbo-replication
+
         "ASYNC_TURBO" or "DEFAULT"
         :rtype: str
         """
@@ -646,6 +648,8 @@ class Bucket(_PropertyMixin):
     def rpo(self, value):
         """
         Set the RPO (Recovery Point Objective) of this bucket.
+
+        See: https://cloud.google.com/storage/docs/managing-turbo-replication
 
         :type value: str
         :param value: "ASYNC_TURBO" or "DEFAULT"
