@@ -55,8 +55,6 @@ from google.cloud.storage.constants import PUBLIC_ACCESS_PREVENTION_INHERITED
 from google.cloud.storage.constants import REGIONAL_LEGACY_STORAGE_CLASS
 from google.cloud.storage.constants import REGION_LOCATION_TYPE
 from google.cloud.storage.constants import STANDARD_STORAGE_CLASS
-from google.cloud.storage.constants import RPO_DEFAULT
-from google.cloud.storage.constants import RPO_ASYNC_TURBO
 from google.cloud.storage.notification import BucketNotification
 from google.cloud.storage.notification import NONE_PAYLOAD_FORMAT
 from google.cloud.storage.retry import DEFAULT_RETRY
