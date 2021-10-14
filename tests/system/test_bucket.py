@@ -889,9 +889,7 @@ def test_new_bucket_created_w_enforced_pap(
 
 
 def test_new_bucket_with_rpo(
-    storage_client,
-    buckets_to_delete,
-    blobs_to_delete,
+    storage_client, buckets_to_delete, dblobs_to_delete,
 ):
     from google.cloud.storage import constants
 
