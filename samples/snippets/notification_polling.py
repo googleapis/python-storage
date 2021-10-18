@@ -56,7 +56,6 @@ from google.cloud import pubsub_v1
 
 
 def summarize(message):
-    # [START parse_message]
     data = message.data.decode("utf-8")
     attributes = message.attributes
 
@@ -101,12 +100,10 @@ def summarize(message):
             metageneration=metageneration,
         )
     return description
-    # [END parse_message]
 
 
 def poll_notifications(project, subscription_name):
     """Polls a Cloud Pub/Sub subscription for new GCS events for display."""
-    # [START poll_notifications]
     subscriber = pubsub_v1.SubscriberClient()
     subscription_path = subscriber.subscription_path(
         project, subscription_name
@@ -123,7 +120,6 @@ def poll_notifications(project, subscription_name):
     print("Listening for messages on {}".format(subscription_path))
     while True:
         time.sleep(60)
-    # [END poll_notifications]
 
 
 if __name__ == "__main__":
