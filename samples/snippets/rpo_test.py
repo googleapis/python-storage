@@ -13,13 +13,14 @@
 # limitations under the License.
 
 import uuid
-import pytest
-from google.cloud import storage
 
+from google.cloud import storage
+import pytest
+
+import storage_create_bucket_turbo_replication
 import storage_get_rpo
 import storage_set_rpo_async_turbo
 import storage_set_rpo_default
-import storage_create_bucket_turbo_replication
 
 
 @pytest.fixture
