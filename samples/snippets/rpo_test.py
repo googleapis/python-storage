@@ -24,7 +24,7 @@ import storage_set_rpo_default
 
 
 @pytest.fixture
-def dr_bucket():
+def dual_region_bucket():
     """Yields a dual region bucket that is deleted after the test completes."""
     bucket = None
     while bucket is None or bucket.exists():
@@ -36,22 +36,22 @@ def dr_bucket():
     bucket.delete(force=True)
 
 
-def test_get_rpo(dr_bucket, capsys):
-    storage_get_rpo.get_rpo(dr_bucket.name)
+def test_get_rpo(dual_region_bucket, capsys):
+    storage_get_rpo.get_rpo(dual_region_bucket.name)
     out, _ = capsys.readouterr()
-    assert f"RPO for {dr_bucket.name} is DEFAULT." in out
+    assert f"RPO for {dual_region_bucket.name} is DEFAULT." in out
 
 
-def test_set_rpo_async_turbo(dr_bucket, capsys):
-    storage_set_rpo_async_turbo.set_rpo_async_turbo(dr_bucket.name)
+def test_set_rpo_async_turbo(dual_region_bucket, capsys):
+    storage_set_rpo_async_turbo.set_rpo_async_turbo(dual_region_bucket.name)
     out, _ = capsys.readouterr()
-    assert f"RPO is ASYNC_TURBO for {dr_bucket.name}." in out
+    assert f"RPO is ASYNC_TURBO for {dual_region_bucket.name}." in out
 
 
-def test_set_rpo_default(dr_bucket, capsys):
-    storage_set_rpo_default.set_rpo_default(dr_bucket.name)
+def test_set_rpo_default(dual_region_bucket, capsys):
+    storage_set_rpo_default.set_rpo_default(dual_region_bucket.name)
     out, _ = capsys.readouterr()
-    assert f"RPO is DEFAULT for {dr_bucket.name}." in out
+    assert f"RPO is DEFAULT for {dual_region_bucket.name}." in out
 
 
 def test_create_bucket_turbo_replication(capsys):

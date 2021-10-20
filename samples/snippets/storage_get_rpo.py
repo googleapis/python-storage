@@ -33,7 +33,7 @@ def get_rpo(bucket_name):
     # bucket_name = "my-bucket"
 
     storage_client = storage.Client()
-    bucket = storage_client.get_bucket(bucket_name)
+    bucket = storage_client.bucket(bucket_name)
 
     rpo = bucket.rpo
 

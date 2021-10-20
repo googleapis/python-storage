@@ -34,7 +34,7 @@ def set_rpo_default(bucket_name):
     # bucket_name = "my-bucket"
 
     storage_client = storage.Client()
-    bucket = storage_client.get_bucket(bucket_name)
+    bucket = storage_client.bucket(bucket_name)
 
     bucket.rpo = RPO_DEFAULT
     bucket.patch()
