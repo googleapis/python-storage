@@ -45,6 +45,9 @@ for instructions on setting up credentials for applications.
     ```
 
 ## Samples
+<details>
+    <summary markdown="span">List of Samples</summary>
+
 * [Activate HMAC Key](#activate-hmac-key)
 * [Add Bucket Conditional IAM Binding](#add-bucket-conditional-iam-binding)
 * [Add Bucket Default Owner](#add-bucket-default-owner)
@@ -138,6 +141,7 @@ for instructions on setting up credentials for applications.
 * [Upload With Kms Key](#upload-with-kms-key)
 * [View Bucket Iam Members](#view-bucket-iam-members)
 
+</details>
 
 -----
 ### Activate HMAC Key
