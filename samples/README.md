@@ -65,13 +65,13 @@ for instructions on setting up credentials for applications.
 * [Cors Configuration](#cors-configuration)
 * [Create Bucket](#create-bucket)
 * [Create Bucket Class Location](#create-bucket-class-location)
-* [Create Hmac Key](#create-hmac-key)
-* [Deactivate Hmac Key](#deactivate-hmac-key)
+* [Create HMAC Key](#create-hmac-key)
+* [Deactivate HMAC Key](#deactivate-hmac-key)
 * [Define Bucket Website Configuration](#define-bucket-website-configuration)
 * [Delete Bucket](#delete-bucket)
 * [Delete File](#delete-file)
 * [Delete File Archived Generation](#delete-file-archived-generation)
-* [Delete Hmac Key](#delete-hmac-key)
+* [Delete HMAC Key](#delete-hmac-key)
 * [Disable Bucket Lifecycle Management](#disable-bucket-lifecycle-management)
 * [Disable Default Event Based Hold](#disable-default-event-based-hold)
 * [Disable Requester Pays](#disable-requester-pays)
@@ -94,7 +94,7 @@ for instructions on setting up credentials for applications.
 * [Get Bucket Labels](#get-bucket-labels)
 * [Get Bucket Metadata](#get-bucket-metadata)
 * [Get Default Event Based Hold](#get-default-event-based-hold)
-* [Get Hmac Key](#get-hmac-key)
+* [Get HMAC Key](#get-hmac-key)
 * [Get Metadata](#get-metadata)
 * [Get Public Access Prevention](#get-public-access-prevention)
 * [Get Requester Pays Status](#get-requester-pays-status)
@@ -105,21 +105,21 @@ for instructions on setting up credentials for applications.
 * [List File Archived Generations](#list-file-archived-generations)
 * [List Files](#list-files)
 * [List Files With Prefix](#list-files-with-prefix)
-* [List Hmac Keys](#list-hmac-keys)
+* [List HMAC Keys](#list-hmac-keys)
 * [Lock Retention Policy](#lock-retention-policy)
 * [Make Public](#make-public)
 * [Move File](#move-file)
-* [Object Csek To Cmek](#object-csek-to-cmek)
-* [Object Get Kms Key](#object-get-kms-key)
-* [Print Bucket Acl](#print-bucket-acl)
-* [Print Bucket Acl For User](#print-bucket-acl-for-user)
-* [Print File Acl](#print-file-acl)
-* [Print File Acl For User](#print-file-acl-for-user)
+* [Object CSEK To CMEK](#object-csek-to-cmek)
+* [Object Get KMS Key](#object-get-kms-key)
+* [Print Bucket ACL](#print-bucket-acl)
+* [Print Bucket ACL For User](#print-bucket-acl-for-user)
+* [Print File ACL](#print-file-acl)
+* [Print File ACL For User](#print-file-acl-for-user)
 * [Release Event Based Hold](#release-event-based-hold)
 * [Release Temporary Hold](#release-temporary-hold)
-* [Remove Bucket Conditional Iam Binding](#remove-bucket-conditional-iam-binding)
+* [Remove Bucket Conditional IAM Binding](#remove-bucket-conditional-iam-binding)
 * [Remove Bucket Default Owner](#remove-bucket-default-owner)
-* [Remove Bucket Iam Member](#remove-bucket-iam-member)
+* [Remove Bucket IAM Member](#remove-bucket-iam-member)
 * [Remove Bucket Label](#remove-bucket-label)
 * [Remove Bucket Owner](#remove-bucket-owner)
 * [Remove Cors Configuration](#remove-cors-configuration)
@@ -127,8 +127,8 @@ for instructions on setting up credentials for applications.
 * [Remove Retention Policy](#remove-retention-policy)
 * [Rename File](#rename-file)
 * [Rotate Encryption Key](#rotate-encryption-key)
-* [Set Bucket Default Kms Key](#set-bucket-default-kms-key)
-* [Set Bucket Public Iam](#set-bucket-public-iam)
+* [Set Bucket Default KMS Key](#set-bucket-default-kms-key)
+* [Set Bucket Public IAM](#set-bucket-public-iam)
 * [Set Event Based Hold](#set-event-based-hold)
 * [Set Metadata](#set-metadata)
 * [Set Public Access Prevention Enforced](#set-public-access-prevention-enforced)
@@ -138,14 +138,14 @@ for instructions on setting up credentials for applications.
 * [Set Temporary Hold](#set-temporary-hold)
 * [Upload Encrypted File](#upload-encrypted-file)
 * [Upload File](#upload-file)
-* [Upload With Kms Key](#upload-with-kms-key)
-* [View Bucket Iam Members](#view-bucket-iam-members)
+* [Upload With KMS Key](#upload-with-kms-key)
+* [View Bucket IAM Members](#view-bucket-iam-members)
 
 </details>
 
 -----
 ### Activate HMAC Key
-[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_activate_hmac_key.py,samples/snippets/README.md)
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_activate_hmac_key.py,samples/README.md)
 
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_activate_hmac_key.py). To run this sample:
 
@@ -155,7 +155,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 -----
 
 ### Add Bucket Conditional IAM Binding
-[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_add_bucket_conditional_iam_binding.py,samples/snippets/README.md)
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_add_bucket_conditional_iam_binding.py,samples/README.md)
 
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_add_bucket_conditional_iam_binding.py). To run this sample:
 
@@ -164,7 +164,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 
 -----
 ### Add Bucket Default Owner
-[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_add_bucket_default_owner.py,samples/snippets/README.md)
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_add_bucket_default_owner.py,samples/README.md)
 
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_add_bucket_default_owner.py). To run this sample:
 
@@ -173,7 +173,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 
 -----
 ### Add Bucket IAM Member
-[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_add_bucket_iam_member.py,samples/snippets/README.md)
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_add_bucket_iam_member.py,samples/README.md)
 
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_add_bucket_iam_member.py). To run this sample:
 
@@ -182,7 +182,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 
 -----
 ### Add Bucket Label
-[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_add_bucket_label.py,samples/snippets/README.md)
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_add_bucket_label.py,samples/README.md)
 
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_add_bucket_label.py). To run this sample:
 
@@ -191,7 +191,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 
 -----
 ### Add Bucket Owner
-[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_add_bucket_owner.py,samples/snippets/README.md)
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_add_bucket_owner.py,samples/README.md)
 
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_add_bucket_owner.py). To run this sample:
 
@@ -200,7 +200,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 
 -----
 ### Add File Owner
-[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_add_file_owner.py,samples/snippets/README.md)
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_add_file_owner.py,samples/README.md)
 
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_add_file_owner.py). To run this sample:
 
@@ -209,7 +209,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 
 -----
 ### Bucket Delete Default KMS Key
-[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_bucket_delete_default_kms_key.py,samples/snippets/README.md)
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_bucket_delete_default_kms_key.py,samples/README.md)
 
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_bucket_delete_default_kms_key.py). To run this sample:
 
@@ -218,7 +218,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 
 -----
 ### Change Default Storage Class
-[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_add_bucket_iam_member.py,samples/snippets/README.md)
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_add_bucket_iam_member.py,samples/README.md)
 
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_add_bucket_iam_member.py). To run this sample:
 
@@ -227,7 +227,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 
 -----
 ### Change File Storage Class
-[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_change_default_storage_class.py,samples/snippets/README.md)
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_change_default_storage_class.py,samples/README.md)
 
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_change_default_storage_class.py). To run this sample:
 
@@ -236,7 +236,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 
 -----
 ### Compose File
-[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_compose_file.py,samples/snippets/README.md)
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_compose_file.py,samples/README.md)
 
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_compose_file.py). To run this sample:
 
@@ -245,7 +245,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 
 -----
 ### Configure Retries
-[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_configure_retries.py,samples/snippets/README.md)
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_configure_retries.py,samples/README.md)
 
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_configure_retries.py). To run this sample:
 
@@ -254,7 +254,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 
 -----
 ### Copy File
-[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_copy_file.py,samples/snippets/README.md)
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_copy_file.py,samples/README.md)
 
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_copy_file.py). To run this sample:
 
@@ -263,7 +263,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 
 -----
 ### Copy File Archived Generation
-[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_copy_file_archived_generation.py,samples/snippets/README.md)
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_copy_file_archived_generation.py,samples/README.md)
 
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_copy_file_archived_generation.py). To run this sample:
 
@@ -272,7 +272,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 
 -----
 ### Cors Configuration
-[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_cors_configuration.py,samples/snippets/README.md)
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_cors_configuration.py,samples/README.md)
 
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_cors_configuration.py). To run this sample:
 
@@ -281,7 +281,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 
 -----
 ### Create Bucket
-[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_create_bucket.py,samples/snippets/README.md)
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_create_bucket.py,samples/README.md)
 
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_create_bucket.py). To run this sample:
 
@@ -290,81 +290,687 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 
 -----
 ### Create Bucket Class Location
-### Create Hmac Key
-### Deactivate Hmac Key
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_create_bucket_class_location.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_create_bucket_class_location.py). To run this sample:
+
+
+`python storage_create_bucket_class_location.py`
+
+-----
+### Create HMAC Key
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_create_hmac_key.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_create_hmac_key.py). To run this sample:
+
+
+`python storage_create_hmac_key.py`
+
+-----
+### Deactivate HMAC Key
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_deactivate_hmac_key.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_deactivate_hmac_key.py). To run this sample:
+
+
+`python storage_deactivate_hmac_key.py`
+
+-----
 ### Define Bucket Website Configuration
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_define_bucket_website_configuration.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_define_bucket_website_configuration.py). To run this sample:
+
+
+`python storage_define_bucket_website_configuration.py`
+
+-----
 ### Delete Bucket
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_delete_bucket.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_delete_bucket.py). To run this sample:
+
+
+`python storage_delete_bucket.py`
+
+-----
 ### Delete File
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_delete_file.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_delete_file.py). To run this sample:
+
+
+`python storage_delete_file.py`
+
+-----
 ### Delete File Archived Generation
-### Delete Hmac Key
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_delete_file_archived_generation.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_delete_file_archived_generation.py). To run this sample:
+
+
+`python storage_delete_file_archived_generation.py`
+
+-----
+### Delete HMAC Key
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_delete_hmac_key.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_delete_hmac_key.py). To run this sample:
+
+
+`python storage_delete_hmac_key.py`
+
+-----
 ### Disable Bucket Lifecycle Management
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_disable_bucket_lifecycle_management.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_disable_bucket_lifecycle_management.py). To run this sample:
+
+
+`python storage_disable_bucket_lifecycle_management.py`
+
+-----
 ### Disable Default Event Based Hold
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_disable_default_event_based_hold.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_disable_default_event_based_hold.py). To run this sample:
+
+
+`python storage_disable_default_event_based_hold.py`
+
+-----
 ### Disable Requester Pays
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_disable_requester_pays.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_disable_requester_pays.py). To run this sample:
+
+
+`python storage_disable_requester_pays.py`
+
+-----
 ### Disable Uniform Bucket Level Access
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_disable_uniform_bucket_level_access.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_disable_uniform_bucket_level_access.py). To run this sample:
+
+
+`python storage_disable_uniform_bucket_level_access.py`
+
+-----
 ### Disable Versioning
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_disable_versioning.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_disable_versioning.py). To run this sample:
+
+
+`python storage_disable_versioning.py`
+
+-----
 ### Download Encrypted File
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_download_encrypted_file.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_download_encrypted_file.py). To run this sample:
+
+
+`python storage_download_encrypted_file.py`
+
+-----
 ### Download File
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_download_file.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_download_file.py). To run this sample:
+
+
+`python storage_download_file.py`
+
+-----
 ### Download File Requester Pays
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_download_file_requester_pays.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_download_file_requester_pays.py). To run this sample:
+
+
+`python storage_download_file_requester_pays.py`
+
+-----
 ### Download Public File
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_download_public_file.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_download_public_file.py). To run this sample:
+
+
+`python storage_download_public_file.py`
+
+-----
 ### Enable Bucket Lifecycle Management
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_enable_bucket_lifecycle_management.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_enable_bucket_lifecycle_management.py). To run this sample:
+
+
+`python storage_enable_bucket_lifecycle_management.py`
+
+-----
 ### Enable Default Event Based Hold
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_enable_default_event_based_hold.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_enable_default_event_based_hold.py). To run this sample:
+
+
+`python storage_enable_default_event_based_hold.py`
+
+-----
 ### Enable Requester Pays
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_enable_requester_pays.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_enable_requester_pays.py). To run this sample:
+
+
+`python storage_enable_requester_pays.py`
+
+-----
 ### Enable Uniform Bucket Level Access
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_enable_uniform_bucket_level_access.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_enable_uniform_bucket_level_access.py). To run this sample:
+
+
+`python storage_enable_uniform_bucket_level_access.py`
+
+-----
 ### Enable Versioning
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_enable_versioning.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_enable_versioning.py). To run this sample:
+
+
+`python storage_enable_versioning.py`
+
+-----
 ### Generate Encryption Key
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_generate_encryption_key.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_generate_encryption_key.py). To run this sample:
+
+
+`python storage_generate_encryption_key.py`
+
+-----
 ### Generate Signed Post Policy V4
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_generate_signed_post_policy_v4.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_generate_signed_post_policy_v4.py). To run this sample:
+
+
+`python storage_generate_signed_post_policy_v4.py`
+
+-----
 ### Generate Signed Url V2
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_generate_signed_url_v2.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_generate_signed_url_v2.py). To run this sample:
+
+
+`python storage_generate_signed_url_v2.py`
+
+-----
 ### Generate Signed Url V4
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_generate_signed_url_v4.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_generate_signed_url_v4.py). To run this sample:
+
+
+`python storage_generate_signed_url_v4.py`
+
+-----
 ### Generate Upload Signed Url V4
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_generate_upload_signed_url_v4.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_generate_upload_signed_url_v4.py). To run this sample:
+
+
+`python storage_generate_upload_signed_url_v4.py`
+
+-----
 ### Get Bucket Labels
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_get_bucket_labels.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_get_bucket_labels.py). To run this sample:
+
+
+`python storage_get_bucket_labels.py`
+
+-----
 ### Get Bucket Metadata
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_get_bucket_metadata.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_get_bucket_metadata.py). To run this sample:
+
+
+`python storage_get_bucket_metadata.py`
+
+-----
 ### Get Default Event Based Hold
-### Get Hmac Key
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_get_default_event_based_hold.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_get_default_event_based_hold.py). To run this sample:
+
+
+`python storage_get_default_event_based_hold.py`
+
+-----
+### Get HMAC Key
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_get_hmac_key.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_get_hmac_key.py). To run this sample:
+
+
+`python storage_get_hmac_key.py`
+
+-----
 ### Get Metadata
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_get_metadata.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_get_metadata.py). To run this sample:
+
+
+`python storage_get_metadata.py`
+
+-----
 ### Get Public Access Prevention
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_get_public_access_prevention.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_get_public_access_prevention.py). To run this sample:
+
+
+`python storage_get_public_access_prevention.py`
+
+-----
 ### Get Requester Pays Status
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_get_requester_pays_status.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_get_requester_pays_status.py). To run this sample:
+
+
+`python storage_get_requester_pays_status.py`
+
+-----
 ### Get Retention Policy
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_get_retention_policy.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_get_retention_policy.py). To run this sample:
+
+
+`python storage_get_retention_policy.py`
+
+-----
 ### Get Service Account
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_get_service_account.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_get_service_account.py). To run this sample:
+
+
+`python storage_get_service_account.py`
+
+-----
 ### Get Uniform Bucket Level Access
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_get_uniform_bucket_level_access.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_get_uniform_bucket_level_access.py). To run this sample:
+
+
+`python storage_get_uniform_bucket_level_access.py`
+
+-----
 ### List Buckets
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_list_buckets.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_list_buckets.py). To run this sample:
+
+
+`python storage_list_buckets.py`
+
+-----
 ### List File Archived Generations
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_list_file_archived_generations.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_list_file_archived_generations.py). To run this sample:
+
+
+`python storage_list_file_archived_generations.py`
+
+-----
 ### List Files
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_list_files.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_list_files.py). To run this sample:
+
+
+`python storage_list_files.py`
+
+-----
 ### List Files With Prefix
-### List Hmac Keys
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_list_files_with_prefix.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_list_files_with_prefix.py). To run this sample:
+
+
+`python storage_list_files_with_prefix.py`
+
+-----
+### List HMAC Keys
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_list_hmac_keys.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_list_hmac_keys.py). To run this sample:
+
+
+`python storage_list_hmac_keys.py`
+
+-----
 ### Lock Retention Policy
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_lock_retention_policy.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_lock_retention_policy.py). To run this sample:
+
+
+`python storage_lock_retention_policy.py`
+
+-----
 ### Make Public
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_make_public.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_make_public.py). To run this sample:
+
+
+`python storage_make_public.py`
+
+-----
 ### Move File
-### Object Csek To Cmek
-### Object Get Kms Key
-### Print Bucket Acl
-### Print Bucket Acl For User
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_move_file.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_move_file.py). To run this sample:
+
+
+`python storage_move_file.py`
+
+-----
+### Object CSEK To CMEK
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_object_csek_to_cmek.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_object_csek_to_cmek.py). To run this sample:
+
+
+`python storage_object_csek_to_cmek.py`
+
+-----
+### Object Get KMS Key
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_object_get_kms_key.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_object_get_kms_key.py). To run this sample:
+
+
+`python storage_object_get_kms_key.py`
+
+-----
+### Print Bucket ACL
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_print_bucket_acl.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_print_bucket_acl.py). To run this sample:
+
+
+`python storage_print_bucket_acl.py`
+
+-----
+### Print Bucket ACL For User
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_print_bucket_acl_for_user.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_print_bucket_acl_for_user.py). To run this sample:
+
+
+`python storage_print_bucket_acl_for_user.py`
+
+-----
 ### Print File Acl
-### Print File Acl For User
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_print_file_acl.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_print_file_acl.py). To run this sample:
+
+
+`python storage_print_file_acl.py`
+
+-----
+### Print File ACL For User
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_print_file_acl_for_user.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_print_file_acl_for_user.py). To run this sample:
+
+
+`python storage_print_file_acl_for_user.py`
+
+-----
 ### Release Event Based Hold
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_release_event_based_hold.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_release_event_based_hold.py). To run this sample:
+
+
+`python storage_release_event_based_hold.py`
+
+-----
 ### Release Temporary Hold
-### Remove Bucket Conditional Iam Binding
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_release_temporary_hold.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_release_temporary_hold.py). To run this sample:
+
+
+`python storage_release_temporary_hold.py`
+
+-----
+### Remove Bucket Conditional IAM Binding
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_remove_bucket_conditional_iam_binding.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_remove_bucket_conditional_iam_binding.py). To run this sample:
+
+
+`python storage_remove_bucket_conditional_iam_binding.py`
+
+-----
 ### Remove Bucket Default Owner
-### Remove Bucket Iam Member
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_remove_bucket_default_owner.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_remove_bucket_default_owner.py). To run this sample:
+
+
+`python storage_remove_bucket_default_owner.py`
+
+-----
+### Remove Bucket IAM Member
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_remove_bucket_iam_member.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_remove_bucket_iam_member.py). To run this sample:
+
+
+`python storage_remove_bucket_iam_member.py`
+
+-----
 ### Remove Bucket Label
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_remove_bucket_label.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_remove_bucket_label.py). To run this sample:
+
+
+`python storage_remove_bucket_label.py`
+
+-----
 ### Remove Bucket Owner
-### Remove Cors Configuration
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_remove_bucket_owner.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_remove_bucket_owner.py). To run this sample:
+
+
+`python storage_remove_bucket_owner.py`
+
+-----
+### Remove CORS Configuration
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_remove_cors_configuration.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_remove_cors_configuration.py). To run this sample:
+
+
+`python storage_remove_cors_configuration.py`
+
+-----
 ### Remove File Owner
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_remove_file_owner.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_remove_file_owner.py). To run this sample:
+
+
+`python storage_remove_file_owner.py`
+
+-----
 ### Remove Retention Policy
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_remove_retention_policy.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_remove_retention_policy.py). To run this sample:
+
+
+`python storage_remove_retention_policy.py`
+
+-----
 ### Rename File
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_rename_file.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_rename_file.py). To run this sample:
+
+
+`python storage_rename_file.py`
+
+-----
 ### Rotate Encryption Key
-### Set Bucket Default Kms Key
-### Set Bucket Public Iam
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_rotate_encryption_key.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_rotate_encryption_key.py). To run this sample:
+
+
+`python storage_rotate_encryption_key.py`
+
+-----
+### Set Bucket Default KMS Key
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_set_bucket_default_kms_key.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_set_bucket_default_kms_key.py). To run this sample:
+
+
+`python storage_set_bucket_default_kms_key.py`
+
+-----
+### Set Bucket Public IAM
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_set_bucket_public_iam.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_set_bucket_public_iam.py). To run this sample:
+
+
+`python storage_set_bucket_public_iam.py`
+
+-----
 ### Set Event Based Hold
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_set_event_based_hold.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_set_event_based_hold.py). To run this sample:
+
+
+`python storage_set_event_based_hold.py`
+
+-----
 ### Set Metadata
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_set_metadata.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_set_metadata.py). To run this sample:
+
+
+`python storage_set_metadata.py`
+
+-----
 ### Set Public Access Prevention Enforced
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_set_public_access_prevention_enforced.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_set_public_access_prevention_enforced.py). To run this sample:
+
+
+`python storage_set_public_access_prevention_enforced.py`
+
+-----
 ### Set Public Access Prevention Inherited
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_set_public_access_prevention_inherited.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_set_public_access_prevention_inherited.py). To run this sample:
+
+
+`python storage_set_public_access_prevention_inherited.py`
+
+-----
 ### Set Public Access Prevention Unspecified
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_set_public_access_prevention_unspecified.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_set_public_access_prevention_unspecified.py). To run this sample:
+
+
+`python storage_set_public_access_prevention_unspecified.py`
+
+-----
 ### Set Retention Policy
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_set_retention_policy.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_set_retention_policy.py). To run this sample:
+
+
+`python storage_set_retention_policy.py`
+
+-----
 ### Set Temporary Hold
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_set_temporary_hold.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_set_temporary_hold.py). To run this sample:
+
+
+`python storage_set_temporary_hold.py`
+
+-----
 ### Upload Encrypted File
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_upload_encrypted_file.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_upload_encrypted_file.py). To run this sample:
+
+
+`python storage_upload_encrypted_file.py`
+
+-----
 ### Upload File
-### Upload With Kms Key
-### View Bucket Iam Members
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_upload_file.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_upload_file.py). To run this sample:
+
+
+`python storage_upload_file.py`
+
+-----
+### Upload With KMS Key
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_upload_with_kms_key.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_upload_with_kms_key.py). To run this sample:
+
+
+`python storage_upload_with_kms_key.py`
+
+-----
+### View Bucket IAM Members
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_view_bucket_iam_members.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_view_bucket_iam_members.py). To run this sample:
+
+
+`python storage_view_bucket_iam_members.py`
 
 -----
 
@@ -415,5 +1021,5 @@ Please refer to [`noxfile_config.py`](https://github.com/googleapis/python-stora
 * [Create Service Accounts](https://cloud.google.com/docs/authentication/getting-started#creating_a_service_account)
 
 [shell_img]: https://gstatic.com/cloudssh/images/open-btn.png
-[shell_link]: https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/README.md
+[shell_link]: https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/README.md
 [product-docs]: https://cloud.google.com/storage
