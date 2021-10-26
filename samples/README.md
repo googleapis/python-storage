@@ -46,7 +46,7 @@ for instructions on setting up credentials for applications.
 
 ## Samples
 <details>
-    <summary markdown="span">List of Samples</summary>
+    <summary><b>List of Samples</b></summary>
 
 * [Activate HMAC Key](#activate-hmac-key)
 * [Add Bucket Conditional IAM Binding](#add-bucket-conditional-iam-binding)
