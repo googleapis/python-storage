@@ -18,7 +18,7 @@ objects to users via direct download.
 ### Before you begin
 
 Before running the samples, make sure you've followed the steps outlined in
-[quick start](https://github.com/googleapis/python-storage#quick-start).
+[Quick Start](https://github.com/googleapis/python-storage#quick-start).
 
 ### Authentication
 This sample requires you to have authentication setup. Refer to the [Authentication Getting Started Guide](https://cloud.google.com/docs/authentication/getting-started)
@@ -62,7 +62,7 @@ for instructions on setting up credentials for applications.
 * [Configure Retries](#configure-retries)
 * [Copy File](#copy-file)
 * [Copy File Archived Generation](#copy-file-archived-generation)
-* [Cors Configuration](#cors-configuration)
+* [CORS Configuration](#cors-configuration)
 * [Create Bucket](#create-bucket)
 * [Create Bucket Class Location](#create-bucket-class-location)
 * [Create HMAC Key](#create-hmac-key)
@@ -218,21 +218,21 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 
 -----
 ### Change Default Storage Class
-[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_add_bucket_iam_member.py,samples/README.md)
-
-View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_add_bucket_iam_member.py). To run this sample:
-
-
-`python storage_add_bucket_iam_member.py`
-
------
-### Change File Storage Class
 [![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_change_default_storage_class.py,samples/README.md)
 
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_change_default_storage_class.py). To run this sample:
 
 
 `python storage_change_default_storage_class.py`
+
+-----
+### Change File Storage Class
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_change_file_storage_class.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_change_file_storage_class.py). To run this sample:
+
+
+`python storage_change_file_storage_class.py`
 
 -----
 ### Compose File
@@ -271,7 +271,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 `python storage_copy_file_archived_generation.py`
 
 -----
-### Cors Configuration
+### CORS Configuration
 [![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_cors_configuration.py,samples/README.md)
 
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_cors_configuration.py). To run this sample:
@@ -730,7 +730,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 `python storage_print_bucket_acl_for_user.py`
 
 -----
-### Print File Acl
+### Print File ACL
 [![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_print_file_acl.py,samples/README.md)
 
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_print_file_acl.py). To run this sample:
