@@ -19,6 +19,7 @@ from google.cloud import storage
 
 import pytest
 
+import storage_create_bucket_notifications
 import storage_list_bucket_notifications
 import storage_print_pubsub_bucket_notification
 
@@ -78,3 +79,11 @@ def test_print_pubsub_bucket_notification(bucket_w_notification, capsys):
     storage_print_pubsub_bucket_notification.print_pubsub_bucket_notification(bucket_w_notification.name, notification_id)
     out, _ = capsys.readouterr()
     assert "Notification ID: 1" in out
+
+
+def test_create_bucket_notifications(bucket_w_notification, capsys):
+    storage_create_bucket_notifications.create_bucket_notifications(bucket_w_notification.name, _topic_name)
+    out, _ = capsys.readouterr()
+    assert "Successfully created notification" in out
+    # test succesfully creates second notification with ID 2
+    assert "ID 2" in out
