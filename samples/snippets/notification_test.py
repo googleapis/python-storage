@@ -20,6 +20,7 @@ from google.cloud import storage
 import pytest
 
 import storage_create_bucket_notifications
+import storage_delete_bucket_notification
 import storage_list_bucket_notifications
 import storage_print_pubsub_bucket_notification
 
@@ -62,6 +63,7 @@ def bucket_w_notification(storage_client, notification_topic):
         bucket_name = f"notification-test-{uuid.uuid4()}"
         bucket = storage_client.bucket(bucket_name)
     bucket.create()
+
     notification = bucket.notification(topic_name=_topic_name)
     notification.create()
     yield bucket
@@ -82,8 +84,23 @@ def test_print_pubsub_bucket_notification(bucket_w_notification, capsys):
 
 
 def test_create_bucket_notifications(bucket_w_notification, capsys):
+    # test only bucket notification ID 1 was created in the fixture
+    assert bucket_w_notification.notification(notification_id=1).exists() is True
+    assert bucket_w_notification.notification(notification_id=2).exists() is False
+
     storage_create_bucket_notifications.create_bucket_notifications(bucket_w_notification.name, _topic_name)
     out, _ = capsys.readouterr()
     assert "Successfully created notification" in out
-    # test succesfully creates second notification with ID 2
-    assert "ID 2" in out
+    # test succesfully creates new bucket notification with ID 2
+    assert bucket_w_notification.notification(notification_id=2).exists() is True
+
+
+def test_delete_bucket_notification(bucket_w_notification, capsys):
+    # test bucket notification ID 1 was created in the fixture
+    notification_id = 1
+    assert bucket_w_notification.notification(notification_id=notification_id).exists() is True
+
+    storage_delete_bucket_notification.delete_bucket_notification(bucket_w_notification.name, notification_id)
+    out, _ = capsys.readouterr()
+    assert "Successfully deleted notification" in out
+    assert bucket_w_notification.notification(notification_id=notification_id).exists() is False
