@@ -229,11 +229,23 @@ class BlobWriter(io.BufferedIOBase):
         writes must be exactly a multiple of 256KiB as with other resumable
         uploads. The default is the chunk_size of the blob, or 40 MiB.
 
-    :type text_mode: boolean
+    :type text_mode: bool
     :param text_mode:
-        Whether this class is wrapped in 'io.TextIOWrapper'. Toggling this
-        changes the behavior of flush() to conform to TextIOWrapper's
-        expectations.
+        (Deprecated) A synynom for pass_on_flush. For backwards-compatibility,
+        if True, sets ignore_flush to True. Use ignore_flush instead. This
+        parameter will be removed in a future release.
+
+    :type ignore_flush: bool
+    :param ignore_flush:
+        Makes flush() do nothing instead of raise an error. flush() without
+        closing is not supported by the remote service and therefore calling it
+        on this class normally results in io.UnsupportedOperation. However, that
+        behavior is incompatible with some consumers and wrappers of file
+        objects in Python, such as zipfile.ZipFile or io.TextIOWrapper. Setting
+        ignore_flush will cause flush() to successfully do nothing, for
+        compatibility with those contexts. The correct way to actually flush
+        data to the remote server is to close() (using this object as a context
+        manager is recommended).
 
     :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
     :param retry:
@@ -278,6 +290,7 @@ class BlobWriter(io.BufferedIOBase):
         blob,
         chunk_size=None,
         text_mode=False,
+        ignore_flush=False,
         retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
         **upload_kwargs
     ):
@@ -292,9 +305,8 @@ class BlobWriter(io.BufferedIOBase):
         # Resumable uploads require a chunk size of a multiple of 256KiB.
         # self._chunk_size must not be changed after the upload is initiated.
         self._chunk_size = chunk_size or blob.chunk_size or DEFAULT_CHUNK_SIZE
-        # In text mode this class will be wrapped and TextIOWrapper requires a
-        # different behavior of flush().
-        self._text_mode = text_mode
+        # text_mode is a deprecated synonym for ignore_flush
+        self._ignore_flush = ignore_flush or text_mode
         self._retry = retry
         self._upload_kwargs = upload_kwargs
 
@@ -394,12 +406,14 @@ class BlobWriter(io.BufferedIOBase):
         return self._buffer.tell() + len(self._buffer)
 
     def flush(self):
-        if self._text_mode:
+        if self._ignore_flush:
             # TextIOWrapper expects this method to succeed before calling close().
             return
 
         raise io.UnsupportedOperation(
-            "Cannot flush without finalizing upload. Use close() instead."
+            "Cannot flush without finalizing upload. Use close() instead, or "
+            "set ignore_flush=True when constructing this class (see "
+            "docstring)."
         )
 
     def close(self):
