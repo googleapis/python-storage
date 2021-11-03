@@ -231,7 +231,7 @@ class BlobWriter(io.BufferedIOBase):
 
     :type text_mode: bool
     :param text_mode:
-        (Deprecated) A synynom for pass_on_flush. For backwards-compatibility,
+        (Deprecated) A synonym for ignore_flush. For backwards-compatibility,
         if True, sets ignore_flush to True. Use ignore_flush instead. This
         parameter will be removed in a future release.
 
@@ -406,15 +406,14 @@ class BlobWriter(io.BufferedIOBase):
         return self._buffer.tell() + len(self._buffer)
 
     def flush(self):
-        if self._ignore_flush:
-            # TextIOWrapper expects this method to succeed before calling close().
-            return
-
-        raise io.UnsupportedOperation(
-            "Cannot flush without finalizing upload. Use close() instead, or "
-            "set ignore_flush=True when constructing this class (see "
-            "docstring)."
-        )
+        # flush() is not fully supported by the remote service, so raise an
+        # error here, unless self._ignore_flush is set.
+        if not self._ignore_flush:
+            raise io.UnsupportedOperation(
+                "Cannot flush without finalizing upload. Use close() instead, "
+                "or set ignore_flush=True when constructing this class (see "
+                "docstring)."
+            )
 
     def close(self):
         self._checkClosed()  # Raises ValueError if closed.
