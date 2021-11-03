@@ -15,6 +15,7 @@
 
 import uuid
 
+from google.api_core.exceptions import NotFound
 from google.cloud import storage
 
 import pytest
@@ -43,9 +44,13 @@ def publisher_client():
 
 
 @pytest.fixture(scope="module")
-def notification_topic(storage_client, publisher_client):
+def _notification_topic(storage_client, publisher_client):
     topic_path = publisher_client.topic_path(storage_client.project, _topic_name)
-    publisher_client.create_topic(request={"name": topic_path})
+    try:
+        topic = publisher_client.get_topic(request={"topic": topic_path})
+    except NotFound:
+        topic = publisher_client.create_topic(request={"name": topic_path})
+
     policy = publisher_client.get_iam_policy(request={"resource": topic_path})
     binding = policy.bindings.add()
     binding.role = "roles/pubsub.publisher"
@@ -54,9 +59,16 @@ def notification_topic(storage_client, publisher_client):
     )
     publisher_client.set_iam_policy(request={"resource": topic_path, "policy": policy})
 
+    yield topic
+
+    try:
+        publisher_client.delete_topic(request={"topic": topic.name})
+    except NotFound:
+        pass
+
 
 @pytest.fixture(scope="module")
-def bucket_w_notification(storage_client, notification_topic):
+def bucket_w_notification(storage_client, _notification_topic):
     """Yields a bucket with notification that is deleted after the tests complete."""
     bucket = None
     while bucket is None or bucket.exists():
@@ -66,7 +78,9 @@ def bucket_w_notification(storage_client, notification_topic):
 
     notification = bucket.notification(topic_name=_topic_name)
     notification.create()
+
     yield bucket
+
     bucket.delete(force=True)
 
 
