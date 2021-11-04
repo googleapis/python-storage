@@ -16,15 +16,15 @@
 
 import sys
 
-"""Reads a csv saved in GCS using file-like IO
+"""Sample that writes and read a blob in GCS using file-like IO
 """
 
-# [START storage_fileio_write_blob]
+# [START storage_fileio_write_read]
 from google.cloud import storage
 
 
-def read_blob(bucket_name, blob_name):
-    """Reads a blob (csv here) from GCS using file-like IO"""
+def write_read(bucket_name, blob_name):
+    """Write and read a blob from GCS using file-like IO"""
     # The ID of your GCS bucket
     # bucket_name = "your-bucket-name"
 
@@ -32,28 +32,22 @@ def read_blob(bucket_name, blob_name):
     # blob_name = "storage-object-name"
 
     storage_client = storage.Client()
-
     bucket = storage_client.bucket(bucket_name)
-
     blob = bucket.blob(blob_name)
 
+    # Mode can be specified as wb/rb for bytes mode.
+    # See: https://docs.python.org/3/library/io.html
+    with blob.open("w") as f:
+        f.write("Hello world")
+
     with blob.open("r") as f:
-        import csv
-        csv_reader = csv.reader(f)
-        for row in csv_reader:
-            pass
-
-    print(
-        "Read csv from storage object {} in bucket {}.".format(
-            blob_name, bucket_name
-        )
-    )
+        print(f.read())
 
 
-# [END storage_fileio_write_blob]
+# [END storage_fileio_write_read]
 
 if __name__ == "__main__":
-    read_blob(
+    write_read(
         bucket_name=sys.argv[1],
         blob_name=sys.argv[2]
     )

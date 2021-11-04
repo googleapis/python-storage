@@ -14,15 +14,19 @@
 
 import uuid
 
-import storage_fileio_read_blob
-import storage_fileio_write_blob
+import storage_fileio_pandas
+import storage_fileio_write_read
 
 
 def test_fileio_write_read(bucket, capsys):
     blob_name = "test-fileio-{}".format(uuid.uuid4())
-    storage_fileio_write_blob.write_blob(bucket.name, blob_name)
+    storage_fileio_write_read.write_read(bucket.name, blob_name)
     out, _ = capsys.readouterr()
-    assert f"Wrote csv to storage object {blob_name} in bucket {bucket.name}." in out
-    storage_fileio_read_blob.read_blob(bucket.name, blob_name)
+    assert "Hello world" in out
+
+
+def test_fileio_pandas(bucket, capsys):
+    blob_name = "test-fileio-{}".format(uuid.uuid4())
+    storage_fileio_pandas.pandas_write_read(bucket.name, blob_name)
     out, _ = capsys.readouterr()
-    assert f"Read csv from storage object {blob_name} in bucket {bucket.name}." in out
+    assert "[1 4 2 5 3 6]" in out
