@@ -27,6 +27,9 @@ def test_fileio_write_read(bucket, capsys):
 
 def test_fileio_pandas(bucket, capsys):
     blob_name = "test-fileio-{}".format(uuid.uuid4())
-    storage_fileio_pandas.pandas_write_read(bucket.name, blob_name)
+    storage_fileio_pandas.pandas_write(bucket.name, blob_name)
     out, _ = capsys.readouterr()
-    assert "[1 4 2 5 3 6]" in out
+    assert f"Wrote csv with pandas with name {blob_name} from bucket {bucket.name}." in out
+    storage_fileio_pandas.pandas_read(bucket.name, blob_name)
+    out, _ = capsys.readouterr()
+    assert f"Read csv with pandas with name {blob_name} from bucket {bucket.name}." in out

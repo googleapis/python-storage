@@ -495,7 +495,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_fileio_write_read.py). To run this sample:
 
 
-`python storage_fileio_write_read.py`
+`python storage_fileio_write_read.py $CLOUD_STORAGE_BUCKET sample-blob`
 -----
 ### FileIO Pandas
 [![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_fileio_pandas.py,samples/README.md)
@@ -503,7 +503,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_fileio_pandas.py). To run this sample:
 
 
-`python storage_fileio_pandas.py`
+`python storage_fileio_pandas.py $CLOUD_STORAGE_BUCKET sample-blob`
 -----
 ### Generate Encryption Key
 [![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_generate_encryption_key.py,samples/README.md)

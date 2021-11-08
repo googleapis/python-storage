@@ -19,11 +19,10 @@ import sys
 """Sample that creates and consumes a GCS blob using pandas with file-like IO
 """
 
-# [START storage_fileio_pandas]
-from google.cloud import storage
+# [START storage_fileio_pandas_write]
 
 
-def pandas_write_read(bucket_name, blob_name):
+def pandas_write(bucket_name, blob_name):
     """Use pandas to interact with GCS using file-like IO"""
     # The ID of your GCS bucket
     # bucket_name = "your-bucket-name"
@@ -31,6 +30,7 @@ def pandas_write_read(bucket_name, blob_name):
     # The ID of your new GCS object
     # blob_name = "storage-object-name"
 
+    from google.cloud import storage
     import pandas as pd
 
     storage_client = storage.Client()
@@ -41,15 +41,48 @@ def pandas_write_read(bucket_name, blob_name):
         df = pd.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6]})
         f.write(df.to_csv(index=False))
 
+    print(f"Wrote csv with pandas with name {blob_name} from bucket {bucket.name}.")
+
+
+# [END storage_fileio_pandas_write]
+
+
+# [START storage_fileio_pandas_read]
+
+
+def pandas_read(bucket_name, blob_name):
+    """Use pandas to interact with GCS using file-like IO"""
+    # The ID of your GCS bucket
+    # bucket_name = "your-bucket-name"
+
+    # The ID of your new GCS object
+    # blob_name = "storage-object-name"
+
+    from google.cloud import storage
+    import pandas as pd
+
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(blob_name)
+
     with blob.open("r") as f:
         df = pd.read_csv(f)
-        print(df.values.flatten())
+
+    print(f"Read csv with pandas with name {blob_name} from bucket {bucket.name}.")
 
 
-# [END storage_fileio_pandas]
+
+
+# [END storage_fileio_pandas_read]
+
 
 if __name__ == "__main__":
-    pandas_write_read(
+    pandas_write(
+        bucket_name=sys.argv[1],
+        blob_name=sys.argv[2]
+    )
+
+    pandas_read(
         bucket_name=sys.argv[1],
         blob_name=sys.argv[2]
     )
