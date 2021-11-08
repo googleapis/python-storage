@@ -308,7 +308,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_create_bucket_notifications.py). To run this sample:
 
 
-`python storage_create_bucket_notifications.py`
+`python storage_create_bucket_notifications.py <BUCKET_NAME> <TOPIC_NAME>`
 
 -----
 ### Create HMAC Key
@@ -353,7 +353,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_delete_bucket_notification.py). To run this sample:
 
 
-`python storage_delete_bucket_notification.py`
+`python storage_delete_bucket_notification.py <BUCKET_NAME> <NOTIFICATION_ID>`
 
 -----
 ### Delete File
@@ -659,7 +659,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_list_bucket_notifications.py). To run this sample:
 
 
-`python storage_list_bucket_notifications.py`
+`python storage_list_bucket_notifications.py <BUCKET_NAME>`
 
 -----
 ### List File Archived Generations
@@ -785,7 +785,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_print_pubsub_bucket_notification.py). To run this sample:
 
 
-`python storage_print_pubsub_bucket_notification.py`
+`python storage_print_pubsub_bucket_notification.py <BUCKET_NAME> <NOTIFICATION_ID>`
 
 -----
 ### Release Event Based Hold
