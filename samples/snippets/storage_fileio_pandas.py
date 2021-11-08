@@ -66,11 +66,9 @@ def pandas_read(bucket_name, blob_name):
     blob = bucket.blob(blob_name)
 
     with blob.open("r") as f:
-        df = pd.read_csv(f)
+        pd.read_csv(f)
 
     print(f"Read csv with pandas with name {blob_name} from bucket {bucket.name}.")
-
-
 
 
 # [END storage_fileio_pandas_read]
