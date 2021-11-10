@@ -81,14 +81,16 @@ def blob_download_as_bytes(client, _preconditions, **resources):
     bucket = resources.get("bucket")
     object = resources.get("object")
     blob = client.bucket(bucket.name).blob(object.name)
-    blob.download_as_bytes()
+    stored_contents = blob.download_as_bytes()
+    assert stored_contents.decode("utf-8") == _STRING_CONTENT
 
 
 def blob_download_as_text(client, _preconditions, **resources):
     bucket = resources.get("bucket")
     object = resources.get("object")
     blob = client.bucket(bucket.name).blob(object.name)
-    blob.download_as_text()
+    stored_contents = blob.download_as_text()
+    assert stored_contents == _STRING_CONTENT
 
 
 def blob_download_to_filename(client, _preconditions, **resources):
@@ -97,6 +99,9 @@ def blob_download_to_filename(client, _preconditions, **resources):
     blob = client.bucket(bucket.name).blob(object.name)
     with tempfile.NamedTemporaryFile() as temp_f:
         blob.download_to_filename(temp_f.name)
+        with open(temp_f.name, "r") as file_obj:
+            stored_contents = file_obj.read()
+    assert stored_contents == _STRING_CONTENT
 
 
 def client_download_blob_to_file(client, _preconditions, **resources):
@@ -104,6 +109,9 @@ def client_download_blob_to_file(client, _preconditions, **resources):
     with tempfile.NamedTemporaryFile() as temp_f:
         with open(temp_f.name, "wb") as file_obj:
             client.download_blob_to_file(object, file_obj)
+        with open(temp_f.name, "r") as file_obj:
+            stored_contents = file_obj.read() 
+    assert stored_contents == _STRING_CONTENT
 
 
 def blobreader_read(client, _preconditions, **resources):
@@ -111,7 +119,8 @@ def blobreader_read(client, _preconditions, **resources):
     object = resources.get("object")
     blob = client.bucket(bucket.name).blob(object.name)
     with blob.open() as reader:
-        reader.read()
+        stored_contents = reader.read()
+    assert stored_contents == _STRING_CONTENT
 
 
 def client_list_blobs(client, _preconditions, **resources):
