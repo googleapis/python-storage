@@ -110,7 +110,7 @@ def client_download_blob_to_file(client, _preconditions, **resources):
         with open(temp_f.name, "wb") as file_obj:
             client.download_blob_to_file(object, file_obj)
         with open(temp_f.name, "r") as file_obj:
-            stored_contents = file_obj.read() 
+            stored_contents = file_obj.read()
     assert stored_contents == _STRING_CONTENT
 
 
