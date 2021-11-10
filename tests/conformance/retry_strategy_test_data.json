@@ -12,6 +12,9 @@
           },
           {
             "instructions": ["return-reset-connection", "return-503"]
+          },
+          {
+            "instructions": ["return-broken-stream"]
           }
         ],
         "methods": [
