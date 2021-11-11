@@ -156,7 +156,7 @@ for instructions on setting up credentials for applications.
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_activate_hmac_key.py). To run this sample:
 
 
-`python storage_activate_hmac_key.py`
+`python storage_activate_hmac_key.py <ACCESS_ID> <PROJECT_ID>`
 
 -----
 
@@ -166,7 +166,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_add_bucket_conditional_iam_binding.py). To run this sample:
 
 
-`python storage_add_bucket_conditional_iam_binding.py`
+`python storage_add_bucket_conditional_iam_binding.py <BUCKET_NAME> <ROLE> <TITLE> <DESCRIPTION> <EXPRESSION> <MEMBERS>`
 
 -----
 ### Add Bucket Default Owner
@@ -175,7 +175,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_add_bucket_default_owner.py). To run this sample:
 
 
-`python storage_add_bucket_default_owner.py`
+`python storage_add_bucket_default_owner.py <BUCKET_NAME> <USER_EMAIL>`
 
 -----
 ### Add Bucket IAM Member
@@ -184,7 +184,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_add_bucket_iam_member.py). To run this sample:
 
 
-`python storage_add_bucket_iam_member.py`
+`python storage_add_bucket_iam_member.py <BUCKET_NAME> <ROLE> <MEMBER>`
 
 -----
 ### Add Bucket Label
@@ -193,7 +193,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_add_bucket_label.py). To run this sample:
 
 
-`python storage_add_bucket_label.py`
+`python storage_add_bucket_label.py <BUCKET_NAME>`
 
 -----
 ### Add Bucket Owner
@@ -202,7 +202,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_add_bucket_owner.py). To run this sample:
 
 
-`python storage_add_bucket_owner.py`
+`python storage_add_bucket_owner.py <BUCKET_NAME> <USER_EMAIL>`
 
 -----
 ### Add File Owner
@@ -211,7 +211,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_add_file_owner.py). To run this sample:
 
 
-`python storage_add_file_owner.py`
+`python storage_add_file_owner.py <BUCKET_NAME> <BLOB_NAME> <USER_EMAIL>`
 
 -----
 ### Bucket Delete Default KMS Key
