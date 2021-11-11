@@ -104,6 +104,17 @@ def blob_download_to_filename(client, _preconditions, **resources):
     assert stored_contents == _STRING_CONTENT
 
 
+def blob_chunked_download_to_filename(client, _preconditions, **resources):
+    bucket = resources.get("bucket")
+    object = resources.get("object")
+    blob = client.bucket(bucket.name).blob(object.name, chunk_size=256 * 1024)
+    with tempfile.NamedTemporaryFile() as temp_f:
+        blob.download_to_filename(temp_f.name)
+        with open(temp_f.name, "r") as file_obj:
+            stored_contents = file_obj.read()
+    assert stored_contents == _STRING_CONTENT
+
+
 def client_download_blob_to_file(client, _preconditions, **resources):
     object = resources.get("object")
     with tempfile.NamedTemporaryFile() as temp_f:
@@ -681,6 +692,7 @@ method_mapping = {
         blob_exists,
         client_download_blob_to_file,
         blob_download_to_filename,
+        blob_chunked_download_to_filename,
         blob_download_as_bytes,
         blob_download_as_text,
         blobreader_read,
