@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2020 Google LLC. All Rights Reserved.
+# Copyright 2021 Google LLC. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -16,35 +16,30 @@
 
 import sys
 
-# [START storage_set_bucket_public_iam]
-from typing import List
+"""Sample that lists notification configurations for a bucket.
+This sample is used on this page:
+    https://cloud.google.com/storage/docs/reporting-changes
+For more information, see README.md.
+"""
 
+# [START storage_list_bucket_notifications]
 from google.cloud import storage
 
 
-def set_bucket_public_iam(
-    bucket_name: str = "your-bucket-name",
-    members: List[str] = ["allUsers"],
-):
-    """Set a public IAM Policy to bucket"""
+def list_bucket_notifications(bucket_name):
+    """Lists notification configurations for a bucket."""
+    # The ID of your GCS bucket
     # bucket_name = "your-bucket-name"
 
     storage_client = storage.Client()
     bucket = storage_client.bucket(bucket_name)
+    notifications = bucket.list_notifications()
 
-    policy = bucket.get_iam_policy(requested_policy_version=3)
-    policy.bindings.append(
-        {"role": "roles/storage.objectViewer", "members": members}
-    )
+    for notification in notifications:
+        print(f"Notification ID: {notification.notification_id}")
 
-    bucket.set_iam_policy(policy)
+# [END storage_list_bucket_notifications]
 
-    print("Bucket {} is now publicly readable".format(bucket.name))
-
-
-# [END storage_set_bucket_public_iam]
 
 if __name__ == "__main__":
-    set_bucket_public_iam(
-        bucket_name=sys.argv[1],
-    )
+    list_bucket_notifications(bucket_name=sys.argv[1])

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2020 Google LLC. All Rights Reserved.
+# Copyright 2021 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -16,35 +16,38 @@
 
 import sys
 
-# [START storage_set_bucket_public_iam]
-from typing import List
+"""Sample that writes and read a blob in GCS using file-like IO
+"""
 
+# [START storage_fileio_write_read]
 from google.cloud import storage
 
 
-def set_bucket_public_iam(
-    bucket_name: str = "your-bucket-name",
-    members: List[str] = ["allUsers"],
-):
-    """Set a public IAM Policy to bucket"""
+def write_read(bucket_name, blob_name):
+    """Write and read a blob from GCS using file-like IO"""
+    # The ID of your GCS bucket
     # bucket_name = "your-bucket-name"
+
+    # The ID of your new GCS object
+    # blob_name = "storage-object-name"
 
     storage_client = storage.Client()
     bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(blob_name)
 
-    policy = bucket.get_iam_policy(requested_policy_version=3)
-    policy.bindings.append(
-        {"role": "roles/storage.objectViewer", "members": members}
-    )
+    # Mode can be specified as wb/rb for bytes mode.
+    # See: https://docs.python.org/3/library/io.html
+    with blob.open("w") as f:
+        f.write("Hello world")
 
-    bucket.set_iam_policy(policy)
+    with blob.open("r") as f:
+        print(f.read())
 
-    print("Bucket {} is now publicly readable".format(bucket.name))
 
-
-# [END storage_set_bucket_public_iam]
+# [END storage_fileio_write_read]
 
 if __name__ == "__main__":
-    set_bucket_public_iam(
+    write_read(
         bucket_name=sys.argv[1],
+        blob_name=sys.argv[2]
     )
