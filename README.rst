@@ -18,7 +18,7 @@ via direct download.
 .. |versions| image:: https://img.shields.io/pypi/pyversions/google-cloud-storage.svg
    :target: https://pypi.org/project/google-cloud-storage
 .. _Google Cloud Storage: https://cloud.google.com/storage/docs
-.. _Client Library Documentation: https://googleapis.dev/python/storage/latest
+.. _Client Library Documentation: https://cloud.google.com/python/docs/reference/storage/latest
 .. _Storage API docs: https://cloud.google.com/storage/docs/json_api/v1
 
 Quick Start
