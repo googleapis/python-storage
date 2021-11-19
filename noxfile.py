@@ -163,14 +163,22 @@ def conftest_retry(session):
         session.skip("Conformance tests were not found")
 
     session.install("pytest",)
+    session.install("pytest-xdist",)
     session.install("-e", ".")
 
     # Run py.test against the conformance tests.
     if conformance_test_exists:
-        session.run("py.test", "--quiet", conformance_test_path, *session.posargs)
+        session.run(
+            "py.test", "-n", "auto", "--quiet", conformance_test_path, *session.posargs
+        )
     if conformance_test_folder_exists:
         session.run(
-            "py.test", "--quiet", conformance_test_folder_path, *session.posargs
+            "py.test",
+            "-n",
+            "auto",
+            "--quiet",
+            conformance_test_folder_path,
+            *session.posargs,
         )
 
 
