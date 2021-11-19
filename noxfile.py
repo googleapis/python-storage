@@ -162,8 +162,9 @@ def conftest_retry(session):
     if not conformance_test_exists and not conformance_test_folder_exists:
         session.skip("Conformance tests were not found")
 
-    session.install("pytest",)
-    session.install("pytest-xdist",)
+    # Install all test dependencies and pytest plugin to run tests in parallel.
+    # Then install this package in-place.
+    session.install("pytest", "pytest-xdist")
     session.install("-e", ".")
 
     # Run py.test against the conformance tests.
