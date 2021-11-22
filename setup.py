@@ -34,7 +34,6 @@ dependencies = [
     "google-resumable-media >= 1.3.0",
     "requests >= 2.18.0, < 3.0.0dev",
     "protobuf",
-    "six",
 ]
 extras = {}
 
