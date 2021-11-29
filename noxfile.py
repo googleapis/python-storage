@@ -167,7 +167,12 @@ def conftest_retry(session):
 
     # Run #CPU processes in parallel if no test session arguments are passed in.
     if session.posargs:
-        test_cmd = ["py.test", "--quiet", conformance_test_folder_path, *session.posargs]
+        test_cmd = [
+            "py.test",
+            "--quiet",
+            conformance_test_folder_path,
+            *session.posargs,
+        ]
     else:
         test_cmd = ["py.test", "-n", "auto", "--quiet", conformance_test_folder_path]
 
