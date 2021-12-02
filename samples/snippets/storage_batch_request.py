@@ -42,6 +42,7 @@ def batch_request(bucket_name, prefix=None):
 
     # Use a batch context manager to edit metadata in the list of blobs.
     # The batch request is sent out when the context manager closes.
+    # No more than 100 calls should be included in a single batch request.
     with client.batch():
         for blob in blobs_to_patch:
             metadata = {"your-metadata-key": "your-metadata-value"}
