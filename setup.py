@@ -39,7 +39,7 @@ dependencies = [
     "requests >= 2.18.0, < 3.0.0dev",
     "protobuf < 3.18.0; python_version<'3.0'",
     "protobuf; python_version>='3.6'",
-    "googleapis-common-protos < 1.53.0; python_version<'3.0'",
+    "googleapis-common-protos <1.55.0; python_version<'3.0'",
     "six",
 ]
 extras = {}
