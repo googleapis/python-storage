@@ -4,6 +4,14 @@
 
 [1]: https://pypi.org/project/google-cloud-storage/#history
 
+### [1.43.1](https://www.github.com/googleapis/python-storage/compare/v1.43.0...v1.43.1) (2021-12-10)
+
+
+### Documentation
+
+* Describe code sample more specifically ([#660](https://www.github.com/googleapis/python-storage/issues/660)) ([0459cb4](https://www.github.com/googleapis/python-storage/commit/0459cb4e866696c46385a5ad72e2a85db810a36b))
+* This is just a simple PR to better describe what the code is doing in the comments. ([0459cb4](https://www.github.com/googleapis/python-storage/commit/0459cb4e866696c46385a5ad72e2a85db810a36b))
+
 ## [1.43.0](https://www.github.com/googleapis/python-storage/compare/v1.42.3...v1.43.0) (2021-11-15)
 
 
