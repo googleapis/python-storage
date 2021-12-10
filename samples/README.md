@@ -31,9 +31,9 @@ for instructions on setting up credentials for applications.
     git clone https://github.com/googleapis/python-storage.git
     ```
 
-2. Activate a venv if you have not already.
+2. Activate a venv if you have not already from the [Quick Start](https://github.com/googleapis/python-storage#quick-start).
     ```
-    source env/bin/activate
+    source <your-venv>/bin/activate
     ```
 
 3. Install the dependencies needed to run the samples.
