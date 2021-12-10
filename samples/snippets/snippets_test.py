@@ -191,10 +191,13 @@ def test_upload_blob(test_bucket):
         )
 
 
-def test_upload_blob_from_memory(test_bucket):
+def test_upload_blob_from_memory(test_bucket, capsys):
     storage_upload_from_memory.upload_blob_from_memory(
         test_bucket.name, "Hello, is it me you're looking for?", "test_upload_blob"
     )
+    out, _ = capsys.readouterr()
+
+    assert "{} with contents".format(test_bucket.name) in out
 
 
 def test_upload_blob_with_kms(test_bucket):
