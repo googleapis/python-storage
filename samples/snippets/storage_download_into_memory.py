@@ -20,13 +20,13 @@ import sys
 from google.cloud import storage
 
 
-def download_blob_into_memory(bucket_name, source_blob_name):
-    """Downloads a blob from the bucket."""
+def download_blob_into_memory(bucket_name, blob_name):
+    """Downloads a blob into memory."""
     # The ID of your GCS bucket
     # bucket_name = "your-bucket-name"
 
     # The ID of your GCS object
-    # source_blob_name = "storage-object-name"
+    # blob_name = "storage-object-name"
 
     storage_client = storage.Client()
 
@@ -36,12 +36,12 @@ def download_blob_into_memory(bucket_name, source_blob_name):
     # Note `Bucket.blob` differs from `Bucket.get_blob` as it doesn't retrieve
     # any content from Google Cloud Storage. As we don't need additional data,
     # using `Bucket.blob` is preferred here.
-    blob = bucket.blob(source_blob_name)
+    blob = bucket.blob(blob_name)
     contents = blob.download_as_string()
 
     print(
         "Downloaded storage object {} from bucket {} as the following string: {}.".format(
-            source_blob_name, bucket_name, contents
+            blob_name, bucket_name, contents
         )
     )
 
@@ -51,5 +51,5 @@ def download_blob_into_memory(bucket_name, source_blob_name):
 if __name__ == "__main__":
     download_blob_into_memory(
         bucket_name=sys.argv[1],
-        source_blob_name=sys.argv[2],
+        blob_name=sys.argv[2],
     )
