@@ -190,10 +190,12 @@ def test_upload_blob(test_bucket):
             test_bucket.name, source_file.name, "test_upload_blob"
         )
 
+
 def test_upload_blob_from_memory(test_bucket):
     storage_upload_from_memory.upload_blob_from_memory(
         test_bucket.name, "Hello, is it me you're looking for?", "test_upload_blob"
     )
+
 
 def test_upload_blob_with_kms(test_bucket):
     with tempfile.NamedTemporaryFile() as source_file:
@@ -214,10 +216,11 @@ def test_download_blob(test_blob):
 
         assert dest_file.read()
 
+
 def test_download_blob_into_memory(test_blob):
     contents = storage_download_into_memory.download_blob_into_memory(
-            test_blob.bucket.name, test_blob.name
-        )
+        test_blob.bucket.name, test_blob.name
+    )
 
     assert contents == "Hello, is it me you're looking for?"
 
