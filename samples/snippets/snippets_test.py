@@ -38,6 +38,7 @@ import storage_delete_file_archived_generation
 import storage_disable_bucket_lifecycle_management
 import storage_disable_versioning
 import storage_download_file
+import storage_download_into_memory
 import storage_download_public_file
 import storage_enable_bucket_lifecycle_management
 import storage_enable_versioning
@@ -62,6 +63,7 @@ import storage_rename_file
 import storage_set_bucket_default_kms_key
 import storage_set_metadata
 import storage_upload_file
+import storage_upload_from_memory
 import storage_upload_with_kms_key
 
 KMS_KEY = os.environ["CLOUD_KMS_KEY"]
@@ -188,6 +190,10 @@ def test_upload_blob(test_bucket):
             test_bucket.name, source_file.name, "test_upload_blob"
         )
 
+def test_upload_blob_from_memory(test_bucket):
+    storage_upload_from_memory.upload_blob_from_memory(
+        test_bucket.name, "Hello, is it me you're looking for?", "test_upload_blob"
+    )
 
 def test_upload_blob_with_kms(test_bucket):
     with tempfile.NamedTemporaryFile() as source_file:
@@ -207,6 +213,13 @@ def test_download_blob(test_blob):
         )
 
         assert dest_file.read()
+
+def test_download_blob_into_memory(test_blob):
+    contents = storage_download_into_memory.download_blob_into_memory(
+            test_blob.bucket.name, test_blob.name
+        )
+
+    assert contents == "Hello, is it me you're looking for?"
 
 
 def test_blob_metadata(test_blob, capsys):
