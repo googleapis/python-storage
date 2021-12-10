@@ -217,12 +217,13 @@ def test_download_blob(test_blob):
         assert dest_file.read()
 
 
-def test_download_blob_into_memory(test_blob):
-    contents = storage_download_into_memory.download_blob_into_memory(
+def test_download_blob_into_memory(test_blob, capsys):
+    storage_download_into_memory.download_blob_into_memory(
         test_blob.bucket.name, test_blob.name
     )
+    out, _ = capsys.readouterr()
 
-    assert contents == "Hello, is it me you're looking for?"
+    assert "Hello, is it me you're looking for?" in out
 
 
 def test_blob_metadata(test_blob, capsys):

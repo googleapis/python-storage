@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2019 Google Inc. All Rights Reserved.
+# Copyright 2021 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -52,5 +52,4 @@ if __name__ == "__main__":
     download_blob_into_memory(
         bucket_name=sys.argv[1],
         source_blob_name=sys.argv[2],
-        destination_file_name=sys.argv[3],
     )

@@ -47,6 +47,6 @@ def upload_blob_from_memory(bucket_name, contents, destination_blob_name):
 if __name__ == "__main__":
     upload_blob_from_memory(
         bucket_name=sys.argv[1],
-        source_file_name=sys.argv[2],
+        contents=sys.argv[2],
         destination_blob_name=sys.argv[3],
     )
