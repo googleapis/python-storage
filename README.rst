@@ -108,4 +108,12 @@ Example Usage
     blob = bucket.get_blob('remote/path/to/file.txt')
     print(blob.download_as_bytes())
     blob.upload_from_string('New contents!')
-    
+
+
+What's Next
+~~~~~~~~~~~
+
+Now that you've set up your Python client for Cloud Storage,
+you can get started running `Storage samples.`_
+
+.. _Storage samples.: https://github.com/googleapis/python-storage/tree/main/samples
