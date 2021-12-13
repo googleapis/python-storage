@@ -21,9 +21,8 @@ Before running the samples, make sure you've followed the steps outlined in
 [Quick Start](https://github.com/googleapis/python-storage#quick-start).
 
 ### Authentication
-The samples require you to have authentication setup. Provide authentication credentials to your application code by setting the environment variable `GOOGLE_APPLICATION_CREDENTIALS`.
 Refer to the [Authentication Set Up Guide](https://cloud.google.com/storage/docs/reference/libraries#setting_up_authentication)
-for instructions on setting up credentials for applications.
+for more detailed instructions.
 
 ### Install Dependencies
 1. Clone this repository and change to the sample directory you want to use.

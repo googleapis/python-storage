@@ -43,7 +43,8 @@ Installation
 `venv`_ is a tool to create isolated Python environments. The basic problem it
 addresses is one of dependencies and versions, and indirectly permissions.
 
-With `venv`_, it's possible to install this library without needing system
+Make sure you're using Python 3.3 or later, which includes `venv`_ by default.
+With `venv`, it's possible to install this library without needing system
 install permissions, and without clashing with the installed system
 dependencies.
 
