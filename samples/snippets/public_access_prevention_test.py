@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pytest
 
 import storage_get_public_access_prevention
 import storage_set_public_access_prevention_enforced
 import storage_set_public_access_prevention_inherited
+
 
 def test_get_public_access_prevention(bucket, capsys):
     short_name = storage_get_public_access_prevention
