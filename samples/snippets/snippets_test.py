@@ -217,7 +217,7 @@ def test_download_byte_range(test_blob):
         storage_download_byte_range.download_byte_range(
             test_blob.bucket.name, test_blob.name, 0, 5, dest_file.name
         )
-        assert dest_file.read() == 'Hello'
+        assert dest_file.read() == b'Hello'
 
 
 def test_download_blob(test_blob):
