@@ -211,12 +211,14 @@ def test_upload_blob_with_kms(test_bucket):
         kms_blob = bucket.get_blob("test_upload_blob_encrypted")
         assert kms_blob.kms_key_name.startswith(KMS_KEY)
 
+
 def test_download_byte_range(test_blob):
     with tempfile.NamedTemporaryFile() as dest_file:
         storage_download_byte_range.download_byte_range(
             test_blob.bucket.name, test_blob.name, 0, 5, dest_file.name
         )
         assert dest_file.read() == 'Hello'
+
 
 def test_download_blob(test_blob):
     with tempfile.NamedTemporaryFile() as dest_file:
