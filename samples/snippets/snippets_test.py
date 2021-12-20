@@ -215,7 +215,7 @@ def test_upload_blob_with_kms(test_bucket):
 def test_download_byte_range(test_blob):
     with tempfile.NamedTemporaryFile() as dest_file:
         storage_download_byte_range.download_byte_range(
-            test_blob.bucket.name, test_blob.name, 0, 5, dest_file.name
+            test_blob.bucket.name, test_blob.name, 0, 4, dest_file.name
         )
         assert dest_file.read() == b'Hello'
 
