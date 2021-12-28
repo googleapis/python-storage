@@ -57,9 +57,6 @@ from google.cloud.storage.retry import DEFAULT_RETRY
 from google.cloud.storage.retry import ConditionalRetryPolicy
 
 
-_marker = object()
-
-
 class Client(ClientWithProject):
     """Client to bundle configuration needed for API requests.
 
@@ -104,22 +101,13 @@ class Client(ClientWithProject):
 
     def __init__(
         self,
-        project=_marker,
+        project=None,
         credentials=None,
         _http=None,
         client_info=None,
         client_options=None,
     ):
         self._base_connection = None
-
-        if project is None:
-            no_project = True
-            project = "<none>"
-        else:
-            no_project = False
-
-        if project is _marker:
-            project = None
 
         super(Client, self).__init__(
             project=project,
@@ -147,9 +135,6 @@ class Client(ClientWithProject):
             if client_options.api_endpoint:
                 api_endpoint = client_options.api_endpoint
                 kw_args["api_endpoint"] = api_endpoint
-
-        if no_project:
-            self.project = None
 
         self._connection = Connection(self, **kw_args)
         self._batch_stack = _LocalStack()
