@@ -183,6 +183,7 @@ class TestClient(unittest.TestCase):
 
         client = self._make_one(credentials=credentials)
 
+        # project falls back to the default inferred from credentials
         self.assertEqual(client.project, PROJECT)
         self.assertIsInstance(client._connection, Connection)
         self.assertIs(client._connection.credentials, credentials)
