@@ -143,3 +143,10 @@ def test_download_blob_to_file_w_etag(
         "gs://" + shared_bucket.name + "/" + filename, buffer, if_etag_match=blob.etag,
     )
     assert buffer.getvalue() == payload
+
+
+def test_client_default_inferred_project():
+    from google.cloud.storage.client import Client
+
+    dp_storage_client = Client(project=None)
+    assert dp_storage_client.project is not None

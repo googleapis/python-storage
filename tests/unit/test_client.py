@@ -196,7 +196,8 @@ class TestClient(unittest.TestCase):
 
         client = self._make_one(project=None, credentials=credentials)
 
-        self.assertIsNone(client.project)
+        # project falls back to the default inferred from the environment
+        self.assertIsNotNone(client.project)
         self.assertIsInstance(client._connection, Connection)
         self.assertIs(client._connection.credentials, credentials)
         self.assertIsNone(client.current_batch)
@@ -213,7 +214,8 @@ class TestClient(unittest.TestCase):
             project=None, credentials=credentials, client_info=client_info
         )
 
-        self.assertIsNone(client.project)
+        # project falls back to the default inferred from the environment
+        self.assertIsNotNone(client.project)
         self.assertIsInstance(client._connection, Connection)
         self.assertIs(client._connection.credentials, credentials)
         self.assertIsNone(client.current_batch)
@@ -1129,7 +1131,9 @@ class TestClient(unittest.TestCase):
 
     def test_create_bucket_w_missing_client_project(self):
         credentials = _make_credentials()
-        client = self._make_one(project=None, credentials=credentials)
+        client = self._make_one(credentials=credentials)
+        # mock client project to be None
+        client.project = None
 
         with self.assertRaises(ValueError):
             client.create_bucket("bucket")
@@ -1729,7 +1733,9 @@ class TestClient(unittest.TestCase):
 
     def test_list_buckets_wo_project(self):
         credentials = _make_credentials()
-        client = self._make_one(project=None, credentials=credentials)
+        client = self._make_one(credentials=credentials)
+        # mock client project to be None
+        client.project = None
 
         with self.assertRaises(ValueError):
             client.list_buckets()
