@@ -1131,13 +1131,30 @@ class TestClient(unittest.TestCase):
         )
 
     def test_create_bucket_w_missing_client_project(self):
+        from google.cloud.exceptions import BadRequest
+
         credentials = _make_credentials()
         client = self._make_one(credentials=credentials)
         # mock client project to be None
         client.project = None
 
-        with self.assertRaises(ValueError):
+        client._post_resource = mock.Mock()
+        client._post_resource.side_effect = BadRequest("Required parameter: project")
+
+        with self.assertRaises(BadRequest):
             client.create_bucket("bucket")
+
+        expected_path = "/b"
+        expected_data = {"name": "bucket"}
+        expected_query_params = {}  # missing required parameter "project"
+        client._post_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
+            _target_object=mock.ANY,
+        )
 
     def test_create_bucket_w_conflict_w_user_project(self):
         from google.cloud.exceptions import Conflict
@@ -1733,13 +1750,37 @@ class TestClient(unittest.TestCase):
         )
 
     def test_list_buckets_wo_project(self):
+        from google.cloud.exceptions import BadRequest
+        from google.cloud.storage.client import _item_to_bucket
+
         credentials = _make_credentials()
         client = self._make_one(credentials=credentials)
         # mock client project to be None
         client.project = None
 
-        with self.assertRaises(ValueError):
+        client._list_resource = mock.Mock()
+        client._list_resource.side_effect = BadRequest("Required parameter: project")
+        with self.assertRaises(BadRequest):
             client.list_buckets()
+
+        expected_path = "/b"
+        expected_item_to_value = _item_to_bucket
+        expected_page_token = None
+        expected_max_results = None
+        expected_page_size = None
+        expected_extra_params = {
+            "projection": "noAcl",  # missing required parameter "project"
+        }
+        client._list_resource.assert_called_once_with(
+            expected_path,
+            expected_item_to_value,
+            page_token=expected_page_token,
+            max_results=expected_max_results,
+            extra_params=expected_extra_params,
+            page_size=expected_page_size,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
+        )
 
     def test_list_buckets_w_defaults(self):
         from google.cloud.storage.client import _item_to_bucket

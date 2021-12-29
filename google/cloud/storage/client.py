@@ -906,9 +906,6 @@ class Client(ClientWithProject):
         if project is None:
             project = self.project
 
-        if project is None:
-            raise ValueError("Client project not set:  pass an explicit project.")
-
         if requester_pays is not None:
             warnings.warn(
                 "requester_pays arg is deprecated. Use Bucket().requester_pays instead.",
@@ -917,7 +914,10 @@ class Client(ClientWithProject):
             )
             bucket.requester_pays = requester_pays
 
-        query_params = {"project": project}
+        query_params = {}
+
+        if project is not None:
+            query_params = {"project": project}
 
         if predefined_acl is not None:
             predefined_acl = BucketACL.validate_predefined(predefined_acl)
@@ -1348,10 +1348,10 @@ class Client(ClientWithProject):
         if project is None:
             project = self.project
 
-        if project is None:
-            raise ValueError("Client project not set:  pass an explicit project.")
+        extra_params = {}
 
-        extra_params = {"project": project}
+        if project is not None:
+            extra_params = {"project": project}
 
         if prefix is not None:
             extra_params["prefix"] = prefix
