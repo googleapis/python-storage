@@ -121,13 +121,6 @@ class Client(ClientWithProject):
         if project is _marker:
             project = None
 
-        super(Client, self).__init__(
-            project=project,
-            credentials=credentials,
-            client_options=client_options,
-            _http=_http,
-        )
-
         kw_args = {"client_info": client_info}
 
         # `api_endpoint` should be only set by the user via `client_options`,
@@ -147,6 +140,25 @@ class Client(ClientWithProject):
             if client_options.api_endpoint:
                 api_endpoint = client_options.api_endpoint
                 kw_args["api_endpoint"] = api_endpoint
+
+        # Use anonymous credentials and no project when
+        # STORAGE_EMULATOR_HOST or a non-default api_endpoint is set.
+        if (
+            kw_args["api_endpoint"] is not None
+            and kw_args["api_endpoint"] != _DEFAULT_STORAGE_HOST
+        ):
+            if credentials is None:
+                credentials = AnonymousCredentials()
+            if project is None:
+                no_project = True
+                project = "<none>"
+
+        super(Client, self).__init__(
+            project=project,
+            credentials=credentials,
+            client_options=client_options,
+            _http=_http,
+        )
 
         if no_project:
             self.project = None
