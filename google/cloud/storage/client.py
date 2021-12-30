@@ -31,6 +31,7 @@ from google.api_core import page_iterator
 from google.cloud._helpers import _LocalStack, _NOW
 from google.cloud.client import ClientWithProject
 from google.cloud.exceptions import NotFound
+from google.cloud.storage._helpers import _get_environ_project
 from google.cloud.storage._helpers import _get_storage_host
 from google.cloud.storage._helpers import _DEFAULT_STORAGE_HOST
 from google.cloud.storage._helpers import _bucket_bound_hostname_url
@@ -149,6 +150,8 @@ class Client(ClientWithProject):
         ):
             if credentials is None:
                 credentials = AnonymousCredentials()
+            if project is None:
+                project = _get_environ_project()
             if project is None:
                 no_project = True
                 project = "<none>"
