@@ -35,13 +35,12 @@ import logging
 import mimetypes
 import os
 import re
-import warnings
-
 from urllib.parse import parse_qsl
 from urllib.parse import quote
 from urllib.parse import urlencode
 from urllib.parse import urlsplit
 from urllib.parse import urlunsplit
+import warnings
 
 from google import resumable_media
 from google.resumable_media.requests import ChunkedDownload

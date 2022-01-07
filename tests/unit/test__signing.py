@@ -21,10 +21,10 @@ import datetime
 import json
 import time
 import unittest
+import urllib.parse
 
 import mock
 import pytest
-import urllib.parse
 
 from . import _read_local_json
 

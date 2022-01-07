@@ -12,14 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import http.client
+from http.client import SERVICE_UNAVAILABLE
+from http.client import NO_CONTENT
 import unittest
 
 import mock
 import requests
-import http.client
-
-from http.client import SERVICE_UNAVAILABLE
-from http.client import NO_CONTENT
 
 
 def _make_credentials():

@@ -18,9 +18,8 @@ import base64
 import copy
 import datetime
 import json
-import warnings
-
 from urllib.parse import urlsplit
+import warnings
 
 from google.api_core import datetime_helpers
 from google.cloud._helpers import _datetime_to_rfc3339

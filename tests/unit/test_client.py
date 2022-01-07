@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import base64
+import http.client
 import io
 import json
 import mock
@@ -20,7 +21,6 @@ import pytest
 import re
 import requests
 import unittest
-import http.client
 import urllib
 
 

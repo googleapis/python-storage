@@ -64,8 +64,7 @@ class MIMEApplicationHTTP(MIMEApplication):
         lines.append("")
         lines.append(body)
         payload = "\r\n".join(lines)
-        super_init = super(MIMEApplicationHTTP, self).__init__
-        super_init(payload, "http", encode_noop)
+        super().__init__(payload, "http", encode_noop)
 
 
 class _FutureDict(object):
