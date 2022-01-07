@@ -21,8 +21,8 @@ Before running the samples, make sure you've followed the steps outlined in
 [Quick Start](https://github.com/googleapis/python-storage#quick-start).
 
 ### Authentication
-This sample requires you to have authentication setup. Refer to the [Authentication Getting Started Guide](https://cloud.google.com/docs/authentication/getting-started)
-for instructions on setting up credentials for applications.
+Refer to the [Authentication Set Up Guide](https://cloud.google.com/storage/docs/reference/libraries#setting_up_authentication)
+for more detailed instructions.
 
 ### Install Dependencies
 1. Clone this repository and change to the sample directory you want to use.
@@ -30,15 +30,12 @@ for instructions on setting up credentials for applications.
     git clone https://github.com/googleapis/python-storage.git
     ```
 
-2. Install [pip](https://pip.pypa.io/) and [virtualenv](https://virtualenv.pypa.io) if you do not already have them. You may want to refer to the [Python Development Environment Setup Guide](https://cloud.google.com/python/setup) for Google Cloud Platform for instructions.
-
-3. Create a virtualenv. Samples are compatible with Python 3.6+.
+2. Activate a venv if you have not already from the [Quick Start](https://github.com/googleapis/python-storage#quick-start).
     ```
-    virtualenv env
-    source env/bin/activate
+    source <your-venv>/bin/activate
     ```
 
-4. Install the dependencies needed to run the samples.
+3. Install the dependencies needed to run the samples.
     ```
     cd samples/snippets
     pip install -r requirements.txt
@@ -49,6 +46,7 @@ for instructions on setting up credentials for applications.
     <summary><b>List of Samples</b></summary>
 
 * [Activate HMAC Key](#activate-hmac-key)
+* [Batch Request](#batch-request)
 * [Add Bucket Conditional IAM Binding](#add-bucket-conditional-iam-binding)
 * [Add Bucket Default Owner](#add-bucket-default-owner)
 * [Add Bucket IAM Member](#add-bucket-iam-member)
@@ -79,9 +77,11 @@ for instructions on setting up credentials for applications.
 * [Disable Requester Pays](#disable-requester-pays)
 * [Disable Uniform Bucket Level Access](#disable-uniform-bucket-level-access)
 * [Disable Versioning](#disable-versioning)
+* [Download Byte Range](#download-byte-range)
 * [Download Encrypted File](#download-encrypted-file)
 * [Download File](#download-file)
 * [Download File Requester Pays](#download-file-requester-pays)
+* [Download Into Memory](#download-into-memory)
 * [Download Public File](#download-public-file)
 * [Enable Bucket Lifecycle Management](#enable-bucket-lifecycle-management)
 * [Enable Default Event Based Hold](#enable-default-event-based-hold)
@@ -139,11 +139,11 @@ for instructions on setting up credentials for applications.
 * [Set Metadata](#set-metadata)
 * [Set Public Access Prevention Enforced](#set-public-access-prevention-enforced)
 * [Set Public Access Prevention Inherited](#set-public-access-prevention-inherited)
-* [Set Public Access Prevention Unspecified](#set-public-access-prevention-unspecified)
 * [Set Retention Policy](#set-retention-policy)
 * [Set Temporary Hold](#set-temporary-hold)
 * [Upload Encrypted File](#upload-encrypted-file)
 * [Upload File](#upload-file)
+* [Upload From Memory](#upload-from-memory)
 * [Upload With KMS Key](#upload-with-kms-key)
 * [View Bucket IAM Members](#view-bucket-iam-members)
 
@@ -157,6 +157,15 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 
 
 `python storage_activate_hmac_key.py <ACCESS_ID> <PROJECT_ID>`
+
+-----
+### Batch Request
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_batch_request.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_batch_request.py). To run this sample:
+
+
+`python storage_batch_request.py <BUCKET_NAME> <PREFIX>`
 
 -----
 
@@ -430,6 +439,15 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 `python storage_disable_versioning.py <BUCKET_NAME>`
 
 -----
+### Download Byte Range
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_download_byte_range.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_download_byte_range.py). To run this sample:
+
+
+`python storage_download_byte_range.py <BUCKET_NAME> <SOURCE_BLOB_NAME> <START_BYTE> <END_BYTE> <DESTINATION_FILE_NAME> <>BASE64_ENCRYPTION_KEY`
+
+-----
 ### Download Encrypted File
 [![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_download_encrypted_file.py,samples/README.md)
 
@@ -455,6 +473,15 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 
 
 `python storage_download_file_requester_pays.py <BUCKET_NAME> <PROJECT_ID> <SOURCE_BLOB_NAME> <DESTINATION_FILE_NAME>`
+
+-----
+### Download Into Memory
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_download_into_memory.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_download_into_memory.py). To run this sample:
+
+
+`python storage_download_into_memory.py <BUCKET_NAME> <BLOB_NAME>`
 
 -----
 ### Download Public File
@@ -970,15 +997,6 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 `python storage_set_public_access_prevention_inherited.py <BUCKET_NAME>`
 
 -----
-### Set Public Access Prevention Unspecified
-[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_set_public_access_prevention_unspecified.py,samples/README.md)
-
-View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_set_public_access_prevention_unspecified.py). To run this sample:
-
-
-`python storage_set_public_access_prevention_unspecified.py <BUCKET_NAME>`
-
------
 ### Set Retention Policy
 [![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_set_retention_policy.py,samples/README.md)
 
@@ -1013,6 +1031,15 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 
 
 `python storage_upload_file.py <BUCKET_NAME> <SOURCE_FILE_NAME> <DESTINATION_BLOB_NAME>`
+
+-----
+### Upload From Memory
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_upload_from_memory.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_upload_from_memory.py). To run this sample:
+
+
+`python storage_upload_from_memory.py <BUCKET_NAME> <CONTENTS> <DESTINATION_BLOB_NAME>`
 
 -----
 ### Upload With KMS Key

@@ -3845,6 +3845,10 @@ class Blob(_PropertyMixin):
             - ``timeout``
             - ``retry``
 
+            For downloads only, the following additional arguments are supported:
+
+            - ``raw_download``
+
             For uploads only, the following additional arguments are supported:
 
             - ``content_type``
@@ -3872,7 +3876,7 @@ class Blob(_PropertyMixin):
             >>> client = storage.Client()
             >>> bucket = client.bucket("bucket-name")
 
-            >>> blob = bucket.get_blob("blob-name.txt")
+            >>> blob = bucket.blob("blob-name.txt")
             >>> with blob.open("rt") as f:
             >>>     print(f.read())
 
