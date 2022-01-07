@@ -21,8 +21,8 @@ Before running the samples, make sure you've followed the steps outlined in
 [Quick Start](https://github.com/googleapis/python-storage#quick-start).
 
 ### Authentication
-This sample requires you to have authentication setup. Refer to the [Authentication Getting Started Guide](https://cloud.google.com/docs/authentication/getting-started)
-for instructions on setting up credentials for applications.
+Refer to the [Authentication Set Up Guide](https://cloud.google.com/storage/docs/reference/libraries#setting_up_authentication)
+for more detailed instructions.
 
 ### Install Dependencies
 1. Clone this repository and change to the sample directory you want to use.
@@ -30,15 +30,12 @@ for instructions on setting up credentials for applications.
     git clone https://github.com/googleapis/python-storage.git
     ```
 
-2. Install [pip](https://pip.pypa.io/) and [virtualenv](https://virtualenv.pypa.io) if you do not already have them. You may want to refer to the [Python Development Environment Setup Guide](https://cloud.google.com/python/setup) for Google Cloud Platform for instructions.
-
-3. Create a virtualenv. Samples are compatible with Python 3.6+.
+2. Activate a venv if you have not already from the [Quick Start](https://github.com/googleapis/python-storage#quick-start).
     ```
-    virtualenv env
-    source env/bin/activate
+    source <your-venv>/bin/activate
     ```
 
-4. Install the dependencies needed to run the samples.
+3. Install the dependencies needed to run the samples.
     ```
     cd samples/snippets
     pip install -r requirements.txt
@@ -49,6 +46,7 @@ for instructions on setting up credentials for applications.
     <summary><b>List of Samples</b></summary>
 
 * [Activate HMAC Key](#activate-hmac-key)
+* [Batch Request](#batch-request)
 * [Add Bucket Conditional IAM Binding](#add-bucket-conditional-iam-binding)
 * [Add Bucket Default Owner](#add-bucket-default-owner)
 * [Add Bucket IAM Member](#add-bucket-iam-member)
@@ -79,9 +77,11 @@ for instructions on setting up credentials for applications.
 * [Disable Requester Pays](#disable-requester-pays)
 * [Disable Uniform Bucket Level Access](#disable-uniform-bucket-level-access)
 * [Disable Versioning](#disable-versioning)
+* [Download Byte Range](#download-byte-range)
 * [Download Encrypted File](#download-encrypted-file)
 * [Download File](#download-file)
 * [Download File Requester Pays](#download-file-requester-pays)
+* [Download Into Memory](#download-into-memory)
 * [Download Public File](#download-public-file)
 * [Enable Bucket Lifecycle Management](#enable-bucket-lifecycle-management)
 * [Enable Default Event Based Hold](#enable-default-event-based-hold)
@@ -139,11 +139,11 @@ for instructions on setting up credentials for applications.
 * [Set Metadata](#set-metadata)
 * [Set Public Access Prevention Enforced](#set-public-access-prevention-enforced)
 * [Set Public Access Prevention Inherited](#set-public-access-prevention-inherited)
-* [Set Public Access Prevention Unspecified](#set-public-access-prevention-unspecified)
 * [Set Retention Policy](#set-retention-policy)
 * [Set Temporary Hold](#set-temporary-hold)
 * [Upload Encrypted File](#upload-encrypted-file)
 * [Upload File](#upload-file)
+* [Upload From Memory](#upload-from-memory)
 * [Upload With KMS Key](#upload-with-kms-key)
 * [View Bucket IAM Members](#view-bucket-iam-members)
 
@@ -156,7 +156,16 @@ for instructions on setting up credentials for applications.
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_activate_hmac_key.py). To run this sample:
 
 
-`python storage_activate_hmac_key.py`
+`python storage_activate_hmac_key.py <ACCESS_ID> <PROJECT_ID>`
+
+-----
+### Batch Request
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_batch_request.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_batch_request.py). To run this sample:
+
+
+`python storage_batch_request.py <BUCKET_NAME> <PREFIX>`
 
 -----
 
@@ -166,7 +175,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_add_bucket_conditional_iam_binding.py). To run this sample:
 
 
-`python storage_add_bucket_conditional_iam_binding.py`
+`python storage_add_bucket_conditional_iam_binding.py <BUCKET_NAME> <ROLE> <TITLE> <DESCRIPTION> <EXPRESSION> <MEMBERS>`
 
 -----
 ### Add Bucket Default Owner
@@ -175,7 +184,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_add_bucket_default_owner.py). To run this sample:
 
 
-`python storage_add_bucket_default_owner.py`
+`python storage_add_bucket_default_owner.py <BUCKET_NAME> <USER_EMAIL>`
 
 -----
 ### Add Bucket IAM Member
@@ -184,7 +193,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_add_bucket_iam_member.py). To run this sample:
 
 
-`python storage_add_bucket_iam_member.py`
+`python storage_add_bucket_iam_member.py <BUCKET_NAME> <ROLE> <MEMBER>`
 
 -----
 ### Add Bucket Label
@@ -193,7 +202,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_add_bucket_label.py). To run this sample:
 
 
-`python storage_add_bucket_label.py`
+`python storage_add_bucket_label.py <BUCKET_NAME>`
 
 -----
 ### Add Bucket Owner
@@ -202,7 +211,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_add_bucket_owner.py). To run this sample:
 
 
-`python storage_add_bucket_owner.py`
+`python storage_add_bucket_owner.py <BUCKET_NAME> <USER_EMAIL>`
 
 -----
 ### Add File Owner
@@ -211,7 +220,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_add_file_owner.py). To run this sample:
 
 
-`python storage_add_file_owner.py`
+`python storage_add_file_owner.py <BUCKET_NAME> <BLOB_NAME> <USER_EMAIL>`
 
 -----
 ### Bucket Delete Default KMS Key
@@ -220,7 +229,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_bucket_delete_default_kms_key.py). To run this sample:
 
 
-`python storage_bucket_delete_default_kms_key.py`
+`python storage_bucket_delete_default_kms_key.py <BUCKET_NAME>`
 
 -----
 ### Change Default Storage Class
@@ -229,7 +238,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_change_default_storage_class.py). To run this sample:
 
 
-`python storage_change_default_storage_class.py`
+`python storage_change_default_storage_class.py <BUCKET_NAME>`
 
 -----
 ### Change File Storage Class
@@ -238,7 +247,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_change_file_storage_class.py). To run this sample:
 
 
-`python storage_change_file_storage_class.py`
+`python storage_change_file_storage_class.py <BUCKET_NAME> <BLOB_NAME>`
 
 -----
 ### Compose File
@@ -247,7 +256,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_compose_file.py). To run this sample:
 
 
-`python storage_compose_file.py`
+`python storage_compose_file.py <BUCKET_NAME> <FIRST_BLOB_NAME> <SECOND_BLOB_NAME> <DESTINATION_BLOB_NAME>`
 
 -----
 ### Configure Retries
@@ -256,7 +265,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_configure_retries.py). To run this sample:
 
 
-`python storage_configure_retries.py`
+`python storage_configure_retries.py <BUCKET_NAME> <BLOB_NAME>`
 
 -----
 ### Copy File
@@ -265,7 +274,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_copy_file.py). To run this sample:
 
 
-`python storage_copy_file.py`
+`python storage_copy_file.py <BUCKET_NAME> <BLOB_NAME> <DESTINATION_BUCKET_NAME> <DESTINATION_BLOB_NAME>`
 
 -----
 ### Copy File Archived Generation
@@ -274,7 +283,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_copy_file_archived_generation.py). To run this sample:
 
 
-`python storage_copy_file_archived_generation.py`
+`python storage_copy_file_archived_generation.py <BUCKET_NAME> <BLOB_NAME> <DESTINATION_BUCKET_NAME> <DESTINATION_BLOB_NAME> <GENERATION>`
 
 -----
 ### CORS Configuration
@@ -283,7 +292,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_cors_configuration.py). To run this sample:
 
 
-`python storage_cors_configuration.py`
+`python storage_cors_configuration.py <BUCKET_NAME>`
 
 -----
 ### Create Bucket
@@ -292,7 +301,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_create_bucket.py). To run this sample:
 
 
-`python storage_create_bucket.py`
+`python storage_create_bucket.py <BUCKET_NAME>`
 
 -----
 ### Create Bucket Class Location
@@ -301,7 +310,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_create_bucket_class_location.py). To run this sample:
 
 
-`python storage_create_bucket_class_location.py`
+`python storage_create_bucket_class_location.py <BUCKET_NAME>`
 
 -----
 ### Create Bucket Notifications
@@ -319,7 +328,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_create_hmac_key.py). To run this sample:
 
 
-`python storage_create_hmac_key.py`
+`python storage_create_hmac_key.py <PROJECT_ID> <SERVICE_ACCOUNT_EMAIL>`
 
 -----
 ### Deactivate HMAC Key
@@ -328,7 +337,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_deactivate_hmac_key.py). To run this sample:
 
 
-`python storage_deactivate_hmac_key.py`
+`python storage_deactivate_hmac_key.py <ACCESS_ID> <PROJECT_ID>`
 
 -----
 ### Define Bucket Website Configuration
@@ -337,7 +346,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_define_bucket_website_configuration.py). To run this sample:
 
 
-`python storage_define_bucket_website_configuration.py`
+`python storage_define_bucket_website_configuration.py <BUCKET_NAME> <MAIN_PAGE_SUFFIX> <NOT_FOUND_PAGE>`
 
 -----
 ### Delete Bucket
@@ -346,7 +355,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_delete_bucket.py). To run this sample:
 
 
-`python storage_delete_bucket.py`
+`python storage_delete_bucket.py <BUCKET_NAME>`
 
 -----
 ### Delete Bucket Notification
@@ -364,7 +373,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_delete_file.py). To run this sample:
 
 
-`python storage_delete_file.py`
+`python storage_delete_file.py <BUCKET_NAME> <BLOB_NAME>`
 
 -----
 ### Delete File Archived Generation
@@ -373,7 +382,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_delete_file_archived_generation.py). To run this sample:
 
 
-`python storage_delete_file_archived_generation.py`
+`python storage_delete_file_archived_generation.py <BUCKET_NAME> <BLOB_NAME> <GENERATION>`
 
 -----
 ### Delete HMAC Key
@@ -382,7 +391,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_delete_hmac_key.py). To run this sample:
 
 
-`python storage_delete_hmac_key.py`
+`python storage_delete_hmac_key.py <ACCESS_ID> <PROJECT_ID>`
 
 -----
 ### Disable Bucket Lifecycle Management
@@ -391,7 +400,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_disable_bucket_lifecycle_management.py). To run this sample:
 
 
-`python storage_disable_bucket_lifecycle_management.py`
+`python storage_disable_bucket_lifecycle_management.py <BUCKET_NAME>`
 
 -----
 ### Disable Default Event Based Hold
@@ -400,7 +409,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_disable_default_event_based_hold.py). To run this sample:
 
 
-`python storage_disable_default_event_based_hold.py`
+`python storage_disable_default_event_based_hold.py <BUCKET_NAME>`
 
 -----
 ### Disable Requester Pays
@@ -409,7 +418,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_disable_requester_pays.py). To run this sample:
 
 
-`python storage_disable_requester_pays.py`
+`python storage_disable_requester_pays.py <BUCKET_NAME>`
 
 -----
 ### Disable Uniform Bucket Level Access
@@ -418,7 +427,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_disable_uniform_bucket_level_access.py). To run this sample:
 
 
-`python storage_disable_uniform_bucket_level_access.py`
+`python storage_disable_uniform_bucket_level_access.py <BUCKET_NAME>`
 
 -----
 ### Disable Versioning
@@ -427,7 +436,16 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_disable_versioning.py). To run this sample:
 
 
-`python storage_disable_versioning.py`
+`python storage_disable_versioning.py <BUCKET_NAME>`
+
+-----
+### Download Byte Range
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_download_byte_range.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_download_byte_range.py). To run this sample:
+
+
+`python storage_download_byte_range.py <BUCKET_NAME> <SOURCE_BLOB_NAME> <START_BYTE> <END_BYTE> <DESTINATION_FILE_NAME> <>BASE64_ENCRYPTION_KEY`
 
 -----
 ### Download Encrypted File
@@ -436,7 +454,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_download_encrypted_file.py). To run this sample:
 
 
-`python storage_download_encrypted_file.py`
+`python storage_download_encrypted_file.py <BUCKET_NAME> <SOURCE_BLOB_NAME> <DESTINATION_FILE_NAME> <>BASE64_ENCRYPTION_KEY`
 
 -----
 ### Download File
@@ -445,7 +463,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_download_file.py). To run this sample:
 
 
-`python storage_download_file.py`
+`python storage_download_file.py <BUCKET_NAME> <SOURCE_BLOB_NAME> <DESTINATION_FILE_NAME>`
 
 -----
 ### Download File Requester Pays
@@ -454,7 +472,16 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_download_file_requester_pays.py). To run this sample:
 
 
-`python storage_download_file_requester_pays.py`
+`python storage_download_file_requester_pays.py <BUCKET_NAME> <PROJECT_ID> <SOURCE_BLOB_NAME> <DESTINATION_FILE_NAME>`
+
+-----
+### Download Into Memory
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_download_into_memory.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_download_into_memory.py). To run this sample:
+
+
+`python storage_download_into_memory.py <BUCKET_NAME> <BLOB_NAME>`
 
 -----
 ### Download Public File
@@ -463,7 +490,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_download_public_file.py). To run this sample:
 
 
-`python storage_download_public_file.py`
+`python storage_download_public_file.py <BUCKET_NAME> <SOURCE_BLOB_NAME> <DESTINATION_FILE_NAME>`
 
 -----
 ### Enable Bucket Lifecycle Management
@@ -472,7 +499,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_enable_bucket_lifecycle_management.py). To run this sample:
 
 
-`python storage_enable_bucket_lifecycle_management.py`
+`python storage_enable_bucket_lifecycle_management.py <BUCKET_NAME>`
 
 -----
 ### Enable Default Event Based Hold
@@ -481,7 +508,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_enable_default_event_based_hold.py). To run this sample:
 
 
-`python storage_enable_default_event_based_hold.py`
+`python storage_enable_default_event_based_hold.py <BUCKET_NAME>`
 
 -----
 ### Enable Requester Pays
@@ -490,7 +517,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_enable_requester_pays.py). To run this sample:
 
 
-`python storage_enable_requester_pays.py`
+`python storage_enable_requester_pays.py <BUCKET_NAME>`
 
 -----
 ### Enable Uniform Bucket Level Access
@@ -499,7 +526,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_enable_uniform_bucket_level_access.py). To run this sample:
 
 
-`python storage_enable_uniform_bucket_level_access.py`
+`python storage_enable_uniform_bucket_level_access.py <BUCKET_NAME>`
 
 -----
 ### Enable Versioning
@@ -508,7 +535,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_enable_versioning.py). To run this sample:
 
 
-`python storage_enable_versioning.py`
+`python storage_enable_versioning.py <BUCKET_NAME>`
 
 -----
 ### FileIO Write-Read
@@ -518,6 +545,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 
 
 `python storage_fileio_write_read.py <BUCKET_NAME> <BLOB_NAME>`
+
 -----
 ### FileIO Pandas
 [![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_fileio_pandas.py,samples/README.md)
@@ -526,6 +554,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 
 
 `python storage_fileio_pandas.py <BUCKET_NAME> <BLOB_NAME>`
+
 -----
 ### Generate Encryption Key
 [![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_generate_encryption_key.py,samples/README.md)
@@ -542,7 +571,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_generate_signed_post_policy_v4.py). To run this sample:
 
 
-`python storage_generate_signed_post_policy_v4.py`
+`python storage_generate_signed_post_policy_v4.py <BUCKET_NAME> <BLOB_NAME>`
 
 -----
 ### Generate Signed Url V2
@@ -551,7 +580,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_generate_signed_url_v2.py). To run this sample:
 
 
-`python storage_generate_signed_url_v2.py`
+`python storage_generate_signed_url_v2.py <BUCKET_NAME> <BLOB_NAME>`
 
 -----
 ### Generate Signed Url V4
@@ -560,7 +589,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_generate_signed_url_v4.py). To run this sample:
 
 
-`python storage_generate_signed_url_v4.py`
+`python storage_generate_signed_url_v4.py <BUCKET_NAME> <BLOB_NAME>`
 
 -----
 ### Generate Upload Signed Url V4
@@ -569,7 +598,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_generate_upload_signed_url_v4.py). To run this sample:
 
 
-`python storage_generate_upload_signed_url_v4.py`
+`python storage_generate_upload_signed_url_v4.py <BUCKET_NAME> <BLOB_NAME>`
 
 -----
 ### Get Bucket Labels
@@ -578,7 +607,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_get_bucket_labels.py). To run this sample:
 
 
-`python storage_get_bucket_labels.py`
+`python storage_get_bucket_labels.py <BUCKET_NAME>`
 
 -----
 ### Get Bucket Metadata
@@ -587,7 +616,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_get_bucket_metadata.py). To run this sample:
 
 
-`python storage_get_bucket_metadata.py`
+`python storage_get_bucket_metadata.py <BUCKET_NAME>`
 
 -----
 ### Get Default Event Based Hold
@@ -596,7 +625,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_get_default_event_based_hold.py). To run this sample:
 
 
-`python storage_get_default_event_based_hold.py`
+`python storage_get_default_event_based_hold.py <BUCKET_NAME>`
 
 -----
 ### Get HMAC Key
@@ -605,7 +634,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_get_hmac_key.py). To run this sample:
 
 
-`python storage_get_hmac_key.py`
+`python storage_get_hmac_key.py <ACCESS_ID> <PROJECT_ID>`
 
 -----
 ### Get Metadata
@@ -614,7 +643,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_get_metadata.py). To run this sample:
 
 
-`python storage_get_metadata.py`
+`python storage_get_metadata.py <BUCKET_NAME> <BLOB_NAME>`
 
 -----
 ### Get Public Access Prevention
@@ -623,7 +652,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_get_public_access_prevention.py). To run this sample:
 
 
-`python storage_get_public_access_prevention.py`
+`python storage_get_public_access_prevention.py <BUCKET_NAME>`
 
 -----
 ### Get Requester Pays Status
@@ -632,7 +661,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_get_requester_pays_status.py). To run this sample:
 
 
-`python storage_get_requester_pays_status.py`
+`python storage_get_requester_pays_status.py <BUCKET_NAME>`
 
 -----
 ### Get Retention Policy
@@ -641,7 +670,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_get_retention_policy.py). To run this sample:
 
 
-`python storage_get_retention_policy.py`
+`python storage_get_retention_policy.py <BUCKET_NAME>`
 
 -----
 ### Get Service Account
@@ -659,7 +688,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_get_uniform_bucket_level_access.py). To run this sample:
 
 
-`python storage_get_uniform_bucket_level_access.py`
+`python storage_get_uniform_bucket_level_access.py <BUCKET_NAME>`
 
 -----
 ### List Buckets
@@ -686,7 +715,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_list_file_archived_generations.py). To run this sample:
 
 
-`python storage_list_file_archived_generations.py`
+`python storage_list_file_archived_generations.py <BUCKET_NAME>`
 
 -----
 ### List Files
@@ -695,7 +724,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_list_files.py). To run this sample:
 
 
-`python storage_list_files.py`
+`python storage_list_files.py <BUCKET_NAME>`
 
 -----
 ### List Files With Prefix
@@ -704,7 +733,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_list_files_with_prefix.py). To run this sample:
 
 
-`python storage_list_files_with_prefix.py`
+`python storage_list_files_with_prefix.py <BUCKET_NAME> <PREFIX>`
 
 -----
 ### List HMAC Keys
@@ -713,7 +742,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_list_hmac_keys.py). To run this sample:
 
 
-`python storage_list_hmac_keys.py`
+`python storage_list_hmac_keys.py <PROJECT_ID>`
 
 -----
 ### Lock Retention Policy
@@ -722,7 +751,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_lock_retention_policy.py). To run this sample:
 
 
-`python storage_lock_retention_policy.py`
+`python storage_lock_retention_policy.py <BUCKET_NAME>`
 
 -----
 ### Make Public
@@ -731,7 +760,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_make_public.py). To run this sample:
 
 
-`python storage_make_public.py`
+`python storage_make_public.py <BUCKET_NAME> <BLOB_NAME>`
 
 -----
 ### Move File
@@ -740,7 +769,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_move_file.py). To run this sample:
 
 
-`python storage_move_file.py`
+`python storage_move_file.py <BUCKET_NAME> <BLOB_NAME> <DESTINATION_BUCKET_NAME> <DESTINATION_BLOB_NAME>`
 
 -----
 ### Object CSEK To CMEK
@@ -749,7 +778,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_object_csek_to_cmek.py). To run this sample:
 
 
-`python storage_object_csek_to_cmek.py`
+`python storage_object_csek_to_cmek.py <BUCKET_NAME> <BLOB_NAME> <ENCRYPTION_KEY> <KMS_KEY_NAME>`
 
 -----
 ### Object Get KMS Key
@@ -758,7 +787,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_object_get_kms_key.py). To run this sample:
 
 
-`python storage_object_get_kms_key.py`
+`python storage_object_get_kms_key.py <BUCKET_NAME> <BLOB_NAME>`
 
 -----
 ### Print Bucket ACL
@@ -767,7 +796,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_print_bucket_acl.py). To run this sample:
 
 
-`python storage_print_bucket_acl.py`
+`python storage_print_bucket_acl.py <BUCKET_NAME>`
 
 -----
 ### Print Bucket ACL For User
@@ -776,7 +805,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_print_bucket_acl_for_user.py). To run this sample:
 
 
-`python storage_print_bucket_acl_for_user.py`
+`python storage_print_bucket_acl_for_user.py <BUCKET_NAME> <USER_EMAIL>`
 
 -----
 ### Print File ACL
@@ -785,7 +814,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_print_file_acl.py). To run this sample:
 
 
-`python storage_print_file_acl.py`
+`python storage_print_file_acl.py <BUCKET_NAME> <BLOB_NAME>`
 
 -----
 ### Print File ACL For User
@@ -794,7 +823,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_print_file_acl_for_user.py). To run this sample:
 
 
-`python storage_print_file_acl_for_user.py`
+`python storage_print_file_acl_for_user.py <BUCKET_NAME> <BLOB_NAME> <USER_EMAIL>`
 
 -----
 ### Print PubSub Bucket Notification
@@ -812,7 +841,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_release_event_based_hold.py). To run this sample:
 
 
-`python storage_release_event_based_hold.py`
+`python storage_release_event_based_hold.py <BUCKET_NAME> <BLOB_NAME>`
 
 -----
 ### Release Temporary Hold
@@ -821,7 +850,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_release_temporary_hold.py). To run this sample:
 
 
-`python storage_release_temporary_hold.py`
+`python storage_release_temporary_hold.py <BUCKET_NAME> <BLOB_NAME>`
 
 -----
 ### Remove Bucket Conditional IAM Binding
@@ -830,7 +859,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_remove_bucket_conditional_iam_binding.py). To run this sample:
 
 
-`python storage_remove_bucket_conditional_iam_binding.py`
+`python storage_remove_bucket_conditional_iam_binding.py <BUCKET_NAME> <ROLE> <TITLE> <DESCRIPTION> <EXPRESSION>`
 
 -----
 ### Remove Bucket Default Owner
@@ -839,7 +868,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_remove_bucket_default_owner.py). To run this sample:
 
 
-`python storage_remove_bucket_default_owner.py`
+`python storage_remove_bucket_default_owner.py <BUCKET_NAME> <USER_EMAIL>`
 
 -----
 ### Remove Bucket IAM Member
@@ -848,7 +877,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_remove_bucket_iam_member.py). To run this sample:
 
 
-`python storage_remove_bucket_iam_member.py`
+`python storage_remove_bucket_iam_member.py <BUCKET_NAME> <ROLE> <MEMBER>`
 
 -----
 ### Remove Bucket Label
@@ -857,7 +886,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_remove_bucket_label.py). To run this sample:
 
 
-`python storage_remove_bucket_label.py`
+`python storage_remove_bucket_label.py <BUCKET_NAME>`
 
 -----
 ### Remove Bucket Owner
@@ -866,7 +895,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_remove_bucket_owner.py). To run this sample:
 
 
-`python storage_remove_bucket_owner.py`
+`python storage_remove_bucket_owner.py <BUCKET_NAME> <USER_EMAIL>`
 
 -----
 ### Remove CORS Configuration
@@ -875,7 +904,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_remove_cors_configuration.py). To run this sample:
 
 
-`python storage_remove_cors_configuration.py`
+`python storage_remove_cors_configuration.py <BUCKET_NAME>`
 
 -----
 ### Remove File Owner
@@ -884,7 +913,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_remove_file_owner.py). To run this sample:
 
 
-`python storage_remove_file_owner.py`
+`python storage_remove_file_owner.py <BUCKET_NAME> <BLOB_NAME> <USER_EMAIL>`
 
 -----
 ### Remove Retention Policy
@@ -893,7 +922,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_remove_retention_policy.py). To run this sample:
 
 
-`python storage_remove_retention_policy.py`
+`python storage_remove_retention_policy.py <BUCKET_NAME>`
 
 -----
 ### Rename File
@@ -902,7 +931,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_rename_file.py). To run this sample:
 
 
-`python storage_rename_file.py`
+`python storage_rename_file.py <BUCKET_NAME> <BLOB_NAME> <NEW_NAME>`
 
 -----
 ### Rotate Encryption Key
@@ -911,7 +940,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_rotate_encryption_key.py). To run this sample:
 
 
-`python storage_rotate_encryption_key.py`
+`python storage_rotate_encryption_key.py <BUCKET_NAME> <BLOB_NAME> <BASE64_ENCRYPTION_KEY> <BASE64_NEW_ENCRYPTION_KEY>`
 
 -----
 ### Set Bucket Default KMS Key
@@ -920,7 +949,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_set_bucket_default_kms_key.py). To run this sample:
 
 
-`python storage_set_bucket_default_kms_key.py`
+`python storage_set_bucket_default_kms_key.py <BUCKET_NAME> <KMS_KEY_NAME>`
 
 -----
 ### Set Bucket Public IAM
@@ -929,7 +958,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_set_bucket_public_iam.py). To run this sample:
 
 
-`python storage_set_bucket_public_iam.py`
+`python storage_set_bucket_public_iam.py <BUCKET_NAME>`
 
 -----
 ### Set Event Based Hold
@@ -938,7 +967,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_set_event_based_hold.py). To run this sample:
 
 
-`python storage_set_event_based_hold.py`
+`python storage_set_event_based_hold.py <BUCKET_NAME> <BLOB_NAME>`
 
 -----
 ### Set Metadata
@@ -947,7 +976,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_set_metadata.py). To run this sample:
 
 
-`python storage_set_metadata.py`
+`python storage_set_metadata.py <BUCKET_NAME> <BLOB_NAME>`
 
 -----
 ### Set Public Access Prevention Enforced
@@ -956,7 +985,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_set_public_access_prevention_enforced.py). To run this sample:
 
 
-`python storage_set_public_access_prevention_enforced.py`
+`python storage_set_public_access_prevention_enforced.py <BUCKET_NAME>`
 
 -----
 ### Set Public Access Prevention Inherited
@@ -965,16 +994,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_set_public_access_prevention_inherited.py). To run this sample:
 
 
-`python storage_set_public_access_prevention_inherited.py`
-
------
-### Set Public Access Prevention Unspecified
-[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_set_public_access_prevention_unspecified.py,samples/README.md)
-
-View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_set_public_access_prevention_unspecified.py). To run this sample:
-
-
-`python storage_set_public_access_prevention_unspecified.py`
+`python storage_set_public_access_prevention_inherited.py <BUCKET_NAME>`
 
 -----
 ### Set Retention Policy
@@ -983,7 +1003,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_set_retention_policy.py). To run this sample:
 
 
-`python storage_set_retention_policy.py`
+`python storage_set_retention_policy.py <BUCKET_NAME> <RETENTION_PERIOD>`
 
 -----
 ### Set Temporary Hold
@@ -992,7 +1012,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_set_temporary_hold.py). To run this sample:
 
 
-`python storage_set_temporary_hold.py`
+`python storage_set_temporary_hold.py <BUCKET_NAME> <BLOB_NAME>`
 
 -----
 ### Upload Encrypted File
@@ -1001,7 +1021,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_upload_encrypted_file.py). To run this sample:
 
 
-`python storage_upload_encrypted_file.py`
+`python storage_upload_encrypted_file.py <BUCKET_NAME> <SOURCE_FILE_NAME> <DESTINATION_BLOB_NAME> <BASE64_ENCRYPTION_KEY>`
 
 -----
 ### Upload File
@@ -1010,7 +1030,16 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_upload_file.py). To run this sample:
 
 
-`python storage_upload_file.py`
+`python storage_upload_file.py <BUCKET_NAME> <SOURCE_FILE_NAME> <DESTINATION_BLOB_NAME>`
+
+-----
+### Upload From Memory
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_upload_from_memory.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_upload_from_memory.py). To run this sample:
+
+
+`python storage_upload_from_memory.py <BUCKET_NAME> <CONTENTS> <DESTINATION_BLOB_NAME>`
 
 -----
 ### Upload With KMS Key
@@ -1019,7 +1048,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_upload_with_kms_key.py). To run this sample:
 
 
-`python storage_upload_with_kms_key.py`
+`python storage_upload_with_kms_key.py <BUCKET_NAME> <SOURCE_FILE_NAME> <DESTINATION_BLOB_NAME> <KMS_KEY_NAME>`
 
 -----
 ### View Bucket IAM Members
@@ -1028,7 +1057,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_view_bucket_iam_members.py). To run this sample:
 
 
-`python storage_view_bucket_iam_members.py`
+`python storage_view_bucket_iam_members.py <BUCKET_NAME>`
 
 -----
 
