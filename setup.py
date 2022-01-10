@@ -28,7 +28,7 @@ description = "Google Cloud Storage API client library"
 # 'Development Status :: 5 - Production/Stable'
 release_status = "Development Status :: 5 - Production/Stable"
 dependencies = [
-    "google-auth >= 1.25.0, < 2.0dev; python_version<'3.0'",
+    "google-auth >=1.25.0, <2.4; python_version<'3.0'",
     "google-auth >= 1.25.0, < 3.0dev; python_version>='3.6'",
     "google-api-core >= 1.29.0, < 2.0dev; python_version<'3.0'",
     "google-api-core >= 1.29.0, < 3.0dev; python_version>='3.6'",
