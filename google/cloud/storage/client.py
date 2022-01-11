@@ -146,7 +146,7 @@ class Client(ClientWithProject):
         # STORAGE_EMULATOR_HOST or a non-default api_endpoint is set.
         if (
             kw_args["api_endpoint"] is not None
-            and kw_args["api_endpoint"] != _DEFAULT_STORAGE_HOST
+            and kw_args["api_endpoint"].find("storage.googleapis.com") < 0
         ):
             if credentials is None:
                 credentials = AnonymousCredentials()
