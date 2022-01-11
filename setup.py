@@ -34,7 +34,7 @@ dependencies = [
     "google-api-core >= 1.29.0, < 3.0dev; python_version>='3.6'",
     "google-cloud-core >= 1.6.0, < 2.0dev; python_version<'3.0'",
     "google-cloud-core >= 1.6.0, < 3.0dev; python_version>='3.6'",
-    "google-resumable-media >= 1.3.0, < 2.0dev; python_version<'3.0'",
+    "google-resumable-media >=1.3.0, <2.2; python_version<'3.0'",
     "google-resumable-media >= 1.3.0, < 3.0dev; python_version>='3.6'",
     "requests >= 2.18.0, < 3.0.0dev",
     "protobuf < 3.18.0; python_version<'3.0'",
