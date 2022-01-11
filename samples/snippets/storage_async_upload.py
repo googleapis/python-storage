@@ -55,6 +55,7 @@ async def async_upload_blob(bucket_name):
 
 
 if __name__ == "__main__":
-    asyncio.run(async_upload_blob(
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(async_upload_blob(
         bucket_name=sys.argv[1]
     ))
