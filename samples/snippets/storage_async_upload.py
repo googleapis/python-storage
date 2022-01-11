@@ -34,7 +34,7 @@ async def async_upload_blob(bucket_name):
     storage_client = storage.Client()
     bucket = storage_client.bucket(bucket_name)
 
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
 
     tasks = []
     count = 3
@@ -55,7 +55,6 @@ async def async_upload_blob(bucket_name):
 
 
 if __name__ == "__main__":
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(async_upload_blob(
+    asyncio.run(async_upload_blob(
         bucket_name=sys.argv[1]
     ))

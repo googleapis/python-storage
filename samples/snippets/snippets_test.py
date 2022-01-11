@@ -216,8 +216,7 @@ def test_upload_blob_with_kms(test_bucket):
 
 
 def test_async_upload(bucket, capsys):
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(storage_async_upload.async_upload_blob(bucket.name))
+    asyncio.run(storage_async_upload.async_upload_blob(bucket.name))
     out, _ = capsys.readouterr()
     assert f"Uploaded 3 files to bucket {bucket.name}" in out
 
