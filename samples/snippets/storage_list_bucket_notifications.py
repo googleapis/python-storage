@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2020 Google LLC. All Rights Reserved.
+# Copyright 2021 Google LLC. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -16,32 +16,30 @@
 
 import sys
 
-# [START storage_create_bucket_class_location]
+"""Sample that lists notification configurations for a bucket.
+This sample is used on this page:
+    https://cloud.google.com/storage/docs/reporting-changes
+For more information, see README.md.
+"""
+
+# [START storage_list_bucket_notifications]
 from google.cloud import storage
 
 
-def create_bucket_class_location(bucket_name):
-    """
-    Create a new bucket in the US region with the coldline storage
-    class
-    """
-    # bucket_name = "your-new-bucket-name"
+def list_bucket_notifications(bucket_name):
+    """Lists notification configurations for a bucket."""
+    # The ID of your GCS bucket
+    # bucket_name = "your-bucket-name"
 
     storage_client = storage.Client()
-
     bucket = storage_client.bucket(bucket_name)
-    bucket.storage_class = "COLDLINE"
-    new_bucket = storage_client.create_bucket(bucket, location="us")
+    notifications = bucket.list_notifications()
 
-    print(
-        "Created bucket {} in {} with storage class {}".format(
-            new_bucket.name, new_bucket.location, new_bucket.storage_class
-        )
-    )
-    return new_bucket
+    for notification in notifications:
+        print(f"Notification ID: {notification.notification_id}")
 
+# [END storage_list_bucket_notifications]
 
-# [END storage_create_bucket_class_location]
 
 if __name__ == "__main__":
-    create_bucket_class_location(bucket_name=sys.argv[1])
+    list_bucket_notifications(bucket_name=sys.argv[1])

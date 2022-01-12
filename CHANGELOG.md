@@ -4,6 +4,42 @@
 
 [1]: https://pypi.org/project/google-cloud-storage/#history
 
+## [1.44.0](https://www.github.com/googleapis/python-storage/compare/v1.43.0...v1.44.0) (2022-01-05)
+
+
+### Features
+
+* add raw_download kwarg to BlobReader ([#668](https://www.github.com/googleapis/python-storage/issues/668)) ([10cdad6](https://www.github.com/googleapis/python-storage/commit/10cdad630739a324ae0b16a3d14a67ca4c8a23c2))
+
+
+### Documentation
+
+* Describe code sample more specifically ([#660](https://www.github.com/googleapis/python-storage/issues/660)) ([0459cb4](https://www.github.com/googleapis/python-storage/commit/0459cb4e866696c46385a5ad72e2a85db810a36b))
+* refresh readme instructions ([#667](https://www.github.com/googleapis/python-storage/issues/667)) ([ceb9314](https://www.github.com/googleapis/python-storage/commit/ceb931403a755f2a0bdc20144287dbc4700c3360))
+* This is just a simple PR to better describe what the code is doing in the comments. ([0459cb4](https://www.github.com/googleapis/python-storage/commit/0459cb4e866696c46385a5ad72e2a85db810a36b))
+* use writeable streamin example for 'download_blob_to_file' ([#676](https://www.github.com/googleapis/python-storage/issues/676)) ([96092d4](https://www.github.com/googleapis/python-storage/commit/96092d4be36be478f9671e8940de4fd09cc6f7f0))
+
+## [1.43.0](https://www.github.com/googleapis/python-storage/compare/v1.42.3...v1.43.0) (2021-11-15)
+
+
+### Features
+
+* add ignore_flush parameter to BlobWriter ([#644](https://www.github.com/googleapis/python-storage/issues/644)) ([af9c9dc](https://www.github.com/googleapis/python-storage/commit/af9c9dc83d8582167b74105167af17c9809455de))
+* add support for Python 3.10 ([#615](https://www.github.com/googleapis/python-storage/issues/615)) ([f81a2d0](https://www.github.com/googleapis/python-storage/commit/f81a2d054616c1ca1734997a16a8f47f98ab346b))
+
+
+### Bug Fixes
+
+* raise a ValueError in BucketNotification.create() if a topic name is not set ([#617](https://www.github.com/googleapis/python-storage/issues/617)) ([9dd78df](https://www.github.com/googleapis/python-storage/commit/9dd78df444d21af51af7858e8958b505a26c0b79))
+
+
+### Documentation
+
+* add contributing and authoring guides under samples/ ([#633](https://www.github.com/googleapis/python-storage/issues/633)) ([420591a](https://www.github.com/googleapis/python-storage/commit/420591a2b71f823dbe80f4a4405d8a514f87e0fb))
+* add links to samples and how to guides ([#641](https://www.github.com/googleapis/python-storage/issues/641)) ([49f78b0](https://www.github.com/googleapis/python-storage/commit/49f78b09fed6d9f486639fd0a72542c30a0df084))
+* add README to samples subdirectory ([#639](https://www.github.com/googleapis/python-storage/issues/639)) ([58af882](https://www.github.com/googleapis/python-storage/commit/58af882c047c31f59486513c568737082bca6350))
+* update samples readme with cli args ([#651](https://www.github.com/googleapis/python-storage/issues/651)) ([75dda81](https://www.github.com/googleapis/python-storage/commit/75dda810e808074d18dfe7915f1403ad01bf2f02))
+
 ### [1.42.3](https://www.github.com/googleapis/python-storage/compare/v1.42.2...v1.42.3) (2021-09-30)
 
 

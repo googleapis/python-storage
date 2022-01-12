@@ -109,6 +109,24 @@ class TestBlobReaderBinary(unittest.TestCase, _BlobReaderBase):
 
         reader.close()
 
+    def test_read_with_raw_download(self):
+        blob = mock.Mock()
+
+        def read_from_fake_data(start=0, end=None, **_):
+            return TEST_BINARY_DATA[start:end]
+
+        blob.download_as_bytes = mock.Mock(side_effect=read_from_fake_data)
+        download_kwargs = {"raw_download": True}
+        reader = self._make_blob_reader(blob, chunk_size=8, **download_kwargs)
+
+        # Read and trigger the first download of chunk_size.
+        self.assertEqual(reader.read(1), TEST_BINARY_DATA[0:1])
+        blob.download_as_bytes.assert_called_once_with(
+            start=0, end=8, checksum=None, retry=DEFAULT_RETRY, raw_download=True
+        )
+
+        reader.close()
+
     def test_retry_passed_through(self):
         blob = mock.Mock()
 
@@ -271,6 +289,13 @@ class TestBlobWriterBinary(unittest.TestCase, _BlobWriterBase):
         )
         self.assertEqual(writer._chunk_size, 512 * 1024)
         self.assertEqual(writer._retry, DEFAULT_RETRY)
+
+    def test_deprecated_text_mode_attribute(self):
+        blob = mock.Mock()
+        blob.chunk_size = 256 * 1024
+        writer = self._make_blob_writer(blob, text_mode=True)
+        self.assertTrue(writer._ignore_flush)
+        writer.flush()  # This should do nothing and not raise an error.
 
     def test_reject_wrong_chunk_size(self):
         blob = mock.Mock()
@@ -857,7 +882,7 @@ class TestBlobWriterText(unittest.TestCase, _BlobWriterBase):
             unwrapped_writer = self._make_blob_writer(
                 blob,
                 chunk_size=chunk_size,
-                text_mode=True,
+                ignore_flush=True,
                 num_retries=NUM_RETRIES,
                 content_type=PLAIN_CONTENT_TYPE,
             )
