@@ -23,6 +23,7 @@ import sys
 
 
 # [START storage_async_upload]
+# This sample can be run by calling `async.run(async_upload_blob('bucket_name'))`
 async def async_upload_blob(bucket_name):
     """Uploads a number of files in parallel to the bucket."""
     # The ID of your GCS bucket
