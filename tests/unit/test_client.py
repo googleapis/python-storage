@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import base64
+import http.client
 import io
 import json
 import mock
@@ -20,9 +21,8 @@ import pytest
 import re
 import requests
 import unittest
-from six import string_types
-from six.moves import http_client
-from six.moves.urllib import parse as urlparse
+import urllib
+
 
 from google.api_core import exceptions
 
@@ -74,7 +74,7 @@ def _make_connection(*responses):
     return mock_conn
 
 
-def _make_response(status=http_client.OK, content=b"", headers={}):
+def _make_response(status=http.client.OK, content=b"", headers={}):
     response = requests.Response()
     response.status_code = status
     response._content = content
@@ -83,7 +83,7 @@ def _make_response(status=http_client.OK, content=b"", headers={}):
     return response
 
 
-def _make_json_response(data, status=http_client.OK, headers=None):
+def _make_json_response(data, status=http.client.OK, headers=None):
     headers = headers or {}
     headers["Content-Type"] = "application/json"
     return _make_response(
@@ -377,7 +377,7 @@ class TestClient(unittest.TestCase):
             method="GET", url=mock.ANY, data=None, headers=mock.ANY, timeout=42
         )
         _, kwargs = http.request.call_args
-        scheme, netloc, path, qs, _ = urlparse.urlsplit(kwargs.get("url"))
+        scheme, netloc, path, qs, _ = urllib.parse.urlsplit(kwargs.get("url"))
         self.assertEqual("%s://%s" % (scheme, netloc), client._connection.API_BASE_URL)
         self.assertEqual(
             path,
@@ -415,7 +415,7 @@ class TestClient(unittest.TestCase):
             timeout=self._get_default_timeout(),
         )
         _, kwargs = http.request.call_args
-        scheme, netloc, path, qs, _ = urlparse.urlsplit(kwargs.get("url"))
+        scheme, netloc, path, qs, _ = urllib.parse.urlsplit(kwargs.get("url"))
         self.assertEqual("%s://%s" % (scheme, netloc), client._connection.API_BASE_URL)
         self.assertEqual(
             path,
@@ -1479,7 +1479,7 @@ class TestClient(unittest.TestCase):
 
         project = "PROJECT"
         raw_response = requests.Response()
-        raw_response.status_code = http_client.NOT_FOUND
+        raw_response.status_code = http.client.NOT_FOUND
         raw_request = requests.Request("GET", "http://example.com")
         raw_response.request = raw_request.prepare()
         grmp_response = InvalidResponse(raw_response)
@@ -1635,12 +1635,12 @@ class TestClient(unittest.TestCase):
         headers = {"accept-encoding": "gzip"}
         if_etag_match = extra_kwargs.get("if_etag_match")
         if if_etag_match is not None:
-            if isinstance(if_etag_match, string_types):
+            if isinstance(if_etag_match, str):
                 if_etag_match = [if_etag_match]
             headers["If-Match"] = ", ".join(if_etag_match)
         if_etag_not_match = extra_kwargs.get("if_etag_not_match")
         if if_etag_not_match is not None:
-            if isinstance(if_etag_not_match, string_types):
+            if isinstance(if_etag_not_match, str):
                 if_etag_not_match = [if_etag_not_match]
             headers["If-None-Match"] = ", ".join(if_etag_not_match)
 
@@ -2071,7 +2071,7 @@ class TestClient(unittest.TestCase):
             method="GET", url=mock.ANY, data=None, headers=mock.ANY, timeout=42
         )
         _, kwargs = http.request.call_args
-        scheme, netloc, path, qs, _ = urlparse.urlsplit(kwargs.get("url"))
+        scheme, netloc, path, qs, _ = urllib.parse.urlsplit(kwargs.get("url"))
         self.assertEqual("%s://%s" % (scheme, netloc), client._connection.API_BASE_URL)
         self.assertEqual(
             path,
@@ -2126,7 +2126,7 @@ class TestClient(unittest.TestCase):
             timeout=self._get_default_timeout(),
         )
         _, kwargs = http.request.call_args
-        scheme, netloc, path, qs, _ = urlparse.urlsplit(kwargs.get("url"))
+        scheme, netloc, path, qs, _ = urllib.parse.urlsplit(kwargs.get("url"))
         self.assertEqual("%s://%s" % (scheme, netloc), client._connection.API_BASE_URL)
         self.assertEqual(
             path,
@@ -2142,7 +2142,7 @@ class TestClient(unittest.TestCase):
                 ]
             ),
         )
-        parms = dict(urlparse.parse_qsl(qs))
+        parms = dict(urllib.parse.parse_qsl(qs))
         self.assertEqual(parms["userProject"], USER_PROJECT)
 
     def test_get_signed_policy_v4(self):

@@ -18,10 +18,8 @@ import base64
 import copy
 import datetime
 import json
+from urllib.parse import urlsplit
 import warnings
-
-import six
-from six.moves.urllib.parse import urlsplit
 
 from google.api_core import datetime_helpers
 from google.cloud._helpers import _datetime_to_rfc3339
@@ -632,6 +630,29 @@ class Bucket(_PropertyMixin):
         """
         self._label_removals.clear()
         return super(Bucket, self)._set_properties(value)
+
+    @property
+    def rpo(self):
+        """Get the RPO (Recovery Point Objective) of this bucket
+
+        See: https://cloud.google.com/storage/docs/managing-turbo-replication
+
+        "ASYNC_TURBO" or "DEFAULT"
+        :rtype: str
+        """
+        return self._properties.get("rpo")
+
+    @rpo.setter
+    def rpo(self, value):
+        """
+        Set the RPO (Recovery Point Objective) of this bucket.
+
+        See: https://cloud.google.com/storage/docs/managing-turbo-replication
+
+        :type value: str
+        :param value: "ASYNC_TURBO" or "DEFAULT"
+        """
+        self._patch_property("rpo", value)
 
     @property
     def user_project(self):
@@ -1705,7 +1726,7 @@ class Bucket(_PropertyMixin):
         for blob in blobs:
             try:
                 blob_name = blob
-                if not isinstance(blob_name, six.string_types):
+                if not isinstance(blob_name, str):
                     blob_name = blob.name
                 self.delete_blob(
                     blob_name,

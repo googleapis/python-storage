@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import asyncio
 import os
 import tempfile
 import time
@@ -23,6 +24,8 @@ import pytest
 import requests
 
 import storage_add_bucket_label
+import storage_async_upload
+import storage_batch_request
 import storage_bucket_delete_default_kms_key
 import storage_change_default_storage_class
 import storage_change_file_storage_class
@@ -210,6 +213,12 @@ def test_upload_blob_with_kms(test_bucket):
         bucket = storage.Client().bucket(test_bucket.name)
         kms_blob = bucket.get_blob("test_upload_blob_encrypted")
         assert kms_blob.kms_key_name.startswith(KMS_KEY)
+
+
+def test_async_upload(bucket, capsys):
+    asyncio.run(storage_async_upload.async_upload_blob(bucket.name))
+    out, _ = capsys.readouterr()
+    assert f"Uploaded 3 files to bucket {bucket.name}" in out
 
 
 def test_download_byte_range(test_blob):
@@ -538,3 +547,17 @@ def test_storage_configure_retries(test_blob, capsys):
     assert "The following library method is customized to be retried" in out
     assert "_should_retry" in out
     assert "initial=1.5, maximum=45.0, multiplier=1.2, deadline=500.0" in out
+
+
+def test_batch_request(test_bucket):
+    blob1 = test_bucket.blob("b/1.txt")
+    blob2 = test_bucket.blob("b/2.txt")
+    blob1.upload_from_string("hello world")
+    blob2.upload_from_string("hello world")
+
+    storage_batch_request.batch_request(test_bucket.name, "b/")
+    blob1.reload()
+    blob2.reload()
+
+    assert blob1.metadata.get("your-metadata-key") == "your-metadata-value"
+    assert blob2.metadata.get("your-metadata-key") == "your-metadata-value"
