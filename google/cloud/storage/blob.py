@@ -35,14 +35,12 @@ import logging
 import mimetypes
 import os
 import re
+from urllib.parse import parse_qsl
+from urllib.parse import quote
+from urllib.parse import urlencode
+from urllib.parse import urlsplit
+from urllib.parse import urlunsplit
 import warnings
-
-import six
-from six.moves.urllib.parse import parse_qsl
-from six.moves.urllib.parse import quote
-from six.moves.urllib.parse import urlencode
-from six.moves.urllib.parse import urlsplit
-from six.moves.urllib.parse import urlunsplit
 
 from google import resumable_media
 from google.resumable_media.requests import ChunkedDownload
@@ -64,7 +62,6 @@ from google.cloud.storage._helpers import _add_generation_match_parameters
 from google.cloud.storage._helpers import _PropertyMixin
 from google.cloud.storage._helpers import _scalar_property
 from google.cloud.storage._helpers import _bucket_bound_hostname_url
-from google.cloud.storage._helpers import _convert_to_timestamp
 from google.cloud.storage._helpers import _raise_if_more_than_one_set
 from google.cloud.storage._helpers import _api_core_retry_to_resumable_media_retry
 from google.cloud.storage._signing import generate_signed_url_v2
@@ -1303,10 +1300,7 @@ class Blob(_PropertyMixin):
 
         updated = self.updated
         if updated is not None:
-            if six.PY2:
-                mtime = _convert_to_timestamp(updated)
-            else:
-                mtime = updated.timestamp()
+            mtime = updated.timestamp()
             os.utime(file_obj.name, (mtime, mtime))
 
     def download_as_bytes(
@@ -3760,6 +3754,7 @@ class Blob(_PropertyMixin):
         self,
         mode="r",
         chunk_size=None,
+        ignore_flush=None,
         encoding=None,
         errors=None,
         newline=None,
@@ -3801,6 +3796,19 @@ class Blob(_PropertyMixin):
             chunk_size for writes must be exactly a multiple of 256KiB as with
             other resumable uploads. The default is 40 MiB.
 
+        :type ignore_flush: bool
+        :param ignore_flush:
+            (Optional) For non text-mode writes, makes flush() do nothing
+            instead of raising an error. flush() without closing is not
+            supported by the remote service and therefore calling it normally
+            results in io.UnsupportedOperation. However, that behavior is
+            incompatible with some consumers and wrappers of file objects in
+            Python, such as zipfile.ZipFile or io.TextIOWrapper. Setting
+            ignore_flush will cause flush() to successfully do nothing, for
+            compatibility with those contexts. The correct way to actually flush
+            data to the remote server is to close() (using a context manager,
+            such as in the example, will cause this to happen automatically).
+
         :type encoding: str
         :param encoding:
             (Optional) For text mode only, the name of the encoding that the stream will
@@ -3836,6 +3844,10 @@ class Blob(_PropertyMixin):
             - ``timeout``
             - ``retry``
 
+            For downloads only, the following additional arguments are supported:
+
+            - ``raw_download``
+
             For uploads only, the following additional arguments are supported:
 
             - ``content_type``
@@ -3863,7 +3875,7 @@ class Blob(_PropertyMixin):
             >>> client = storage.Client()
             >>> bucket = client.bucket("bucket-name")
 
-            >>> blob = bucket.get_blob("blob-name.txt")
+            >>> blob = bucket.blob("blob-name.txt")
             >>> with blob.open("rt") as f:
             >>>     print(f.read())
 
@@ -3873,14 +3885,24 @@ class Blob(_PropertyMixin):
                 raise ValueError(
                     "encoding, errors and newline arguments are for text mode only"
                 )
+            if ignore_flush:
+                raise ValueError(
+                    "ignore_flush argument is for non-text write mode only"
+                )
             return BlobReader(self, chunk_size=chunk_size, **kwargs)
         elif mode == "wb":
             if encoding or errors or newline:
                 raise ValueError(
                     "encoding, errors and newline arguments are for text mode only"
                 )
-            return BlobWriter(self, chunk_size=chunk_size, **kwargs)
+            return BlobWriter(
+                self, chunk_size=chunk_size, ignore_flush=ignore_flush, **kwargs
+            )
         elif mode in ("r", "rt"):
+            if ignore_flush:
+                raise ValueError(
+                    "ignore_flush argument is for non-text write mode only"
+                )
             return TextIOWrapper(
                 BlobReader(self, chunk_size=chunk_size, **kwargs),
                 encoding=encoding,
@@ -3888,8 +3910,13 @@ class Blob(_PropertyMixin):
                 newline=newline,
             )
         elif mode in ("w", "wt"):
+            if ignore_flush is False:
+                raise ValueError(
+                    "ignore_flush is required for text mode writing and "
+                    "cannot be set to False"
+                )
             return TextIOWrapper(
-                BlobWriter(self, chunk_size=chunk_size, text_mode=True, **kwargs),
+                BlobWriter(self, chunk_size=chunk_size, ignore_flush=True, **kwargs),
                 encoding=encoding,
                 errors=errors,
                 newline=newline,

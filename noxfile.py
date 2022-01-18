@@ -28,8 +28,8 @@ BLACK_VERSION = "black==19.10b0"
 BLACK_PATHS = ["docs", "google", "tests", "noxfile.py", "setup.py"]
 
 DEFAULT_PYTHON_VERSION = "3.8"
-SYSTEM_TEST_PYTHON_VERSIONS = ["2.7", "3.8"]
-UNIT_TEST_PYTHON_VERSIONS = ["2.7", "3.6", "3.7", "3.8", "3.9", "3.10"]
+SYSTEM_TEST_PYTHON_VERSIONS = ["3.8"]
+UNIT_TEST_PYTHON_VERSIONS = ["3.6", "3.7", "3.8", "3.9", "3.10"]
 CONFORMANCE_TEST_PYTHON_VERSIONS = ["3.8"]
 
 _DEFAULT_STORAGE_HOST = "https://storage.googleapis.com"
@@ -154,24 +154,30 @@ def system(session):
 @nox.session(python=CONFORMANCE_TEST_PYTHON_VERSIONS)
 def conftest_retry(session):
     """Run the retry conformance test suite."""
-    conformance_test_path = os.path.join("tests", "conformance.py")
     conformance_test_folder_path = os.path.join("tests", "conformance")
-    conformance_test_exists = os.path.exists(conformance_test_path)
     conformance_test_folder_exists = os.path.exists(conformance_test_folder_path)
     # Environment check: only run tests if found.
-    if not conformance_test_exists and not conformance_test_folder_exists:
+    if not conformance_test_folder_exists:
         session.skip("Conformance tests were not found")
 
-    session.install("pytest",)
+    # Install all test dependencies and pytest plugin to run tests in parallel.
+    # Then install this package in-place.
+    session.install("pytest", "pytest-xdist")
     session.install("-e", ".")
 
+    # Run #CPU processes in parallel if no test session arguments are passed in.
+    if session.posargs:
+        test_cmd = [
+            "py.test",
+            "--quiet",
+            conformance_test_folder_path,
+            *session.posargs,
+        ]
+    else:
+        test_cmd = ["py.test", "-n", "auto", "--quiet", conformance_test_folder_path]
+
     # Run py.test against the conformance tests.
-    if conformance_test_exists:
-        session.run("py.test", "--quiet", conformance_test_path, *session.posargs)
-    if conformance_test_folder_exists:
-        session.run(
-            "py.test", "--quiet", conformance_test_folder_path, *session.posargs
-        )
+    session.run(*test_cmd)
 
 
 @nox.session(python=DEFAULT_PYTHON_VERSION)
