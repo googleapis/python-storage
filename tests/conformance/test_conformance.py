@@ -24,12 +24,10 @@ import uuid
 
 import pytest
 import requests
-
-from six.moves.urllib import parse as urlparse
+import urllib
 
 from google.auth.credentials import AnonymousCredentials
 from google.cloud import storage
-from google.cloud.exceptions import NotFound
 from google.cloud.storage.hmac_key import HMACKeyMetadata
 
 from . import _read_local_json
@@ -39,7 +37,7 @@ _CONFORMANCE_TESTS = _read_local_json("retry_strategy_test_data.json")["retryTes
 
 """Environment variable or default host for Storage testbench emulator."""
 _HOST = os.environ.get("STORAGE_EMULATOR_HOST", "http://localhost:9000")
-_PORT = urlparse.urlsplit(_HOST).port
+_PORT = urllib.parse.urlsplit(_HOST).port
 
 """The storage testbench docker image info and commands."""
 _DEFAULT_IMAGE_NAME = "gcr.io/cloud-devrel-public-resources/storage-testbench"
@@ -79,39 +77,117 @@ def blob_exists(client, _preconditions, **resources):
 
 def blob_download_as_bytes(client, _preconditions, **resources):
     bucket = resources.get("bucket")
-    object = resources.get("object")
-    blob = client.bucket(bucket.name).blob(object.name)
-    blob.download_as_bytes()
+    file_data = resources.get("file_data")
+
+    for filename in ["simple", "logo"]:
+        info = file_data[filename]
+        payload = _read_payload(info["path"])
+
+        # upload test data file to the storage testbench bucket first
+        to_upload = client.bucket(bucket.name).blob(filename)
+        to_upload.upload_from_filename(info["path"])
+
+        # download the file and assert data integrity
+        blob = client.bucket(bucket.name).blob(filename)
+        stored_contents = blob.download_as_bytes()
+        assert stored_contents == payload
 
 
 def blob_download_as_text(client, _preconditions, **resources):
     bucket = resources.get("bucket")
     object = resources.get("object")
     blob = client.bucket(bucket.name).blob(object.name)
-    blob.download_as_text()
+    stored_contents = blob.download_as_text()
+    assert stored_contents == _STRING_CONTENT
 
 
 def blob_download_to_filename(client, _preconditions, **resources):
     bucket = resources.get("bucket")
-    object = resources.get("object")
-    blob = client.bucket(bucket.name).blob(object.name)
-    with tempfile.NamedTemporaryFile() as temp_f:
-        blob.download_to_filename(temp_f.name)
+    file_data = resources.get("file_data")
+
+    for filename in ["simple", "logo"]:
+        info = file_data[filename]
+        payload = _read_payload(info["path"])
+
+        # upload test data file to the storage testbench bucket first
+        to_upload = client.bucket(bucket.name).blob(filename)
+        to_upload.upload_from_filename(info["path"])
+
+        # download the file and assert data integrity
+        blob = client.bucket(bucket.name).blob(filename)
+        with tempfile.NamedTemporaryFile() as temp_f:
+            blob.download_to_filename(temp_f.name)
+            with open(temp_f.name, "rb") as file_obj:
+                stored_contents = file_obj.read()
+        assert stored_contents == payload
+
+
+def blob_download_to_filename_chunked(client, _preconditions, **resources):
+    bucket = resources.get("bucket")
+    file_data = resources.get("file_data")
+
+    for filename in ["simple", "logo"]:
+        info = file_data[filename]
+        payload = _read_payload(info["path"])
+
+        # upload test data file to the storage testbench bucket first
+        to_upload = client.bucket(bucket.name).blob(filename)
+        to_upload.upload_from_filename(info["path"])
+
+        # chunked download the file and assert data integrity
+        blob = client.bucket(bucket.name).blob(filename, chunk_size=256 * 1024)
+        with tempfile.NamedTemporaryFile() as temp_f:
+            blob.download_to_filename(temp_f.name)
+            with open(temp_f.name, "rb") as file_obj:
+                stored_contents = file_obj.read()
+        assert stored_contents == payload
 
 
 def client_download_blob_to_file(client, _preconditions, **resources):
-    object = resources.get("object")
-    with tempfile.NamedTemporaryFile() as temp_f:
-        with open(temp_f.name, "wb") as file_obj:
-            client.download_blob_to_file(object, file_obj)
+    bucket = resources.get("bucket")
+    file_data = resources.get("file_data")
+
+    for filename in ["simple", "logo"]:
+        info = file_data[filename]
+        payload = _read_payload(info["path"])
+
+        # upload test data file to the storage testbench bucket first
+        to_upload = client.bucket(bucket.name).blob(filename)
+        to_upload.upload_from_filename(info["path"])
+
+        # download the file and assert data integrity
+        blob = client.bucket(bucket.name).blob(filename)
+        with tempfile.NamedTemporaryFile() as temp_f:
+            with open(temp_f.name, "wb") as file_obj:
+                client.download_blob_to_file(blob, file_obj)
+            with open(temp_f.name, "rb") as to_read:
+                stored_contents = to_read.read()
+        assert stored_contents == payload
 
 
 def blobreader_read(client, _preconditions, **resources):
     bucket = resources.get("bucket")
-    object = resources.get("object")
-    blob = client.bucket(bucket.name).blob(object.name)
-    with blob.open() as reader:
-        reader.read()
+    file_data = resources.get("file_data")
+
+    for filename in ["simple", "logo"]:
+        info = file_data[filename]
+        payload = _read_payload(info["path"])
+        # upload test data file to the storage testbench bucket first
+        to_upload = client.bucket(bucket.name).blob(filename)
+        to_upload.upload_from_filename(info["path"])
+
+        # download the file and assert data integrity
+        blob = client.bucket(bucket.name).blob(filename)
+        with blob.open(mode="rb") as reader:
+            stored_contents = reader.read()
+        assert stored_contents == payload
+
+
+def _read_payload(file_path, mode="rb"):
+    """Helper method to read test data file payload."""
+    with open(file_path, mode=mode) as to_read:
+        payload = to_read.read()
+    return payload
 
 
 def client_list_blobs(client, _preconditions, **resources):
@@ -672,6 +748,7 @@ method_mapping = {
         blob_exists,
         client_download_blob_to_file,
         blob_download_to_filename,
+        blob_download_to_filename_chunked,
         blob_download_as_bytes,
         blob_download_as_text,
         blobreader_read,
@@ -723,73 +800,6 @@ method_mapping = {
 
 
 ########################################################################################################################################
-### Pytest Fixtures to Populate Resources ##############################################################################################
-########################################################################################################################################
-
-
-@pytest.fixture
-def client():
-    client = storage.Client(
-        project=_CONF_TEST_PROJECT_ID,
-        credentials=AnonymousCredentials(),
-        client_options={"api_endpoint": _HOST},
-    )
-    return client
-
-
-@pytest.fixture
-def bucket(client):
-    bucket = client.bucket(uuid.uuid4().hex)
-    client.create_bucket(bucket)
-    yield bucket
-    try:
-        bucket.delete(force=True)
-    except NotFound:  # in cases where bucket is deleted within the test
-        pass
-
-
-@pytest.fixture
-def object(client, bucket):
-    blob = client.bucket(bucket.name).blob(uuid.uuid4().hex)
-    blob.upload_from_string(_STRING_CONTENT)
-    blob.reload()
-    yield blob
-    try:
-        blob.delete()
-    except NotFound:  # in cases where object is deleted within the test
-        pass
-
-
-@pytest.fixture
-def notification(client, bucket):
-    notification = client.bucket(bucket.name).notification(
-        topic_name=_CONF_TEST_PUBSUB_TOPIC_NAME
-    )
-    notification.create()
-    notification.reload()
-    yield notification
-    try:
-        notification.delete()
-    except NotFound:  # in cases where notification is deleted within the test
-        pass
-
-
-@pytest.fixture
-def hmac_key(client):
-    hmac_key, _secret = client.create_hmac_key(
-        service_account_email=_CONF_TEST_SERVICE_ACCOUNT_EMAIL,
-        project_id=_CONF_TEST_PROJECT_ID,
-    )
-    yield hmac_key
-    try:
-        hmac_key.state = "INACTIVE"
-        hmac_key.update()
-        hmac_key.delete()
-    except NotFound:  # in cases where hmac_key is deleted within the test
-        pass
-
-
-########################################################################################################################################
 ### Helper Methods for Testbench Retry Test API ########################################################################################
 ########################################################################################################################################
 
@@ -833,7 +843,15 @@ def _get_retry_test(host, id):
 
 
 def _run_retry_test(
-    host, id, lib_func, _preconditions, bucket, object, notification, hmac_key
+    host,
+    id,
+    lib_func,
+    _preconditions,
+    bucket,
+    object,
+    notification,
+    hmac_key,
+    file_data,
 ):
     """
     To execute tests against the list of instrucions sent to the Retry Test API,
@@ -855,6 +873,7 @@ def _run_retry_test(
         object=object,
         notification=notification,
         hmac_key=hmac_key,
+        file_data=file_data,
     )
 
 
@@ -874,7 +893,16 @@ def _delete_retry_test(host, id):
 
 
 def run_test_case(
-    scenario_id, method, case, lib_func, host, bucket, object, notification, hmac_key
+    scenario_id,
+    method,
+    case,
+    lib_func,
+    host,
+    bucket,
+    object,
+    notification,
+    hmac_key,
+    file_data,
 ):
     scenario = _CONFORMANCE_TESTS[scenario_id - 1]
     expect_success = scenario["expectSuccess"]
@@ -901,6 +929,7 @@ def run_test_case(
             object,
             notification,
             hmac_key,
+            file_data,
         )
     except Exception as e:
         logging.exception(
