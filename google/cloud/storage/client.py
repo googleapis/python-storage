@@ -932,12 +932,22 @@ class Client(ClientWithProject):
 
         """
         bucket = self._bucket_arg_to_bucket(bucket_or_name)
+        query_params = {}
 
         if project is None:
             project = self.project
 
-        if project is None:
-            raise ValueError("Client project not set:  pass an explicit project.")
+        # Use no project if STORAGE_EMULATOR_HOST is set
+        if _get_storage_host().find("storage.googleapis.com") < 0:
+            if project is None:
+                project = _get_environ_project()
+            if project is None:
+                project = "<none>"
+
+        # Only include the project parameter if a project is set.
+        # If a project is not set, falls back to API validation (BadRequest). Removes client-side validation.
+        if project is not None:
+            query_params = {"project": project}
 
         if requester_pays is not None:
             warnings.warn(
@@ -946,8 +956,6 @@ class Client(ClientWithProject):
                 stacklevel=1,
             )
             bucket.requester_pays = requester_pays
-
-        query_params = {"project": project}
 
         if predefined_acl is not None:
             predefined_acl = BucketACL.validate_predefined(predefined_acl)
@@ -1375,13 +1383,22 @@ class Client(ClientWithProject):
         :returns: Iterator of all :class:`~google.cloud.storage.bucket.Bucket`
                   belonging to this project.
         """
+        extra_params = {}
+
         if project is None:
             project = self.project
 
-        if project is None:
-            raise ValueError("Client project not set:  pass an explicit project.")
+        # Use no project if STORAGE_EMULATOR_HOST is set
+        if _get_storage_host().find("storage.googleapis.com") < 0:
+            if project is None:
+                project = _get_environ_project()
+            if project is None:
+                project = "<none>"
 
-        extra_params = {"project": project}
+        # Only include the project parameter if a project is set.
+        # If a project is not set, falls back to API validation (BadRequest). Removes client-side validation.
+        if project is not None:
+            extra_params = {"project": project}
 
         if prefix is not None:
             extra_params["prefix"] = prefix
