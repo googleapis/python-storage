@@ -63,8 +63,9 @@ for more detailed instructions.
 * [CORS Configuration](#cors-configuration)
 * [Create Bucket](#create-bucket)
 * [Create Bucket Class Location](#create-bucket-class-location)
+* [Create Bucket Locat]
 * [Create Bucket Notifications](#create-bucket-notifications)
-* [Create Bucket with Turbo Replication](#create-bucket-rpo)
+* [Create Bucket Turbo Replication](#create-bucket-turbo-replication)
 * [Create HMAC Key](#create-hmac-key)
 * [Deactivate HMAC Key](#deactivate-hmac-key)
 * [Define Bucket Website Configuration](#define-bucket-website-configuration)
@@ -104,7 +105,7 @@ for more detailed instructions.
 * [Get Public Access Prevention](#get-public-access-prevention)
 * [Get Requester Pays Status](#get-requester-pays-status)
 * [Get Retention Policy](#get-retention-policy)
-* [Get RPO (Recovery Point Objective)](#get-rpo)
+* [Get RPO](#get-rpo)
 * [Get Service Account](#get-service-account)
 * [Get Uniform Bucket Level Access](#get-uniform-bucket-level-access)
 * [List Buckets](#list-buckets)
@@ -141,9 +142,9 @@ for more detailed instructions.
 * [Set Metadata](#set-metadata)
 * [Set Public Access Prevention Enforced](#set-public-access-prevention-enforced)
 * [Set Public Access Prevention Inherited](#set-public-access-prevention-inherited)
-* [Set Retention Policy](#set-retention-policy)
+* [Set RPO Async Turbo](#set-rpo-async-turbo)
 * [Set RPO Default](#set-rpo-default)
-* [Set RPO Turbo Replication](#set-rpo-turbo)
+* [Set Retention Policy](#set-retention-policy)
 * [Set Temporary Hold](#set-temporary-hold)
 * [Upload Encrypted File](#upload-encrypted-file)
 * [Upload File](#upload-file)
@@ -326,7 +327,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 `python storage_create_bucket_notifications.py <BUCKET_NAME> <TOPIC_NAME>`
 
 -----
-### Create Bucket with Turbo Replication
+### Create Bucket Turbo Replication
 [![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_create_bucket_turbo_replication.py,samples/README.md)
 
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_create_bucket_turbo_replication.py). To run this sample:
@@ -686,7 +687,7 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 `python storage_get_retention_policy.py <BUCKET_NAME>`
 
 -----
-### Get RPO (Recovery Point Objective)
+### Get RPO
 [![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_get_rpo.py,samples/README.md)
 
 View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_get_rpo.py). To run this sample:
@@ -1027,6 +1028,16 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 
 `python storage_set_retention_policy.py <BUCKET_NAME> <RETENTION_PERIOD>`
 
+
+-----
+### Set RPO Async Turbo
+[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_set_rpo_async_turbo.py,samples/README.md)
+
+View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_set_rpo_async_turbo.py). To run this sample:
+
+
+`python storage_set_rpo_async_turbo.py <BUCKET_NAME>`
+
 -----
 ### Set RPO Default
 [![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_set_rpo_default.py,samples/README.md)
@@ -1035,15 +1046,6 @@ View the [source code](https://github.com/googleapis/python-storage/blob/main/sa
 
 
 `python storage_set_rpo_default.py <BUCKET_NAME>`
-
------
-### Set RPO Turbo Replication
-[![Open in Cloud Shell][shell_img]](https://console.cloud.google.com/cloudshell/open?git_repo=https://github.com/googleapis/python-storage&page=editor&open_in_editor=samples/snippets/storage_set_rpo_async_turbo.py,samples/README.md)
-
-View the [source code](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_set_rpo_async_turbo.py). To run this sample:
-
-
-`python storage_set_rpo_async_turbo.py <BUCKET_NAME>`
 
 -----
 ### Set Temporary Hold
