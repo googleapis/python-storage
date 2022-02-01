@@ -63,7 +63,6 @@ for more detailed instructions.
 * [CORS Configuration](#cors-configuration)
 * [Create Bucket](#create-bucket)
 * [Create Bucket Class Location](#create-bucket-class-location)
-* [Create Bucket Locat]
 * [Create Bucket Notifications](#create-bucket-notifications)
 * [Create Bucket Turbo Replication](#create-bucket-turbo-replication)
 * [Create HMAC Key](#create-hmac-key)
