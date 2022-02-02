@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# [START storage_download_to_stream]
+# [START storage_stream_file_download]
 from google.cloud import storage
 
 
@@ -47,4 +47,4 @@ def download_blob_to_stream(bucket_name, source_blob_name, file_obj):
     return file_obj
     # Before reading from file_obj, remember to rewind with file_obj.seek(0).
 
-# [END storage_download_to_stream]
+# [END storage_stream_file_download]

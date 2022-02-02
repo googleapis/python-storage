@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# [START storage_upload_from_stream]
+# [START storage_stream_file_upload]
 from google.cloud import storage
 
 
@@ -49,4 +49,4 @@ def upload_blob_from_stream(bucket_name, file_obj, destination_blob_name):
         )
     )
 
-# [END storage_upload_from_stream]
+# [END storage_stream_file_upload]
