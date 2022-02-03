@@ -595,5 +595,5 @@ def test_batch_request(test_bucket):
 def test_storage_set_client_endpoint(capsys):
     storage_set_client_endpoint.set_client_endpoint('https://storage.googleapis.com')
     out, _ = capsys.readouterr()
-    
+
     assert "client initiated with endpoint: https://storage.googleapis.com" in out

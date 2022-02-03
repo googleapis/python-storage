@@ -27,10 +27,12 @@ from google.cloud import storage
 def set_client_endpoint(api_endpoint):
     """Initiates client with specified endpoint."""
     # api_endpoint = 'https://storage.googleapis.com'
-    
+
     storage_client = storage.Client(client_options={'api_endpoint': api_endpoint})
 
     print(f"client initiated with endpoint: {api_endpoint}")
+
+    return storage_client
 
 
 # [END storage_set_client_endpoint]
