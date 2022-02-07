@@ -30,7 +30,7 @@ def set_client_endpoint(api_endpoint):
 
     storage_client = storage.Client(client_options={'api_endpoint': api_endpoint})
 
-    print(f"client initiated with endpoint: {api_endpoint}")
+    print(f"client initiated with endpoint: {storage_client._connection.API_BASE_URL}")
 
     return storage_client
 
