@@ -980,6 +980,11 @@ class Blob(_PropertyMixin):
             to configure them.
         """
 
+        headers = {
+            **headers,
+            **_get_default_headers(self.bucket.client._connection.user_agent)
+        }
+
         retry_strategy = _api_core_retry_to_resumable_media_retry(retry)
 
         if self.chunk_size is None:
@@ -1739,7 +1744,10 @@ class Blob(_PropertyMixin):
                   * An object metadata dictionary
                   * The ``content_type`` as a string (according to precedence)
         """
-        headers = _get_encryption_headers(self._encryption_key)
+        headers = {
+            **_get_encryption_headers(self._encryption_key),
+            **_get_default_headers(self.bucket.client._connection.user_agent)
+        }
         object_metadata = self._get_writable_metadata()
         content_type = self._get_content_type(content_type)
         return headers, object_metadata, content_type
@@ -4401,6 +4409,23 @@ def _get_encryption_headers(key, source=False):
         prefix + "Algorithm": "AES256",
         prefix + "Key": _bytes_to_unicode(key),
         prefix + "Key-Sha256": _bytes_to_unicode(key_hash),
+    }
+
+
+def _get_default_headers(user_agent):
+    """Get the headers for a request.
+
+    Args:
+        user_agent (str): The user-agent for requests.
+    Returns:
+        Dict: The headers to be used for the request.
+    """
+    return {
+        "Accept": "application/json",
+        "Accept-Encoding": "gzip, deflate",
+        "User-Agent": user_agent,
+        "X-Goog-Api-Client": user_agent,
+        "content-type": "application/json",
     }
 
 
