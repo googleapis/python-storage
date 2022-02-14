@@ -64,6 +64,7 @@ from google.cloud.storage._helpers import _scalar_property
 from google.cloud.storage._helpers import _bucket_bound_hostname_url
 from google.cloud.storage._helpers import _raise_if_more_than_one_set
 from google.cloud.storage._helpers import _api_core_retry_to_resumable_media_retry
+from google.cloud.storage._helpers import _get_default_headers
 from google.cloud.storage._signing import generate_signed_url_v2
 from google.cloud.storage._signing import generate_signed_url_v4
 from google.cloud.storage._helpers import _NUM_RETRIES_MESSAGE
@@ -979,11 +980,6 @@ class Blob(_PropertyMixin):
             (google.cloud.storage.retry) for information on retry types and how
             to configure them.
         """
-
-        headers = {
-            **headers,
-            **_get_default_headers(self.bucket.client._connection.user_agent)
-        }
 
         retry_strategy = _api_core_retry_to_resumable_media_retry(retry)
 
@@ -4409,23 +4405,6 @@ def _get_encryption_headers(key, source=False):
         prefix + "Algorithm": "AES256",
         prefix + "Key": _bytes_to_unicode(key),
         prefix + "Key-Sha256": _bytes_to_unicode(key_hash),
-    }
-
-
-def _get_default_headers(user_agent):
-    """Get the headers for a request.
-
-    Args:
-        user_agent (str): The user-agent for requests.
-    Returns:
-        Dict: The headers to be used for the request.
-    """
-    return {
-        "Accept": "application/json",
-        "Accept-Encoding": "gzip, deflate",
-        "User-Agent": user_agent,
-        "X-Goog-Api-Client": user_agent,
-        "content-type": "application/json",
     }
 
 
