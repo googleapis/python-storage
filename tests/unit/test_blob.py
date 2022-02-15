@@ -26,6 +26,7 @@ from urllib.parse import urlencode
 import mock
 import pytest
 
+from google.cloud.storage._helpers import _get_default_headers
 from google.cloud.storage.retry import (
     DEFAULT_RETRY,
     DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
@@ -3556,6 +3557,8 @@ class Test_Blob(unittest.TestCase):
         upload_url += "?" + urlencode(qs_params)
         payload = b'{"name": "blob-name"}'
         expected_headers = {
+            #**_get_default_headers(client._connection.user_agent), 
+            "accept-encoding": "gzip",
             "content-type": "application/json; charset=UTF-8",
             "x-upload-content-length": str(size),
             "x-upload-content-type": content_type,
@@ -5739,6 +5742,7 @@ class _Connection(object):
 
     API_BASE_URL = "http://example.com"
     USER_AGENT = "testing 1.2.3"
+    user_agent = "testing 1.2.3"
     credentials = object()
 
 

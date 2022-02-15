@@ -1133,9 +1133,12 @@ class Client(ClientWithProject):
             headers, if_etag_match=if_etag_match, if_etag_not_match=if_etag_not_match,
         )
         headers = {
-            **headers,
-            **_get_default_headers(self._connection.user_agent)
+            **_get_default_headers(self._connection.user_agent),
+            **headers
         }
+
+        print("HERE")
+        print(headers)
 
         transport = self._http
         try:
