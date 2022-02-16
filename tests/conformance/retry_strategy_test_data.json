@@ -254,10 +254,13 @@
         "cases": [
           {
             "instructions": ["return-broken-stream", "return-broken-stream"]
+          },
+          {
+            "instructions": ["return-broken-stream-after-256K"]
           }
         ],
         "methods": [
-          {"name": "storage.objects.get",                   "resources": ["BUCKET", "OBJECT"]}
+          {"name": "storage.objects.download",              "resources": ["BUCKET", "OBJECT"]}
         ],
         "preconditionProvided": false,
         "expectSuccess": true

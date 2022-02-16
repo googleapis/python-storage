@@ -20,7 +20,6 @@ import pytest
 from google.auth.credentials import AnonymousCredentials
 from google.cloud import storage
 from google.cloud.exceptions import NotFound
-from google.cloud.storage._helpers import _base64_md5hash
 
 
 """Environment variable or default host for Storage testbench emulator."""
@@ -34,21 +33,16 @@ _CONF_TEST_SERVICE_ACCOUNT_EMAIL = (
 )
 _CONF_TEST_PUBSUB_TOPIC_NAME = "my-topic-name"
 
+"""Create content payload in different sizes."""
 
-"""Utilize shared test data."""
-dirname = os.path.realpath(os.path.dirname(__file__))
-data_dirname = os.path.abspath(os.path.join(dirname, "..", "data"))
-_filenames = [
-    ("logo", "CloudPlatform_128px_Retina.png"),
-    ("simple", "simple.txt"),
-    ("big", "five-point-one-mb-file.zip"),
-]
-_file_data = {
-    key: {"path": os.path.join(data_dirname, file_name)}
-    for key, file_name in _filenames
-}
+
+def _create_block(desired_kib):
+    line = "abc123XYZ" * 14 + "!" + "\n"
+    return int(desired_kib / len(line)) * line
+
 
 _STRING_CONTENT = "hello world"
+_SIZE_16MB = 16 * 1024 * 1024
 
 
 ########################################################################################################################################
@@ -119,9 +113,12 @@ def hmac_key(client):
 
 
 @pytest.fixture
-def file_data():
-    for file_data in _file_data.values():
-        with open(file_data["path"], "rb") as file_obj:
-            file_data["hash"] = _base64_md5hash(file_obj)
-
-    return _file_data
+def file_data(client, bucket):
+    blob = client.bucket(bucket.name).blob(uuid.uuid4().hex)
+    payload = _create_block(_SIZE_16MB)
+    blob.upload_from_string(payload)
+    yield blob, payload
+    try:
+        blob.delete()
+    except NotFound:  # in cases where object is deleted within the test
+        pass

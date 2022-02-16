@@ -77,117 +77,72 @@ def blob_exists(client, _preconditions, **resources):
 
 def blob_download_as_bytes(client, _preconditions, **resources):
     bucket = resources.get("bucket")
-    file_data = resources.get("file_data")
+    file, data = resources.get("file_data")
+    # download the file and assert data integrity
+    blob = client.bucket(bucket.name).blob(file.name)
+    stored_contents = blob.download_as_bytes()
+    assert stored_contents == data.encode("utf-8")
 
-    for filename in ["simple", "logo"]:
-        info = file_data[filename]
-        payload = _read_payload(info["path"])
 
-        # upload test data file to the storage testbench bucket first
-        to_upload = client.bucket(bucket.name).blob(filename)
-        to_upload.upload_from_filename(info["path"])
-
-        # download the file and assert data integrity
-        blob = client.bucket(bucket.name).blob(filename)
-        stored_contents = blob.download_as_bytes()
-        assert stored_contents == payload
+def blob_download_as_bytes_w_range(client, _preconditions, **resources):
+    bucket = resources.get("bucket")
+    file, data = resources.get("file_data")
+    blob = client.bucket(bucket.name).blob(file.name)
+    start_byte = 0
+    end_byte = 1000000
+    stored_contents = blob.download_as_bytes(start=start_byte, end=end_byte - 1)
+    assert stored_contents == data.encode("utf-8")[start_byte:end_byte]
 
 
 def blob_download_as_text(client, _preconditions, **resources):
     bucket = resources.get("bucket")
-    object = resources.get("object")
-    blob = client.bucket(bucket.name).blob(object.name)
+    file, data = resources.get("file_data")
+    blob = client.bucket(bucket.name).blob(file.name)
     stored_contents = blob.download_as_text()
-    assert stored_contents == _STRING_CONTENT
+    assert stored_contents == data
 
 
 def blob_download_to_filename(client, _preconditions, **resources):
     bucket = resources.get("bucket")
-    file_data = resources.get("file_data")
-
-    for filename in ["simple", "logo"]:
-        info = file_data[filename]
-        payload = _read_payload(info["path"])
-
-        # upload test data file to the storage testbench bucket first
-        to_upload = client.bucket(bucket.name).blob(filename)
-        to_upload.upload_from_filename(info["path"])
-
-        # download the file and assert data integrity
-        blob = client.bucket(bucket.name).blob(filename)
-        with tempfile.NamedTemporaryFile() as temp_f:
-            blob.download_to_filename(temp_f.name)
-            with open(temp_f.name, "rb") as file_obj:
-                stored_contents = file_obj.read()
-        assert stored_contents == payload
+    file, data = resources.get("file_data")
+    blob = client.bucket(bucket.name).blob(file.name)
+    with tempfile.NamedTemporaryFile() as temp_f:
+        blob.download_to_filename(temp_f.name)
+        with open(temp_f.name, "r") as file_obj:
+            stored_contents = file_obj.read()
+    assert stored_contents == data
 
 
 def blob_download_to_filename_chunked(client, _preconditions, **resources):
     bucket = resources.get("bucket")
-    file_data = resources.get("file_data")
-
-    for filename in ["simple", "logo"]:
-        info = file_data[filename]
-        payload = _read_payload(info["path"])
-
-        # upload test data file to the storage testbench bucket first
-        to_upload = client.bucket(bucket.name).blob(filename)
-        to_upload.upload_from_filename(info["path"])
-
-        # chunked download the file and assert data integrity
-        blob = client.bucket(bucket.name).blob(filename, chunk_size=256 * 1024)
-        with tempfile.NamedTemporaryFile() as temp_f:
-            blob.download_to_filename(temp_f.name)
-            with open(temp_f.name, "rb") as file_obj:
-                stored_contents = file_obj.read()
-        assert stored_contents == payload
+    file, data = resources.get("file_data")
+    blob = client.bucket(bucket.name).blob(file.name, chunk_size=40 * 1024 * 1024)
+    with tempfile.NamedTemporaryFile() as temp_f:
+        blob.download_to_filename(temp_f.name)
+        with open(temp_f.name, "r") as file_obj:
+            stored_contents = file_obj.read()
+    assert stored_contents == data
 
 
 def client_download_blob_to_file(client, _preconditions, **resources):
     bucket = resources.get("bucket")
-    file_data = resources.get("file_data")
-
-    for filename in ["simple", "logo"]:
-        info = file_data[filename]
-        payload = _read_payload(info["path"])
-
-        # upload test data file to the storage testbench bucket first
-        to_upload = client.bucket(bucket.name).blob(filename)
-        to_upload.upload_from_filename(info["path"])
-
-        # download the file and assert data integrity
-        blob = client.bucket(bucket.name).blob(filename)
-        with tempfile.NamedTemporaryFile() as temp_f:
-            with open(temp_f.name, "wb") as file_obj:
-                client.download_blob_to_file(blob, file_obj)
-            with open(temp_f.name, "rb") as to_read:
-                stored_contents = to_read.read()
-        assert stored_contents == payload
+    file, data = resources.get("file_data")
+    blob = client.bucket(bucket.name).blob(file.name)
+    with tempfile.NamedTemporaryFile() as temp_f:
+        with open(temp_f.name, "wb") as file_obj:
+            client.download_blob_to_file(blob, file_obj)
+        with open(temp_f.name, "r") as to_read:
+            stored_contents = to_read.read()
+    assert stored_contents == data
 
 
 def blobreader_read(client, _preconditions, **resources):
     bucket = resources.get("bucket")
-    file_data = resources.get("file_data")
-
-    for filename in ["simple", "logo"]:
-        info = file_data[filename]
-        payload = _read_payload(info["path"])
-        # upload test data file to the storage testbench bucket first
-        to_upload = client.bucket(bucket.name).blob(filename)
-        to_upload.upload_from_filename(info["path"])
-
-        # download the file and assert data integrity
-        blob = client.bucket(bucket.name).blob(filename)
-        with blob.open(mode="rb") as reader:
-            stored_contents = reader.read()
-        assert stored_contents == payload
-
-
-def _read_payload(file_path, mode="rb"):
-    """Helper method to read test data file payload."""
-    with open(file_path, mode=mode) as to_read:
-        payload = to_read.read()
-    return payload
+    file, data = resources.get("file_data")
+    blob = client.bucket(bucket.name).blob(file.name)
+    with blob.open(mode="r") as reader:
+        stored_contents = reader.read()
+    assert stored_contents == data
 
 
 def client_list_blobs(client, _preconditions, **resources):
@@ -504,11 +459,14 @@ def blob_compose(client, _preconditions, **resources):
 
 def blob_upload_from_string(client, _preconditions, **resources):
     bucket = resources.get("bucket")
+    _, data = resources.get("file_data")
     blob = client.bucket(bucket.name).blob(uuid.uuid4().hex)
+    blob.chunk_size = 4 * 1024 * 1024
     if _preconditions:
-        blob.upload_from_string(_STRING_CONTENT, if_generation_match=0)
+        blob.upload_from_string(data, if_generation_match=0)
     else:
-        blob.upload_from_string(_STRING_CONTENT)
+        blob.upload_from_string(data)
+    assert blob.size == len(data)
 
 
 def blob_upload_from_file(client, _preconditions, **resources):
@@ -750,6 +708,15 @@ method_mapping = {
         blob_download_to_filename,
         blob_download_to_filename_chunked,
         blob_download_as_bytes,
+        blob_download_as_text,
+        blobreader_read,
+    ],
+    "storage.objects.download": [
+        client_download_blob_to_file,
+        blob_download_to_filename,
+        blob_download_to_filename_chunked,
+        blob_download_as_bytes,
+        blob_download_as_bytes_w_range,
         blob_download_as_text,
         blobreader_read,
     ],
