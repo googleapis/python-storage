@@ -18,6 +18,7 @@ import hashlib
 import io
 import json
 import os
+from pydoc import cli
 import tempfile
 import unittest
 import http.client
@@ -2217,7 +2218,7 @@ class Test_Blob(unittest.TestCase):
         blob.content_disposition = "inline"
 
         content_type = u"image/jpeg"
-        info = blob._get_upload_arguments(content_type)
+        info = blob._get_upload_arguments(blob.client, content_type)
 
         headers, object_metadata, new_content_type = info
         header_key_value = "W3BYd0AscEBAQWZCZnJSM3gtMmIyU0NIUiwuP1l3Uk8="
@@ -2369,7 +2370,7 @@ class Test_Blob(unittest.TestCase):
             + data_read
             + b"\r\n--==0==--"
         )
-        headers = {"content-type": b'multipart/related; boundary="==0=="'}
+        headers = _get_default_headers(client._connection.user_agent, 'multipart/related; boundary="==0=="')
         client._http.request.assert_called_once_with(
             "POST", upload_url, data=payload, headers=headers, timeout=expected_timeout
         )
@@ -2615,10 +2616,11 @@ class Test_Blob(unittest.TestCase):
 
         self.assertEqual(upload.upload_url, upload_url)
         if extra_headers is None:
-            self.assertEqual(upload._headers, {})
+            self.assertEqual(upload._headers, _get_default_headers(client._connection.user_agent, content_type))
         else:
-            self.assertEqual(upload._headers, extra_headers)
-            self.assertIsNot(upload._headers, extra_headers)
+            expected_headers = {**_get_default_headers(client._connection.user_agent, content_type), **extra_headers}
+            self.assertEqual(upload._headers, expected_headers)
+            self.assertIsNot(upload._headers, expected_headers)
         self.assertFalse(upload.finished)
         if chunk_size is None:
             if blob_chunk_size is None:
@@ -2657,10 +2659,7 @@ class Test_Blob(unittest.TestCase):
             # Check the mocks.
             blob._get_writable_metadata.assert_called_once_with()
         payload = json.dumps(object_metadata).encode("utf-8")
-        expected_headers = {
-            "content-type": "application/json; charset=UTF-8",
-            "x-upload-content-type": content_type,
-        }
+        expected_headers = _get_default_headers(client._connection.user_agent, content_type)
         if size is not None:
             expected_headers["x-upload-content-length"] = str(size)
         if extra_headers is not None:
@@ -3511,6 +3510,7 @@ class Test_Blob(unittest.TestCase):
         size = 10000
         client = mock.Mock(_http=transport, _connection=_Connection, spec=[u"_http"])
         client._connection.API_BASE_URL = "https://storage.googleapis.com"
+        client._connection.USER_AGENT = "testing 1.2.3"
 
         if timeout is None:
             expected_timeout = self._get_default_timeout()
@@ -3557,9 +3557,7 @@ class Test_Blob(unittest.TestCase):
         upload_url += "?" + urlencode(qs_params)
         payload = b'{"name": "blob-name"}'
         expected_headers = {
-            #**_get_default_headers(client._connection.user_agent), 
-            "accept-encoding": "gzip",
-            "content-type": "application/json; charset=UTF-8",
+            **_get_default_headers(client._connection.user_agent, content_type),
             "x-upload-content-length": str(size),
             "x-upload-content-type": content_type,
         }

@@ -583,7 +583,7 @@ def _api_core_retry_to_resumable_media_retry(retry, num_retries=None):
         return resumable_media.RetryStrategy(max_retries=0)
 
 
-def _get_default_headers(user_agent):
+def _get_default_headers(user_agent, content_type="application/json; charset='UTF-8"):
     """Get the headers for a request.
 
     Args:
@@ -595,6 +595,7 @@ def _get_default_headers(user_agent):
         "Accept": "application/json",
         "Accept-Encoding": "gzip, deflate",
         "User-Agent": user_agent,
-        "X-Goog-Api-Client": user_agent,
-        "content-type": "application/json",
+        "x-goog-api-client": user_agent,
+        "content-type": content_type,
+        "x-upload-content-type": content_type, 
     }

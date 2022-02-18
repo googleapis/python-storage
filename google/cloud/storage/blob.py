@@ -1721,7 +1721,7 @@ class Blob(_PropertyMixin):
 
         return object_metadata
 
-    def _get_upload_arguments(self, content_type):
+    def _get_upload_arguments(self, client, content_type):
         """Get required arguments for performing an upload.
 
         The content type returned will be determined in order of precedence:
@@ -1740,12 +1740,12 @@ class Blob(_PropertyMixin):
                   * An object metadata dictionary
                   * The ``content_type`` as a string (according to precedence)
         """
+        content_type = self._get_content_type(content_type)
         headers = {
+            **_get_default_headers(client._connection.user_agent, content_type),
             **_get_encryption_headers(self._encryption_key),
-            **_get_default_headers(self.bucket.client._connection.user_agent)
         }
         object_metadata = self._get_writable_metadata()
-        content_type = self._get_content_type(content_type)
         return headers, object_metadata, content_type
 
     def _do_multipart_upload(
@@ -1864,7 +1864,8 @@ class Blob(_PropertyMixin):
         transport = self._get_transport(client)
         if "metadata" in self._properties and "metadata" not in self._changes:
             self._changes.add("metadata")
-        info = self._get_upload_arguments(content_type)
+        info = self._get_upload_arguments(client, content_type)
+        print(info)
         headers, object_metadata, content_type = info
 
         hostname = _get_host_name(client._connection)
@@ -2049,7 +2050,8 @@ class Blob(_PropertyMixin):
         transport = self._get_transport(client)
         if "metadata" in self._properties and "metadata" not in self._changes:
             self._changes.add("metadata")
-        info = self._get_upload_arguments(content_type)
+        info = self._get_upload_arguments(client, content_type)
+        print(info)
         headers, object_metadata, content_type = info
         if extra_headers is not None:
             headers.update(extra_headers)
