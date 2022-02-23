@@ -260,7 +260,7 @@
           }
         ],
         "methods": [
-          {"name": "storage.objects.download",              "resources": ["BUCKET", "OBJECT"]}
+          {"name": "storage.objects.get", "group": "storage.objects.download", "resources": ["BUCKET", "OBJECT"]}
         ],
         "preconditionProvided": false,
         "expectSuccess": true

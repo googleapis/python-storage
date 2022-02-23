@@ -38,11 +38,11 @@ _CONF_TEST_PUBSUB_TOPIC_NAME = "my-topic-name"
 
 def _create_block(desired_kib):
     line = "abc123XYZ" * 14 + "!" + "\n"
-    return int(desired_kib / len(line)) * line
+    return 1024 * int(desired_kib / len(line)) * line
 
 
 _STRING_CONTENT = "hello world"
-_SIZE_16MB = 16 * 1024 * 1024
+_SIZE_16MB = 16384  # 16*1024 KiB
 
 
 ########################################################################################################################################

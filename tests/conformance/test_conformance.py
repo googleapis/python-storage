@@ -944,11 +944,12 @@ with subprocess.Popen(_RUN_CMD) as proc:
         for i, c in enumerate(cases):
             for m in methods:
                 method_name = m["name"]
-                if method_name not in method_mapping:
+                method_group = m["group"] if m.get("group", None) else m["name"]
+                if method_group not in method_mapping:
                     logging.info("No tests for operation {}".format(method_name))
                     continue
 
-                for lib_func in method_mapping[method_name]:
+                for lib_func in method_mapping[method_group]:
                     test_name = "test-S{}-{}-{}-{}".format(
                         id, method_name, lib_func.__name__, i
                     )
