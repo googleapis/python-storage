@@ -22,7 +22,7 @@ from hashlib import md5
 import os
 from urllib.parse import urlsplit
 
-from google import resumable_media
+from google import resumable_media  # type: ignore
 from google.auth import environment_vars
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 from google.cloud.storage.retry import DEFAULT_RETRY
@@ -32,7 +32,11 @@ from google.cloud.storage.retry import DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED
 STORAGE_EMULATOR_ENV_VAR = "STORAGE_EMULATOR_HOST"
 """Environment variable defining host for Storage emulator."""
 
-_DEFAULT_STORAGE_HOST = u"https://storage.googleapis.com"
+_DEFAULT_STORAGE_HOST = "https://storage.googleapis.com"
+"""Default storage host for JSON API."""
+
+_BASE_STORAGE_URI = "storage.googleapis.com"
+"""Base request endpoint URI for JSON API."""
 
 # etag match parameters in snake case and equivalent header
 _ETAG_MATCH_PARAMETERS = (

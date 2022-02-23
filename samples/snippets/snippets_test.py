@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import asyncio
+import io
 import os
 import tempfile
 import time
@@ -44,6 +45,7 @@ import storage_download_byte_range
 import storage_download_file
 import storage_download_into_memory
 import storage_download_public_file
+import storage_download_to_stream
 import storage_enable_bucket_lifecycle_management
 import storage_enable_versioning
 import storage_generate_signed_post_policy_v4
@@ -65,9 +67,11 @@ import storage_remove_bucket_label
 import storage_remove_cors_configuration
 import storage_rename_file
 import storage_set_bucket_default_kms_key
+import storage_set_client_endpoint
 import storage_set_metadata
 import storage_upload_file
 import storage_upload_from_memory
+import storage_upload_from_stream
 import storage_upload_with_kms_key
 
 KMS_KEY = os.environ["CLOUD_KMS_KEY"]
@@ -204,6 +208,17 @@ def test_upload_blob_from_memory(test_bucket, capsys):
     assert "Hello, is it me you're looking for?" in out
 
 
+def test_upload_blob_from_stream(test_bucket, capsys):
+    file_obj = io.StringIO()
+    file_obj.write("This is test data.")
+    storage_upload_from_stream.upload_blob_from_stream(
+        test_bucket.name, file_obj, "test_upload_blob"
+    )
+    out, _ = capsys.readouterr()
+
+    assert "Stream data uploaded to {}".format("test_upload_blob") in out
+
+
 def test_upload_blob_with_kms(test_bucket):
     with tempfile.NamedTemporaryFile() as source_file:
         source_file.write(b"test")
@@ -245,6 +260,20 @@ def test_download_blob_into_memory(test_blob, capsys):
     out, _ = capsys.readouterr()
 
     assert "Hello, is it me you're looking for?" in out
+
+
+def test_download_blob_to_stream(test_blob, capsys):
+    file_obj = io.BytesIO()
+    storage_download_to_stream.download_blob_to_stream(
+        test_blob.bucket.name, test_blob.name, file_obj
+    )
+    out, _ = capsys.readouterr()
+
+    file_obj.seek(0)
+    content = file_obj.read()
+
+    assert "Downloaded blob" in out
+    assert b"Hello, is it me you're looking for?" in content
 
 
 def test_blob_metadata(test_blob, capsys):
@@ -561,3 +590,10 @@ def test_batch_request(test_bucket):
 
     assert blob1.metadata.get("your-metadata-key") == "your-metadata-value"
     assert blob2.metadata.get("your-metadata-key") == "your-metadata-value"
+
+
+def test_storage_set_client_endpoint(capsys):
+    storage_set_client_endpoint.set_client_endpoint('https://storage.googleapis.com')
+    out, _ = capsys.readouterr()
+
+    assert "client initiated with endpoint: https://storage.googleapis.com" in out
