@@ -1865,7 +1865,7 @@ class Blob(_PropertyMixin):
         if "metadata" in self._properties and "metadata" not in self._changes:
             self._changes.add("metadata")
         info = self._get_upload_arguments(client, content_type)
-        print(info)
+        #print(info)
         headers, object_metadata, content_type = info
 
         hostname = _get_host_name(client._connection)

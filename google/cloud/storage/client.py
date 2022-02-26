@@ -1137,8 +1137,8 @@ class Client(ClientWithProject):
             **headers
         }
 
-        print("HERE")
-        print(headers)
+        #print("HERE")
+        #print(headers)
 
         transport = self._http
         try:

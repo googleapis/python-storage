@@ -2370,7 +2370,7 @@ class Test_Blob(unittest.TestCase):
             + data_read
             + b"\r\n--==0==--"
         )
-        headers = _get_default_headers(client._connection.user_agent, 'multipart/related; boundary="==0=="')
+        headers = _get_default_headers(client._connection.user_agent, b'multipart/related; boundary="==0=="', "application/xml")
         client._http.request.assert_called_once_with(
             "POST", upload_url, data=payload, headers=headers, timeout=expected_timeout
         )
@@ -2901,6 +2901,7 @@ class Test_Blob(unittest.TestCase):
         resumable_url = "http://test.invalid?upload_id=and-then-there-was-1"
         headers1 = {"location": resumable_url}
         headers2 = {"range": "bytes=0-{:d}".format(blob.chunk_size - 1)}
+        #headers3 = _get_default_headers()
         transport, responses = self._make_resumable_transport(
             headers1, headers2, {}, total_bytes, data_corruption=data_corruption
         )
@@ -2975,6 +2976,7 @@ class Test_Blob(unittest.TestCase):
             if_metageneration_not_match=if_metageneration_not_match,
             timeout=expected_timeout,
         )
+        print(transport.request.mock_calls)
         self.assertEqual(transport.request.mock_calls, [call0, call1, call2])
 
     def test__do_resumable_upload_with_custom_timeout(self):
