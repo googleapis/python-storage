@@ -1137,9 +1137,6 @@ class Client(ClientWithProject):
             **headers
         }
 
-        #print("HERE")
-        #print(headers)
-
         transport = self._http
         try:
             blob_or_uri._do_download(

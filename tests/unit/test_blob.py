@@ -18,7 +18,6 @@ import hashlib
 import io
 import json
 import os
-from pydoc import cli
 import tempfile
 import unittest
 import http.client
@@ -2222,7 +2221,6 @@ class Test_Blob(unittest.TestCase):
         content_type = u"image/jpeg"
         info = blob._get_upload_arguments(client, content_type)
 
-        self.maxDiff = None
         headers, object_metadata, new_content_type = info
         header_key_value = "W3BYd0AscEBAQWZCZnJSM3gtMmIyU0NIUiwuP1l3Uk8="
         header_key_hash_value = "G0++dxF4q5rG4o9kE8gvEKn15RH6wLm0wXV1MgAlXOg="
@@ -2232,7 +2230,6 @@ class Test_Blob(unittest.TestCase):
             "X-Goog-Encryption-Key": header_key_value,
             "X-Goog-Encryption-Key-Sha256": header_key_hash_value,
         }
-        print(expected_headers)
         self.assertEqual(headers, expected_headers)
         expected_metadata = {
             "contentDisposition": blob.content_disposition,
@@ -2769,7 +2766,6 @@ class Test_Blob(unittest.TestCase):
         fake_response2 = self._mock_requests_response(
             resumable_media.PERMANENT_REDIRECT, headers2
         )
-        print("hello", headers2)
         json_body = '{{"size": "{:d}"}}'.format(total_bytes)
         if data_corruption:
             fake_response3 = resumable_media.DataCorruption(None)
@@ -2780,7 +2776,6 @@ class Test_Blob(unittest.TestCase):
 
         responses = [fake_response1, fake_response2, fake_response3]
         fake_transport.request.side_effect = responses
-        print('here1')
         return fake_transport, responses
 
     @staticmethod
@@ -2805,8 +2800,6 @@ class Test_Blob(unittest.TestCase):
         if predefined_acl is not None:
             upload_url += "&predefinedAcl={}".format(predefined_acl)
         expected_headers = _get_default_headers(client._connection.user_agent, content_type)
-
-
         if size is not None:
             expected_headers["x-upload-content-length"] = str(size)
         payload = json.dumps({"name": blob.name}).encode("utf-8")
@@ -2840,9 +2833,6 @@ class Test_Blob(unittest.TestCase):
             "content-type": content_type,
             "content-range": content_range,
         }
-
-        print("expected", expected_headers)
-
         payload = data[: blob.chunk_size]
         return mock.call(
             "PUT",
@@ -2898,11 +2888,11 @@ class Test_Blob(unittest.TestCase):
         data_corruption=False,
         retry=None,
     ):
-        chunk_size = 256*1024
+        CHUNK_SIZE = 256*1024
         USER_AGENT = 'testing 1.2.3'
         content_type = u"text/html"
         # Data to be uploaded.
-        data = b"<html>" + (b"A" * chunk_size) + b"</html>"
+        data = b"<html>" + (b"A" * CHUNK_SIZE) + b"</html>"
         total_bytes = len(data)
         if use_size:
             size = total_bytes
@@ -2912,7 +2902,7 @@ class Test_Blob(unittest.TestCase):
         # Create mocks to be checked for doing transport.
         resumable_url = "http://test.invalid?upload_id=and-then-there-was-1"
         headers1 = {**_get_default_headers(USER_AGENT, content_type), "location": resumable_url}
-        headers2 = {**_get_default_headers(USER_AGENT, content_type), "range": "bytes=0-{:d}".format(chunk_size - 1)}
+        headers2 = {**_get_default_headers(USER_AGENT, content_type), "range": "bytes=0-{:d}".format(CHUNK_SIZE - 1)}
         headers3 = _get_default_headers(USER_AGENT, content_type)
         transport, responses = self._make_resumable_transport(
             headers1, headers2, headers3, total_bytes, data_corruption=data_corruption
@@ -2936,7 +2926,6 @@ class Test_Blob(unittest.TestCase):
             expected_timeout = timeout
             timeout_kwarg = {"timeout": timeout}
 
-        #import pdb; pdb.set_trace()
         response = blob._do_resumable_upload(
             client,
             stream,
@@ -2951,8 +2940,6 @@ class Test_Blob(unittest.TestCase):
             retry=retry,
             **timeout_kwarg
         )
-        print('break post resumable')
-        #import pdb; pdb.set_trace()
 
         # Check the returned values.
         self.assertIs(response, responses[2])
@@ -2999,14 +2986,7 @@ class Test_Blob(unittest.TestCase):
             if_metageneration_not_match=if_metageneration_not_match,
             timeout=expected_timeout,
         )
-        #print(type(call1))
-        #print(transport.request.mock_calls[1])
-        #print(call1)
-        #import pdb
-        #pdb.set_trace()
-        #transport.request.mock_calls[1]
-        self.assertEqual(transport.request.mock_calls[1], call1)
-        #self.assertEqual(transport.request.mock_calls, [call0, call1, call2])
+        self.assertEqual(transport.request.mock_calls, [call0, call1, call2])
 
     def test__do_resumable_upload_with_custom_timeout(self):
         self._do_resumable_helper(timeout=9.58)
