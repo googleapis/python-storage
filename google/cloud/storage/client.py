@@ -1132,10 +1132,7 @@ class Client(ClientWithProject):
         _add_etag_match_headers(
             headers, if_etag_match=if_etag_match, if_etag_not_match=if_etag_not_match,
         )
-        headers = {
-            **_get_default_headers(self._connection.user_agent),
-            **headers
-        }
+        headers = {**_get_default_headers(self._connection.user_agent), **headers}
 
         transport = self._http
         try:

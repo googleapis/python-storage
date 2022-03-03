@@ -2372,7 +2372,11 @@ class Test_Blob(unittest.TestCase):
             + data_read
             + b"\r\n--==0==--"
         )
-        headers = _get_default_headers(client._connection.user_agent, b'multipart/related; boundary="==0=="', "application/xml")
+        headers = _get_default_headers(
+            client._connection.user_agent,
+            b'multipart/related; boundary="==0=="',
+            "application/xml",
+        )
         client._http.request.assert_called_once_with(
             "POST", upload_url, data=payload, headers=headers, timeout=expected_timeout
         )
@@ -2618,9 +2622,15 @@ class Test_Blob(unittest.TestCase):
 
         self.assertEqual(upload.upload_url, upload_url)
         if extra_headers is None:
-            self.assertEqual(upload._headers, _get_default_headers(client._connection.user_agent, content_type))
+            self.assertEqual(
+                upload._headers,
+                _get_default_headers(client._connection.user_agent, content_type),
+            )
         else:
-            expected_headers = {**_get_default_headers(client._connection.user_agent, content_type), **extra_headers}
+            expected_headers = {
+                **_get_default_headers(client._connection.user_agent, content_type),
+                **extra_headers,
+            }
             self.assertEqual(upload._headers, expected_headers)
             self.assertIsNot(upload._headers, expected_headers)
         self.assertFalse(upload.finished)
@@ -2661,7 +2671,9 @@ class Test_Blob(unittest.TestCase):
             # Check the mocks.
             blob._get_writable_metadata.assert_called_once_with()
         payload = json.dumps(object_metadata).encode("utf-8")
-        expected_headers = _get_default_headers(client._connection.user_agent, content_type)
+        expected_headers = _get_default_headers(
+            client._connection.user_agent, content_type
+        )
         if size is not None:
             expected_headers["x-upload-content-length"] = str(size)
         if extra_headers is not None:
@@ -2799,7 +2811,9 @@ class Test_Blob(unittest.TestCase):
         )
         if predefined_acl is not None:
             upload_url += "&predefinedAcl={}".format(predefined_acl)
-        expected_headers = _get_default_headers(client._connection.user_agent, content_type)
+        expected_headers = _get_default_headers(
+            client._connection.user_agent, content_type
+        )
         if size is not None:
             expected_headers["x-upload-content-length"] = str(size)
         payload = json.dumps({"name": blob.name}).encode("utf-8")
@@ -2864,7 +2878,7 @@ class Test_Blob(unittest.TestCase):
         expected_headers = {
             **_get_default_headers(client._connection.user_agent, content_type),
             "content-type": content_type,
-            "content-range": content_range
+            "content-range": content_range,
         }
         payload = data[blob.chunk_size :]
         return mock.call(
@@ -2888,8 +2902,8 @@ class Test_Blob(unittest.TestCase):
         data_corruption=False,
         retry=None,
     ):
-        CHUNK_SIZE = 256*1024
-        USER_AGENT = 'testing 1.2.3'
+        CHUNK_SIZE = 256 * 1024
+        USER_AGENT = "testing 1.2.3"
         content_type = u"text/html"
         # Data to be uploaded.
         data = b"<html>" + (b"A" * CHUNK_SIZE) + b"</html>"
@@ -2901,8 +2915,14 @@ class Test_Blob(unittest.TestCase):
 
         # Create mocks to be checked for doing transport.
         resumable_url = "http://test.invalid?upload_id=and-then-there-was-1"
-        headers1 = {**_get_default_headers(USER_AGENT, content_type), "location": resumable_url}
-        headers2 = {**_get_default_headers(USER_AGENT, content_type), "range": "bytes=0-{:d}".format(CHUNK_SIZE - 1)}
+        headers1 = {
+            **_get_default_headers(USER_AGENT, content_type),
+            "location": resumable_url,
+        }
+        headers2 = {
+            **_get_default_headers(USER_AGENT, content_type),
+            "range": "bytes=0-{:d}".format(CHUNK_SIZE - 1),
+        }
         headers3 = _get_default_headers(USER_AGENT, content_type)
         transport, responses = self._make_resumable_transport(
             headers1, headers2, headers3, total_bytes, data_corruption=data_corruption

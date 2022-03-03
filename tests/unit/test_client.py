@@ -1568,7 +1568,10 @@ class TestClient(unittest.TestCase):
 
         self.assertEqual(file_obj.tell(), 0)
 
-        headers = {**_get_default_headers(client._connection.user_agent), "accept-encoding": "gzip"}
+        headers = {
+            **_get_default_headers(client._connection.user_agent),
+            "accept-encoding": "gzip",
+        }
         blob._do_download.assert_called_once_with(
             client._http,
             file_obj,
@@ -1599,7 +1602,10 @@ class TestClient(unittest.TestCase):
         ):
             client.download_blob_to_file("gs://bucket_name/path/to/object", file_obj)
 
-        headers = {**_get_default_headers(client._connection.user_agent), "accept-encoding": "gzip"}
+        headers = {
+            **_get_default_headers(client._connection.user_agent),
+            "accept-encoding": "gzip",
+        }
         blob._do_download.assert_called_once_with(
             client._http,
             file_obj,
@@ -1715,10 +1721,7 @@ class TestClient(unittest.TestCase):
                 if_etag_not_match = [if_etag_not_match]
             headers["If-None-Match"] = ", ".join(if_etag_not_match)
 
-        headers = {
-            **_get_default_headers(client._connection.user_agent),
-            **headers
-        }
+        headers = {**_get_default_headers(client._connection.user_agent), **headers}
         blob._do_download.assert_called_once_with(
             client._http,
             file_obj,
