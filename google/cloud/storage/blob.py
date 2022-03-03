@@ -1865,7 +1865,6 @@ class Blob(_PropertyMixin):
         if "metadata" in self._properties and "metadata" not in self._changes:
             self._changes.add("metadata")
         info = self._get_upload_arguments(client, content_type)
-        #print(info)
         headers, object_metadata, content_type = info
 
         hostname = _get_host_name(client._connection)
@@ -2051,7 +2050,6 @@ class Blob(_PropertyMixin):
         if "metadata" in self._properties and "metadata" not in self._changes:
             self._changes.add("metadata")
         info = self._get_upload_arguments(client, content_type)
-        print(info)
         headers, object_metadata, content_type = info
         if extra_headers is not None:
             headers.update(extra_headers)
@@ -2236,7 +2234,6 @@ class Blob(_PropertyMixin):
             checksum=checksum,
             retry=retry,
         )
-
         while not upload.finished:
             try:
                 response = upload.transmit_next_chunk(transport, timeout=timeout)
@@ -2244,7 +2241,6 @@ class Blob(_PropertyMixin):
                 # Attempt to delete the corrupted object.
                 self.delete()
                 raise
-
         return response
 
     def _do_upload(
