@@ -2672,7 +2672,7 @@ class Test_Blob(unittest.TestCase):
             blob._get_writable_metadata.assert_called_once_with()
         payload = json.dumps(object_metadata).encode("utf-8")
         expected_headers = _get_default_headers(
-            client._connection.user_agent, content_type
+            client._connection.user_agent, x_upload_content_type=content_type
         )
         if size is not None:
             expected_headers["x-upload-content-length"] = str(size)
@@ -2812,7 +2812,7 @@ class Test_Blob(unittest.TestCase):
         if predefined_acl is not None:
             upload_url += "&predefinedAcl={}".format(predefined_acl)
         expected_headers = _get_default_headers(
-            client._connection.user_agent, content_type
+            client._connection.user_agent, x_upload_content_type=content_type
         )
         if size is not None:
             expected_headers["x-upload-content-length"] = str(size)
@@ -2843,7 +2843,7 @@ class Test_Blob(unittest.TestCase):
             content_range = "bytes 0-{:d}/{:d}".format(blob.chunk_size - 1, size)
 
         expected_headers = {
-            **_get_default_headers(client._connection.user_agent, content_type),
+            **_get_default_headers(client._connection.user_agent, x_upload_content_type=content_type),
             "content-type": content_type,
             "content-range": content_range,
         }
@@ -2876,7 +2876,7 @@ class Test_Blob(unittest.TestCase):
             blob.chunk_size, total_bytes - 1, total_bytes
         )
         expected_headers = {
-            **_get_default_headers(client._connection.user_agent, content_type),
+            **_get_default_headers(client._connection.user_agent, x_upload_content_type=content_type),
             "content-type": content_type,
             "content-range": content_range,
         }
@@ -3588,7 +3588,7 @@ class Test_Blob(unittest.TestCase):
         upload_url += "?" + urlencode(qs_params)
         payload = b'{"name": "blob-name"}'
         expected_headers = {
-            **_get_default_headers(client._connection.user_agent, content_type),
+            **_get_default_headers(client._connection.user_agent, x_upload_content_type=content_type),
             "x-upload-content-length": str(size),
             "x-upload-content-type": content_type,
         }
