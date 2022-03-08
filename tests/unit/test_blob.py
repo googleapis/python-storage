@@ -2843,7 +2843,9 @@ class Test_Blob(unittest.TestCase):
             content_range = "bytes 0-{:d}/{:d}".format(blob.chunk_size - 1, size)
 
         expected_headers = {
-            **_get_default_headers(client._connection.user_agent, x_upload_content_type=content_type),
+            **_get_default_headers(
+                client._connection.user_agent, x_upload_content_type=content_type
+            ),
             "content-type": content_type,
             "content-range": content_range,
         }
@@ -2876,7 +2878,9 @@ class Test_Blob(unittest.TestCase):
             blob.chunk_size, total_bytes - 1, total_bytes
         )
         expected_headers = {
-            **_get_default_headers(client._connection.user_agent, x_upload_content_type=content_type),
+            **_get_default_headers(
+                client._connection.user_agent, x_upload_content_type=content_type
+            ),
             "content-type": content_type,
             "content-range": content_range,
         }
@@ -3588,7 +3592,9 @@ class Test_Blob(unittest.TestCase):
         upload_url += "?" + urlencode(qs_params)
         payload = b'{"name": "blob-name"}'
         expected_headers = {
-            **_get_default_headers(client._connection.user_agent, x_upload_content_type=content_type),
+            **_get_default_headers(
+                client._connection.user_agent, x_upload_content_type=content_type
+            ),
             "x-upload-content-length": str(size),
             "x-upload-content-type": content_type,
         }
