@@ -54,7 +54,7 @@ _CONF_TEST_PUBSUB_TOPIC_NAME = "my-topic-name"
 
 _STRING_CONTENT = "hello world"
 _BYTE_CONTENT = b"12345678"
-_RESUMABLE_UPLOAD_CHUNK_SIZE = 4 * 1024 * 1024
+_RESUMABLE_UPLOAD_CHUNK_SIZE = 2 * 1024 * 1024
 
 
 ########################################################################################################################################

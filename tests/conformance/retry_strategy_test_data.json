@@ -251,7 +251,7 @@
             "instructions": ["return-503-after-256K"]
           },
           {
-            "instructions": ["return-503-after-12288K"]
+            "instructions": ["return-503-after-8192K"]
           }
         ],
         "methods": [
