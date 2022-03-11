@@ -30,8 +30,8 @@ release_status = "Development Status :: 5 - Production/Stable"
 dependencies = [
     "google-auth >= 1.25.0, < 2.0dev; python_version<'3.0'",
     "google-auth >= 1.25.0, < 3.0dev; python_version>='3.6'",
-    "google-api-core >= 1.29.0, < 2.0dev; python_version<'3.0'",
-    "google-api-core >= 1.29.0, < 3.0dev; python_version>='3.6'",
+    "google-api-core >= 1.31.5, <3.0.0dev,!=2.0.*,!=2.1.*,!=2.2.*,!=2.3.0",
+    "google-api-core >= 1.31.5, <3.0.0dev,!=2.0.*,!=2.1.*,!=2.2.*,!=2.3.0",
     "google-cloud-core >= 1.6.0, < 2.0dev; python_version<'3.0'",
     "google-cloud-core >= 1.6.0, < 3.0dev; python_version>='3.6'",
     "google-resumable-media >= 1.3.0, < 2.0dev; python_version<'3.0'",
