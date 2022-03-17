@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import requests  # type: ignore
-import requests.exceptions as requests_exceptions  # type: ignore
+import requests
+import requests.exceptions as requests_exceptions
 
 from google.api_core import exceptions as api_exceptions
 from google.api_core import retry
@@ -29,6 +29,7 @@ _RETRYABLE_TYPES = (
     ConnectionError,
     requests.ConnectionError,
     requests_exceptions.ChunkedEncodingError,
+    requests_exceptions.Timeout,
 )
 
 
