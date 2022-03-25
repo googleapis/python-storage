@@ -21,6 +21,7 @@ import base64
 from hashlib import md5
 import os
 from urllib.parse import urlsplit
+from uuid import uuid4
 
 from google import resumable_media
 from google.auth import environment_vars
@@ -599,7 +600,7 @@ def _get_default_headers(
         "Accept": "application/json",
         "Accept-Encoding": "gzip, deflate",
         "User-Agent": user_agent,
-        "x-goog-api-client": user_agent,
+        "x-goog-api-client": user_agent + " gccl-invocation-id/" + uuid4(),
         "content-type": content_type,
         "x-upload-content-type": x_upload_content_type or content_type,
     }

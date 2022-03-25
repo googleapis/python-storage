@@ -16,6 +16,7 @@
 
 import functools
 import os
+from uuid import uuid4
 import pkg_resources
 
 from google.cloud import _http
@@ -68,6 +69,11 @@ class Connection(_http.JSONConnection):
 
     def api_request(self, *args, **kwargs):
         retry = kwargs.pop("retry", None)
+        headers = {
+            **kwargs.pop("headers", {}),
+            "x-goog-api-client": self._connection.user_agent + " gccl-invocation-id: " + uuid4(),
+        }
+        kwargs["headers"] = headers
         call = functools.partial(super(Connection, self).api_request, *args, **kwargs)
         if retry:
             # If this is a ConditionalRetryPolicy, check conditions.
