@@ -71,7 +71,7 @@ class Connection(_http.JSONConnection):
         retry = kwargs.pop("retry", None)
         headers = {
             **kwargs.pop("headers", {}),
-            "x-goog-api-client": self._client_info.user_agent + " gccl-invocation-id: " + uuid4(),
+            "x-goog-api-client": self._client_info.user_agent + " gccl-invocation-id/" + str(uuid4()),
         }
         kwargs["headers"] = headers
         call = functools.partial(super(Connection, self).api_request, *args, **kwargs)
