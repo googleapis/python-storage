@@ -535,7 +535,10 @@ class TestClient(unittest.TestCase):
         client = self._make_one(project=project, credentials=credentials)
         connection = client._base_connection = _make_connection()
 
-        iterator = client._list_resource(path=path, item_to_value=item_to_value,)
+        iterator = client._list_resource(
+            path=path,
+            item_to_value=item_to_value,
+        )
 
         self.assertIsInstance(iterator, HTTPIterator)
         self.assertIs(iterator.client, client)
@@ -1359,7 +1362,9 @@ class TestClient(unittest.TestCase):
         timeout = 42
 
         bucket = client.create_bucket(
-            bucket_name, predefined_acl="publicRead", timeout=timeout,
+            bucket_name,
+            predefined_acl="publicRead",
+            timeout=timeout,
         )
 
         expected_path = "/b"
@@ -1401,7 +1406,9 @@ class TestClient(unittest.TestCase):
         retry = mock.Mock(spec=[])
 
         bucket = client.create_bucket(
-            bucket_name, predefined_default_object_acl="publicRead", retry=retry,
+            bucket_name,
+            predefined_default_object_acl="publicRead",
+            retry=retry,
         )
 
         expected_path = "/b"
@@ -1639,7 +1646,10 @@ class TestClient(unittest.TestCase):
 
     def test_download_blob_to_file_w_conditional_etag_match_string(self):
         self._download_blob_to_file_helper(
-            use_chunks=True, raw_download=True, retry=None, if_etag_match="kittens",
+            use_chunks=True,
+            raw_download=True,
+            retry=None,
+            if_etag_match="kittens",
         )
 
     def test_download_blob_to_file_w_conditional_etag_match_list(self):
@@ -1652,7 +1662,10 @@ class TestClient(unittest.TestCase):
 
     def test_download_blob_to_file_w_conditional_etag_not_match_string(self):
         self._download_blob_to_file_helper(
-            use_chunks=True, raw_download=True, retry=None, if_etag_not_match="kittens",
+            use_chunks=True,
+            raw_download=True,
+            retry=None,
+            if_etag_not_match="kittens",
         )
 
     def test_download_blob_to_file_w_conditional_etag_not_match_list(self):
@@ -2064,7 +2077,11 @@ class TestClient(unittest.TestCase):
         )
 
     def _create_hmac_key_helper(
-        self, explicit_project=None, user_project=None, timeout=None, retry=None,
+        self,
+        explicit_project=None,
+        user_project=None,
+        timeout=None,
+        retry=None,
     ):
         import datetime
         from google.cloud._helpers import UTC
