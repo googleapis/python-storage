@@ -18,8 +18,8 @@ from unittest.mock import patch
 import mock
 
 from google.cloud.storage import _helpers
-from google.cloud.storage._helpers import _get_default_headers
 from tests.unit.test__helpers import GCCL_INVOCATION_TEST_CONST
+
 
 class TestConnection(unittest.TestCase):
     @staticmethod
@@ -48,8 +48,12 @@ class TestConnection(unittest.TestCase):
 
         conn = self._make_one(client)
         req_data = "hey-yoooouuuuu-guuuuuyyssss"
-        with patch.object(_helpers, '_get_invocation_id', return_value=GCCL_INVOCATION_TEST_CONST):
-            result = conn.api_request("GET", "/rainbow", data=req_data, expect_json=False)
+        with patch.object(
+            _helpers, "_get_invocation_id", return_value=GCCL_INVOCATION_TEST_CONST
+        ):
+            result = conn.api_request(
+                "GET", "/rainbow", data=req_data, expect_json=False
+            )
         self.assertEqual(result, data)
 
         expected_headers = {

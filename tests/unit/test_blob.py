@@ -37,6 +37,7 @@ from google.cloud.storage.retry import DEFAULT_RETRY_IF_ETAG_IN_JSON
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_GENERATION_SPECIFIED
 from tests.unit.test__helpers import GCCL_INVOCATION_TEST_CONST
 
+
 def _make_credentials():
     import google.auth.credentials
 
@@ -2236,13 +2237,17 @@ class Test_Blob(unittest.TestCase):
         blob.content_disposition = "inline"
 
         content_type = "image/jpeg"
-        with patch.object(_helpers, '_get_invocation_id', return_value=GCCL_INVOCATION_TEST_CONST):
+        with patch.object(
+            _helpers, "_get_invocation_id", return_value=GCCL_INVOCATION_TEST_CONST
+        ):
             info = blob._get_upload_arguments(client, content_type)
 
         headers, object_metadata, new_content_type = info
         header_key_value = "W3BYd0AscEBAQWZCZnJSM3gtMmIyU0NIUiwuP1l3Uk8="
         header_key_hash_value = "G0++dxF4q5rG4o9kE8gvEKn15RH6wLm0wXV1MgAlXOg="
-        with patch.object(_helpers, '_get_invocation_id', return_value=GCCL_INVOCATION_TEST_CONST):
+        with patch.object(
+            _helpers, "_get_invocation_id", return_value=GCCL_INVOCATION_TEST_CONST
+        ):
             expected_headers = {
                 **_get_default_headers(client._connection.user_agent, content_type),
                 "X-Goog-Encryption-Algorithm": "AES256",
@@ -2317,7 +2322,9 @@ class Test_Blob(unittest.TestCase):
             expected_timeout = timeout
             timeout_kwarg = {"timeout": timeout}
 
-        with patch.object(_helpers, '_get_invocation_id', return_value=GCCL_INVOCATION_TEST_CONST):
+        with patch.object(
+            _helpers, "_get_invocation_id", return_value=GCCL_INVOCATION_TEST_CONST
+        ):
             response = blob._do_multipart_upload(
                 client,
                 stream,
@@ -2392,7 +2399,9 @@ class Test_Blob(unittest.TestCase):
             + data_read
             + b"\r\n--==0==--"
         )
-        with patch.object(_helpers, '_get_invocation_id', return_value=GCCL_INVOCATION_TEST_CONST): 
+        with patch.object(
+            _helpers, "_get_invocation_id", return_value=GCCL_INVOCATION_TEST_CONST
+        ):
             headers = _get_default_headers(
                 client._connection.user_agent,
                 b'multipart/related; boundary="==0=="',
@@ -2584,7 +2593,9 @@ class Test_Blob(unittest.TestCase):
         else:
             expected_timeout = timeout
             timeout_kwarg = {"timeout": timeout}
-        with patch.object(_helpers, '_get_invocation_id', return_value=GCCL_INVOCATION_TEST_CONST):
+        with patch.object(
+            _helpers, "_get_invocation_id", return_value=GCCL_INVOCATION_TEST_CONST
+        ):
             upload, transport = blob._initiate_resumable_upload(
                 client,
                 stream,
@@ -2640,7 +2651,9 @@ class Test_Blob(unittest.TestCase):
         upload_url += "?" + urlencode(qs_params)
 
         self.assertEqual(upload.upload_url, upload_url)
-        with patch.object(_helpers, '_get_invocation_id', return_value=GCCL_INVOCATION_TEST_CONST): 
+        with patch.object(
+            _helpers, "_get_invocation_id", return_value=GCCL_INVOCATION_TEST_CONST
+        ):
             if extra_headers is None:
                 self.assertEqual(
                     upload._headers,
@@ -2691,8 +2704,10 @@ class Test_Blob(unittest.TestCase):
             # Check the mocks.
             blob._get_writable_metadata.assert_called_once_with()
         payload = json.dumps(object_metadata).encode("utf-8")
-                
-        with patch.object(_helpers, '_get_invocation_id', return_value=GCCL_INVOCATION_TEST_CONST): 
+
+        with patch.object(
+            _helpers, "_get_invocation_id", return_value=GCCL_INVOCATION_TEST_CONST
+        ):
             expected_headers = _get_default_headers(
                 client._connection.user_agent, x_upload_content_type=content_type
             )
@@ -2941,7 +2956,9 @@ class Test_Blob(unittest.TestCase):
 
         # Create mocks to be checked for doing transport.
         resumable_url = "http://test.invalid?upload_id=and-then-there-was-1"
-        with patch.object(_helpers, '_get_invocation_id', return_value=GCCL_INVOCATION_TEST_CONST):
+        with patch.object(
+            _helpers, "_get_invocation_id", return_value=GCCL_INVOCATION_TEST_CONST
+        ):
             headers1 = {
                 **_get_default_headers(USER_AGENT, content_type),
                 "location": resumable_url,
@@ -2952,7 +2969,11 @@ class Test_Blob(unittest.TestCase):
             }
             headers3 = _get_default_headers(USER_AGENT, content_type)
             transport, responses = self._make_resumable_transport(
-                headers1, headers2, headers3, total_bytes, data_corruption=data_corruption
+                headers1,
+                headers2,
+                headers3,
+                total_bytes,
+                data_corruption=data_corruption,
             )
 
         # Create some mock arguments and call the method under test.
@@ -2973,7 +2994,9 @@ class Test_Blob(unittest.TestCase):
             expected_timeout = timeout
             timeout_kwarg = {"timeout": timeout}
 
-        with patch.object(_helpers, '_get_invocation_id', return_value=GCCL_INVOCATION_TEST_CONST):
+        with patch.object(
+            _helpers, "_get_invocation_id", return_value=GCCL_INVOCATION_TEST_CONST
+        ):
 
             response = blob._do_resumable_upload(
                 client,
@@ -3586,7 +3609,9 @@ class Test_Blob(unittest.TestCase):
         else:
             expected_timeout = timeout
             timeout_kwarg = {"timeout": timeout}
-        with patch.object(_helpers, '_get_invocation_id', return_value=GCCL_INVOCATION_TEST_CONST):
+        with patch.object(
+            _helpers, "_get_invocation_id", return_value=GCCL_INVOCATION_TEST_CONST
+        ):
             new_url = blob.create_resumable_upload_session(
                 content_type=content_type,
                 size=size,
@@ -3624,7 +3649,9 @@ class Test_Blob(unittest.TestCase):
 
         upload_url += "?" + urlencode(qs_params)
         payload = b'{"name": "blob-name"}'
-        with patch.object(_helpers, '_get_invocation_id', return_value=GCCL_INVOCATION_TEST_CONST):
+        with patch.object(
+            _helpers, "_get_invocation_id", return_value=GCCL_INVOCATION_TEST_CONST
+        ):
             expected_headers = {
                 **_get_default_headers(
                     client._connection.user_agent, x_upload_content_type=content_type

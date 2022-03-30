@@ -17,7 +17,6 @@ import http.client
 import io
 import json
 from unittest.mock import patch
-import uuid
 import mock
 import pytest
 import re
@@ -30,7 +29,7 @@ from google.auth.credentials import AnonymousCredentials
 from google.oauth2.service_account import Credentials
 
 from google.cloud.storage._helpers import STORAGE_EMULATOR_ENV_VAR
-from google.cloud.storage._helpers import _get_default_headers, _get_invocation_id
+from google.cloud.storage._helpers import _get_default_headers
 from google.cloud.storage import _helpers
 from google.cloud.storage.retry import DEFAULT_RETRY
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_GENERATION_SPECIFIED
@@ -1573,7 +1572,9 @@ class TestClient(unittest.TestCase):
         blob._do_download.side_effect = grmp_response
 
         file_obj = io.BytesIO()
-        with patch.object(_helpers, '_get_invocation_id', return_value=GCCL_INVOCATION_TEST_CONST):
+        with patch.object(
+            _helpers, "_get_invocation_id", return_value=GCCL_INVOCATION_TEST_CONST
+        ):
             with self.assertRaises(exceptions.NotFound):
                 client.download_blob_to_file(blob, file_obj)
 
@@ -1607,11 +1608,15 @@ class TestClient(unittest.TestCase):
         blob._get_download_url = mock.Mock()
         blob._do_download = mock.Mock()
 
-        with patch.object(_helpers, '_get_invocation_id', return_value=GCCL_INVOCATION_TEST_CONST):
+        with patch.object(
+            _helpers, "_get_invocation_id", return_value=GCCL_INVOCATION_TEST_CONST
+        ):
             with mock.patch(
                 "google.cloud.storage.client.Blob.from_string", return_value=blob
             ):
-                client.download_blob_to_file("gs://bucket_name/path/to/object", file_obj)
+                client.download_blob_to_file(
+                    "gs://bucket_name/path/to/object", file_obj
+                )
 
             headers = {
                 **_get_default_headers(client._connection.user_agent),
@@ -1692,7 +1697,6 @@ class TestClient(unittest.TestCase):
             expect_condition_fail=True,
         )
 
-    
     def _download_blob_to_file_helper(
         self, use_chunks, raw_download, expect_condition_fail=False, **extra_kwargs
     ):
@@ -1710,7 +1714,9 @@ class TestClient(unittest.TestCase):
             blob.chunk_size = 3
         blob._do_download = mock.Mock()
         file_obj = io.BytesIO()
-        with patch.object(_helpers, '_get_invocation_id', return_value=GCCL_INVOCATION_TEST_CONST):
+        with patch.object(
+            _helpers, "_get_invocation_id", return_value=GCCL_INVOCATION_TEST_CONST
+        ):
             if raw_download:
                 client.download_blob_to_file(
                     blob, file_obj, raw_download=True, **extra_kwargs
@@ -1739,7 +1745,9 @@ class TestClient(unittest.TestCase):
                 if_etag_not_match = [if_etag_not_match]
             headers["If-None-Match"] = ", ".join(if_etag_not_match)
 
-        with patch.object(_helpers, '_get_invocation_id', return_value=GCCL_INVOCATION_TEST_CONST):
+        with patch.object(
+            _helpers, "_get_invocation_id", return_value=GCCL_INVOCATION_TEST_CONST
+        ):
             headers = {**_get_default_headers(client._connection.user_agent), **headers}
 
         blob._do_download.assert_called_once_with(

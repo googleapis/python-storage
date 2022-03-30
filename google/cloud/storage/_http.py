@@ -16,7 +16,6 @@
 
 import functools
 import os
-from uuid import uuid4
 import pkg_resources
 
 from google.cloud import _http
@@ -70,10 +69,10 @@ class Connection(_http.JSONConnection):
 
     def api_request(self, *args, **kwargs):
         retry = kwargs.pop("retry", None)
-        #import pdb; pdb.set_trace()
+        # import pdb; pdb.set_trace()
         kwargs_headers = kwargs.pop("headers", {}) or {}
-        if 'X-Goog-API-Client' in kwargs_headers:
-            api_client = kwargs_headers['X-Goog-API-Client']
+        if "X-Goog-API-Client" in kwargs_headers:
+            api_client = kwargs_headers["X-Goog-API-Client"]
         else:
             api_client = self._client_info.user_agent
         headers = {
