@@ -20,6 +20,7 @@ from uuid import uuid4
 import pkg_resources
 
 from google.cloud import _http
+from google.cloud.storage._helpers import _get_invocation_id
 
 from google.cloud.storage import __version__
 
@@ -69,9 +70,15 @@ class Connection(_http.JSONConnection):
 
     def api_request(self, *args, **kwargs):
         retry = kwargs.pop("retry", None)
+        #import pdb; pdb.set_trace()
+        kwargs_headers = kwargs.pop("headers", {}) or {}
+        if 'X-Goog-API-Client' in kwargs_headers:
+            api_client = kwargs_headers['X-Goog-API-Client']
+        else:
+            api_client = self._client_info.user_agent
         headers = {
-            **kwargs.pop("headers", {}),
-            "x-goog-api-client": self._client_info.user_agent + " gccl-invocation-id/" + str(uuid4()),
+            **kwargs_headers,
+            "X-Goog-API-Client": f"{api_client} {_get_invocation_id()}",
         }
         kwargs["headers"] = headers
         call = functools.partial(super(Connection, self).api_request, *args, **kwargs)
