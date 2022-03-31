@@ -40,8 +40,11 @@ def create_bucket_dual_region(bucket_name, region_1, region_2):
 
     print(f"Bucket {bucket_name} created in {region_1}+{region_2}.")
 
+
 # [END storage_create_bucket_dual_region]
 
 
 if __name__ == "__main__":
-    create_bucket_dual_region(bucket_name=sys.argv[1], region_1=sys.argv[2], region_2=sys.argv[3])
+    create_bucket_dual_region(
+        bucket_name=sys.argv[1], region_1=sys.argv[2], region_2=sys.argv[3]
+    )
