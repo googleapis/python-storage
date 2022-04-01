@@ -68,18 +68,9 @@ class Connection(_http.JSONConnection):
     """A template for the URL of a particular API call."""
 
     def api_request(self, *args, **kwargs):
+        #import pdb; pdb.set_trace()
         retry = kwargs.pop("retry", None)
-        # import pdb; pdb.set_trace()
-        kwargs_headers = kwargs.pop("headers", {}) or {}
-        if "X-Goog-API-Client" in kwargs_headers:
-            api_client = kwargs_headers["X-Goog-API-Client"]
-        else:
-            api_client = self._client_info.user_agent
-        headers = {
-            **kwargs_headers,
-            "X-Goog-API-Client": f"{api_client} {_get_invocation_id()}",
-        }
-        kwargs["headers"] = headers
+        kwargs["extra_api_info"] = _get_invocation_id()
         call = functools.partial(super(Connection, self).api_request, *args, **kwargs)
         if retry:
             # If this is a ConditionalRetryPolicy, check conditions.
