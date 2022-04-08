@@ -1876,6 +1876,9 @@ class Blob(_PropertyMixin):
         if self.user_project is not None:
             name_value_pairs.append(("userProject", self.user_project))
 
+        if self.name is not None:
+            name_value_pairs.append(("name", self.name))
+
         # When a Customer Managed Encryption Key is used to encrypt Cloud Storage object
         # at rest, object resource metadata will store the version of the Key Management
         # Service cryptographic material. If a Blob instance with KMS Key metadata set is
