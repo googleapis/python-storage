@@ -11,7 +11,7 @@ This runs 10K iterations of Write-1-Read-3 on 5KiB to 2GiB files, and generates 
 $ cd storage
 $ pip install -e . # install google.cloud.storage locally
 $ cd tests/perf
-$ python3 benchmarking.py --max_samples 10000 --max_size 2147483648
+$ python3 benchmarking.py --num_samples 10000 --max_size 2147483648
 ```
 
 ## CLI parameters
@@ -34,7 +34,7 @@ For each invocation of the benchmark, write a new object of random size between 
 | ----- | ----------- |
 | Op | the name of the operations (WRITE, READ[{0,1,2}]) |
 | ObjectSize | the number of bytes of the object |
-| LibBufferSize | LibBufferSize is configured to use the library default of 100 MiB |
+| LibBufferSize | configured to use the library default of 100 MiB |
 | Crc32cEnabled | whether crc32c was computed for the operation |
 | MD5Enabled | whether MD5 was computed for the operation |
 | ApiName | default to JSON|
