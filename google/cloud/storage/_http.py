@@ -18,7 +18,7 @@ import functools
 
 from google.cloud import _http
 from google.cloud.storage import __version__
-from google.cloud.storage._helpers import _get_invocation_id
+from google.cloud.storage import _helpers
 
 
 class Connection(_http.JSONConnection):
@@ -59,9 +59,8 @@ class Connection(_http.JSONConnection):
     """A template for the URL of a particular API call."""
 
     def api_request(self, *args, **kwargs):
-        #import pdb; pdb.set_trace()
         retry = kwargs.pop("retry", None)
-        kwargs["extra_api_info"] = _get_invocation_id()
+        kwargs["extra_api_info"] = _helpers._get_invocation_id()
         call = functools.partial(super(Connection, self).api_request, *args, **kwargs)
         if retry:
             # If this is a ConditionalRetryPolicy, check conditions.
