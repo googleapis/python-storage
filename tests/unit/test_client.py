@@ -1775,7 +1775,7 @@ class TestClient(unittest.TestCase):
     def test_download_blob_to_file_w_chunks_w_raw(self):
         self._download_blob_to_file_helper(use_chunks=True, raw_download=True)
 
-    def test_download_blob_to_file_multiple(self):
+    def test_download_blob_have_different_uuid(self):
         from google.cloud.storage.blob import Blob
 
         project = "PROJECT"
@@ -1789,8 +1789,8 @@ class TestClient(unittest.TestCase):
         client.download_blob_to_file(blob, file_obj)
 
         self.assertNotEqual(
-            blob._do_download.call_args_list[0][0][3]['X-Goog-API-Client'],
-            blob._do_download.call_args_list[1][0][3]['X-Goog-API-Client'],
+            blob._do_download.call_args_list[0][0][3]["X-Goog-API-Client"],
+            blob._do_download.call_args_list[1][0][3]["X-Goog-API-Client"],
         )
 
     def test_list_blobs_w_defaults_w_bucket_obj(self):
