@@ -8,7 +8,7 @@ Currently the benchmarking runs a Write-1-Read-3 workload and measures the usual
 ## Run example:
 This runs 10K iterations of Write-1-Read-3 on 5KiB to 2GiB files, and generates output to a default csv file `benchmarking<TIMESTAMP>.csv`:
 ```bash
-$ cd storage
+$ cd python-storage
 $ pip install -e . # install google.cloud.storage locally
 $ cd tests/perf
 $ python3 benchmarking.py --num_samples 10000 --max_size 2147483648
@@ -34,11 +34,12 @@ For each invocation of the benchmark, write a new object of random size between 
 | ----- | ----------- |
 | Op | the name of the operations (WRITE, READ[{0,1,2}]) |
 | ObjectSize | the number of bytes of the object |
-| LibBufferSize | configured to use the library default of 100 MiB |
-| Crc32cEnabled | whether crc32c was computed for the operation |
-| MD5Enabled | whether MD5 was computed for the operation |
+| LibBufferSize | configured to use the [library default of 100 MiB](https://github.com/googleapis/python-storage/blob/main/google/cloud/storage/blob.py#L135) |
+| Crc32cEnabled | bool: whether crc32c was computed for the operation |
+| MD5Enabled | bool: whether MD5 was computed for the operation |
 | ApiName | default to JSON|
 | ElapsedTimeUs | the elapsed time in microseconds the operation took |
 | Status | completion state of the operation [OK, FAIL] |
+| RunID | timestamp from the benchmarking run |
 | AppBufferSize | N/A |
 | CpuTimeUs | N/A |

@@ -51,7 +51,7 @@ DEFAULT_MIN_SIZE = 5120
 DEFAULT_MAX_SIZE = 16384
 DEFAULT_NUM_SAMPLES = 1000
 DEFAULT_NUM_PROCESSES = 10
-DEFAULT_LIB_BUFFER_SIZE = 104857600
+DEFAULT_LIB_BUFFER_SIZE = 104857600  # https://github.com/googleapis/python-storage/blob/main/google/cloud/storage/blob.py#L135
 NOT_SUPPORTED = -1
 
 parser = argparse.ArgumentParser()
@@ -163,9 +163,11 @@ def READ(bucket, blob_name, checksum, **kwargs):
     """Perform a download and return latency."""
     blob = bucket.blob(blob_name)
 
-    start_time = time.monotonic_ns()
-    blob.download_as_bytes(checksum=checksum)
-    end_time = time.monotonic_ns()
+    # TemporaryFile is cleaned up upon closing
+    with tempfile.NamedTemporaryFile() as f:
+        start_time = time.monotonic_ns()
+        blob.download_to_filename(f.name, checksum=checksum)
+        end_time = time.monotonic_ns()
 
     elapsed_time = round(
         (end_time - start_time) / 1000
@@ -182,12 +184,12 @@ def wrapped_partial(func, *args, **kwargs):
 
 def generate_func_list(bucket_name, min_size, max_size):
     """Generate Write-1-Read-3 workload."""
-    # generate randmon size using a uniform distribution
+    # generate randmon size in bytes using a uniform distribution
     size = random.randrange(min_size, max_size)
     blob_name = f"{TIMESTAMP}-{uuid.uuid4().hex}"
 
-    # generate random checksumming type using a uniform dist
-    idx_checksum = random.randrange(0, 2)
+    # generate random checksumming type: md5 or crc32c
+    idx_checksum = random.choice([0, 1])
     checksum = CHECKSUM[idx_checksum]
 
     func_list = [
@@ -204,8 +206,8 @@ def generate_func_list(bucket_name, min_size, max_size):
                 storage.Client().bucket(bucket_name),
                 blob_name,
                 size=size,
-                num=i,
                 checksum=checksum,
+                num=i,
             )
             for i in range(3)
         ],
