@@ -6,23 +6,23 @@ This benchmarking script is used by Storage client library maintainers to benchm
 Currently the benchmarking runs a Write-1-Read-3 workload and measures the usual two QoS performance attributes, latency and throughput.
 
 ## Run example:
-This runs 10K iterations of Write-1-Read-3 on 5KiB to 2GiB files, and generates output to a default csv file `benchmarking<TIMESTAMP>.csv`:
+This runs 10K iterations of Write-1-Read-3 on 5KiB to 16KiB files, and generates output to a default csv file `benchmarking<TIMESTAMP>.csv`:
 ```bash
 $ cd python-storage
 $ pip install -e . # install google.cloud.storage locally
 $ cd tests/perf
-$ python3 benchmarking.py --num_samples 10000 --max_size 2147483648
+$ python3 benchmarking.py --num_samples 10000 --max_size 16384
 ```
 
 ## CLI parameters
 
 | Parameter | Description | Possible values | Default |
 | --------- | ----------- | --------------- |:-------:|
-| --min_size | minimum object size in bytes | any positive integer | `5120` |
-| --max_size | maximum object size in bytes | any positive integer | `16384` |
+| --min_size | minimum object size in bytes | any positive integer | `5120` (5 KiB) |
+| --max_size | maximum object size in bytes | any positive integer | `2147483648` (2 GiB) |
 | --num_samples | number of W1R3 iterations | any positive integer | `1000` |
-| --p | number of processes (multiprocessing enabled) | any positive integer | `10` |
 | --r | bucket region for benchmarks | any GCS region | `US` |
+| --p | number of processes (multiprocessing enabled) | any positive integer | number of CPUs in the system |
 | --o | file to output results to | any file path | `benchmarking<TIMESTAMP>.csv` |
 
 

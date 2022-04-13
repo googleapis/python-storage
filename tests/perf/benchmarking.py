@@ -47,10 +47,10 @@ CHECKSUM = ["md5", "crc32c"]
 TIMESTAMP = time.strftime("%Y%m%d-%H%M%S")
 DEFAULT_API = "JSON"
 DEFAULT_BUCKET_LOCATION = "US"
-DEFAULT_MIN_SIZE = 5120
-DEFAULT_MAX_SIZE = 16384
+DEFAULT_MIN_SIZE = 5120  # 5 KiB
+DEFAULT_MAX_SIZE = 2147483648  # 2 GiB
 DEFAULT_NUM_SAMPLES = 1000
-DEFAULT_NUM_PROCESSES = 10
+DEFAULT_NUM_PROCESSES = os.cpu_count()
 DEFAULT_LIB_BUFFER_SIZE = 104857600  # https://github.com/googleapis/python-storage/blob/main/google/cloud/storage/blob.py#L135
 NOT_SUPPORTED = -1
 
@@ -215,7 +215,7 @@ def generate_func_list(bucket_name, min_size, max_size):
     return func_list
 
 
-def benchmark_runner(x):
+def benchmark_runner(_num_samples):
     """Run benchmarking iterations."""
     # Create a bucket to run benchmarking
     client = storage.Client()
@@ -224,9 +224,8 @@ def benchmark_runner(x):
 
     # Run benchmarking
     results = []
-    for i in range(NUM_SAMPLES):
-        for func in generate_func_list(bucket_name, MIN_SIZE, MAX_SIZE):
-            results.append(measure_performance(func))
+    for func in generate_func_list(bucket_name, MIN_SIZE, MAX_SIZE):
+        results.append(measure_performance(func))
 
     # Cleanup and delete bucket
     try:
@@ -239,7 +238,7 @@ def benchmark_runner(x):
 
 if __name__ == "__main__":
     p = multiprocessing.Pool(NUM_PROCESSES)
-    pool_output = p.map(benchmark_runner, range(1))
+    pool_output = p.map(benchmark_runner, range(NUM_SAMPLES))
     with open(CSV_PATH, "w") as file:
         writer = csv.writer(file)
         writer.writerow(HEADER)
