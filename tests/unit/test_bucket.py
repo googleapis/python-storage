@@ -2289,7 +2289,7 @@ class Test_Bucket(unittest.TestCase):
             "condition": {"isLive": False},
         }
         MULTIPART_RULE = {
-            "action": {"type": "bortIncompleteMultipartUpload"},
+            "action": {"type": "AbortIncompleteMultipartUpload"},
             "condition": {"age": 42},
         }
         rules = [DELETE_RULE, SSC_RULE, MULTIPART_RULE]
@@ -2392,6 +2392,21 @@ class Test_Bucket(unittest.TestCase):
         self.assertEqual(list(bucket.lifecycle_rules), [])
 
         bucket.add_lifecycle_set_storage_class_rule("NEARLINE", is_live=False)
+
+        self.assertEqual([dict(rule) for rule in bucket.lifecycle_rules], rules)
+        self.assertTrue("lifecycle" in bucket._changes)
+
+    def test_add_lifecycle_abort_incomplete_multipart_upload_rule(self):
+        NAME = "name"
+        AIMPU_RULE = {
+            "action": {"type": "AbortIncompleteMultipartUpload"},
+            "condition": {"age": 42},
+        }
+        rules = [AIMPU_RULE]
+        bucket = self._make_one(name=NAME)
+        self.assertEqual(list(bucket.lifecycle_rules), [])
+
+        bucket.add_lifecycle_abort_incomplete_multipart_upload_rule(age=42)
 
         self.assertEqual([dict(rule) for rule in bucket.lifecycle_rules], rules)
         self.assertTrue("lifecycle" in bucket._changes)
