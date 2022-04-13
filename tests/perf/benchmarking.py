@@ -18,7 +18,9 @@ import argparse
 import csv
 import logging
 import multiprocessing
+import os
 import random
+import tempfile
 import time
 import uuid
 
@@ -27,7 +29,7 @@ from functools import partial, update_wrapper
 from google.cloud import storage
 
 
-##### CONSTANTS #####
+##### DEFAULTS, CONSTANTS & CLI PARAMETERS #####
 HEADER = [
     "Op",
     "ObjectSize",
@@ -43,22 +45,40 @@ HEADER = [
 ]
 CHECKSUM = ["md5", "crc32c"]
 TIMESTAMP = time.strftime("%Y%m%d-%H%M%S")
+DEFAULT_API = "JSON"
+DEFAULT_BUCKET_LOCATION = "US"
+DEFAULT_MIN_SIZE = 5120
+DEFAULT_MAX_SIZE = 16384
+DEFAULT_NUM_SAMPLES = 1000
+DEFAULT_NUM_PROCESSES = 10
+DEFAULT_LIB_BUFFER_SIZE = 104857600
+NOT_SUPPORTED = -1
 
-# ##### CLI PARAMETERS & DEFAULTS #####
 parser = argparse.ArgumentParser()
 parser.add_argument(
-    "--min_size", type=int, default=5120, help="Minimum object size in bytes"
+    "--min_size",
+    type=int,
+    default=DEFAULT_MIN_SIZE,
+    help="Minimum object size in bytes",
 )
 parser.add_argument(
-    "--max_size", type=int, default=16384, help="Maximum object size in bytes"
+    "--max_size",
+    type=int,
+    default=DEFAULT_MAX_SIZE,
+    help="Maximum object size in bytes",
 )
 parser.add_argument(
-    "--num_samples", type=int, default=1000, help="Number of iterations"
+    "--num_samples", type=int, default=DEFAULT_NUM_SAMPLES, help="Number of iterations"
 )
 parser.add_argument(
-    "--p", type=int, default=10, help="Number of processes- multiprocessing enabled"
+    "--p",
+    type=int,
+    default=DEFAULT_NUM_PROCESSES,
+    help="Number of processes- multiprocessing enabled",
 )
-parser.add_argument("--r", type=str, default="US", help="Bucket location")
+parser.add_argument(
+    "--r", type=str, default=DEFAULT_BUCKET_LOCATION, help="Bucket location"
+)
 parser.add_argument(
     "--o",
     type=str,
@@ -79,33 +99,30 @@ def measure_performance(func):
     """Measure latency and throughput per operation call."""
     # Holds benchmarking results for each operation
     res = {
-        "ApiName": "JSON",
+        "ApiName": DEFAULT_API,
         "RunID": TIMESTAMP,
-        "CpuTimeUs": -1,
-        "AppBufferSize": 1024,
-        "LibBufferSize": 104857600,
+        "CpuTimeUs": NOT_SUPPORTED,
+        "AppBufferSize": NOT_SUPPORTED,
+        "LibBufferSize": DEFAULT_LIB_BUFFER_SIZE,
     }
 
-    # Measures time for each operation
-    start_time = time.monotonic_ns()
     try:
-        func()
+        elapsed_time = func()
     except Exception as e:
         logging.exception(
             f"Caught an exception while running operation {func.__name__}\n {e}"
         )
         res["Status"] = ["FAIL"]
+        elapsed_time = NOT_SUPPORTED
     else:
         res["Status"] = ["OK"]
-    end_time = time.monotonic_ns()
 
-    res["ElapsedTimeUs"] = round(
-        (end_time - start_time) / 1000
-    )  # convert nanoseconds to microseconds
-    res["ObjectSize"] = func.keywords.get("size")
-    res["Crc32cEnabled"] = func.keywords.get("Crc32cEnabled")
-    res["MD5Enabled"] = func.keywords.get("MD5Enabled")
+    checksum = func.keywords.get("checksum")
     num = func.keywords.get("num", None)
+    res["ElapsedTimeUs"] = elapsed_time
+    res["ObjectSize"] = func.keywords.get("size")
+    res["Crc32cEnabled"] = checksum == "crc32c"
+    res["MD5Enabled"] = checksum == "md5"
     res["Op"] = func.__name__
     if res["Op"] == "READ":
         res["Op"] += f"[{num}]"
@@ -125,25 +142,35 @@ def measure_performance(func):
     ]
 
 
-def WRITE(bucket, blob_name, payload, **kwargs):
-    """Perform an upload."""
-    checksum = kwargs.get("checksum")
-
+def WRITE(bucket, blob_name, checksum, size, **kwargs):
+    """Perform an upload and return latency."""
     blob = bucket.blob(blob_name)
-    blob.upload_from_string(payload, checksum=checksum)
+    # TemporaryFile is cleaned up upon closing
+    with tempfile.NamedTemporaryFile() as f:
+        f.write(os.urandom(size))
+
+        start_time = time.monotonic_ns()
+        blob.upload_from_filename(f.name, checksum=checksum, if_generation_match=0)
+        end_time = time.monotonic_ns()
+
+    elapsed_time = round(
+        (end_time - start_time) / 1000
+    )  # convert nanoseconds to microseconds
+    return elapsed_time
 
 
-def READ(bucket, blob_name, **kwargs):
-    """Perform a download."""
-    checksum = kwargs.get("checksum")
-
+def READ(bucket, blob_name, checksum, **kwargs):
+    """Perform a download and return latency."""
     blob = bucket.blob(blob_name)
+
+    start_time = time.monotonic_ns()
     blob.download_as_bytes(checksum=checksum)
+    end_time = time.monotonic_ns()
 
-
-def _create_block(desired_bytes):
-    """Helper method to generate contents by specified size."""
-    return "A" * desired_bytes
+    elapsed_time = round(
+        (end_time - start_time) / 1000
+    )  # convert nanoseconds to microseconds
+    return elapsed_time
 
 
 def wrapped_partial(func, *args, **kwargs):
@@ -155,15 +182,12 @@ def wrapped_partial(func, *args, **kwargs):
 
 def generate_func_list(bucket_name, min_size, max_size):
     """Generate Write-1-Read-3 workload."""
-    blob_name = uuid.uuid4().hex
-    # generate randmon size payload using a uniform dist
+    # generate randmon size using a uniform distribution
     size = random.randrange(min_size, max_size)
-    payload = _create_block(size)
+    blob_name = f"{TIMESTAMP}-{uuid.uuid4().hex}"
 
     # generate random checksumming type using a uniform dist
     idx_checksum = random.randrange(0, 2)
-    md5_enabled = idx_checksum == 0
-    crc32c_enabled = not md5_enabled
     checksum = CHECKSUM[idx_checksum]
 
     func_list = [
@@ -171,10 +195,7 @@ def generate_func_list(bucket_name, min_size, max_size):
             WRITE,
             storage.Client().bucket(bucket_name),
             blob_name,
-            payload,
             size=size,
-            Crc32cEnabled=crc32c_enabled,
-            MD5Enabled=md5_enabled,
             checksum=checksum,
         ),
         *[
@@ -184,8 +205,6 @@ def generate_func_list(bucket_name, min_size, max_size):
                 blob_name,
                 size=size,
                 num=i,
-                Crc32cEnabled=crc32c_enabled,
-                MD5Enabled=md5_enabled,
                 checksum=checksum,
             )
             for i in range(3)
@@ -194,7 +213,7 @@ def generate_func_list(bucket_name, min_size, max_size):
     return func_list
 
 
-def main_profiling(x):
+def benchmark_runner(x):
     """Run benchmarking iterations."""
     # Create a bucket to run benchmarking
     client = storage.Client()
@@ -218,7 +237,7 @@ def main_profiling(x):
 
 if __name__ == "__main__":
     p = multiprocessing.Pool(NUM_PROCESSES)
-    pool_output = p.map(main_profiling, range(1))
+    pool_output = p.map(benchmark_runner, range(1))
     with open(CSV_PATH, "w") as file:
         writer = csv.writer(file)
         writer.writerow(HEADER)
