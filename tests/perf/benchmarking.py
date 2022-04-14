@@ -29,7 +29,7 @@ from functools import partial, update_wrapper
 from google.cloud import storage
 
 
-##### DEFAULTS, CONSTANTS & CLI PARAMETERS #####
+##### DEFAULTS & CONSTANTS #####
 HEADER = [
     "Op",
     "ObjectSize",
@@ -53,46 +53,6 @@ DEFAULT_NUM_SAMPLES = 1000
 DEFAULT_NUM_PROCESSES = os.cpu_count()
 DEFAULT_LIB_BUFFER_SIZE = 104857600  # https://github.com/googleapis/python-storage/blob/main/google/cloud/storage/blob.py#L135
 NOT_SUPPORTED = -1
-
-parser = argparse.ArgumentParser()
-parser.add_argument(
-    "--min_size",
-    type=int,
-    default=DEFAULT_MIN_SIZE,
-    help="Minimum object size in bytes",
-)
-parser.add_argument(
-    "--max_size",
-    type=int,
-    default=DEFAULT_MAX_SIZE,
-    help="Maximum object size in bytes",
-)
-parser.add_argument(
-    "--num_samples", type=int, default=DEFAULT_NUM_SAMPLES, help="Number of iterations"
-)
-parser.add_argument(
-    "--p",
-    type=int,
-    default=DEFAULT_NUM_PROCESSES,
-    help="Number of processes- multiprocessing enabled",
-)
-parser.add_argument(
-    "--r", type=str, default=DEFAULT_BUCKET_LOCATION, help="Bucket location"
-)
-parser.add_argument(
-    "--o",
-    type=str,
-    default=f"benchmarking{TIMESTAMP}.csv",
-    help="File to output results to",
-)
-args = parser.parse_args()
-
-NUM_SAMPLES = args.num_samples
-NUM_PROCESSES = args.p
-MIN_SIZE = args.min_size
-MAX_SIZE = args.max_size
-BUCKET_LOCATION = args.r
-CSV_PATH = args.o
 
 
 def measure_performance(func):
@@ -175,14 +135,14 @@ def READ(bucket, blob_name, checksum, **kwargs):
     return elapsed_time
 
 
-def wrapped_partial(func, *args, **kwargs):
+def _wrapped_partial(func, *args, **kwargs):
     """Helper method to create partial and propagate function name and doc from original function."""
     partial_func = partial(func, *args, **kwargs)
     update_wrapper(partial_func, func)
     return partial_func
 
 
-def generate_func_list(bucket_name, min_size, max_size):
+def _generate_func_list(bucket_name, min_size, max_size):
     """Generate Write-1-Read-3 workload."""
     # generate randmon size in bytes using a uniform distribution
     size = random.randrange(min_size, max_size)
@@ -193,7 +153,7 @@ def generate_func_list(bucket_name, min_size, max_size):
     checksum = CHECKSUM[idx_checksum]
 
     func_list = [
-        wrapped_partial(
+        _wrapped_partial(
             WRITE,
             storage.Client().bucket(bucket_name),
             blob_name,
@@ -201,7 +161,7 @@ def generate_func_list(bucket_name, min_size, max_size):
             checksum=checksum,
         ),
         *[
-            wrapped_partial(
+            _wrapped_partial(
                 READ,
                 storage.Client().bucket(bucket_name),
                 blob_name,
@@ -215,16 +175,16 @@ def generate_func_list(bucket_name, min_size, max_size):
     return func_list
 
 
-def benchmark_runner(_num_samples):
+def benchmark_runner(args):
     """Run benchmarking iterations."""
     # Create a bucket to run benchmarking
     client = storage.Client()
     bucket_name = uuid.uuid4().hex
-    bucket = client.create_bucket(bucket_name, location=BUCKET_LOCATION)
+    bucket = client.create_bucket(bucket_name, location=args.r)
 
     # Run benchmarking
     results = []
-    for func in generate_func_list(bucket_name, MIN_SIZE, MAX_SIZE):
+    for func in _generate_func_list(bucket_name, args.min_size, args.max_size):
         results.append(measure_performance(func))
 
     # Cleanup and delete bucket
@@ -236,13 +196,61 @@ def benchmark_runner(_num_samples):
     return results
 
 
-if __name__ == "__main__":
-    p = multiprocessing.Pool(NUM_PROCESSES)
-    pool_output = p.map(benchmark_runner, range(NUM_SAMPLES))
-    with open(CSV_PATH, "w") as file:
+def main(args):
+    # Launch benchmark_runner using multiprocessing
+    p = multiprocessing.Pool(args.p)
+    pool_output = p.map(benchmark_runner, [args for _ in range(args.num_samples)])
+
+    # Output to CSV file
+    with open(args.o, "w") as file:
         writer = csv.writer(file)
         writer.writerow(HEADER)
         for result in pool_output:
             for row in result:
                 writer.writerow(row)
-    print(f"Succesfully ran benchmarking. Please find your output log at {CSV_PATH}")
+    print(f"Succesfully ran benchmarking. Please find your output log at {args.o}")
+
+
+if __name__ == "__main__":
+    # Environment check: Only run benchmarking if the environment variable is set
+    if not os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", ""):
+        logging.warning("Credentials must be set via environment variable")
+        exit()
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--min_size",
+        type=int,
+        default=DEFAULT_MIN_SIZE,
+        help="Minimum object size in bytes",
+    )
+    parser.add_argument(
+        "--max_size",
+        type=int,
+        default=DEFAULT_MAX_SIZE,
+        help="Maximum object size in bytes",
+    )
+    parser.add_argument(
+        "--num_samples",
+        type=int,
+        default=DEFAULT_NUM_SAMPLES,
+        help="Number of iterations",
+    )
+    parser.add_argument(
+        "--p",
+        type=int,
+        default=DEFAULT_NUM_PROCESSES,
+        help="Number of processes- multiprocessing enabled",
+    )
+    parser.add_argument(
+        "--r", type=str, default=DEFAULT_BUCKET_LOCATION, help="Bucket location"
+    )
+    parser.add_argument(
+        "--o",
+        type=str,
+        default=f"benchmarking{TIMESTAMP}.csv",
+        help="File to output results to",
+    )
+    args = parser.parse_args()
+
+    main(args)
