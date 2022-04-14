@@ -94,9 +94,21 @@ def test_bucket_lifecycle_rules(storage_client, buckets_to_delete):
     assert bucket.name == bucket_name
     assert list(bucket.lifecycle_rules) == expected_rules
 
+    # Test modifying lifecycle rules
+    expected_rules[0] = LifecycleRuleDelete(age=30)
+    rules = list(bucket.lifecycle_rules)
+    rules[0]["condition"] = {"age": 30}
+    bucket.lifecycle_rules = rules
+    bucket.patch()
+
+    bucket.reload()
+    assert list(bucket.lifecycle_rules) == expected_rules
+
+    # Test clearing lifecycle rules
     bucket.clear_lifecyle_rules()
     bucket.patch()
 
+    bucket.reload()
     assert list(bucket.lifecycle_rules) == []
 
 

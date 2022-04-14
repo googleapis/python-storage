@@ -377,6 +377,8 @@ class LifecycleRuleSetStorageClass(dict):
 class LifecycleRuleAbortIncompleteMultipartUpload(dict):
     """Map a rule aborting incomplete multipart uploads of matching items.
 
+    The "age" lifecycle condition is the only supported condition for this rule.
+
     :type kw: dict
     :params kw: arguments passed to :class:`LifecycleRuleConditions`.
     """
@@ -2343,6 +2345,9 @@ class Bucket(_PropertyMixin):
 
     def add_lifecycle_abort_incomplete_multipart_upload_rule(self, **kw):
         """Add a "abort incomplete multipart upload" rule to lifestyle rules.
+
+        Note that the "age" lifecycle condition is the only supported condition
+        for this rule.
 
         See https://cloud.google.com/storage/docs/lifecycle and
              https://cloud.google.com/storage/docs/json_api/v1/buckets
