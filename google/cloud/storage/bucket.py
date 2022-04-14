@@ -2625,6 +2625,44 @@ class Bucket(_PropertyMixin):
         """
         self._patch_property("billing", {"requesterPays": bool(value)})
 
+    @property
+    def autoclass_enabled(self):
+        """Whether Autoclass is enabled for this bucket.
+
+        TODO: See  <docs> for details.
+
+        :setter: Update whether autoclass is enabled for this bucket.
+        :getter: Query whether autoclass is enabled for this bucket.
+
+        :rtype: bool
+        :returns: True if enabled, else False.
+        """
+        autoclass = self._properties.get("autoclass", {})
+        return autoclass.get("enabled", False)
+
+    @autoclass_enabled.setter
+    def autoclass_enabled(self, value):
+        """Enable Autoclass for this bucket.
+        TODO: See  <docs> for details.
+        :type value: convertible to boolean
+        :param value: when set to true, Autoclass is enabled for this bucket.
+        """
+        self._patch_property("autoclass", {"enabled": bool(value)})
+
+    @property
+    def autoclass_toggle_time(self):
+        """Retrieve the toggle time when Autoclaass was enabled for the bucket.
+        :rtype: datetime.datetime or ``NoneType``
+        :returns: point-in time at which the bucket's autoclass is
+                  toggled, or ``None`` if the property is not
+                  set locally.
+        """
+        autoclass = self._properties.get("autoclass")
+        if autoclass is not None:
+            timestamp = autoclass.get("toggleTime")
+            if timestamp is not None:
+                return _rfc3339_nanos_to_datetime(timestamp)
+
     def configure_website(self, main_page_suffix=None, not_found_page=None):
         """Configure website-related properties.
 
