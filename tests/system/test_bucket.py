@@ -101,14 +101,12 @@ def test_bucket_lifecycle_rules(storage_client, buckets_to_delete):
     bucket.lifecycle_rules = rules
     bucket.patch()
 
-    bucket.reload()
     assert list(bucket.lifecycle_rules) == expected_rules
 
     # Test clearing lifecycle rules
     bucket.clear_lifecyle_rules()
     bucket.patch()
 
-    bucket.reload()
     assert list(bucket.lifecycle_rules) == []
 
 
