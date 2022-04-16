@@ -19,6 +19,8 @@ import binascii
 import calendar
 import datetime
 import json
+import os.path
+import sys
 import time
 import unittest
 import urllib.parse
@@ -26,7 +28,8 @@ import urllib.parse
 import mock
 import pytest
 
-from . import _read_local_json
+sys.path.insert(0, os.path.abspath(os.path.join(__file__, '..', '..')))
+from unit import _read_local_json
 
 
 _SERVICE_ACCOUNT_JSON = _read_local_json("url_signer_v4_test_account.json")

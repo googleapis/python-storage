@@ -37,7 +37,8 @@ import pytest
 import requests
 
 from tests.unit.test__helpers import GCCL_INVOCATION_TEST_CONST
-from . import _read_local_json
+sys.path.insert(0, os.path.abspath(os.path.join(__file__, '..', '..')))
+from unit import _read_local_json
 
 _SERVICE_ACCOUNT_JSON = _read_local_json("url_signer_v4_test_account.json")
 _CONFORMANCE_TESTS = _read_local_json("url_signer_v4_test_data.json")[
