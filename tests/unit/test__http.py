@@ -14,8 +14,7 @@
 
 import unittest
 from unittest.mock import patch
-
-import mock
+from unittest import mock
 
 from google.cloud.storage import _helpers
 from tests.unit.test__helpers import GCCL_INVOCATION_TEST_CONST

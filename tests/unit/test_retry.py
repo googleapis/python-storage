@@ -13,10 +13,9 @@
 # limitations under the License.
 
 import unittest
+from unittest import mock
 
 from google.cloud.storage import _helpers
-
-import mock
 
 
 class Test_should_retry(unittest.TestCase):

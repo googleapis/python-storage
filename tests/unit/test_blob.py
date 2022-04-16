@@ -22,9 +22,9 @@ import tempfile
 import unittest
 import http.client
 from unittest.mock import patch
+from unittest import mock
 from urllib.parse import urlencode
 
-import mock
 import pytest
 
 from google.cloud.storage import _helpers

@@ -18,9 +18,9 @@ import io
 import os
 import tempfile
 import warnings
+from unittest import mock
 
 import pytest
-import mock
 
 from google import resumable_media
 from google.api_core import exceptions

@@ -14,8 +14,8 @@
 
 import datetime
 import unittest
+from unittest import mock
 
-import mock
 import pytest
 
 from google.cloud.storage.retry import DEFAULT_RETRY

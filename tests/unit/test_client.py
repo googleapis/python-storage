@@ -16,13 +16,13 @@ import base64
 import http.client
 import io
 import json
-from unittest.mock import patch
-import mock
 import pytest
 import re
 import requests
 import unittest
 import urllib
+from unittest.mock import patch
+from unittest import mock
 
 from google.api_core import exceptions
 from google.auth.credentials import AnonymousCredentials

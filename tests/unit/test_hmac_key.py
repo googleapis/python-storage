@@ -13,8 +13,7 @@
 # limitations under the License.
 
 import unittest
-
-import mock
+from unittest import mock
 
 from google.cloud.storage.retry import DEFAULT_RETRY
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_ETAG_IN_JSON

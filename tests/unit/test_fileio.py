@@ -17,8 +17,8 @@
 import unittest
 import io
 import string
+from unittest import mock
 
-import mock
 
 from google.api_core.exceptions import RequestRangeNotSatisfiable
 from google.cloud.storage.retry import DEFAULT_RETRY

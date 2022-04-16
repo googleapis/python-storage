@@ -14,7 +14,7 @@
 
 
 from google.cloud.pubsub_v1.subscriber.message import Message
-import mock
+from unittest import mock
 
 from notification_polling import summarize
 

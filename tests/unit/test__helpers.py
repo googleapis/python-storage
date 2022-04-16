@@ -13,8 +13,7 @@
 # limitations under the License.
 
 import unittest
-
-import mock
+from unittest import mock
 
 from google.cloud.storage.retry import DEFAULT_RETRY
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED
@@ -556,8 +555,6 @@ class Test__base64_md5hash(unittest.TestCase):
         self.assertEqual(SIGNED_CONTENT, b"kBiQqOnIz21aGlQrIp/r/w==")
 
     def test_it_with_stubs(self):
-        import mock
-
         class _Buffer(object):
             def __init__(self, return_vals):
                 self.return_vals = return_vals

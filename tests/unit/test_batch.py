@@ -16,8 +16,8 @@ import http.client
 from http.client import SERVICE_UNAVAILABLE
 from http.client import NO_CONTENT
 import unittest
+from unittest import mock
 
-import mock
 import requests
 
 

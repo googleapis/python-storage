@@ -22,8 +22,8 @@ import json
 import time
 import unittest
 import urllib.parse
+from unittest import mock
 
-import mock
 import pytest
 
 from . import _read_local_json
