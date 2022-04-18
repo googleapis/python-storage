@@ -55,8 +55,8 @@ DEFAULT_LIB_BUFFER_SIZE = 104857600  # https://github.com/googleapis/python-stor
 NOT_SUPPORTED = -1
 
 
-def measure_performance(func):
-    """Measure latency and throughput per operation call."""
+def log_performance(func):
+    """Log latency and throughput output per operation call."""
     # Holds benchmarking results for each operation
     res = {
         "ApiName": DEFAULT_API,
@@ -122,12 +122,15 @@ def WRITE(bucket, blob_name, checksum, size, **kwargs):
 def READ(bucket, blob_name, checksum, **kwargs):
     """Perform a download and return latency."""
     blob = bucket.blob(blob_name)
+    if not blob.exists():
+        raise Exception("Blob does not exist. Previous WRITE failed.")
 
     # TemporaryFile is cleaned up upon closing
     with tempfile.NamedTemporaryFile() as f:
-        start_time = time.monotonic_ns()
-        blob.download_to_filename(f.name, checksum=checksum)
-        end_time = time.monotonic_ns()
+        with open(f.name, "wb") as file_obj:
+            start_time = time.monotonic_ns()
+            blob.download_to_file(file_obj, checksum=checksum)
+            end_time = time.monotonic_ns()
 
     elapsed_time = round(
         (end_time - start_time) / 1000
@@ -177,26 +180,19 @@ def _generate_func_list(bucket_name, min_size, max_size):
 
 def benchmark_runner(args):
     """Run benchmarking iterations."""
-    # Create a bucket to run benchmarking
-    client = storage.Client()
-    bucket_name = uuid.uuid4().hex
-    bucket = client.create_bucket(bucket_name, location=args.r)
-
-    # Run benchmarking
     results = []
-    for func in _generate_func_list(bucket_name, args.min_size, args.max_size):
-        results.append(measure_performance(func))
-
-    # Cleanup and delete bucket
-    try:
-        bucket.delete(force=True)
-    except Exception as e:
-        logging.exception(f"Caught an exception while running retry instructions\n {e}")
+    for func in _generate_func_list(args.b, args.min_size, args.max_size):
+        results.append(log_performance(func))
 
     return results
 
 
 def main(args):
+    # Create a storage bucket to run benchmarking
+    client = storage.Client()
+    if not client.bucket(args.b).exists():
+        bucket = client.create_bucket(args.b, location=args.r)
+
     # Launch benchmark_runner using multiprocessing
     p = multiprocessing.Pool(args.p)
     pool_output = p.map(benchmark_runner, [args for _ in range(args.num_samples)])
@@ -210,13 +206,14 @@ def main(args):
                 writer.writerow(row)
     print(f"Succesfully ran benchmarking. Please find your output log at {args.o}")
 
+    # Cleanup and delete bucket
+    try:
+        bucket.delete(force=True)
+    except Exception as e:
+        logging.exception(f"Caught an exception while deleting bucket\n {e}")
+
 
 if __name__ == "__main__":
-    # Environment check: Only run benchmarking if the environment variable is set
-    if not os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", ""):
-        logging.warning("Credentials must be set via environment variable")
-        exit()
-
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--min_size",
@@ -250,6 +247,12 @@ if __name__ == "__main__":
         type=str,
         default=f"benchmarking{TIMESTAMP}.csv",
         help="File to output results to",
+    )
+    parser.add_argument(
+        "--b",
+        type=str,
+        default=f"benchmarking{TIMESTAMP}",
+        help="Storage bucket name",
     )
     args = parser.parse_args()
 
