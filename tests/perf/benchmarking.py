@@ -43,14 +43,14 @@ HEADER = [
     "Status",
     "RunID",
 ]
-CHECKSUM = ["md5", "crc32c"]
+CHECKSUM = ["md5", "crc32c", None]
 TIMESTAMP = time.strftime("%Y%m%d-%H%M%S")
 DEFAULT_API = "JSON"
 DEFAULT_BUCKET_LOCATION = "US"
 DEFAULT_MIN_SIZE = 5120  # 5 KiB
 DEFAULT_MAX_SIZE = 2147483648  # 2 GiB
 DEFAULT_NUM_SAMPLES = 1000
-DEFAULT_NUM_PROCESSES = os.cpu_count()
+DEFAULT_NUM_PROCESSES = 16
 DEFAULT_LIB_BUFFER_SIZE = 104857600  # https://github.com/googleapis/python-storage/blob/main/google/cloud/storage/blob.py#L135
 NOT_SUPPORTED = -1
 
@@ -151,8 +151,8 @@ def _generate_func_list(bucket_name, min_size, max_size):
     size = random.randrange(min_size, max_size)
     blob_name = f"{TIMESTAMP}-{uuid.uuid4().hex}"
 
-    # generate random checksumming type: md5 or crc32c
-    idx_checksum = random.choice([0, 1])
+    # generate random checksumming type: md5, crc32c or None
+    idx_checksum = random.choice([0, 1, 2])
     checksum = CHECKSUM[idx_checksum]
 
     func_list = [

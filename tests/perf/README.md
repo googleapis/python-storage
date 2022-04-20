@@ -22,7 +22,7 @@ $ python3 benchmarking.py --num_samples 10000 --max_size 16384
 | --max_size | maximum object size in bytes | any positive integer | `2147483648` (2 GiB) |
 | --num_samples | number of W1R3 iterations | any positive integer | `1000` |
 | --r | bucket region for benchmarks | any GCS region | `US` |
-| --p | number of processes (multiprocessing enabled) | any positive integer | number of CPUs in the system |
+| --p | number of processes (multiprocessing enabled) | any positive integer | 16 (recommend not to exceed 16) |
 | --o | file to output results to | any file path | `benchmarking<TIMESTAMP>.csv` |
 
 
