@@ -246,9 +246,6 @@ class LifecycleRuleConditions(dict):
         if custom_time_before is not None:
             conditions["customTimeBefore"] = custom_time_before.isoformat()
 
-        if not _factory and not conditions:
-            raise ValueError("Supply at least one condition")
-
         if days_since_noncurrent_time is not None:
             conditions["daysSinceNoncurrentTime"] = days_since_noncurrent_time
 
@@ -260,6 +257,10 @@ class LifecycleRuleConditions(dict):
 
         if matches_suffix is not None:
             conditions["matchesSuffix"] = matches_suffix
+
+        if not _factory and not conditions:
+            raise ValueError("Supply at least one condition")
+
         super(LifecycleRuleConditions, self).__init__(conditions)
 
     @classmethod

@@ -103,14 +103,14 @@ def test_bucket_lifecycle_rules(storage_client, buckets_to_delete):
     # Test modifying lifecycle rules
     expected_rules[0] = LifecycleRuleDelete(
         age=30,
-        matches_prefix="new-prefix",
-        matches_suffix="new-suffix",
+        matches_prefix=["new-prefix"],
+        matches_suffix=["new-suffix"],
     )
     rules = list(bucket.lifecycle_rules)
     rules[0]["condition"] = {
         "age": 30,
-        "matchesPrefix": "new-prefix",
-        "matchesSuffix": "new-suffix",
+        "matchesPrefix": ["new-prefix"],
+        "matchesSuffix": ["new-suffix"],
     }
     bucket.lifecycle_rules = rules
     bucket.patch()
