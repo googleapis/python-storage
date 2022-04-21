@@ -16,10 +16,12 @@ import io
 import re
 import tempfile
 
+from google.cloud import exceptions
+
 import pytest
 
-from google.cloud import exceptions
 from test_utils.vpcsc_config import vpcsc_config
+
 from . import _helpers
 
 

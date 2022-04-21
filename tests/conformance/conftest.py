@@ -16,11 +16,11 @@ import os
 import random
 import uuid
 
-import pytest
-
 from google.auth.credentials import AnonymousCredentials
 from google.cloud import storage
 from google.cloud.exceptions import NotFound
+
+import pytest
 
 
 """Environment variable or default host for Storage testbench emulator."""

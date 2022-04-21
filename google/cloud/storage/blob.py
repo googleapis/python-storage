@@ -27,55 +27,72 @@ import logging
 import mimetypes
 import os
 import re
-from urllib.parse import parse_qsl
-from urllib.parse import quote
-from urllib.parse import urlencode
-from urllib.parse import urlsplit
-from urllib.parse import urlunsplit
+from urllib.parse import (
+    parse_qsl,
+    quote,
+    urlencode,
+    urlsplit,
+    urlunsplit,
+)
 import warnings
 
 from google import resumable_media
-from google.resumable_media.requests import ChunkedDownload
-from google.resumable_media.requests import Download
-from google.resumable_media.requests import RawDownload
-from google.resumable_media.requests import RawChunkedDownload
-from google.resumable_media.requests import MultipartUpload
-from google.resumable_media.requests import ResumableUpload
-
 from google.api_core.iam import Policy
 from google.cloud import exceptions
-from google.cloud._helpers import _bytes_to_unicode
-from google.cloud._helpers import _datetime_to_rfc3339
-from google.cloud._helpers import _rfc3339_nanos_to_datetime
-from google.cloud._helpers import _to_bytes
+from google.cloud._helpers import (
+    _bytes_to_unicode,
+    _datetime_to_rfc3339,
+    _rfc3339_nanos_to_datetime,
+    _to_bytes,
+)
 from google.cloud.exceptions import NotFound
-from google.cloud.storage._helpers import _add_etag_match_headers
-from google.cloud.storage._helpers import _add_generation_match_parameters
-from google.cloud.storage._helpers import _PropertyMixin
-from google.cloud.storage._helpers import _scalar_property
-from google.cloud.storage._helpers import _bucket_bound_hostname_url
-from google.cloud.storage._helpers import _raise_if_more_than_one_set
-from google.cloud.storage._helpers import _api_core_retry_to_resumable_media_retry
-from google.cloud.storage._helpers import _get_default_headers
-from google.cloud.storage._signing import generate_signed_url_v2
-from google.cloud.storage._signing import generate_signed_url_v4
-from google.cloud.storage._helpers import _NUM_RETRIES_MESSAGE
-from google.cloud.storage.acl import ACL
-from google.cloud.storage.acl import ObjectACL
-from google.cloud.storage.constants import _DEFAULT_TIMEOUT
-from google.cloud.storage.constants import ARCHIVE_STORAGE_CLASS
-from google.cloud.storage.constants import COLDLINE_STORAGE_CLASS
-from google.cloud.storage.constants import MULTI_REGIONAL_LEGACY_STORAGE_CLASS
-from google.cloud.storage.constants import NEARLINE_STORAGE_CLASS
-from google.cloud.storage.constants import REGIONAL_LEGACY_STORAGE_CLASS
-from google.cloud.storage.constants import STANDARD_STORAGE_CLASS
-from google.cloud.storage.retry import ConditionalRetryPolicy
-from google.cloud.storage.retry import DEFAULT_RETRY
-from google.cloud.storage.retry import DEFAULT_RETRY_IF_ETAG_IN_JSON
-from google.cloud.storage.retry import DEFAULT_RETRY_IF_GENERATION_SPECIFIED
-from google.cloud.storage.retry import DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED
-from google.cloud.storage.fileio import BlobReader
-from google.cloud.storage.fileio import BlobWriter
+from google.cloud.storage._helpers import (
+    _add_etag_match_headers,
+    _add_generation_match_parameters,
+    _api_core_retry_to_resumable_media_retry,
+    _bucket_bound_hostname_url,
+    _get_default_headers,
+    _NUM_RETRIES_MESSAGE,
+    _PropertyMixin,
+    _raise_if_more_than_one_set,
+    _scalar_property,
+)
+from google.cloud.storage._signing import (
+    generate_signed_url_v2,
+    generate_signed_url_v4,
+)
+from google.cloud.storage.acl import (
+    ACL,
+    ObjectACL,
+)
+from google.cloud.storage.constants import (
+    _DEFAULT_TIMEOUT,
+    ARCHIVE_STORAGE_CLASS,
+    COLDLINE_STORAGE_CLASS,
+    MULTI_REGIONAL_LEGACY_STORAGE_CLASS,
+    NEARLINE_STORAGE_CLASS,
+    REGIONAL_LEGACY_STORAGE_CLASS,
+    STANDARD_STORAGE_CLASS,
+)
+from google.cloud.storage.fileio import (
+    BlobReader,
+    BlobWriter,
+)
+from google.cloud.storage.retry import (
+    ConditionalRetryPolicy,
+    DEFAULT_RETRY,
+    DEFAULT_RETRY_IF_ETAG_IN_JSON,
+    DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+    DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
+)
+from google.resumable_media.requests import (
+    ChunkedDownload,
+    Download,
+    MultipartUpload,
+    RawChunkedDownload,
+    RawDownload,
+    ResumableUpload,
+)
 
 
 _API_ACCESS_ENDPOINT = "https://storage.googleapis.com"

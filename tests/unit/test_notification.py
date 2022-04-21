@@ -14,9 +14,9 @@
 
 import unittest
 
-import mock
-
 from google.cloud.storage.retry import DEFAULT_RETRY
+
+import mock
 
 
 class TestBucketNotification(unittest.TestCase):

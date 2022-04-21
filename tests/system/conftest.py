@@ -15,9 +15,10 @@
 import contextlib
 import os
 
+from google.cloud.storage._helpers import _base64_md5hash
+
 import pytest
 
-from google.cloud.storage._helpers import _base64_md5hash
 from . import _helpers
 
 

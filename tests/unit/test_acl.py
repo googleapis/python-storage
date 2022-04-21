@@ -14,12 +14,12 @@
 
 import unittest
 
-import mock
-
 from google.cloud.storage.retry import (
     DEFAULT_RETRY,
     DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
 )
+
+import mock
 
 
 class Test_ACLEntity(unittest.TestCase):

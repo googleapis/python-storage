@@ -1,11 +1,13 @@
 import argparse
+from concurrent import futures
 import sys
 import time
-import grpc
-from concurrent import futures
-import storage_pb2_grpc
-import storage_pb2
+
 from google.cloud import storage
+
+import grpc
+import storage_pb2
+import storage_pb2_grpc
 
 _ONE_DAY_IN_SECONDS = 60 * 60 * 24
 

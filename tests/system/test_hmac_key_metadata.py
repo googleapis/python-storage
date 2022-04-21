@@ -14,9 +14,9 @@
 
 import datetime
 
-import pytest
-
 from google.cloud import _helpers as _cloud_helpers
+
+import pytest
 
 from . import _helpers
 

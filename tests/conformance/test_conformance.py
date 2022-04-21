@@ -20,15 +20,15 @@ import os
 import subprocess
 import tempfile
 import time
-import uuid
-
-import pytest
-import requests
 import urllib
+import uuid
 
 from google.auth.credentials import AnonymousCredentials
 from google.cloud import storage
 from google.cloud.storage.hmac_key import HMACKeyMetadata
+
+import pytest
+import requests
 
 from . import _read_local_json
 

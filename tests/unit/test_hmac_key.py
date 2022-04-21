@@ -14,10 +14,10 @@
 
 import unittest
 
-import mock
-
 from google.cloud.storage.retry import DEFAULT_RETRY
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_ETAG_IN_JSON
+
+import mock
 
 
 class TestHMACKeyMetadata(unittest.TestCase):

@@ -14,10 +14,11 @@
 
 import os
 
-import pytest
-
 from google.api_core import exceptions
 from google.cloud import kms
+
+import pytest
+
 from . import _helpers
 
 keyring_name = "gcs-test"

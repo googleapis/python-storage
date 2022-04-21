@@ -14,10 +14,10 @@
 
 import unittest
 
-import mock
-
 from google.cloud.storage.retry import DEFAULT_RETRY
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED
+
+import mock
 
 GCCL_INVOCATION_TEST_CONST = "gccl-invocation-id/test-invocation-123"
 

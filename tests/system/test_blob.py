@@ -19,12 +19,14 @@ import os
 import tempfile
 import warnings
 
-import pytest
-import mock
 
 from google import resumable_media
 from google.api_core import exceptions
 from google.cloud.storage._helpers import _base64_md5hash
+
+import mock
+import pytest
+
 from . import _helpers
 
 encryption_key = "b23ff11bba187db8c37077e6af3b25b8"

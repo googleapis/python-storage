@@ -22,43 +22,45 @@ from urllib.parse import urlsplit
 import warnings
 
 from google.api_core import datetime_helpers
+from google.api_core.iam import Policy
 from google.cloud._helpers import _datetime_to_rfc3339
 from google.cloud._helpers import _NOW
 from google.cloud._helpers import _rfc3339_nanos_to_datetime
 from google.cloud.exceptions import NotFound
-from google.api_core.iam import Policy
 from google.cloud.storage import _signing
 from google.cloud.storage._helpers import _add_etag_match_headers
 from google.cloud.storage._helpers import _add_generation_match_parameters
+from google.cloud.storage._helpers import _bucket_bound_hostname_url
 from google.cloud.storage._helpers import _PropertyMixin
 from google.cloud.storage._helpers import _scalar_property
 from google.cloud.storage._helpers import _validate_name
 from google.cloud.storage._signing import generate_signed_url_v2
 from google.cloud.storage._signing import generate_signed_url_v4
-from google.cloud.storage._helpers import _bucket_bound_hostname_url
 from google.cloud.storage.acl import BucketACL
 from google.cloud.storage.acl import DefaultObjectACL
 from google.cloud.storage.blob import Blob
-from google.cloud.storage.constants import _DEFAULT_TIMEOUT
-from google.cloud.storage.constants import ARCHIVE_STORAGE_CLASS
-from google.cloud.storage.constants import COLDLINE_STORAGE_CLASS
-from google.cloud.storage.constants import DUAL_REGION_LOCATION_TYPE
 from google.cloud.storage.constants import (
+    _DEFAULT_TIMEOUT,
+    ARCHIVE_STORAGE_CLASS,
+    COLDLINE_STORAGE_CLASS,
+    DUAL_REGION_LOCATION_TYPE,
     DURABLE_REDUCED_AVAILABILITY_LEGACY_STORAGE_CLASS,
+    MULTI_REGION_LOCATION_TYPE,
+    MULTI_REGIONAL_LEGACY_STORAGE_CLASS,
+    NEARLINE_STORAGE_CLASS,
+    PUBLIC_ACCESS_PREVENTION_INHERITED,
+    REGION_LOCATION_TYPE,
+    REGIONAL_LEGACY_STORAGE_CLASS,
+    STANDARD_STORAGE_CLASS
 )
-from google.cloud.storage.constants import MULTI_REGIONAL_LEGACY_STORAGE_CLASS
-from google.cloud.storage.constants import MULTI_REGION_LOCATION_TYPE
-from google.cloud.storage.constants import NEARLINE_STORAGE_CLASS
-from google.cloud.storage.constants import PUBLIC_ACCESS_PREVENTION_INHERITED
-from google.cloud.storage.constants import REGIONAL_LEGACY_STORAGE_CLASS
-from google.cloud.storage.constants import REGION_LOCATION_TYPE
-from google.cloud.storage.constants import STANDARD_STORAGE_CLASS
 from google.cloud.storage.notification import BucketNotification
 from google.cloud.storage.notification import NONE_PAYLOAD_FORMAT
-from google.cloud.storage.retry import DEFAULT_RETRY
-from google.cloud.storage.retry import DEFAULT_RETRY_IF_GENERATION_SPECIFIED
-from google.cloud.storage.retry import DEFAULT_RETRY_IF_ETAG_IN_JSON
-from google.cloud.storage.retry import DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED
+from google.cloud.storage.retry import (
+    DEFAULT_RETRY,
+    DEFAULT_RETRY_IF_ETAG_IN_JSON,
+    DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+    DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED
+)
 
 
 _UBLA_BPO_ENABLED_MESSAGE = (

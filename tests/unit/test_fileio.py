@@ -14,14 +14,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import unittest
 import io
 import string
-
-import mock
+import unittest
 
 from google.api_core.exceptions import RequestRangeNotSatisfiable
 from google.cloud.storage.retry import DEFAULT_RETRY
+
+import mock
 
 TEST_TEXT_DATA = string.ascii_lowercase + "\n" + string.ascii_uppercase + "\n"
 TEST_BINARY_DATA = TEST_TEXT_DATA.encode("utf-8")

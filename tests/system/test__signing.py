@@ -18,10 +18,11 @@ import hashlib
 import os
 import time
 
-import requests
-
 from google.api_core import path_template
 from google.cloud import iam_credentials_v1
+
+import requests
+
 from . import _helpers
 
 

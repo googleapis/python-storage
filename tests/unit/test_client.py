@@ -16,23 +16,26 @@ import base64
 import http.client
 import io
 import json
-from unittest.mock import patch
-import mock
-import pytest
+import os.path
 import re
-import requests
+import sys
 import unittest
+from unittest.mock import patch
 import urllib
 
 from google.api_core import exceptions
 from google.auth.credentials import AnonymousCredentials
-from google.oauth2.service_account import Credentials
-
-from google.cloud.storage._helpers import STORAGE_EMULATOR_ENV_VAR
-from google.cloud.storage._helpers import _get_default_headers
 from google.cloud.storage import _helpers
+from google.cloud.storage._helpers import _get_default_headers
+from google.cloud.storage._helpers import STORAGE_EMULATOR_ENV_VAR
 from google.cloud.storage.retry import DEFAULT_RETRY
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_GENERATION_SPECIFIED
+from google.oauth2.service_account import Credentials
+
+import mock
+import pytest
+import requests
+
 from tests.unit.test__helpers import GCCL_INVOCATION_TEST_CONST
 from . import _read_local_json
 

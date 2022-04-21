@@ -15,17 +15,14 @@
 import base64
 import datetime
 import hashlib
+import http.client
 import io
 import json
 import os
 import tempfile
 import unittest
-import http.client
 from unittest.mock import patch
 from urllib.parse import urlencode
-
-import mock
-import pytest
 
 from google.cloud.storage import _helpers
 from google.cloud.storage._helpers import _get_default_headers
@@ -35,6 +32,10 @@ from google.cloud.storage.retry import (
 )
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_ETAG_IN_JSON
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_GENERATION_SPECIFIED
+
+import mock
+import pytest
+
 from tests.unit.test__helpers import GCCL_INVOCATION_TEST_CONST
 
 

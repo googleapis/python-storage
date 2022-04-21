@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from unittest import mock
 
 from google.cloud.pubsub_v1.subscriber.message import Message
 import mock

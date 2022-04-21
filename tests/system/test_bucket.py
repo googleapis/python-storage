@@ -14,9 +14,10 @@
 
 import datetime
 
+from google.api_core import exceptions
+
 import pytest
 
-from google.api_core import exceptions
 from . import _helpers
 
 
