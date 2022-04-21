@@ -67,6 +67,7 @@ import storage_object_get_kms_key
 import storage_remove_bucket_label
 import storage_remove_cors_configuration
 import storage_rename_file
+import storage_set_autoclass
 import storage_set_bucket_default_kms_key
 import storage_set_client_endpoint
 import storage_set_metadata
@@ -407,6 +408,16 @@ def test_versioning(test_bucket, capsys):
     assert "Versioning was disabled for bucket" in out
     assert bucket.versioning_enabled is False
 
+def test_set_autoclass(test_bucket, capsys):
+    bucket = storage_set_autoclass.set_autoclass(test_bucket, True)
+    out, _ = capsys.readouterr()
+    assert "Autoclass enabled is set to True" in out
+    assert bucket.autoclass_enabled is True
+
+    bucket = storage_set_autoclass.set_autoclass(test_bucket, False)
+    out, _ = capsys.readouterr()
+    assert "Autoclass enabled is set to False" in out
+    assert bucket.autoclass_enabled is False
 
 def test_bucket_lifecycle_management(test_bucket, capsys):
     bucket = storage_enable_bucket_lifecycle_management.enable_bucket_lifecycle_management(
