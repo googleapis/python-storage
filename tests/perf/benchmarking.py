@@ -20,7 +20,6 @@ import logging
 import multiprocessing
 import os
 import random
-import tempfile
 import time
 import uuid
 
@@ -105,17 +104,22 @@ def log_performance(func):
 def WRITE(bucket, blob_name, checksum, size, **kwargs):
     """Perform an upload and return latency."""
     blob = bucket.blob(blob_name)
-    # TemporaryFile is cleaned up upon closing
-    with tempfile.NamedTemporaryFile() as f:
-        f.write(os.urandom(size))
+    file_path = f"{os.getcwd()}/{uuid.uuid4().hex}"
+    # Create random file locally on disk
+    with open(file_path, "wb") as file_obj:
+        file_obj.write(os.urandom(size))
 
-        start_time = time.monotonic_ns()
-        blob.upload_from_filename(f.name, checksum=checksum, if_generation_match=0)
-        end_time = time.monotonic_ns()
+    start_time = time.monotonic_ns()
+    blob.upload_from_filename(file_path, checksum=checksum, if_generation_match=0)
+    end_time = time.monotonic_ns()
 
     elapsed_time = round(
         (end_time - start_time) / 1000
     )  # convert nanoseconds to microseconds
+
+    # Clean up local file
+    cleanup_file(file_path)
+
     return elapsed_time
 
 
@@ -125,17 +129,28 @@ def READ(bucket, blob_name, checksum, **kwargs):
     if not blob.exists():
         raise Exception("Blob does not exist. Previous WRITE failed.")
 
-    # TemporaryFile is cleaned up upon closing
-    with tempfile.NamedTemporaryFile() as f:
-        with open(f.name, "wb") as file_obj:
-            start_time = time.monotonic_ns()
-            blob.download_to_file(file_obj, checksum=checksum)
-            end_time = time.monotonic_ns()
+    file_path = f"{os.getcwd()}/{blob_name}"
+    with open(file_path, "wb") as file_obj:
+        start_time = time.monotonic_ns()
+        blob.download_to_file(file_obj, checksum=checksum)
+        end_time = time.monotonic_ns()
 
     elapsed_time = round(
         (end_time - start_time) / 1000
     )  # convert nanoseconds to microseconds
+
+    # Clean up local file
+    cleanup_file(file_path)
+
     return elapsed_time
+
+
+def cleanup_file(file_path):
+    """Clean up local file on disk."""
+    try:
+        os.remove(file_path)
+    except Exception as e:
+        logging.exception(f"Caught an exception while deleting local file\n {e}")
 
 
 def _wrapped_partial(func, *args, **kwargs):
