@@ -86,6 +86,9 @@ def blob_download_as_bytes(client, _preconditions, **resources):
 
 
 def blob_download_as_bytes_w_range(client, _preconditions, **resources):
+    # Range read response headers are returned differently in JSON vs XML. JSON response omits the x-goog-hash header;
+    # XML response returns checksum that covers the complete object content for range reads.
+    # Skip test as the testbench is now aligned with XML and returns complete object checksum.
     bucket = resources.get("bucket")
     file, data = resources.get("file_data")
     blob = client.bucket(bucket.name).blob(file.name)
@@ -767,7 +770,6 @@ method_mapping = {
         blob_download_to_filename,
         blob_download_to_filename_chunked,
         blob_download_as_bytes,
-        blob_download_as_bytes_w_range,
         blob_download_as_text,
         blobreader_read,
     ],
