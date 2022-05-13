@@ -2873,7 +2873,7 @@ class Test_Blob(unittest.TestCase):
         if size is None:
             content_range = f"bytes 0-{blob.chunk_size - 1:}/*"
         else:
-            content_range = f"bytes 0-{blob.chunk_size - 1:d}/{size:d}"
+            content_range = f"bytes 0-{blob.chunk_size - 1}/{size}"
 
         expected_headers = {
             **_get_default_headers(
