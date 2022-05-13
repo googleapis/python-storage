@@ -2871,7 +2871,7 @@ class Test_Blob(unittest.TestCase):
     ):
         # Second mock transport.request() does sends first chunk.
         if size is None:
-            content_range = f"bytes 0-{blob.chunk_size - 1:d}/*"
+            content_range = f"bytes 0-{blob.chunk_size - 1:}/*"
         else:
             content_range = f"bytes 0-{blob.chunk_size - 1:d}/{size:d}"
 
