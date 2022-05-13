@@ -939,9 +939,7 @@ def run_test_case(
             file_data,
         )
     except Exception as e:
-        logging.exception(
-            f"Caught an exception while running retry instructions\n {e}"
-        )
+        logging.exception(f"Caught an exception while running retry instructions\n {e}")
         success_results = False
     else:
         success_results = True

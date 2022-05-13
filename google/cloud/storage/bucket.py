@@ -1166,7 +1166,7 @@ class Bucket(_PropertyMixin):
         if_metageneration_not_match=None,
         timeout=_DEFAULT_TIMEOUT,
         retry=DEFAULT_RETRY,
-        **kwargs
+        **kwargs,
     ):
         """Get a blob object by name.
 
@@ -1241,7 +1241,7 @@ class Bucket(_PropertyMixin):
             name=blob_name,
             encryption_key=encryption_key,
             generation=generation,
-            **kwargs
+            **kwargs,
         )
         try:
             # NOTE: This will not fail immediately in a batch. However, when
@@ -3387,6 +3387,4 @@ def _raise_if_len_differs(expected_len, **generation_match_args):
     """
     for name, value in generation_match_args.items():
         if value is not None and len(value) != expected_len:
-            raise ValueError(
-                f"'{name}' length must be the same as 'blobs' length"
-            )
+            raise ValueError(f"'{name}' length must be the same as 'blobs' length")

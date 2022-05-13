@@ -3751,7 +3751,7 @@ class Blob(_PropertyMixin):
         encoding=None,
         errors=None,
         newline=None,
-        **kwargs
+        **kwargs,
     ):
         r"""Create a file handler for file-like I/O to or from this blob.
 

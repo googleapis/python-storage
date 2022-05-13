@@ -58,9 +58,7 @@ class MIMEApplicationHTTP(MIMEApplication):
         if body is None:
             body = ""
         lines = [f"{method} {uri} HTTP/1.1"]
-        lines.extend(
-            [f"{key}: {value}" for key, value in sorted(headers.items())]
-        )
+        lines.extend([f"{key}: {value}" for key, value in sorted(headers.items())])
         lines.append("")
         lines.append(body)
         payload = "\r\n".join(lines)

@@ -960,9 +960,7 @@ class Test_Blob(unittest.TestCase):
         client._connection.API_BASE_URL = "https://storage.googleapis.com"
         download_url = blob._get_download_url(client)
 
-        self.assertEqual(
-            download_url, f"{media_link}?userProject={user_project}"
-        )
+        self.assertEqual(download_url, f"{media_link}?userProject={user_project}")
 
     def test__get_download_url_on_the_fly(self):
         blob_name = "bzzz-fly.txt"
@@ -1210,7 +1208,7 @@ class Test_Blob(unittest.TestCase):
                     start=1,
                     end=3,
                     raw_download=raw_download,
-                    **extra_kwargs
+                    **extra_kwargs,
                 )
             else:
                 blob._do_download(
@@ -1219,7 +1217,7 @@ class Test_Blob(unittest.TestCase):
                     download_url,
                     headers,
                     raw_download=raw_download,
-                    **extra_kwargs
+                    **extra_kwargs,
                 )
 
         if w_range:
@@ -1348,7 +1346,7 @@ class Test_Blob(unittest.TestCase):
                     end=3,
                     raw_download=raw_download,
                     checksum=checksum,
-                    **timeout_kwarg
+                    **timeout_kwarg,
                 )
             else:
                 blob._do_download(
@@ -1358,7 +1356,7 @@ class Test_Blob(unittest.TestCase):
                     headers,
                     raw_download=raw_download,
                     checksum=checksum,
-                    **timeout_kwarg
+                    **timeout_kwarg,
                 )
 
         if w_range:
@@ -1614,7 +1612,7 @@ class Test_Blob(unittest.TestCase):
                     temp.name,
                     raw_download=raw_download,
                     timeout=timeout,
-                    **extra_kwargs
+                    **extra_kwargs,
                 )
 
             if updated is None:
@@ -1904,7 +1902,7 @@ class Test_Blob(unittest.TestCase):
         no_charset=False,
         expected_value="DEADBEEF",
         payload=None,
-        **extra_kwargs
+        **extra_kwargs,
     ):
         if payload is None:
             if encoding is not None:
@@ -2335,7 +2333,7 @@ class Test_Blob(unittest.TestCase):
                 if_metageneration_match,
                 if_metageneration_not_match,
                 retry=retry,
-                **timeout_kwarg
+                **timeout_kwarg,
             )
 
         # Clean up the get_api_base_url_for_mtls mock.
@@ -2608,7 +2606,7 @@ class Test_Blob(unittest.TestCase):
                 if_metageneration_match=if_metageneration_match,
                 if_metageneration_not_match=if_metageneration_not_match,
                 retry=retry,
-                **timeout_kwarg
+                **timeout_kwarg,
             )
 
         # Clean up the get_api_base_url_for_mtls mock.
@@ -3006,7 +3004,7 @@ class Test_Blob(unittest.TestCase):
                 if_metageneration_match,
                 if_metageneration_not_match,
                 retry=retry,
-                **timeout_kwarg
+                **timeout_kwarg,
             )
 
             # Check the returned values.
@@ -3144,7 +3142,7 @@ class Test_Blob(unittest.TestCase):
             if_metageneration_match,
             if_metageneration_not_match,
             retry=retry,
-            **timeout_kwarg
+            **timeout_kwarg,
         )
 
         if retry is DEFAULT_RETRY_IF_GENERATION_SPECIFIED:
@@ -3535,7 +3533,7 @@ class Test_Blob(unittest.TestCase):
             "text/plain",
             len(payload),
             kwargs.get("timeout", self._get_default_timeout()),
-            **extra_kwargs
+            **extra_kwargs,
         )
         self.assertIsInstance(stream, io.BytesIO)
         self.assertEqual(stream.getvalue(), payload)
@@ -3618,7 +3616,7 @@ class Test_Blob(unittest.TestCase):
                 if_metageneration_match=if_metageneration_match,
                 if_metageneration_not_match=if_metageneration_not_match,
                 retry=retry,
-                **timeout_kwarg
+                **timeout_kwarg,
             )
 
         # Check the returned value and (lack of) side-effect.
@@ -5828,17 +5826,13 @@ class Test__add_query_parameters(unittest.TestCase):
         BASE_URL = "https://test.example.com/base"
         NV_LIST = [("one", "One"), ("two", "Two")]
         expected = "&".join([f"{name}={value}" for name, value in NV_LIST])
-        self.assertEqual(
-            self._call_fut(BASE_URL, NV_LIST), f"{BASE_URL}?{expected}"
-        )
+        self.assertEqual(self._call_fut(BASE_URL, NV_LIST), f"{BASE_URL}?{expected}")
 
     def test_w_existing_qs(self):
         BASE_URL = "https://test.example.com/base?one=Three"
         NV_LIST = [("one", "One"), ("two", "Two")]
         expected = "&".join([f"{name}={value}" for name, value in NV_LIST])
-        self.assertEqual(
-            self._call_fut(BASE_URL, NV_LIST), f"{BASE_URL}&{expected}"
-        )
+        self.assertEqual(self._call_fut(BASE_URL, NV_LIST), f"{BASE_URL}&{expected}")
 
 
 class _Connection(object):
