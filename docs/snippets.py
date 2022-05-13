@@ -299,7 +299,10 @@ def main():
     client = storage.Client()
     for example in _find_examples():
         to_delete = []
-        print(f"%-25s: {_name_and_doc(example)}")
+        name, doc: _name_and_doc(example)
+        print(f"{name:>25}: {doc}"
+
+
         try:
             example(client, to_delete)
         except AssertionError as failure:
