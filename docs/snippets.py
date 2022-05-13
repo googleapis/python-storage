@@ -299,9 +299,8 @@ def main():
     client = storage.Client()
     for example in _find_examples():
         to_delete = []
-        name, doc: _name_and_doc(example)
-        print(f"{name:>25}: {doc}"
-
+        name, doc = _name_and_doc(example)
+        print(f"{name:>25}: {doc}")
 
         try:
             example(client, to_delete)
