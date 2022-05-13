@@ -106,7 +106,7 @@ class BlobReader(io.BufferedIOBase):
         for kwarg in download_kwargs:
             if kwarg not in VALID_DOWNLOAD_KWARGS:
                 raise ValueError(
-                    "BlobReader does not support keyword argument {}.".format(kwarg)
+                    f"BlobReader does not support keyword argument {kwarg}."
                 )
 
         self._blob = blob
@@ -304,7 +304,7 @@ class BlobWriter(io.BufferedIOBase):
         for kwarg in upload_kwargs:
             if kwarg not in VALID_UPLOAD_KWARGS:
                 raise ValueError(
-                    "BlobWriter does not support keyword argument {}.".format(kwarg)
+                    f"BlobWriter does not support keyword argument {kwarg}."
                 )
         self._blob = blob
         self._buffer = SlidingBuffer()

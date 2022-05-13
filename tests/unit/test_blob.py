@@ -140,7 +140,7 @@ class Test_Blob(unittest.TestCase):
         NOW = now.strftime(_RFC3339_MICROS)
         BLOB_NAME = "blob-name"
         GENERATION = 12345
-        BLOB_ID = "name/{}/{}".format(BLOB_NAME, GENERATION)
+        BLOB_ID = f"name/{BLOB_NAME}/{GENERATION}"
         SELF_LINK = "http://example.com/self/"
         METAGENERATION = 23456
         SIZE = 12345
@@ -321,7 +321,7 @@ class Test_Blob(unittest.TestCase):
         BLOB_NAME = "blob-name"
         bucket = _Bucket()
         blob = self._make_one(BLOB_NAME, bucket=bucket)
-        self.assertEqual(blob.path, "/b/name/o/%s" % BLOB_NAME)
+        self.assertEqual(blob.path, f"/b/name/o/{BLOB_NAME}")
 
     def test_path_w_slash_in_name(self):
         BLOB_NAME = "parent/child"
@@ -402,7 +402,7 @@ class Test_Blob(unittest.TestCase):
         bucket = _Bucket()
         blob = self._make_one(BLOB_NAME, bucket=bucket)
         self.assertEqual(
-            blob.public_url, "https://storage.googleapis.com/name/%s" % BLOB_NAME
+            blob.public_url, f"https://storage.googleapis.com/name/{BLOB_NAME}"
         )
 
     def test_public_url_w_slash_in_name(self):
@@ -486,9 +486,7 @@ class Test_Blob(unittest.TestCase):
         else:
             effective_version = version
 
-        to_patch = "google.cloud.storage.blob.generate_signed_url_{}".format(
-            effective_version
-        )
+        to_patch = f"google.cloud.storage.blob.generate_signed_url_{effective_version}"
 
         with mock.patch(to_patch) as signer:
             signed_uri = blob.generate_signed_url(
@@ -525,10 +523,10 @@ class Test_Blob(unittest.TestCase):
             )
         else:
             expected_api_access_endpoint = api_access_endpoint
-            expected_resource = "/{}/{}".format(bucket.name, quoted_name)
+            expected_resource = f"/{bucket.name}/{quoted_name}"
 
         if virtual_hosted_style or bucket_bound_hostname:
-            expected_resource = "/{}".format(quoted_name)
+            expected_resource = f"/{quoted_name}"
 
         if encryption_key is not None:
             expected_headers = headers or {}
@@ -946,7 +944,7 @@ class Test_Blob(unittest.TestCase):
         )
         self.assertEqual(
             download_url,
-            "{}?ifGenerationMatch={}".format(MEDIA_LINK, GENERATION_NUMBER),
+            f"{MEDIA_LINK}?ifGenerationMatch={GENERATION_NUMBER}",
         )
 
     def test__get_download_url_with_media_link_w_user_project(self):
@@ -963,7 +961,7 @@ class Test_Blob(unittest.TestCase):
         download_url = blob._get_download_url(client)
 
         self.assertEqual(
-            download_url, "{}?userProject={}".format(media_link, user_project)
+            download_url, f"{media_link}?userProject={user_project}"
         )
 
     def test__get_download_url_on_the_fly(self):
@@ -1920,7 +1918,7 @@ class Test_Blob(unittest.TestCase):
 
         properties = {}
         if charset is not None:
-            properties["contentType"] = "text/plain; charset={}".format(charset)
+            properties["contentType"] = f"text/plain; charset={charset}"
         elif no_charset:
             properties = {"contentType": "text/plain"}
 
@@ -2815,7 +2813,7 @@ class Test_Blob(unittest.TestCase):
         fake_response2 = self._mock_requests_response(
             resumable_media.PERMANENT_REDIRECT, headers2
         )
-        json_body = '{{"size": "{:d}"}}'.format(total_bytes)
+        json_body = f'{{"size": "{total_bytes:d}"}}'
         if data_corruption:
             fake_response3 = resumable_media.DataCorruption(None)
         else:
@@ -2847,7 +2845,7 @@ class Test_Blob(unittest.TestCase):
             + "/o?uploadType=resumable"
         )
         if predefined_acl is not None:
-            upload_url += "&predefinedAcl={}".format(predefined_acl)
+            upload_url += f"&predefinedAcl={predefined_acl}"
         expected_headers = _get_default_headers(
             client._connection.user_agent, x_upload_content_type=content_type
         )
@@ -2875,9 +2873,9 @@ class Test_Blob(unittest.TestCase):
     ):
         # Second mock transport.request() does sends first chunk.
         if size is None:
-            content_range = "bytes 0-{:d}/*".format(blob.chunk_size - 1)
+            content_range = f"bytes 0-{blob.chunk_size - 1:d}/*"
         else:
-            content_range = "bytes 0-{:d}/{:d}".format(blob.chunk_size - 1, size)
+            content_range = f"bytes 0-{blob.chunk_size - 1:d}/{size:d}"
 
         expected_headers = {
             **_get_default_headers(
@@ -2911,9 +2909,7 @@ class Test_Blob(unittest.TestCase):
         timeout=None,
     ):
         # Third mock transport.request() does sends last chunk.
-        content_range = "bytes {:d}-{:d}/{:d}".format(
-            blob.chunk_size, total_bytes - 1, total_bytes
-        )
+        content_range = f"bytes {blob.chunk_size:d}-{total_bytes - 1:d}/{total_bytes:d}"
         expected_headers = {
             **_get_default_headers(
                 client._connection.user_agent, x_upload_content_type=content_type
@@ -2965,7 +2961,7 @@ class Test_Blob(unittest.TestCase):
             }
             headers2 = {
                 **_get_default_headers(USER_AGENT, content_type),
-                "range": "bytes=0-{:d}".format(CHUNK_SIZE - 1),
+                "range": f"bytes=0-{CHUNK_SIZE - 1:d}",
             }
             headers3 = _get_default_headers(USER_AGENT, content_type)
             transport, responses = self._make_resumable_transport(
@@ -3721,7 +3717,7 @@ class Test_Blob(unittest.TestCase):
         from google.api_core.iam import Policy
 
         blob_name = "blob-name"
-        path = "/b/name/o/%s" % (blob_name,)
+        path = f"/b/name/o/{blob_name}"
         etag = "DEADBEEF"
         version = 1
         owner1 = "user:phred@example.com"
@@ -3756,7 +3752,7 @@ class Test_Blob(unittest.TestCase):
         self.assertEqual(policy.version, api_response["version"])
         self.assertEqual(dict(policy), expected_policy)
 
-        expected_path = "%s/iam" % (path,)
+        expected_path = f"{path}/iam"
         expected_query_params = {}
         client._get_resource.assert_called_once_with(
             expected_path,
@@ -3772,7 +3768,7 @@ class Test_Blob(unittest.TestCase):
         blob_name = "blob-name"
         user_project = "user-project-123"
         timeout = 42
-        path = "/b/name/o/%s" % (blob_name,)
+        path = f"/b/name/o/{blob_name}"
         etag = "DEADBEEF"
         version = 1
         api_response = {
@@ -3794,7 +3790,7 @@ class Test_Blob(unittest.TestCase):
         self.assertEqual(policy.version, api_response["version"])
         self.assertEqual(dict(policy), expected_policy)
 
-        expected_path = "%s/iam" % (path,)
+        expected_path = f"{path}/iam"
         expected_query_params = {"userProject": user_project}
         client._get_resource.assert_called_once_with(
             expected_path,
@@ -3808,7 +3804,7 @@ class Test_Blob(unittest.TestCase):
         from google.cloud.storage.iam import STORAGE_OWNER_ROLE
 
         blob_name = "blob-name"
-        path = "/b/name/o/%s" % (blob_name,)
+        path = f"/b/name/o/{blob_name}"
         etag = "DEADBEEF"
         version = 3
         owner1 = "user:phred@example.com"
@@ -3828,7 +3824,7 @@ class Test_Blob(unittest.TestCase):
 
         self.assertEqual(policy.version, version)
 
-        expected_path = "%s/iam" % (path,)
+        expected_path = f"{path}/iam"
         expected_query_params = {"optionsRequestedPolicyVersion": version}
         client._get_resource.assert_called_once_with(
             expected_path,
@@ -3846,7 +3842,7 @@ class Test_Blob(unittest.TestCase):
         from google.api_core.iam import Policy
 
         blob_name = "blob-name"
-        path = "/b/name/o/%s" % (blob_name,)
+        path = f"/b/name/o/{blob_name}"
         etag = "DEADBEEF"
         version = 1
         owner1 = "user:phred@example.com"
@@ -3876,7 +3872,7 @@ class Test_Blob(unittest.TestCase):
         self.assertEqual(returned.version, version)
         self.assertEqual(dict(returned), dict(policy))
 
-        expected_path = "%s/iam" % (path,)
+        expected_path = f"{path}/iam"
         expected_data = {
             "resourceId": path,
             "bindings": mock.ANY,
@@ -3904,7 +3900,7 @@ class Test_Blob(unittest.TestCase):
 
         blob_name = "blob-name"
         user_project = "user-project-123"
-        path = "/b/name/o/%s" % (blob_name,)
+        path = f"/b/name/o/{blob_name}"
         etag = "DEADBEEF"
         version = 1
         bindings = []
@@ -3929,7 +3925,7 @@ class Test_Blob(unittest.TestCase):
         self.assertEqual(returned.version, version)
         self.assertEqual(dict(returned), dict(policy))
 
-        expected_path = "%s/iam" % (path,)
+        expected_path = f"{path}/iam"
         expected_data = {  # bindings omitted
             "resourceId": path,
         }
@@ -3965,7 +3961,7 @@ class Test_Blob(unittest.TestCase):
 
         self.assertEqual(found, expected)
 
-        expected_path = "/b/name/o/%s/iam/testPermissions" % (blob_name,)
+        expected_path = f"/b/name/o/{blob_name}/iam/testPermissions"
         expected_query_params = {"permissions": permissions}
         client._get_resource.assert_called_once_with(
             expected_path,
@@ -4000,7 +3996,7 @@ class Test_Blob(unittest.TestCase):
 
         self.assertEqual(found, expected)
 
-        expected_path = "/b/name/o/%s/iam/testPermissions" % (blob_name,)
+        expected_path = f"/b/name/o/{blob_name}/iam/testPermissions"
         expected_query_params = {
             "permissions": permissions,
             "userProject": user_project,
@@ -4190,7 +4186,7 @@ class Test_Blob(unittest.TestCase):
 
         self.assertIsNone(destination.content_type)
 
-        expected_path = "/b/name/o/%s/compose" % destination_name
+        expected_path = f"/b/name/o/{destination_name}/compose"
         expected_data = {
             "sourceObjects": [
                 {"name": source_1.name, "generation": source_1.generation},
@@ -4227,7 +4223,7 @@ class Test_Blob(unittest.TestCase):
 
         self.assertEqual(destination.etag, "DEADBEEF")
 
-        expected_path = "/b/name/o/%s/compose" % destination_name
+        expected_path = f"/b/name/o/{destination_name}/compose"
         expected_data = {
             "sourceObjects": [
                 {"name": source_1.name, "generation": source_1.generation},
@@ -4265,7 +4261,7 @@ class Test_Blob(unittest.TestCase):
 
         self.assertEqual(destination.etag, "DEADBEEF")
 
-        expected_path = "/b/name/o/%s/compose" % destination_name
+        expected_path = f"/b/name/o/{destination_name}/compose"
         expected_data = {
             "sourceObjects": [
                 {"name": source_1.name, "generation": source_1.generation},
@@ -4306,7 +4302,7 @@ class Test_Blob(unittest.TestCase):
             if_source_generation_match=source_generation_numbers,
         )
 
-        expected_path = "/b/name/o/%s/compose" % destination_name
+        expected_path = f"/b/name/o/{destination_name}/compose"
         expected_data = {
             "sourceObjects": [
                 {
@@ -4374,7 +4370,7 @@ class Test_Blob(unittest.TestCase):
             if_source_generation_match=source_generation_numbers,
         )
 
-        expected_path = "/b/name/o/%s/compose" % destination_name
+        expected_path = f"/b/name/o/{destination_name}/compose"
         expected_data = {
             "sourceObjects": [
                 {
@@ -4416,7 +4412,7 @@ class Test_Blob(unittest.TestCase):
             if_generation_match=generation_number,
         )
 
-        expected_path = "/b/name/o/%s/compose" % destination_name
+        expected_path = f"/b/name/o/{destination_name}/compose"
         expected_data = {
             "sourceObjects": [
                 {"name": source_1.name, "generation": source_1.generation},
@@ -4456,7 +4452,7 @@ class Test_Blob(unittest.TestCase):
             if_generation_match=generation_numbers,
         )
 
-        expected_path = "/b/name/o/%s/compose" % destination_name
+        expected_path = f"/b/name/o/{destination_name}/compose"
         expected_data = {
             "sourceObjects": [
                 {
@@ -4542,7 +4538,7 @@ class Test_Blob(unittest.TestCase):
             if_metageneration_match=metageneration_number,
         )
 
-        expected_path = "/b/name/o/%s/compose" % destination_name
+        expected_path = f"/b/name/o/{destination_name}/compose"
         expected_data = {
             "sourceObjects": [
                 {"name": source_1_name, "generation": None},
@@ -4584,7 +4580,7 @@ class Test_Blob(unittest.TestCase):
             if_metageneration_match=metageneration_number,
         )
 
-        expected_path = "/b/name/o/%s/compose" % destination_name
+        expected_path = f"/b/name/o/{destination_name}/compose"
         expected_data = {
             "sourceObjects": [
                 {"name": source_1.name, "generation": source_1.generation},
@@ -4830,7 +4826,7 @@ class Test_Blob(unittest.TestCase):
         self.assertEqual(rewritten, bytes_rewritten)
         self.assertEqual(size, object_size)
 
-        expected_path = "/b/name/o/%s/rewriteTo/b/name/o/%s" % (blob_name, blob_name)
+        expected_path = f"/b/name/o/{blob_name}/rewriteTo/b/name/o/{blob_name}"
         expected_query_params = {"userProject": user_project}
         expected_data = {}
         expected_headers = {
@@ -4878,7 +4874,7 @@ class Test_Blob(unittest.TestCase):
         self.assertEqual(rewritten, bytes_rewritten)
         self.assertEqual(size, object_size)
 
-        expected_path = "/b/name/o/%s/rewriteTo/b/name/o/%s" % (blob_name, blob_name)
+        expected_path = f"/b/name/o/{blob_name}/rewriteTo/b/name/o/{blob_name}"
         expected_data = {}
         expected_query_params = {"rewriteToken": previous_token}
         expected_headers = {
@@ -4930,7 +4926,7 @@ class Test_Blob(unittest.TestCase):
         self.assertEqual(rewritten, bytes_rewritten)
         self.assertEqual(size, object_size)
 
-        expected_path = "/b/name/o/%s/rewriteTo/b/name/o/%s" % (blob_name, blob_name)
+        expected_path = f"/b/name/o/{blob_name}/rewriteTo/b/name/o/{blob_name}"
         expected_data = {"kmsKeyName": dest_kms_resource}
         expected_query_params = {"destinationKmsKeyName": dest_kms_resource}
         expected_headers = {
@@ -5799,7 +5795,7 @@ class Test__raise_from_invalid_response(unittest.TestCase):
     def test_default(self):
         message = "Failure"
         exc_info = self._helper(message)
-        expected = "GET http://example.com/: {}".format(message)
+        expected = f"GET http://example.com/: {message}"
         self.assertEqual(exc_info.exception.message, expected)
         self.assertEqual(exc_info.exception.errors, [])
 
@@ -5831,17 +5827,17 @@ class Test__add_query_parameters(unittest.TestCase):
     def test_wo_existing_qs(self):
         BASE_URL = "https://test.example.com/base"
         NV_LIST = [("one", "One"), ("two", "Two")]
-        expected = "&".join(["{}={}".format(name, value) for name, value in NV_LIST])
+        expected = "&".join([f"{name}={value}" for name, value in NV_LIST])
         self.assertEqual(
-            self._call_fut(BASE_URL, NV_LIST), "{}?{}".format(BASE_URL, expected)
+            self._call_fut(BASE_URL, NV_LIST), f"{BASE_URL}?{expected}"
         )
 
     def test_w_existing_qs(self):
         BASE_URL = "https://test.example.com/base?one=Three"
         NV_LIST = [("one", "One"), ("two", "Two")]
-        expected = "&".join(["{}={}".format(name, value) for name, value in NV_LIST])
+        expected = "&".join([f"{name}={value}" for name, value in NV_LIST])
         self.assertEqual(
-            self._call_fut(BASE_URL, NV_LIST), "{}&{}".format(BASE_URL, expected)
+            self._call_fut(BASE_URL, NV_LIST), f"{BASE_URL}&{expected}"
         )
 
 
