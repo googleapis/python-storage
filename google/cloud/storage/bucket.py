@@ -2642,20 +2642,19 @@ class Bucket(_PropertyMixin):
 
     @autoclass_enabled.setter
     def autoclass_enabled(self, value):
-        """Enable Autoclass for this bucket.
+        """Enable or disable Autoclass at the bucket-level.
         TODO: See  <docs> for details.
         :type value: convertible to boolean
-        :param value: when set to true, Autoclass is enabled for this bucket.
+        :param value: If true, enable Autoclass for this bucket.
+                      If false, disable Autoclass for this bucket.
         """
         self._patch_property("autoclass", {"enabled": bool(value)})
 
     @property
     def autoclass_toggle_time(self):
-        """Retrieve the toggle time when Autoclaass was enabled for the bucket.
+        """Retrieve the toggle time when Autoclaass was last enabled or disabled for the bucket.
         :rtype: datetime.datetime or ``NoneType``
-        :returns: point-in time at which the bucket's autoclass is
-                  toggled, or ``None`` if the property is not
-                  set locally.
+        :returns: point-in time at which the bucket's autoclass is toggled, or ``None`` if the property is not set locally.
         """
         autoclass = self._properties.get("autoclass")
         if autoclass is not None:

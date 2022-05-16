@@ -2511,7 +2511,15 @@ class Test_Bucket(unittest.TestCase):
         self.assertIn("autoclass", bucket._changes)
         self.assertFalse(bucket.autoclass_enabled)
 
-    def test_autoclass_toggle_time_getter(self):
+    def test_autoclass_toggle_time_missing(self):
+        bucket = self._make_one()
+        self.assertIsNone(bucket.autoclass_toggle_time)
+
+        properties = {"autoclass": {}}
+        bucket = self._make_one(properties=properties)
+        self.assertIsNone(bucket.autoclass_toggle_time)
+
+    def test_autoclass_toggle_time(self):
         import datetime
         from google.cloud._helpers import _datetime_to_rfc3339
         from google.cloud._helpers import UTC

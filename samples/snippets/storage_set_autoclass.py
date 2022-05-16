@@ -21,10 +21,10 @@ from google.cloud import storage
 
 
 def set_autoclass(bucket_name, toggle):
-    """Enable or disable autoclass for a bucket."""
+    """Enable or disable Autoclass for a bucket."""
     # The ID of your GCS bucket
     # bucket_name = "my-bucket"
-    # Boolean - enables autoclass while set to True 
+    # Boolean toggle - if true, enables Autoclass; if false, disables Autoclass
     # toggle = True
 
     storage_client = storage.Client()

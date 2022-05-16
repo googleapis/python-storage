@@ -408,6 +408,7 @@ def test_versioning(test_bucket, capsys):
     assert "Versioning was disabled for bucket" in out
     assert bucket.versioning_enabled is False
 
+
 def test_set_autoclass(test_bucket, capsys):
     bucket = storage_set_autoclass.set_autoclass(test_bucket.name, True)
     out, _ = capsys.readouterr()
@@ -418,6 +419,7 @@ def test_set_autoclass(test_bucket, capsys):
     out, _ = capsys.readouterr()
     assert "Autoclass enabled is set to False" in out
     assert bucket.autoclass_enabled is False
+
 
 def test_bucket_lifecycle_management(test_bucket, capsys):
     bucket = storage_enable_bucket_lifecycle_management.enable_bucket_lifecycle_management(
