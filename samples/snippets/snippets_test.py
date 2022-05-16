@@ -409,12 +409,12 @@ def test_versioning(test_bucket, capsys):
     assert bucket.versioning_enabled is False
 
 def test_set_autoclass(test_bucket, capsys):
-    bucket = storage_set_autoclass.set_autoclass(test_bucket, True)
+    bucket = storage_set_autoclass.set_autoclass(test_bucket.name, True)
     out, _ = capsys.readouterr()
     assert "Autoclass enabled is set to True" in out
     assert bucket.autoclass_enabled is True
 
-    bucket = storage_set_autoclass.set_autoclass(test_bucket, False)
+    bucket = storage_set_autoclass.set_autoclass(test_bucket.name, False)
     out, _ = capsys.readouterr()
     assert "Autoclass enabled is set to False" in out
     assert bucket.autoclass_enabled is False
