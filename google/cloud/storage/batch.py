@@ -145,6 +145,7 @@ class Batch(Connection):
         )
         self._requests = []
         self._target_objects = []
+        self._responses = None
 
     def _do_request(
         self, method, url, headers, data, target_object, timeout=_DEFAULT_TIMEOUT
@@ -269,6 +270,7 @@ class Batch(Connection):
             raise exceptions.from_http_response(response)
 
         responses = list(_unpack_batch_response(response))
+        self._responses = responses
         self._finish_futures(responses)
         return responses
 
@@ -286,6 +288,10 @@ class Batch(Connection):
                 self.finish()
         finally:
             self._client._pop_batch()
+
+    @property
+    def responses(self):
+        return self._responses
 
 
 def _generate_faux_mime_message(parser, response):
