@@ -53,6 +53,7 @@ import storage_generate_signed_post_policy_v4
 import storage_generate_signed_url_v2
 import storage_generate_signed_url_v4
 import storage_generate_upload_signed_url_v4
+import storage_get_autoclass
 import storage_get_bucket_labels
 import storage_get_bucket_metadata
 import storage_get_metadata
@@ -409,12 +410,25 @@ def test_versioning(test_bucket, capsys):
     assert bucket.versioning_enabled is False
 
 
-def test_set_autoclass(test_bucket, capsys):
+def test_get_set_autoclass(test_bucket, capsys):
+    # Test default values when Autoclass is unset
+    bucket = storage_get_autoclass.get_autoclass(test_bucket.name)
+    out, _ = capsys.readouterr()
+    assert "Autoclass enabled is set to False" in out
+    assert bucket.autoclass_toggle_time is None
+
+    # Test enabling Autoclass
     bucket = storage_set_autoclass.set_autoclass(test_bucket.name, True)
     out, _ = capsys.readouterr()
     assert "Autoclass enabled is set to True" in out
     assert bucket.autoclass_enabled is True
 
+    bucket = storage_get_autoclass.get_autoclass(test_bucket.name)
+    out, _ = capsys.readouterr()
+    assert "Autoclass enabled is set to True" in out
+    assert bucket.autoclass_toggle_time is not None
+
+    # Test disabling Autoclass
     bucket = storage_set_autoclass.set_autoclass(test_bucket.name, False)
     out, _ = capsys.readouterr()
     assert "Autoclass enabled is set to False" in out
