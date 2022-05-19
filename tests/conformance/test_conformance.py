@@ -42,9 +42,9 @@ _PORT = urllib.parse.urlsplit(_HOST).port
 """The storage testbench docker image info and commands."""
 _DEFAULT_IMAGE_NAME = "gcr.io/cloud-devrel-public-resources/storage-testbench"
 _DEFAULT_IMAGE_TAG = "latest"
-_DOCKER_IMAGE = "{}:{}".format(_DEFAULT_IMAGE_NAME, _DEFAULT_IMAGE_TAG)
+_DOCKER_IMAGE = f"{_DEFAULT_IMAGE_NAME}:{_DEFAULT_IMAGE_TAG}"
 _PULL_CMD = ["docker", "pull", _DOCKER_IMAGE]
-_RUN_CMD = ["docker", "run", "--rm", "-d", "-p", "{}:9000".format(_PORT), _DOCKER_IMAGE]
+_RUN_CMD = ["docker", "run", "--rm", "-d", "-p", f"{_PORT}:9000", _DOCKER_IMAGE]
 
 _CONF_TEST_PROJECT_ID = "my-project-id"
 _CONF_TEST_SERVICE_ACCOUNT_EMAIL = (
@@ -54,6 +54,7 @@ _CONF_TEST_PUBSUB_TOPIC_NAME = "my-topic-name"
 
 _STRING_CONTENT = "hello world"
 _BYTE_CONTENT = b"12345678"
+_RESUMABLE_UPLOAD_CHUNK_SIZE = 2 * 1024 * 1024
 
 
 ########################################################################################################################################
@@ -82,16 +83,6 @@ def blob_download_as_bytes(client, _preconditions, **resources):
     blob = client.bucket(bucket.name).blob(file.name)
     stored_contents = blob.download_as_bytes()
     assert stored_contents == data.encode("utf-8")
-
-
-def blob_download_as_bytes_w_range(client, _preconditions, **resources):
-    bucket = resources.get("bucket")
-    file, data = resources.get("file_data")
-    blob = client.bucket(bucket.name).blob(file.name)
-    start_byte = 0
-    end_byte = 1000000
-    stored_contents = blob.download_as_bytes(start=start_byte, end=end_byte - 1)
-    assert stored_contents == data.encode("utf-8")[start_byte:end_byte]
 
 
 def blob_download_as_text(client, _preconditions, **resources):
@@ -461,7 +452,7 @@ def blob_upload_from_string(client, _preconditions, **resources):
     bucket = resources.get("bucket")
     _, data = resources.get("file_data")
     blob = client.bucket(bucket.name).blob(uuid.uuid4().hex)
-    blob.chunk_size = 4 * 1024 * 1024
+    blob.chunk_size = _RESUMABLE_UPLOAD_CHUNK_SIZE
     if _preconditions:
         blob.upload_from_string(data, if_generation_match=0)
     else:
@@ -471,26 +462,67 @@ def blob_upload_from_string(client, _preconditions, **resources):
 
 def blob_upload_from_file(client, _preconditions, **resources):
     bucket = resources.get("bucket")
-    blob = client.bucket(bucket.name).blob(uuid.uuid4().hex)
+    file, data = resources.get("file_data")
+    file_blob = client.bucket(bucket.name).blob(file.name)
+    upload_blob = client.bucket(bucket.name).blob(uuid.uuid4().hex)
+    upload_blob.chunk_size = _RESUMABLE_UPLOAD_CHUNK_SIZE
+
     with tempfile.NamedTemporaryFile() as temp_f:
+        # Create a named temporary file with payload.
+        with open(temp_f.name, "wb") as file_obj:
+            client.download_blob_to_file(file_blob, file_obj)
+        # Upload the temporary file and assert data integrity.
         if _preconditions:
-            blob.upload_from_file(temp_f, if_generation_match=0)
+            upload_blob.upload_from_file(temp_f, if_generation_match=0)
         else:
-            blob.upload_from_file(temp_f)
+            upload_blob.upload_from_file(temp_f)
+
+    upload_blob.reload()
+    assert upload_blob.size == len(data)
 
 
 def blob_upload_from_filename(client, _preconditions, **resources):
     bucket = resources.get("bucket")
     blob = client.bucket(bucket.name).blob(uuid.uuid4().hex)
+    blob.chunk_size = _RESUMABLE_UPLOAD_CHUNK_SIZE
+
+    bucket = resources.get("bucket")
+    file, data = resources.get("file_data")
+    file_blob = client.bucket(bucket.name).blob(file.name)
+    upload_blob = client.bucket(bucket.name).blob(uuid.uuid4().hex)
+    upload_blob.chunk_size = _RESUMABLE_UPLOAD_CHUNK_SIZE
 
     with tempfile.NamedTemporaryFile() as temp_f:
+        # Create a named temporary file with payload.
+        with open(temp_f.name, "wb") as file_obj:
+            client.download_blob_to_file(file_blob, file_obj)
+        # Upload the temporary file and assert data integrity.
         if _preconditions:
-            blob.upload_from_filename(temp_f.name, if_generation_match=0)
+            upload_blob.upload_from_filename(temp_f.name, if_generation_match=0)
         else:
-            blob.upload_from_filename(temp_f.name)
+            upload_blob.upload_from_filename(temp_f.name)
+
+    upload_blob.reload()
+    assert upload_blob.size == len(data)
 
 
 def blobwriter_write(client, _preconditions, **resources):
+    bucket = resources.get("bucket")
+    _, data = resources.get("file_data")
+    blob = client.bucket(bucket.name).blob(uuid.uuid4().hex)
+    if _preconditions:
+        with blob.open(
+            "w", chunk_size=_RESUMABLE_UPLOAD_CHUNK_SIZE, if_generation_match=0
+        ) as writer:
+            writer.write(data)
+    else:
+        with blob.open("w", chunk_size=_RESUMABLE_UPLOAD_CHUNK_SIZE) as writer:
+            writer.write(data)
+    blob.reload()
+    assert blob.size == len(data)
+
+
+def blobwriter_write_multipart(client, _preconditions, **resources):
     chunk_size = 256 * 1024
     bucket = resources.get("bucket")
     blob = client.bucket(bucket.name).blob(uuid.uuid4().hex)
@@ -500,6 +532,15 @@ def blobwriter_write(client, _preconditions, **resources):
     else:
         with blob.open("wb", chunk_size=chunk_size) as writer:
             writer.write(_BYTE_CONTENT)
+
+
+def blob_upload_from_string_multipart(client, _preconditions, **resources):
+    bucket = resources.get("bucket")
+    blob = client.bucket(bucket.name).blob(uuid.uuid4().hex)
+    if _preconditions:
+        blob.upload_from_string(_STRING_CONTENT, if_generation_match=0)
+    else:
+        blob.upload_from_string(_STRING_CONTENT)
 
 
 def blob_create_resumable_upload_session(client, _preconditions, **resources):
@@ -716,7 +757,6 @@ method_mapping = {
         blob_download_to_filename,
         blob_download_to_filename_chunked,
         blob_download_as_bytes,
-        blob_download_as_bytes_w_range,
         blob_download_as_text,
         blobreader_read,
     ],
@@ -745,11 +785,15 @@ method_mapping = {
         bucket_rename_blob,
     ],
     "storage.objects.insert": [
+        blob_upload_from_string_multipart,
+        blobwriter_write_multipart,
+        blob_create_resumable_upload_session,
+    ],
+    "storage.resumable.upload": [
         blob_upload_from_string,
         blob_upload_from_file,
         blob_upload_from_filename,
         blobwriter_write,
-        blob_create_resumable_upload_session,
     ],
     "storage.objects.patch": [
         blob_patch,
@@ -802,9 +846,7 @@ def _get_retry_test(host, id):
     instructions, and a boolean status "completed". This can be used to verify
     if all instructions were used as expected.
     """
-    get_retry_test_uri = "{base}{retry}/{id}".format(
-        base=host, retry="/retry_test", id=id
-    )
+    get_retry_test_uri = f"{host}/retry_test/{id}"
     r = requests.get(get_retry_test_uri)
     return r.json()
 
@@ -848,9 +890,7 @@ def _delete_retry_test(host, id):
     """
     Delete the Retry Test resource by id.
     """
-    get_retry_test_uri = "{base}{retry}/{id}".format(
-        base=host, retry="/retry_test", id=id
-    )
+    get_retry_test_uri = f"{host}/retry_test/{id}"
     requests.delete(get_retry_test_uri)
 
 
@@ -882,7 +922,7 @@ def run_test_case(
         id = r["id"]
     except Exception as e:
         raise Exception(
-            "Error creating retry test for {}: {}".format(method_name, e)
+            f"Error creating retry test for {method_name}: {e}"
         ).with_traceback(e.__traceback__)
 
     # Run retry tests on library methods.
@@ -899,9 +939,7 @@ def run_test_case(
             file_data,
         )
     except Exception as e:
-        logging.exception(
-            "Caught an exception while running retry instructions\n {}".format(e)
-        )
+        logging.exception(f"Caught an exception while running retry instructions\n {e}")
         success_results = False
     else:
         success_results = True
@@ -946,13 +984,11 @@ with subprocess.Popen(_RUN_CMD) as proc:
                 method_name = m["name"]
                 method_group = m["group"] if m.get("group", None) else m["name"]
                 if method_group not in method_mapping:
-                    logging.info("No tests for operation {}".format(method_name))
+                    logging.info(f"No tests for operation {method_name}")
                     continue
 
                 for lib_func in method_mapping[method_group]:
-                    test_name = "test-S{}-{}-{}-{}".format(
-                        id, method_name, lib_func.__name__, i
-                    )
+                    test_name = f"test-S{id}-{method_name}-{lib_func.__name__}-{i}"
                     globals()[test_name] = functools.partial(
                         run_test_case, id, m, c, lib_func, _HOST
                     )

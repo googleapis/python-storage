@@ -29,7 +29,8 @@ import nox
 # WARNING - WARNING - WARNING - WARNING - WARNING
 # WARNING - WARNING - WARNING - WARNING - WARNING
 
-BLACK_VERSION = "black==19.10b0"
+BLACK_VERSION = "black==22.3.0"
+ISORT_VERSION = "isort==5.10.1"
 
 # Copy `noxfile_config.py` to your directory and modify it instead.
 
@@ -65,7 +66,7 @@ try:
     sys.path.append(".")
     from noxfile_config import TEST_CONFIG_OVERRIDE
 except ImportError as e:
-    print("No user noxfile_config found: detail: {}".format(e))
+    print(f"No user noxfile_config found: detail: {e}")
     TEST_CONFIG_OVERRIDE = {}
 
 # Update the TEST_CONFIG with the user supplied values.
@@ -168,9 +169,29 @@ def lint(session: nox.sessions.Session) -> None:
 
 @nox.session
 def blacken(session: nox.sessions.Session) -> None:
+    """Run black. Format code to uniform standard."""
     session.install(BLACK_VERSION)
     python_files = [path for path in os.listdir(".") if path.endswith(".py")]
 
+    session.run("black", *python_files)
+
+
+#
+# format = isort + black
+#
+
+@nox.session
+def format(session: nox.sessions.Session) -> None:
+    """
+    Run isort to sort imports. Then run black
+    to format code to uniform standard.
+    """
+    session.install(BLACK_VERSION, ISORT_VERSION)
+    python_files = [path for path in os.listdir(".") if path.endswith(".py")]
+
+    # Use the --fss option to sort imports using strict alphabetical order.
+    # See https://pycqa.github.io/isort/docs/configuration/options.html#force-sort-within-sections
+    session.run("isort", "--fss", *python_files)
     session.run("black", *python_files)
 
 
@@ -245,7 +266,7 @@ def py(session: nox.sessions.Session) -> None:
         _session_tests(session)
     else:
         session.skip(
-            "SKIPPED: {} tests are disabled for this sample.".format(session.python)
+            f"SKIPPED: {session.python} tests are disabled for this sample."
         )
 
 

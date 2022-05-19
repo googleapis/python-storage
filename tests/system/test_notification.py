@@ -54,7 +54,7 @@ def topic_name():
 
 @pytest.fixture(scope="session")
 def topic_path(storage_client, topic_name):
-    return "projects/{}/topics/{}".format(storage_client.project, topic_name)
+    return f"projects/{storage_client.project}/topics/{topic_name}"
 
 
 @pytest.fixture(scope="session")
@@ -64,13 +64,16 @@ def notification_topic(storage_client, publisher_client, topic_path, no_mtls):
     binding = policy.bindings.add()
     binding.role = "roles/pubsub.publisher"
     binding.members.append(
-        "serviceAccount:{}".format(storage_client.get_service_account_email())
+        f"serviceAccount:{storage_client.get_service_account_email()}"
     )
     publisher_client.set_iam_policy(topic_path, policy)
 
 
 def test_notification_create_minimal(
-    storage_client, buckets_to_delete, topic_name, notification_topic,
+    storage_client,
+    buckets_to_delete,
+    topic_name,
+    notification_topic,
 ):
     bucket_name = _helpers.unique_name("notification-minimal")
     bucket = _helpers.retry_429_503(storage_client.create_bucket)(bucket_name)
@@ -126,7 +129,11 @@ def test_notification_create_explicit(
 
 
 def test_notification_create_w_user_project(
-    storage_client, buckets_to_delete, topic_name, notification_topic, user_project,
+    storage_client,
+    buckets_to_delete,
+    topic_name,
+    notification_topic,
+    user_project,
 ):
     bucket_name = _helpers.unique_name("notification-w-up")
     bucket = _helpers.retry_429_503(storage_client.create_bucket)(bucket_name)

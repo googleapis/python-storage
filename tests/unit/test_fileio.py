@@ -25,7 +25,7 @@ from google.cloud.storage.retry import DEFAULT_RETRY
 
 TEST_TEXT_DATA = string.ascii_lowercase + "\n" + string.ascii_uppercase + "\n"
 TEST_BINARY_DATA = TEST_TEXT_DATA.encode("utf-8")
-TEST_MULTIBYTE_TEXT_DATA = u"あいうえおかきくけこさしすせそたちつてと"
+TEST_MULTIBYTE_TEXT_DATA = "あいうえおかきくけこさしすせそたちつてと"
 PLAIN_CONTENT_TYPE = "text/plain"
 NUM_RETRIES = 2
 
@@ -247,6 +247,41 @@ class TestBlobReaderBinary(unittest.TestCase, _BlobReaderBase):
 
         reader.close()
 
+    def test_advanced_seek(self):
+        blob = mock.Mock()
+
+        def read_from_fake_data(start=0, end=None, **_):
+            return TEST_BINARY_DATA[start:end] * 1024
+
+        blob.download_as_bytes = mock.Mock(side_effect=read_from_fake_data)
+        blob.size = None
+        download_kwargs = {"if_metageneration_match": 1}
+        reader = self._make_blob_reader(blob, chunk_size=1024, **download_kwargs)
+
+        # Seek needs the blob size to work and should call reload() if the size
+        # is not known. Set a mock to initialize the size if reload() is called.
+        def initialize_size(**_):
+            blob.size = len(TEST_BINARY_DATA) * 1024
+
+        blob.reload = mock.Mock(side_effect=initialize_size)
+
+        self.assertEqual(reader.tell(), 0)
+        # Mimic tarfile access pattern. Read tarinfo block.
+        reader.read(512)
+        self.assertEqual(reader.tell(), 512)
+        self.assertEqual(reader.seek(512), 512)
+        # Mimic read actual tar content.
+        reader.read(400)
+        self.assertEqual(reader.tell(), 912)
+        # Tarfile offsets are rounded up by block size
+        # A sanity seek/read is used to check for unexpected ends.
+        reader.seek(1023)
+        reader.read(1)
+        self.assertEqual(reader.tell(), 1024)
+        reader.read(512)
+        self.assertEqual(reader.tell(), 1536)
+        reader.close()
+
     def test_close(self):
         blob = mock.Mock()
         reader = self._make_blob_reader(blob)
@@ -362,7 +397,9 @@ class TestBlobWriterBinary(unittest.TestCase, _BlobWriterBase):
         self.assertEqual(upload.transmit_next_chunk.call_count, 5)
 
         mock_warn.assert_called_once_with(
-            _NUM_RETRIES_MESSAGE, DeprecationWarning, stacklevel=2,
+            _NUM_RETRIES_MESSAGE,
+            DeprecationWarning,
+            stacklevel=2,
         )
 
     def test_flush_fails(self):
@@ -393,7 +430,9 @@ class TestBlobWriterBinary(unittest.TestCase, _BlobWriterBase):
             # gives us more control over close() for test purposes.
             chunk_size = 8  # Note: Real upload requires a multiple of 256KiB.
             writer = self._make_blob_writer(
-                blob, chunk_size=chunk_size, content_type=PLAIN_CONTENT_TYPE,
+                blob,
+                chunk_size=chunk_size,
+                content_type=PLAIN_CONTENT_TYPE,
             )
 
         # The transmit_next_chunk method must actually consume bytes from the
@@ -574,7 +613,9 @@ class TestBlobWriterBinary(unittest.TestCase, _BlobWriterBase):
         )
 
         mock_warn.assert_called_once_with(
-            _NUM_RETRIES_MESSAGE, DeprecationWarning, stacklevel=2,
+            _NUM_RETRIES_MESSAGE,
+            DeprecationWarning,
+            stacklevel=2,
         )
 
     @mock.patch("warnings.warn")
@@ -891,8 +932,8 @@ class TestBlobWriterText(unittest.TestCase, _BlobWriterBase):
 
         # The transmit_next_chunk method must actually consume bytes from the
         # sliding buffer for the flush() feature to work properly.
-        upload.transmit_next_chunk.side_effect = lambda _: unwrapped_writer._buffer.read(
-            chunk_size
+        upload.transmit_next_chunk.side_effect = (
+            lambda _: unwrapped_writer._buffer.read(chunk_size)
         )
 
         # Write under chunk_size. This should be buffered and the upload not
@@ -916,5 +957,7 @@ class TestBlobWriterText(unittest.TestCase, _BlobWriterBase):
         upload.transmit_next_chunk.assert_called_with(transport)
 
         mock_warn.assert_called_once_with(
-            _NUM_RETRIES_MESSAGE, DeprecationWarning, stacklevel=2,
+            _NUM_RETRIES_MESSAGE,
+            DeprecationWarning,
+            stacklevel=2,
         )

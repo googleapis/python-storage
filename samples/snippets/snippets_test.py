@@ -36,6 +36,7 @@ import storage_copy_file
 import storage_copy_file_archived_generation
 import storage_cors_configuration
 import storage_create_bucket_class_location
+import storage_create_bucket_dual_region
 import storage_define_bucket_website_configuration
 import storage_delete_file
 import storage_delete_file_archived_generation
@@ -110,7 +111,7 @@ def test_bucket():
     """Yields a bucket that is deleted after the test completes."""
     bucket = None
     while bucket is None or bucket.exists():
-        bucket_name = "storage-snippets-test-{}".format(uuid.uuid4())
+        bucket_name = f"storage-snippets-test-{uuid.uuid4()}"
         bucket = storage.Client().bucket(bucket_name)
     bucket.create()
     yield bucket
@@ -126,7 +127,7 @@ def test_public_bucket():
     bucket = None
     while bucket is None or bucket.exists():
         storage_client = storage.Client()
-        bucket_name = "storage-snippets-test-{}".format(uuid.uuid4())
+        bucket_name = f"storage-snippets-test-{uuid.uuid4()}"
         bucket = storage_client.bucket(bucket_name)
     storage_client.create_bucket(bucket)
     yield bucket
@@ -139,7 +140,7 @@ def test_public_bucket():
 def test_blob(test_bucket):
     """Yields a blob that is deleted after the test completes."""
     bucket = test_bucket
-    blob = bucket.blob("storage_snippets_test_sigil-{}".format(uuid.uuid4()))
+    blob = bucket.blob(f"storage_snippets_test_sigil-{uuid.uuid4()}")
     blob.upload_from_string("Hello, is it me you're looking for?")
     yield blob
 
@@ -148,7 +149,7 @@ def test_blob(test_bucket):
 def test_public_blob(test_public_bucket):
     """Yields a blob that is deleted after the test completes."""
     bucket = test_public_bucket
-    blob = bucket.blob("storage_snippets_test_sigil-{}".format(uuid.uuid4()))
+    blob = bucket.blob(f"storage_snippets_test_sigil-{uuid.uuid4()}")
     blob.upload_from_string("Hello, is it me you're looking for?")
     yield blob
 
@@ -158,7 +159,7 @@ def test_bucket_create():
     """Yields a bucket object that is deleted after the test completes."""
     bucket = None
     while bucket is None or bucket.exists():
-        bucket_name = "storage-snippets-test-{}".format(uuid.uuid4())
+        bucket_name = f"storage-snippets-test-{uuid.uuid4()}"
         bucket = storage.Client().bucket(bucket_name)
     yield bucket
     bucket.delete(force=True)
@@ -216,7 +217,7 @@ def test_upload_blob_from_stream(test_bucket, capsys):
     )
     out, _ = capsys.readouterr()
 
-    assert "Stream data uploaded to {}".format("test_upload_blob") in out
+    assert "Stream data uploaded to test_upload_blob" in out
 
 
 def test_upload_blob_with_kms(test_bucket):
@@ -338,7 +339,7 @@ def test_generate_signed_policy_v4(test_bucket, capsys):
     blob_name = "storage_snippets_test_form"
     short_name = storage_generate_signed_post_policy_v4
     form = short_name.generate_signed_post_policy_v4(test_bucket.name, blob_name)
-    assert "name='key' value='{}'".format(blob_name) in form
+    assert f"name='key' value='{blob_name}'" in form
     assert "name='x-goog-signature'" in form
     assert "name='x-goog-date'" in form
     assert "name='x-goog-credential'" in form
@@ -354,7 +355,7 @@ def test_rename_blob(test_blob):
     try:
         bucket.delete_blob("test_rename_blob")
     except google.cloud.exceptions.exceptions.NotFound:
-        print("test_rename_blob not found in bucket {}".format(bucket.name))
+        print(f"test_rename_blob not found in bucket {bucket.name}")
 
     storage_rename_file.rename_blob(bucket.name, test_blob.name, "test_rename_blob")
 
@@ -369,7 +370,7 @@ def test_move_blob(test_bucket_create, test_blob):
     try:
         test_bucket_create.delete_blob("test_move_blob")
     except google.cloud.exceptions.NotFound:
-        print("test_move_blob not found in bucket {}".format(test_bucket_create.name))
+        print(f"test_move_blob not found in bucket {test_bucket_create.name}")
 
     storage_move_file.move_blob(
         bucket.name, test_blob.name, test_bucket_create.name, "test_move_blob"
@@ -431,6 +432,16 @@ def test_create_bucket_class_location(test_bucket_create):
 
     assert bucket.location == "US"
     assert bucket.storage_class == "COLDLINE"
+
+
+def test_create_bucket_dual_region(test_bucket_create, capsys):
+    region_1 = "US-EAST1"
+    region_2 = "US-WEST1"
+    storage_create_bucket_dual_region.create_bucket_dual_region(
+        test_bucket_create.name, region_1, region_2
+    )
+    out, _ = capsys.readouterr()
+    assert f"Bucket {test_bucket_create.name} created in {region_1}+{region_2}" in out
 
 
 def test_bucket_delete_default_kms_key(test_bucket, capsys):
@@ -540,7 +551,7 @@ def test_change_file_storage_class(test_blob, capsys):
         test_blob.bucket.name, test_blob.name
     )
     out, _ = capsys.readouterr()
-    assert "Blob {} in bucket {}". format(blob.name, blob.bucket.name) in out
+    assert f"Blob {blob.name} in bucket {blob.bucket.name}" in out
     assert blob.storage_class == 'NEARLINE'
 
 

@@ -326,7 +326,7 @@ class Test_canonicalize_v2(unittest.TestCase):
         query_parameters = {"foo": "bar", "baz": "qux"}
         canonical = self._call_fut(method, resource, query_parameters, None)
         self.assertEqual(canonical.method, method)
-        self.assertEqual(canonical.resource, "{}?baz=qux&foo=bar".format(resource))
+        self.assertEqual(canonical.resource, f"{resource}?baz=qux&foo=bar")
         self.assertEqual(canonical.query_parameters, [("baz", "qux"), ("foo", "bar")])
         self.assertEqual(canonical.headers, [])
 
@@ -399,7 +399,7 @@ class Test_generate_signed_url_v2(unittest.TestCase):
                 for key, value in query_parameters.items()
             }
             expected_qp = urlencode(sorted(normalized_qp.items()))
-            expected_resource = "{}?{}".format(resource, expected_qp)
+            expected_resource = f"{resource}?{expected_qp}"
 
         elements.append(content_md5 or "")
         elements.append(content_type or "")
@@ -568,9 +568,7 @@ class Test_generate_signed_url_v4(unittest.TestCase):
         self.assertEqual(params["X-Goog-Algorithm"], "GOOG4-RSA-SHA256")
 
         now_date = now.date().strftime("%Y%m%d")
-        expected_cred = "{}/{}/auto/storage/goog4_request".format(
-            signer_email, now_date
-        )
+        expected_cred = f"{signer_email}/{now_date}/auto/storage/goog4_request"
         self.assertEqual(params["X-Goog-Credential"], expected_cred)
 
         now_stamp = now.strftime("%Y%m%dT%H%M%SZ")
@@ -678,7 +676,9 @@ class Test_generate_signed_url_v4(unittest.TestCase):
         credentials = _make_credentials(signer_email=signer_email)
         credentials.sign_bytes.return_value = b"DEADBEEF"
         self._call_fut(
-            credentials, resource=resource, expiration=datetime.timedelta(days=5),
+            credentials,
+            resource=resource,
+            expiration=datetime.timedelta(days=5),
         )
 
     def test_with_service_account_email_and_signer_email(self):
@@ -857,7 +857,7 @@ def test_conformance_bucket(test_data):
         resource = "/"
         _run_conformance_test(resource, test_data, _API_ACCESS_ENDPOINT)
     else:
-        resource = "/{}".format(test_data["bucket"])
+        resource = f"/{test_data['bucket']}"
         _run_conformance_test(resource, test_data)
 
 
@@ -873,13 +873,13 @@ def test_conformance_blob(test_data):
 
         # For the VIRTUAL_HOSTED_STYLE
         else:
-            _API_ACCESS_ENDPOINT = "{scheme}://{bucket_name}.storage.googleapis.com".format(
-                scheme=test_data["scheme"], bucket_name=test_data["bucket"]
+            _API_ACCESS_ENDPOINT = (
+                f"{test_data['scheme']}://{test_data['bucket']}.storage.googleapis.com"
             )
-        resource = "/{}".format(test_data["object"])
+        resource = f"/{test_data['object']}"
         _run_conformance_test(resource, test_data, _API_ACCESS_ENDPOINT)
     else:
-        resource = "/{}/{}".format(test_data["bucket"], test_data["object"])
+        resource = f"/{test_data['bucket']}/{test_data['object']}"
         _run_conformance_test(resource, test_data)
 
 

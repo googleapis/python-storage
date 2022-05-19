@@ -337,6 +337,43 @@ class Test_LifecycleRuleSetStorageClass(unittest.TestCase):
         self.assertEqual(dict(rule), resource)
 
 
+class Test_LifecycleRuleAbortIncompleteMultipartUpload(unittest.TestCase):
+    @staticmethod
+    def _get_target_class():
+        from google.cloud.storage.bucket import (
+            LifecycleRuleAbortIncompleteMultipartUpload,
+        )
+
+        return LifecycleRuleAbortIncompleteMultipartUpload
+
+    def _make_one(self, **kw):
+        return self._get_target_class()(**kw)
+
+    def test_ctor_wo_conditions(self):
+        with self.assertRaises(ValueError):
+            self._make_one()
+
+    def test_ctor_w_condition(self):
+        rule = self._make_one(age=10)
+        expected = {
+            "action": {"type": "AbortIncompleteMultipartUpload"},
+            "condition": {"age": 10},
+        }
+        self.assertEqual(dict(rule), expected)
+
+    def test_from_api_repr(self):
+        klass = self._get_target_class()
+        conditions = {
+            "age": 10,
+        }
+        resource = {
+            "action": {"type": "AbortIncompleteMultipartUpload"},
+            "condition": conditions,
+        }
+        rule = klass.from_api_repr(resource)
+        self.assertEqual(dict(rule), resource)
+
+
 class Test_IAMConfiguration(unittest.TestCase):
     @staticmethod
     def _get_target_class():
@@ -392,7 +429,8 @@ class Test_IAMConfiguration(unittest.TestCase):
         bucket = self._make_bucket()
 
         config = self._make_one(
-            bucket, public_access_prevention=PUBLIC_ACCESS_PREVENTION_ENFORCED,
+            bucket,
+            public_access_prevention=PUBLIC_ACCESS_PREVENTION_ENFORCED,
         )
 
         self.assertIs(config.bucket, bucket)
@@ -864,7 +902,7 @@ class Test_Bucket(unittest.TestCase):
     def test_path_w_name(self):
         NAME = "name"
         bucket = self._make_one(name=NAME)
-        self.assertEqual(bucket.path, "/b/%s" % NAME)
+        self.assertEqual(bucket.path, f"/b/{NAME}")
 
     def test_get_blob_miss_w_defaults(self):
         from google.cloud.exceptions import NotFound
@@ -880,7 +918,7 @@ class Test_Bucket(unittest.TestCase):
 
         self.assertIsNone(result)
 
-        expected_path = "/b/%s/o/%s" % (name, blob_name)
+        expected_path = f"/b/{name}/o/{blob_name}"
         expected_query_params = {"projection": "noAcl"}
         expected_headers = {}
         client._get_resource.assert_called_once_with(
@@ -914,7 +952,7 @@ class Test_Bucket(unittest.TestCase):
         self.assertIs(blob.bucket, bucket)
         self.assertEqual(blob.name, blob_name)
 
-        expected_path = "/b/%s/o/%s" % (name, blob_name)
+        expected_path = f"/b/{name}/o/{blob_name}"
         expected_query_params = {
             "userProject": user_project,
             "projection": "noAcl",
@@ -948,7 +986,7 @@ class Test_Bucket(unittest.TestCase):
         self.assertEqual(blob.name, blob_name)
         self.assertEqual(blob.generation, generation)
 
-        expected_path = "/b/%s/o/%s" % (name, blob_name)
+        expected_path = f"/b/{name}/o/{blob_name}"
         expected_query_params = {
             "generation": generation,
             "projection": "noAcl",
@@ -982,7 +1020,7 @@ class Test_Bucket(unittest.TestCase):
         self.assertEqual(blob.name, blob_name)
         self.assertEqual(blob.etag, etag)
 
-        expected_path = "/b/%s/o/%s" % (name, blob_name)
+        expected_path = f"/b/{name}/o/{blob_name}"
         expected_query_params = {
             "projection": "noAcl",
         }
@@ -1017,7 +1055,7 @@ class Test_Bucket(unittest.TestCase):
         self.assertEqual(blob.name, blob_name)
         self.assertEqual(blob.generation, generation)
 
-        expected_path = "/b/%s/o/%s" % (name, blob_name)
+        expected_path = f"/b/{name}/o/{blob_name}"
         expected_query_params = {
             "ifGenerationMatch": generation,
             "projection": "noAcl",
@@ -1055,7 +1093,7 @@ class Test_Bucket(unittest.TestCase):
         self.assertEqual(blob.chunk_size, chunk_size)
         self.assertEqual(blob._encryption_key, key)
 
-        expected_path = "/b/%s/o/%s" % (name, blob_name)
+        expected_path = f"/b/{name}/o/{blob_name}"
         expected_query_params = {
             "projection": "noAcl",
         }
@@ -1180,7 +1218,7 @@ class Test_Bucket(unittest.TestCase):
         self.assertIs(iterator, client._list_resource.return_value)
         self.assertIs(iterator.bucket, bucket)
 
-        expected_path = "/b/{}/notificationConfigs".format(bucket_name)
+        expected_path = f"/b/{bucket_name}/notificationConfigs"
         expected_item_to_value = _item_to_notification
         client._list_resource.assert_called_once_with(
             expected_path,
@@ -1200,16 +1238,21 @@ class Test_Bucket(unittest.TestCase):
         retry = mock.Mock(spec=[])
 
         iterator = bucket.list_notifications(
-            client=other_client, timeout=timeout, retry=retry,
+            client=other_client,
+            timeout=timeout,
+            retry=retry,
         )
 
         self.assertIs(iterator, other_client._list_resource.return_value)
         self.assertIs(iterator.bucket, bucket)
 
-        expected_path = "/b/{}/notificationConfigs".format(bucket_name)
+        expected_path = f"/b/{bucket_name}/notificationConfigs"
         expected_item_to_value = _item_to_notification
         other_client._list_resource.assert_called_once_with(
-            expected_path, expected_item_to_value, timeout=timeout, retry=retry,
+            expected_path,
+            expected_item_to_value,
+            timeout=timeout,
+            retry=retry,
         )
 
     def test_get_notification_miss_w_defaults(self):
@@ -1227,7 +1270,7 @@ class Test_Bucket(unittest.TestCase):
         with self.assertRaises(NotFound):
             bucket.get_notification(notification_id=notification_id)
 
-        expected_path = "/b/{}/notificationConfigs/{}".format(name, notification_id)
+        expected_path = f"/b/{name}/notificationConfigs/{notification_id}"
         expected_query_params = {}
         client._get_resource.assert_called_once_with(
             expected_path,
@@ -1262,7 +1305,9 @@ class Test_Bucket(unittest.TestCase):
         bucket = self._make_one(client=client, name=name, user_project=user_project)
 
         notification = bucket.get_notification(
-            notification_id=notification_id, timeout=timeout, retry=retry,
+            notification_id=notification_id,
+            timeout=timeout,
+            retry=retry,
         )
 
         self.assertIsInstance(notification, BucketNotification)
@@ -1274,7 +1319,7 @@ class Test_Bucket(unittest.TestCase):
         self.assertIsNone(notification.blob_name_prefix)
         self.assertEqual(notification.payload_format, JSON_API_V1_PAYLOAD_FORMAT)
 
-        expected_path = "/b/{}/notificationConfigs/{}".format(name, notification_id)
+        expected_path = f"/b/{name}/notificationConfigs/{notification_id}"
         expected_query_params = {"userProject": user_project}
         client._get_resource.assert_called_once_with(
             expected_path,
@@ -1311,7 +1356,8 @@ class Test_Bucket(unittest.TestCase):
         bucket = self._make_one(client=None, name=name)
 
         result = bucket.delete(
-            client=client, if_metageneration_match=metageneration_number,
+            client=client,
+            if_metageneration_match=metageneration_number,
         )
 
         self.assertIsNone(result)
@@ -1348,7 +1394,11 @@ class Test_Bucket(unittest.TestCase):
         )
 
         bucket.delete_blobs.assert_called_once_with(
-            [], on_error=mock.ANY, client=client, timeout=timeout, retry=retry,
+            [],
+            on_error=mock.ANY,
+            client=client,
+            timeout=timeout,
+            retry=retry,
         )
 
         expected_query_params = {"userProject": user_project}
@@ -1469,7 +1519,7 @@ class Test_Bucket(unittest.TestCase):
         with self.assertRaises(NotFound):
             bucket.delete_blob(blob_name)
 
-        expected_path = "/b/%s/o/%s" % (name, blob_name)
+        expected_path = f"/b/{name}/o/{blob_name}"
         expected_query_params = {}
         client._delete_resource.assert_called_once_with(
             expected_path,
@@ -1492,7 +1542,7 @@ class Test_Bucket(unittest.TestCase):
 
         self.assertIsNone(result)
 
-        expected_path = "/b/%s/o/%s" % (name, blob_name)
+        expected_path = f"/b/{name}/o/{blob_name}"
         expected_query_params = {"userProject": user_project}
         client._delete_resource.assert_called_once_with(
             expected_path,
@@ -1515,7 +1565,7 @@ class Test_Bucket(unittest.TestCase):
 
         self.assertIsNone(result)
 
-        expected_path = "/b/%s/o/%s" % (name, blob_name)
+        expected_path = f"/b/{name}/o/{blob_name}"
         expected_query_params = {"generation": generation}
         client._delete_resource.assert_called_once_with(
             expected_path,
@@ -1542,7 +1592,7 @@ class Test_Bucket(unittest.TestCase):
 
         self.assertIsNone(result)
 
-        expected_path = "/b/%s/o/%s" % (name, blob_name)
+        expected_path = f"/b/{name}/o/{blob_name}"
         expected_query_params = {
             "ifGenerationMatch": generation,
             "ifMetagenerationMatch": metageneration,
@@ -1595,7 +1645,8 @@ class Test_Bucket(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             bucket.delete_blobs(
-                [blob_name, blob_name2], if_generation_not_match=[generation_number],
+                [blob_name, blob_name2],
+                if_generation_not_match=[generation_number],
             )
 
         bucket.delete_blob.assert_not_called()
@@ -1760,7 +1811,7 @@ class Test_Bucket(unittest.TestCase):
 
         bucket.reload(if_etag_match=etag)
 
-        expected_path = "/b/%s" % (name,)
+        expected_path = f"/b/{name}"
         expected_query_params = {
             "projection": "noAcl",
         }
@@ -1786,7 +1837,7 @@ class Test_Bucket(unittest.TestCase):
 
         bucket.reload(if_metageneration_match=metageneration_number)
 
-        expected_path = "/b/%s" % (name,)
+        expected_path = f"/b/{name}"
         expected_query_params = {
             "projection": "noAcl",
             "ifMetagenerationMatch": metageneration_number,
@@ -1848,7 +1899,7 @@ class Test_Bucket(unittest.TestCase):
 
         blob = mock.create_autospec(Blob)
         blob.name = blob_name
-        blob.path = "/b/{}/o/{}".format(bucket_name, blob_name)
+        blob.path = f"/b/{bucket_name}/o/{blob_name}"
         return blob
 
     def test_copy_blobs_wo_name(self):
@@ -1895,7 +1946,10 @@ class Test_Bucket(unittest.TestCase):
         timeout = 42
 
         new_blob = source.copy_blob(
-            blob, dest, source_generation=generation, timeout=timeout,
+            blob,
+            dest,
+            source_generation=generation,
+            timeout=timeout,
         )
 
         self.assertIs(new_blob.bucket, dest)
@@ -1994,7 +2048,7 @@ class Test_Bucket(unittest.TestCase):
             _target_object=new_blob,
         )
 
-        expected_patch_path = "/b/{}/o/{}".format(dest_name, new_name)
+        expected_patch_path = f"/b/{dest_name}/o/{new_name}"
         expected_patch_data = {"acl": []}
         expected_patch_query_params = {"projection": "full"}
         client._patch_resource.assert_called_once_with(
@@ -2225,6 +2279,7 @@ class Test_Bucket(unittest.TestCase):
         from google.cloud.storage.bucket import (
             LifecycleRuleDelete,
             LifecycleRuleSetStorageClass,
+            LifecycleRuleAbortIncompleteMultipartUpload,
         )
 
         NAME = "name"
@@ -2233,7 +2288,11 @@ class Test_Bucket(unittest.TestCase):
             "action": {"type": "SetStorageClass", "storageClass": "NEARLINE"},
             "condition": {"isLive": False},
         }
-        rules = [DELETE_RULE, SSC_RULE]
+        MULTIPART_RULE = {
+            "action": {"type": "AbortIncompleteMultipartUpload"},
+            "condition": {"age": 42},
+        }
+        rules = [DELETE_RULE, SSC_RULE, MULTIPART_RULE]
         properties = {"lifecycle": {"rule": rules}}
         bucket = self._make_one(name=NAME, properties=properties)
 
@@ -2246,6 +2305,12 @@ class Test_Bucket(unittest.TestCase):
         ssc_rule = found[1]
         self.assertIsInstance(ssc_rule, LifecycleRuleSetStorageClass)
         self.assertEqual(dict(ssc_rule), SSC_RULE)
+
+        multipart_rule = found[2]
+        self.assertIsInstance(
+            multipart_rule, LifecycleRuleAbortIncompleteMultipartUpload
+        )
+        self.assertEqual(dict(multipart_rule), MULTIPART_RULE)
 
     def test_lifecycle_rules_setter_w_dicts(self):
         NAME = "name"
@@ -2327,6 +2392,21 @@ class Test_Bucket(unittest.TestCase):
         self.assertEqual(list(bucket.lifecycle_rules), [])
 
         bucket.add_lifecycle_set_storage_class_rule("NEARLINE", is_live=False)
+
+        self.assertEqual([dict(rule) for rule in bucket.lifecycle_rules], rules)
+        self.assertTrue("lifecycle" in bucket._changes)
+
+    def test_add_lifecycle_abort_incomplete_multipart_upload_rule(self):
+        NAME = "name"
+        AIMPU_RULE = {
+            "action": {"type": "AbortIncompleteMultipartUpload"},
+            "condition": {"age": 42},
+        }
+        rules = [AIMPU_RULE]
+        bucket = self._make_one(name=NAME)
+        self.assertEqual(list(bucket.lifecycle_rules), [])
+
+        bucket.add_lifecycle_abort_incomplete_multipart_upload_rule(age=42)
 
         self.assertEqual([dict(rule) for rule in bucket.lifecycle_rules], rules)
         self.assertTrue("lifecycle" in bucket._changes)
@@ -2880,7 +2960,7 @@ class Test_Bucket(unittest.TestCase):
         from google.api_core.iam import Policy
 
         bucket_name = "name"
-        path = "/b/%s" % (bucket_name,)
+        path = f"/b/{bucket_name}"
         etag = "DEADBEEF"
         version = 1
         owner1 = "user:phred@example.com"
@@ -2914,7 +2994,7 @@ class Test_Bucket(unittest.TestCase):
         self.assertEqual(policy.version, api_response["version"])
         self.assertEqual(dict(policy), expected_policy)
 
-        expected_path = "/b/%s/iam" % (bucket_name,)
+        expected_path = f"/b/{bucket_name}/iam"
         expected_query_params = {}
         client._get_resource.assert_called_once_with(
             expected_path,
@@ -2930,7 +3010,7 @@ class Test_Bucket(unittest.TestCase):
         bucket_name = "name"
         timeout = 42
         user_project = "user-project-123"
-        path = "/b/%s" % (bucket_name,)
+        path = f"/b/{bucket_name}"
         etag = "DEADBEEF"
         version = 1
         api_response = {
@@ -2953,7 +3033,7 @@ class Test_Bucket(unittest.TestCase):
         self.assertEqual(policy.version, api_response["version"])
         self.assertEqual(dict(policy), expected_policy)
 
-        expected_path = "/b/%s/iam" % (bucket_name,)
+        expected_path = f"/b/{bucket_name}/iam"
         expected_query_params = {"userProject": user_project}
         client._get_resource.assert_called_once_with(
             expected_path,
@@ -2967,7 +3047,7 @@ class Test_Bucket(unittest.TestCase):
         from google.cloud.storage.iam import STORAGE_OWNER_ROLE
 
         bucket_name = "name"
-        path = "/b/%s" % (bucket_name,)
+        path = f"/b/{bucket_name}"
         etag = "DEADBEEF"
         version = 3
         owner1 = "user:phred@example.com"
@@ -2987,7 +3067,7 @@ class Test_Bucket(unittest.TestCase):
 
         self.assertEqual(policy.version, version)
 
-        expected_path = "/b/%s/iam" % (bucket_name,)
+        expected_path = f"/b/{bucket_name}/iam"
         expected_query_params = {"optionsRequestedPolicyVersion": version}
         client._get_resource.assert_called_once_with(
             expected_path,
@@ -3033,7 +3113,7 @@ class Test_Bucket(unittest.TestCase):
         self.assertEqual(returned.version, version)
         self.assertEqual(dict(returned), dict(policy))
 
-        expected_path = "%s/iam" % (bucket.path,)
+        expected_path = f"{bucket.path}/iam"
         expected_data = {
             "resourceId": bucket.path,
             "bindings": mock.ANY,
@@ -3097,7 +3177,7 @@ class Test_Bucket(unittest.TestCase):
         self.assertEqual(returned.version, version)
         self.assertEqual(dict(returned), dict(policy))
 
-        expected_path = "%s/iam" % (bucket.path,)
+        expected_path = f"{bucket.path}/iam"
         expected_data = {
             "resourceId": bucket.path,
             "bindings": mock.ANY,
@@ -3141,7 +3221,7 @@ class Test_Bucket(unittest.TestCase):
 
         self.assertEqual(found, expected)
 
-        expected_path = "/b/%s/iam/testPermissions" % (name,)
+        expected_path = f"/b/{name}/iam/testPermissions"
         expected_query_params = {}
         expected_query_params = {"permissions": permissions}
         client._get_resource.assert_called_once_with(
@@ -3176,7 +3256,7 @@ class Test_Bucket(unittest.TestCase):
 
         self.assertEqual(found, expected)
 
-        expected_path = "/b/%s/iam/testPermissions" % (name,)
+        expected_path = f"/b/{name}/iam/testPermissions"
         expected_query_params = {
             "permissions": permissions,
             "userProject": user_project,
@@ -3289,7 +3369,7 @@ class Test_Bucket(unittest.TestCase):
         )
 
         if not default_object_acl_loaded:
-            expected_path = "/b/%s/defaultObjectAcl" % (name,)
+            expected_path = f"/b/{name}/defaultObjectAcl"
             expected_query_params = {}
             client._get_resource.assert_called_once_with(
                 expected_path,
@@ -3501,7 +3581,7 @@ class Test_Bucket(unittest.TestCase):
         )
 
         if not default_object_acl_loaded:
-            expected_path = "/b/%s/defaultObjectAcl" % (name,)
+            expected_path = f"/b/{name}/defaultObjectAcl"
             expected_query_params = {}
             client._get_resource.assert_called_once_with(
                 expected_path,
@@ -3644,9 +3724,7 @@ class Test_Bucket(unittest.TestCase):
                     break
             else:  # pragma: NO COVER
                 self.fail(
-                    "Condition {} not found in {}".format(
-                        expected_condition, policy_conditions
-                    )
+                    f"Condition {expected_condition} not found in {policy_conditions}"
                 )
 
         return policy_fields, policy
@@ -3751,7 +3829,7 @@ class Test_Bucket(unittest.TestCase):
 
         bucket.lock_retention_policy(timeout=timeout, retry=retry)
 
-        expected_path = "/b/{}/lockRetentionPolicy".format(name)
+        expected_path = f"/b/{name}/lockRetentionPolicy"
         expected_data = None
         expected_query_params = {"ifMetagenerationMatch": metageneration}
         client._post_resource.assert_called_once_with(
@@ -3789,7 +3867,7 @@ class Test_Bucket(unittest.TestCase):
 
         bucket.lock_retention_policy()
 
-        expected_path = "/b/{}/lockRetentionPolicy".format(name)
+        expected_path = f"/b/{name}/lockRetentionPolicy"
         expected_data = None
         expected_query_params = {
             "ifMetagenerationMatch": metageneration,
@@ -3884,7 +3962,7 @@ class Test_Bucket(unittest.TestCase):
             )
         else:
             expected_api_access_endpoint = api_access_endpoint
-            expected_resource = "/{}".format(parse.quote(bucket_name))
+            expected_resource = f"/{parse.quote(bucket_name)}"
 
         if virtual_hosted_style or bucket_bound_hostname:
             expected_resource = "/"

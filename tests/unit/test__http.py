@@ -13,8 +13,12 @@
 # limitations under the License.
 
 import unittest
+from unittest.mock import patch
 
 import mock
+
+from google.cloud.storage import _helpers
+from tests.unit.test__helpers import GCCL_INVOCATION_TEST_CONST
 
 
 class TestConnection(unittest.TestCase):
@@ -44,12 +48,17 @@ class TestConnection(unittest.TestCase):
 
         conn = self._make_one(client)
         req_data = "hey-yoooouuuuu-guuuuuyyssss"
-        result = conn.api_request("GET", "/rainbow", data=req_data, expect_json=False)
+        with patch.object(
+            _helpers, "_get_invocation_id", return_value=GCCL_INVOCATION_TEST_CONST
+        ):
+            result = conn.api_request(
+                "GET", "/rainbow", data=req_data, expect_json=False
+            )
         self.assertEqual(result, data)
 
         expected_headers = {
             "Accept-Encoding": "gzip",
-            base_http.CLIENT_INFO_HEADER: conn.user_agent,
+            base_http.CLIENT_INFO_HEADER: f"{conn.user_agent} {GCCL_INVOCATION_TEST_CONST}",
             "User-Agent": conn.user_agent,
         }
         expected_uri = conn.build_api_url("/rainbow")
@@ -68,7 +77,7 @@ class TestConnection(unittest.TestCase):
         conn = self._make_one(object())
         uri = conn.build_api_url("/foo")
         scheme, netloc, path, qs, _ = urlsplit(uri)
-        self.assertEqual("%s://%s" % (scheme, netloc), conn.API_BASE_URL)
+        self.assertEqual(f"{scheme}://{netloc}", conn.API_BASE_URL)
         self.assertEqual(path, "/".join(["", "storage", conn.API_VERSION, "foo"]))
         parms = dict(parse_qsl(qs))
         pretty_print = parms.pop("prettyPrint", "false")
@@ -83,7 +92,7 @@ class TestConnection(unittest.TestCase):
         conn = self._make_one(object(), api_endpoint=custom_endpoint)
         uri = conn.build_api_url("/foo")
         scheme, netloc, path, qs, _ = urlsplit(uri)
-        self.assertEqual("%s://%s" % (scheme, netloc), custom_endpoint)
+        self.assertEqual(f"{scheme}://{netloc}", custom_endpoint)
         self.assertEqual(path, "/".join(["", "storage", conn.API_VERSION, "foo"]))
         parms = dict(parse_qsl(qs))
         pretty_print = parms.pop("prettyPrint", "false")
@@ -97,7 +106,7 @@ class TestConnection(unittest.TestCase):
         conn = self._make_one(object())
         uri = conn.build_api_url("/foo", {"bar": "baz"})
         scheme, netloc, path, qs, _ = urlsplit(uri)
-        self.assertEqual("%s://%s" % (scheme, netloc), conn.API_BASE_URL)
+        self.assertEqual(f"{scheme}://{netloc}", conn.API_BASE_URL)
         self.assertEqual(path, "/".join(["", "storage", conn.API_VERSION, "foo"]))
         parms = dict(parse_qsl(qs))
         self.assertEqual(parms["bar"], "baz")
@@ -237,7 +246,7 @@ class TestConnection(unittest.TestCase):
 
         client_info = ClientInfo(user_agent="test/123")
         conn = self._make_one(object(), client_info=client_info)
-        expected_user_agent = "test/123 gcloud-python/{} ".format(__version__)
+        expected_user_agent = f"test/123 gcloud-python/{__version__} "
         self.assertEqual(conn._client_info.user_agent, expected_user_agent)
 
         client = mock.Mock(_connection=conn, spec=["_connection"])

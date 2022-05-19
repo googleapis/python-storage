@@ -21,17 +21,21 @@ import os
 import tempfile
 import unittest
 import http.client
+from unittest.mock import patch
 from urllib.parse import urlencode
 
 import mock
 import pytest
 
+from google.cloud.storage import _helpers
+from google.cloud.storage._helpers import _get_default_headers
 from google.cloud.storage.retry import (
     DEFAULT_RETRY,
     DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
 )
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_ETAG_IN_JSON
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_GENERATION_SPECIFIED
+from tests.unit.test__helpers import GCCL_INVOCATION_TEST_CONST
 
 
 def _make_credentials():
@@ -78,7 +82,7 @@ class Test_Blob(unittest.TestCase):
     def test_ctor_with_encoded_unicode(self):
         blob_name = b"wet \xe2\x9b\xb5"
         blob = self._make_one(blob_name, bucket=None)
-        unicode_name = u"wet \N{sailboat}"
+        unicode_name = "wet \N{sailboat}"
         self.assertNotIsInstance(blob.name, bytes)
         self.assertIsInstance(blob.name, str)
         self.assertEqual(blob.name, unicode_name)
@@ -136,7 +140,7 @@ class Test_Blob(unittest.TestCase):
         NOW = now.strftime(_RFC3339_MICROS)
         BLOB_NAME = "blob-name"
         GENERATION = 12345
-        BLOB_ID = "name/{}/{}".format(BLOB_NAME, GENERATION)
+        BLOB_ID = f"name/{BLOB_NAME}/{GENERATION}"
         SELF_LINK = "http://example.com/self/"
         METAGENERATION = 23456
         SIZE = 12345
@@ -261,7 +265,7 @@ class Test_Blob(unittest.TestCase):
         from google.cloud.storage.acl import ObjectACL
 
         fake_bucket = _Bucket()
-        blob = self._make_one(u"name", bucket=fake_bucket)
+        blob = self._make_one("name", bucket=fake_bucket)
         acl = blob.acl
         self.assertIsInstance(acl, ObjectACL)
         self.assertIs(acl, blob._acl)
@@ -304,20 +308,20 @@ class Test_Blob(unittest.TestCase):
 
     def test_path_bad_bucket(self):
         fake_bucket = object()
-        name = u"blob-name"
+        name = "blob-name"
         blob = self._make_one(name, bucket=fake_bucket)
         self.assertRaises(AttributeError, getattr, blob, "path")
 
     def test_path_no_name(self):
         bucket = _Bucket()
-        blob = self._make_one(u"", bucket=bucket)
+        blob = self._make_one("", bucket=bucket)
         self.assertRaises(ValueError, getattr, blob, "path")
 
     def test_path_normal(self):
         BLOB_NAME = "blob-name"
         bucket = _Bucket()
         blob = self._make_one(BLOB_NAME, bucket=bucket)
-        self.assertEqual(blob.path, "/b/name/o/%s" % BLOB_NAME)
+        self.assertEqual(blob.path, f"/b/name/o/{BLOB_NAME}")
 
     def test_path_w_slash_in_name(self):
         BLOB_NAME = "parent/child"
@@ -326,7 +330,7 @@ class Test_Blob(unittest.TestCase):
         self.assertEqual(blob.path, "/b/name/o/parent%2Fchild")
 
     def test_path_with_non_ascii(self):
-        blob_name = u"Caf\xe9"
+        blob_name = "Caf\xe9"
         bucket = _Bucket()
         blob = self._make_one(blob_name, bucket=bucket)
         self.assertEqual(blob.path, "/b/name/o/Caf%C3%A9")
@@ -398,7 +402,7 @@ class Test_Blob(unittest.TestCase):
         bucket = _Bucket()
         blob = self._make_one(BLOB_NAME, bucket=bucket)
         self.assertEqual(
-            blob.public_url, "https://storage.googleapis.com/name/%s" % BLOB_NAME
+            blob.public_url, f"https://storage.googleapis.com/name/{BLOB_NAME}"
         )
 
     def test_public_url_w_slash_in_name(self):
@@ -416,7 +420,7 @@ class Test_Blob(unittest.TestCase):
         self.assertEqual(blob.public_url, "https://storage.googleapis.com/name/foo~bar")
 
     def test_public_url_with_non_ascii(self):
-        blob_name = u"winter \N{snowman}"
+        blob_name = "winter \N{snowman}"
         bucket = _Bucket()
         blob = self._make_one(blob_name, bucket=bucket)
         expected_url = "https://storage.googleapis.com/name/winter%20%E2%98%83"
@@ -482,9 +486,7 @@ class Test_Blob(unittest.TestCase):
         else:
             effective_version = version
 
-        to_patch = "google.cloud.storage.blob.generate_signed_url_{}".format(
-            effective_version
-        )
+        to_patch = f"google.cloud.storage.blob.generate_signed_url_{effective_version}"
 
         with mock.patch(to_patch) as signer:
             signed_uri = blob.generate_signed_url(
@@ -521,10 +523,10 @@ class Test_Blob(unittest.TestCase):
             )
         else:
             expected_api_access_endpoint = api_access_endpoint
-            expected_resource = "/{}/{}".format(bucket.name, quoted_name)
+            expected_resource = f"/{bucket.name}/{quoted_name}"
 
         if virtual_hosted_style or bucket_bound_hostname:
-            expected_resource = "/{}".format(quoted_name)
+            expected_resource = f"/{quoted_name}"
 
         if encryption_key is not None:
             expected_headers = headers or {}
@@ -569,7 +571,7 @@ class Test_Blob(unittest.TestCase):
         self._generate_signed_url_v2_helper(expiration=expiration)
 
     def test_generate_signed_url_v2_w_non_ascii_name(self):
-        BLOB_NAME = u"\u0410\u043a\u043a\u043e\u0440\u0434\u044b.txt"
+        BLOB_NAME = "\u0410\u043a\u043a\u043e\u0440\u0434\u044b.txt"
         self._generate_signed_url_v2_helper(blob_name=BLOB_NAME)
 
     def test_generate_signed_url_v2_w_slash_in_name(self):
@@ -629,7 +631,7 @@ class Test_Blob(unittest.TestCase):
         self._generate_signed_url_v4_helper()
 
     def test_generate_signed_url_v4_w_non_ascii_name(self):
-        BLOB_NAME = u"\u0410\u043a\u043a\u043e\u0440\u0434\u044b.txt"
+        BLOB_NAME = "\u0410\u043a\u043a\u043e\u0440\u0434\u044b.txt"
         self._generate_signed_url_v4_helper(blob_name=BLOB_NAME)
 
     def test_generate_signed_url_v4_w_slash_in_name(self):
@@ -769,7 +771,12 @@ class Test_Blob(unittest.TestCase):
         bucket = _Bucket(client)
         blob = self._make_one(blob_name, bucket=bucket)
 
-        self.assertTrue(blob.exists(if_etag_match=etag, retry=None,))
+        self.assertTrue(
+            blob.exists(
+                if_etag_match=etag,
+                retry=None,
+            )
+        )
 
         expected_query_params = {
             "fields": "name",
@@ -900,9 +907,9 @@ class Test_Blob(unittest.TestCase):
         )
 
     def test__get_transport(self):
-        client = mock.Mock(spec=[u"_credentials", "_http"])
+        client = mock.Mock(spec=["_credentials", "_http"])
         client._http = mock.sentinel.transport
-        blob = self._make_one(u"blob-name", bucket=None)
+        blob = self._make_one("blob-name", bucket=None)
 
         transport = blob._get_transport(client)
 
@@ -937,7 +944,7 @@ class Test_Blob(unittest.TestCase):
         )
         self.assertEqual(
             download_url,
-            "{}?ifGenerationMatch={}".format(MEDIA_LINK, GENERATION_NUMBER),
+            f"{MEDIA_LINK}?ifGenerationMatch={GENERATION_NUMBER}",
         )
 
     def test__get_download_url_with_media_link_w_user_project(self):
@@ -953,9 +960,7 @@ class Test_Blob(unittest.TestCase):
         client._connection.API_BASE_URL = "https://storage.googleapis.com"
         download_url = blob._get_download_url(client)
 
-        self.assertEqual(
-            download_url, "{}?userProject={}".format(media_link, user_project)
-        )
+        self.assertEqual(download_url, f"{media_link}?userProject={user_project}")
 
     def test__get_download_url_on_the_fly(self):
         blob_name = "bzzz-fly.txt"
@@ -1203,7 +1208,7 @@ class Test_Blob(unittest.TestCase):
                     start=1,
                     end=3,
                     raw_download=raw_download,
-                    **extra_kwargs
+                    **extra_kwargs,
                 )
             else:
                 blob._do_download(
@@ -1212,7 +1217,7 @@ class Test_Blob(unittest.TestCase):
                     download_url,
                     headers,
                     raw_download=raw_download,
-                    **extra_kwargs
+                    **extra_kwargs,
                 )
 
         if w_range:
@@ -1341,7 +1346,7 @@ class Test_Blob(unittest.TestCase):
                     end=3,
                     raw_download=raw_download,
                     checksum=checksum,
-                    **timeout_kwarg
+                    **timeout_kwarg,
                 )
             else:
                 blob._do_download(
@@ -1351,7 +1356,7 @@ class Test_Blob(unittest.TestCase):
                     headers,
                     raw_download=raw_download,
                     checksum=checksum,
-                    **timeout_kwarg
+                    **timeout_kwarg,
                 )
 
         if w_range:
@@ -1607,7 +1612,7 @@ class Test_Blob(unittest.TestCase):
                     temp.name,
                     raw_download=raw_download,
                     timeout=timeout,
-                    **extra_kwargs
+                    **extra_kwargs,
                 )
 
             if updated is None:
@@ -1895,9 +1900,9 @@ class Test_Blob(unittest.TestCase):
         encoding=None,
         charset=None,
         no_charset=False,
-        expected_value=u"DEADBEEF",
+        expected_value="DEADBEEF",
         payload=None,
-        **extra_kwargs
+        **extra_kwargs,
     ):
         if payload is None:
             if encoding is not None:
@@ -1911,7 +1916,7 @@ class Test_Blob(unittest.TestCase):
 
         properties = {}
         if charset is not None:
-            properties["contentType"] = "text/plain; charset={}".format(charset)
+            properties["contentType"] = f"text/plain; charset={charset}"
         elif no_charset:
             properties = {"contentType": "text/plain"}
 
@@ -2001,22 +2006,26 @@ class Test_Blob(unittest.TestCase):
 
     def test_download_as_text_w_if_etag_match_str(self):
         self._download_as_text_helper(
-            raw_download=False, if_etag_match="kittens",
+            raw_download=False,
+            if_etag_match="kittens",
         )
 
     def test_download_as_text_w_if_etag_match_list(self):
         self._download_as_text_helper(
-            raw_download=False, if_etag_match=["kittens", "fluffy"],
+            raw_download=False,
+            if_etag_match=["kittens", "fluffy"],
         )
 
     def test_download_as_text_w_if_etag_not_match_str(self):
         self._download_as_text_helper(
-            raw_download=False, if_etag_not_match="kittens",
+            raw_download=False,
+            if_etag_not_match="kittens",
         )
 
     def test_download_as_text_w_if_etag_not_match_list(self):
         self._download_as_text_helper(
-            raw_download=False, if_etag_not_match=["kittens", "fluffy"],
+            raw_download=False,
+            if_etag_not_match=["kittens", "fluffy"],
         )
 
     def test_download_as_text_w_if_generation_match(self):
@@ -2034,16 +2043,18 @@ class Test_Blob(unittest.TestCase):
     def test_download_as_text_w_encoding(self):
         encoding = "utf-16"
         self._download_as_text_helper(
-            raw_download=False, encoding=encoding,
+            raw_download=False,
+            encoding=encoding,
         )
 
     def test_download_as_text_w_no_charset(self):
         self._download_as_text_helper(
-            raw_download=False, no_charset=True,
+            raw_download=False,
+            no_charset=True,
         )
 
     def test_download_as_text_w_non_ascii_w_explicit_encoding(self):
-        expected_value = u"\x0AFe"
+        expected_value = "\x0AFe"
         encoding = "utf-16"
         charset = "latin1"
         payload = expected_value.encode(encoding)
@@ -2056,7 +2067,7 @@ class Test_Blob(unittest.TestCase):
         )
 
     def test_download_as_text_w_non_ascii_wo_explicit_encoding_w_charset(self):
-        expected_value = u"\x0AFe"
+        expected_value = "\x0AFe"
         charset = "utf-16"
         payload = expected_value.encode(charset)
         self._download_as_text_helper(
@@ -2099,7 +2110,9 @@ class Test_Blob(unittest.TestCase):
         )
 
         mock_warn.assert_called_once_with(
-            _DOWNLOAD_AS_STRING_DEPRECATED, PendingDeprecationWarning, stacklevel=2,
+            _DOWNLOAD_AS_STRING_DEPRECATED,
+            PendingDeprecationWarning,
+            stacklevel=2,
         )
 
     @mock.patch("warnings.warn")
@@ -2135,37 +2148,39 @@ class Test_Blob(unittest.TestCase):
         )
 
         mock_warn.assert_called_once_with(
-            _DOWNLOAD_AS_STRING_DEPRECATED, PendingDeprecationWarning, stacklevel=2,
+            _DOWNLOAD_AS_STRING_DEPRECATED,
+            PendingDeprecationWarning,
+            stacklevel=2,
         )
 
     def test__get_content_type_explicit(self):
-        blob = self._make_one(u"blob-name", bucket=None)
+        blob = self._make_one("blob-name", bucket=None)
 
-        content_type = u"text/plain"
+        content_type = "text/plain"
         return_value = blob._get_content_type(content_type)
         self.assertEqual(return_value, content_type)
 
     def test__get_content_type_from_blob(self):
-        blob = self._make_one(u"blob-name", bucket=None)
-        blob.content_type = u"video/mp4"
+        blob = self._make_one("blob-name", bucket=None)
+        blob.content_type = "video/mp4"
 
         return_value = blob._get_content_type(None)
         self.assertEqual(return_value, blob.content_type)
 
     def test__get_content_type_from_filename(self):
-        blob = self._make_one(u"blob-name", bucket=None)
+        blob = self._make_one("blob-name", bucket=None)
 
         return_value = blob._get_content_type(None, filename="archive.tar")
         self.assertEqual(return_value, "application/x-tar")
 
     def test__get_content_type_default(self):
-        blob = self._make_one(u"blob-name", bucket=None)
+        blob = self._make_one("blob-name", bucket=None)
 
         return_value = blob._get_content_type(None)
-        self.assertEqual(return_value, u"application/octet-stream")
+        self.assertEqual(return_value, "application/octet-stream")
 
     def test__get_writable_metadata_no_changes(self):
-        name = u"blob-name"
+        name = "blob-name"
         blob = self._make_one(name, bucket=None)
 
         object_metadata = blob._get_writable_metadata()
@@ -2173,7 +2188,7 @@ class Test_Blob(unittest.TestCase):
         self.assertEqual(object_metadata, expected)
 
     def test__get_writable_metadata_with_changes(self):
-        name = u"blob-name"
+        name = "blob-name"
         blob = self._make_one(name, bucket=None)
         blob.storage_class = "NEARLINE"
         blob.cache_control = "max-age=3600"
@@ -2189,7 +2204,7 @@ class Test_Blob(unittest.TestCase):
         self.assertEqual(object_metadata, expected)
 
     def test__get_writable_metadata_unwritable_field(self):
-        name = u"blob-name"
+        name = "blob-name"
         properties = {"updated": "2016-10-16T18:18:18.181Z"}
         blob = self._make_one(name, bucket=None, properties=properties)
         # Fake that `updated` is in changes.
@@ -2200,7 +2215,7 @@ class Test_Blob(unittest.TestCase):
         self.assertEqual(object_metadata, expected)
 
     def test__set_metadata_to_none(self):
-        name = u"blob-name"
+        name = "blob-name"
         blob = self._make_one(name, bucket=None)
         blob.storage_class = "NEARLINE"
         blob.cache_control = "max-age=3600"
@@ -2210,22 +2225,31 @@ class Test_Blob(unittest.TestCase):
             patch_prop.assert_called_once_with("metadata", None)
 
     def test__get_upload_arguments(self):
-        name = u"blob-name"
+        name = "blob-name"
         key = b"[pXw@,p@@AfBfrR3x-2b2SCHR,.?YwRO"
+        client = mock.Mock(_connection=_Connection)
+        client._connection.user_agent = "testing 1.2.3"
         blob = self._make_one(name, bucket=None, encryption_key=key)
         blob.content_disposition = "inline"
 
-        content_type = u"image/jpeg"
-        info = blob._get_upload_arguments(content_type)
+        content_type = "image/jpeg"
+        with patch.object(
+            _helpers, "_get_invocation_id", return_value=GCCL_INVOCATION_TEST_CONST
+        ):
+            info = blob._get_upload_arguments(client, content_type)
 
         headers, object_metadata, new_content_type = info
         header_key_value = "W3BYd0AscEBAQWZCZnJSM3gtMmIyU0NIUiwuP1l3Uk8="
         header_key_hash_value = "G0++dxF4q5rG4o9kE8gvEKn15RH6wLm0wXV1MgAlXOg="
-        expected_headers = {
-            "X-Goog-Encryption-Algorithm": "AES256",
-            "X-Goog-Encryption-Key": header_key_value,
-            "X-Goog-Encryption-Key-Sha256": header_key_hash_value,
-        }
+        with patch.object(
+            _helpers, "_get_invocation_id", return_value=GCCL_INVOCATION_TEST_CONST
+        ):
+            expected_headers = {
+                **_get_default_headers(client._connection.user_agent, content_type),
+                "X-Goog-Encryption-Algorithm": "AES256",
+                "X-Goog-Encryption-Key": header_key_value,
+                "X-Goog-Encryption-Key-Sha256": header_key_hash_value,
+            }
         self.assertEqual(headers, expected_headers)
         expected_metadata = {
             "contentDisposition": blob.content_disposition,
@@ -2261,7 +2285,7 @@ class Test_Blob(unittest.TestCase):
         retry=None,
     ):
         bucket = _Bucket(name="w00t", user_project=user_project)
-        blob = self._make_one(u"blob-name", bucket=bucket, kms_key_name=kms_key_name)
+        blob = self._make_one("blob-name", bucket=bucket, kms_key_name=kms_key_name)
         self.assertIsNone(blob.chunk_size)
         if metadata:
             self.assertIsNone(blob.metadata)
@@ -2285,7 +2309,7 @@ class Test_Blob(unittest.TestCase):
 
         data = b"data here hear hier"
         stream = io.BytesIO(data)
-        content_type = u"application/xml"
+        content_type = "application/xml"
 
         if timeout is None:
             expected_timeout = self._get_default_timeout()
@@ -2294,20 +2318,23 @@ class Test_Blob(unittest.TestCase):
             expected_timeout = timeout
             timeout_kwarg = {"timeout": timeout}
 
-        response = blob._do_multipart_upload(
-            client,
-            stream,
-            content_type,
-            size,
-            num_retries,
-            predefined_acl,
-            if_generation_match,
-            if_generation_not_match,
-            if_metageneration_match,
-            if_metageneration_not_match,
-            retry=retry,
-            **timeout_kwarg
-        )
+        with patch.object(
+            _helpers, "_get_invocation_id", return_value=GCCL_INVOCATION_TEST_CONST
+        ):
+            response = blob._do_multipart_upload(
+                client,
+                stream,
+                content_type,
+                size,
+                num_retries,
+                predefined_acl,
+                if_generation_match,
+                if_generation_not_match,
+                if_metageneration_match,
+                if_metageneration_not_match,
+                retry=retry,
+                **timeout_kwarg,
+            )
 
         # Clean up the get_api_base_url_for_mtls mock.
         if mtls:
@@ -2368,28 +2395,35 @@ class Test_Blob(unittest.TestCase):
             + data_read
             + b"\r\n--==0==--"
         )
-        headers = {"content-type": b'multipart/related; boundary="==0=="'}
+        with patch.object(
+            _helpers, "_get_invocation_id", return_value=GCCL_INVOCATION_TEST_CONST
+        ):
+            headers = _get_default_headers(
+                client._connection.user_agent,
+                b'multipart/related; boundary="==0=="',
+                "application/xml",
+            )
         client._http.request.assert_called_once_with(
             "POST", upload_url, data=payload, headers=headers, timeout=expected_timeout
         )
 
-    @mock.patch(u"google.resumable_media._upload.get_boundary", return_value=b"==0==")
+    @mock.patch("google.resumable_media._upload.get_boundary", return_value=b"==0==")
     def test__do_multipart_upload_no_size(self, mock_get_boundary):
         self._do_multipart_success(mock_get_boundary, predefined_acl="private")
 
-    @mock.patch(u"google.resumable_media._upload.get_boundary", return_value=b"==0==")
+    @mock.patch("google.resumable_media._upload.get_boundary", return_value=b"==0==")
     def test__do_multipart_upload_no_size_retry(self, mock_get_boundary):
         self._do_multipart_success(
             mock_get_boundary, predefined_acl="private", retry=DEFAULT_RETRY
         )
 
-    @mock.patch(u"google.resumable_media._upload.get_boundary", return_value=b"==0==")
+    @mock.patch("google.resumable_media._upload.get_boundary", return_value=b"==0==")
     def test__do_multipart_upload_no_size_num_retries(self, mock_get_boundary):
         self._do_multipart_success(
             mock_get_boundary, predefined_acl="private", num_retries=2
         )
 
-    @mock.patch(u"google.resumable_media._upload.get_boundary", return_value=b"==0==")
+    @mock.patch("google.resumable_media._upload.get_boundary", return_value=b"==0==")
     def test__do_multipart_upload_no_size_retry_conflict(self, mock_get_boundary):
         with self.assertRaises(ValueError):
             self._do_multipart_success(
@@ -2399,22 +2433,22 @@ class Test_Blob(unittest.TestCase):
                 retry=DEFAULT_RETRY,
             )
 
-    @mock.patch(u"google.resumable_media._upload.get_boundary", return_value=b"==0==")
+    @mock.patch("google.resumable_media._upload.get_boundary", return_value=b"==0==")
     def test__do_multipart_upload_no_size_mtls(self, mock_get_boundary):
         self._do_multipart_success(
             mock_get_boundary, predefined_acl="private", mtls=True
         )
 
-    @mock.patch(u"google.resumable_media._upload.get_boundary", return_value=b"==0==")
+    @mock.patch("google.resumable_media._upload.get_boundary", return_value=b"==0==")
     def test__do_multipart_upload_with_size(self, mock_get_boundary):
         self._do_multipart_success(mock_get_boundary, size=10)
 
-    @mock.patch(u"google.resumable_media._upload.get_boundary", return_value=b"==0==")
+    @mock.patch("google.resumable_media._upload.get_boundary", return_value=b"==0==")
     def test__do_multipart_upload_with_user_project(self, mock_get_boundary):
         user_project = "user-project-123"
         self._do_multipart_success(mock_get_boundary, user_project=user_project)
 
-    @mock.patch(u"google.resumable_media._upload.get_boundary", return_value=b"==0==")
+    @mock.patch("google.resumable_media._upload.get_boundary", return_value=b"==0==")
     def test__do_multipart_upload_with_kms(self, mock_get_boundary):
         kms_resource = (
             "projects/test-project-123/"
@@ -2424,7 +2458,7 @@ class Test_Blob(unittest.TestCase):
         )
         self._do_multipart_success(mock_get_boundary, kms_key_name=kms_resource)
 
-    @mock.patch(u"google.resumable_media._upload.get_boundary", return_value=b"==0==")
+    @mock.patch("google.resumable_media._upload.get_boundary", return_value=b"==0==")
     def test__do_multipart_upload_with_kms_with_version(self, mock_get_boundary):
         kms_resource = (
             "projects/test-project-123/"
@@ -2435,39 +2469,39 @@ class Test_Blob(unittest.TestCase):
         )
         self._do_multipart_success(mock_get_boundary, kms_key_name=kms_resource)
 
-    @mock.patch(u"google.resumable_media._upload.get_boundary", return_value=b"==0==")
+    @mock.patch("google.resumable_media._upload.get_boundary", return_value=b"==0==")
     def test__do_multipart_upload_with_retry(self, mock_get_boundary):
         self._do_multipart_success(mock_get_boundary, retry=DEFAULT_RETRY)
 
-    @mock.patch(u"google.resumable_media._upload.get_boundary", return_value=b"==0==")
+    @mock.patch("google.resumable_media._upload.get_boundary", return_value=b"==0==")
     def test__do_multipart_upload_with_generation_match(self, mock_get_boundary):
         self._do_multipart_success(
             mock_get_boundary, if_generation_match=4, if_metageneration_match=4
         )
 
-    @mock.patch(u"google.resumable_media._upload.get_boundary", return_value=b"==0==")
+    @mock.patch("google.resumable_media._upload.get_boundary", return_value=b"==0==")
     def test__do_multipart_upload_with_custom_timeout(self, mock_get_boundary):
         self._do_multipart_success(mock_get_boundary, timeout=9.58)
 
-    @mock.patch(u"google.resumable_media._upload.get_boundary", return_value=b"==0==")
+    @mock.patch("google.resumable_media._upload.get_boundary", return_value=b"==0==")
     def test__do_multipart_upload_with_generation_not_match(self, mock_get_boundary):
         self._do_multipart_success(
             mock_get_boundary, if_generation_not_match=4, if_metageneration_not_match=4
         )
 
-    @mock.patch(u"google.resumable_media._upload.get_boundary", return_value=b"==0==")
+    @mock.patch("google.resumable_media._upload.get_boundary", return_value=b"==0==")
     def test__do_multipart_upload_with_client(self, mock_get_boundary):
         transport = self._mock_transport(http.client.OK, {})
         client = mock.Mock(_http=transport, _connection=_Connection, spec=["_http"])
         client._connection.API_BASE_URL = "https://storage.googleapis.com"
         self._do_multipart_success(mock_get_boundary, client=client)
 
-    @mock.patch(u"google.resumable_media._upload.get_boundary", return_value=b"==0==")
+    @mock.patch("google.resumable_media._upload.get_boundary", return_value=b"==0==")
     def test__do_multipart_upload_with_metadata(self, mock_get_boundary):
         self._do_multipart_success(mock_get_boundary, metadata={"test": "test"})
 
     def test__do_multipart_upload_bad_size(self):
-        blob = self._make_one(u"blob-name", bucket=None)
+        blob = self._make_one("blob-name", bucket=None)
 
         data = b"data here hear hier"
         stream = io.BytesIO(data)
@@ -2507,7 +2541,7 @@ class Test_Blob(unittest.TestCase):
         from google.cloud.storage.blob import _DEFAULT_CHUNKSIZE
 
         bucket = _Bucket(name="whammy", user_project=user_project)
-        blob = self._make_one(u"blob-name", bucket=bucket, kms_key_name=kms_key_name)
+        blob = self._make_one("blob-name", bucket=bucket, kms_key_name=kms_key_name)
         if metadata:
             self.assertIsNone(blob.metadata)
             blob._properties["metadata"] = metadata
@@ -2535,9 +2569,7 @@ class Test_Blob(unittest.TestCase):
             transport = self._mock_transport(http.client.OK, response_headers)
 
             # Create some mock arguments and call the method under test.
-            client = mock.Mock(
-                _http=transport, _connection=_Connection, spec=[u"_http"]
-            )
+            client = mock.Mock(_http=transport, _connection=_Connection, spec=["_http"])
             client._connection.API_BASE_URL = "https://storage.googleapis.com"
 
         # Mock get_api_base_url_for_mtls function.
@@ -2549,7 +2581,7 @@ class Test_Blob(unittest.TestCase):
 
         data = b"hello hallo halo hi-low"
         stream = io.BytesIO(data)
-        content_type = u"text/plain"
+        content_type = "text/plain"
 
         if timeout is None:
             expected_timeout = self._get_default_timeout()
@@ -2557,23 +2589,25 @@ class Test_Blob(unittest.TestCase):
         else:
             expected_timeout = timeout
             timeout_kwarg = {"timeout": timeout}
-
-        upload, transport = blob._initiate_resumable_upload(
-            client,
-            stream,
-            content_type,
-            size,
-            num_retries,
-            extra_headers=extra_headers,
-            chunk_size=chunk_size,
-            predefined_acl=predefined_acl,
-            if_generation_match=if_generation_match,
-            if_generation_not_match=if_generation_not_match,
-            if_metageneration_match=if_metageneration_match,
-            if_metageneration_not_match=if_metageneration_not_match,
-            retry=retry,
-            **timeout_kwarg
-        )
+        with patch.object(
+            _helpers, "_get_invocation_id", return_value=GCCL_INVOCATION_TEST_CONST
+        ):
+            upload, transport = blob._initiate_resumable_upload(
+                client,
+                stream,
+                content_type,
+                size,
+                num_retries,
+                extra_headers=extra_headers,
+                chunk_size=chunk_size,
+                predefined_acl=predefined_acl,
+                if_generation_match=if_generation_match,
+                if_generation_not_match=if_generation_not_match,
+                if_metageneration_match=if_metageneration_match,
+                if_metageneration_not_match=if_metageneration_not_match,
+                retry=retry,
+                **timeout_kwarg,
+            )
 
         # Clean up the get_api_base_url_for_mtls mock.
         if mtls:
@@ -2613,11 +2647,21 @@ class Test_Blob(unittest.TestCase):
         upload_url += "?" + urlencode(qs_params)
 
         self.assertEqual(upload.upload_url, upload_url)
-        if extra_headers is None:
-            self.assertEqual(upload._headers, {})
-        else:
-            self.assertEqual(upload._headers, extra_headers)
-            self.assertIsNot(upload._headers, extra_headers)
+        with patch.object(
+            _helpers, "_get_invocation_id", return_value=GCCL_INVOCATION_TEST_CONST
+        ):
+            if extra_headers is None:
+                self.assertEqual(
+                    upload._headers,
+                    _get_default_headers(client._connection.user_agent, content_type),
+                )
+            else:
+                expected_headers = {
+                    **_get_default_headers(client._connection.user_agent, content_type),
+                    **extra_headers,
+                }
+                self.assertEqual(upload._headers, expected_headers)
+                self.assertIsNot(upload._headers, expected_headers)
         self.assertFalse(upload.finished)
         if chunk_size is None:
             if blob_chunk_size is None:
@@ -2651,15 +2695,18 @@ class Test_Blob(unittest.TestCase):
         self.assertEqual(stream.tell(), 0)
 
         if metadata:
-            object_metadata = {"name": u"blob-name", "metadata": metadata}
+            object_metadata = {"name": "blob-name", "metadata": metadata}
         else:
             # Check the mocks.
             blob._get_writable_metadata.assert_called_once_with()
         payload = json.dumps(object_metadata).encode("utf-8")
-        expected_headers = {
-            "content-type": "application/json; charset=UTF-8",
-            "x-upload-content-type": content_type,
-        }
+
+        with patch.object(
+            _helpers, "_get_invocation_id", return_value=GCCL_INVOCATION_TEST_CONST
+        ):
+            expected_headers = _get_default_headers(
+                client._connection.user_agent, x_upload_content_type=content_type
+            )
         if size is not None:
             expected_headers["x-upload-content-length"] = str(size)
         if extra_headers is not None:
@@ -2749,7 +2796,7 @@ class Test_Blob(unittest.TestCase):
         response_headers = {"location": resumable_url}
         transport = self._mock_transport(http.client.OK, response_headers)
 
-        client = mock.Mock(_http=transport, _connection=_Connection, spec=[u"_http"])
+        client = mock.Mock(_http=transport, _connection=_Connection, spec=["_http"])
         client._connection.API_BASE_URL = "https://storage.googleapis.com"
         self._initiate_resumable_helper(client=client)
 
@@ -2764,7 +2811,7 @@ class Test_Blob(unittest.TestCase):
         fake_response2 = self._mock_requests_response(
             resumable_media.PERMANENT_REDIRECT, headers2
         )
-        json_body = '{{"size": "{:d}"}}'.format(total_bytes)
+        json_body = f'{{"size": "{total_bytes:d}"}}'
         if data_corruption:
             fake_response3 = resumable_media.DataCorruption(None)
         else:
@@ -2778,6 +2825,7 @@ class Test_Blob(unittest.TestCase):
 
     @staticmethod
     def _do_resumable_upload_call0(
+        client,
         blob,
         content_type,
         size=None,
@@ -2795,11 +2843,10 @@ class Test_Blob(unittest.TestCase):
             + "/o?uploadType=resumable"
         )
         if predefined_acl is not None:
-            upload_url += "&predefinedAcl={}".format(predefined_acl)
-        expected_headers = {
-            "content-type": "application/json; charset=UTF-8",
-            "x-upload-content-type": content_type,
-        }
+            upload_url += f"&predefinedAcl={predefined_acl}"
+        expected_headers = _get_default_headers(
+            client._connection.user_agent, x_upload_content_type=content_type
+        )
         if size is not None:
             expected_headers["x-upload-content-length"] = str(size)
         payload = json.dumps({"name": blob.name}).encode("utf-8")
@@ -2809,6 +2856,7 @@ class Test_Blob(unittest.TestCase):
 
     @staticmethod
     def _do_resumable_upload_call1(
+        client,
         blob,
         content_type,
         data,
@@ -2823,11 +2871,14 @@ class Test_Blob(unittest.TestCase):
     ):
         # Second mock transport.request() does sends first chunk.
         if size is None:
-            content_range = "bytes 0-{:d}/*".format(blob.chunk_size - 1)
+            content_range = f"bytes 0-{blob.chunk_size - 1:}/*"
         else:
-            content_range = "bytes 0-{:d}/{:d}".format(blob.chunk_size - 1, size)
+            content_range = f"bytes 0-{blob.chunk_size - 1}/{size}"
 
         expected_headers = {
+            **_get_default_headers(
+                client._connection.user_agent, x_upload_content_type=content_type
+            ),
             "content-type": content_type,
             "content-range": content_range,
         }
@@ -2842,6 +2893,7 @@ class Test_Blob(unittest.TestCase):
 
     @staticmethod
     def _do_resumable_upload_call2(
+        client,
         blob,
         content_type,
         data,
@@ -2855,10 +2907,11 @@ class Test_Blob(unittest.TestCase):
         timeout=None,
     ):
         # Third mock transport.request() does sends last chunk.
-        content_range = "bytes {:d}-{:d}/{:d}".format(
-            blob.chunk_size, total_bytes - 1, total_bytes
-        )
+        content_range = f"bytes {blob.chunk_size:d}-{total_bytes - 1:d}/{total_bytes:d}"
         expected_headers = {
+            **_get_default_headers(
+                client._connection.user_agent, x_upload_content_type=content_type
+            ),
             "content-type": content_type,
             "content-range": content_range,
         }
@@ -2884,13 +2937,11 @@ class Test_Blob(unittest.TestCase):
         data_corruption=False,
         retry=None,
     ):
-        bucket = _Bucket(name="yesterday")
-        blob = self._make_one(u"blob-name", bucket=bucket)
-        blob.chunk_size = blob._CHUNK_SIZE_MULTIPLE
-        self.assertIsNotNone(blob.chunk_size)
-
+        CHUNK_SIZE = 256 * 1024
+        USER_AGENT = "testing 1.2.3"
+        content_type = "text/html"
         # Data to be uploaded.
-        data = b"<html>" + (b"A" * blob.chunk_size) + b"</html>"
+        data = b"<html>" + (b"A" * CHUNK_SIZE) + b"</html>"
         total_bytes = len(data)
         if use_size:
             size = total_bytes
@@ -2899,17 +2950,36 @@ class Test_Blob(unittest.TestCase):
 
         # Create mocks to be checked for doing transport.
         resumable_url = "http://test.invalid?upload_id=and-then-there-was-1"
-        headers1 = {"location": resumable_url}
-        headers2 = {"range": "bytes=0-{:d}".format(blob.chunk_size - 1)}
-        transport, responses = self._make_resumable_transport(
-            headers1, headers2, {}, total_bytes, data_corruption=data_corruption
-        )
+        with patch.object(
+            _helpers, "_get_invocation_id", return_value=GCCL_INVOCATION_TEST_CONST
+        ):
+            headers1 = {
+                **_get_default_headers(USER_AGENT, content_type),
+                "location": resumable_url,
+            }
+            headers2 = {
+                **_get_default_headers(USER_AGENT, content_type),
+                "range": f"bytes=0-{CHUNK_SIZE - 1:d}",
+            }
+            headers3 = _get_default_headers(USER_AGENT, content_type)
+            transport, responses = self._make_resumable_transport(
+                headers1,
+                headers2,
+                headers3,
+                total_bytes,
+                data_corruption=data_corruption,
+            )
 
         # Create some mock arguments and call the method under test.
         client = mock.Mock(_http=transport, _connection=_Connection, spec=["_http"])
         client._connection.API_BASE_URL = "https://storage.googleapis.com"
+        client._connection.user_agent = USER_AGENT
         stream = io.BytesIO(data)
-        content_type = u"text/html"
+
+        bucket = _Bucket(name="yesterday")
+        blob = self._make_one("blob-name", bucket=bucket)
+        blob.chunk_size = blob._CHUNK_SIZE_MULTIPLE
+        self.assertIsNotNone(blob.chunk_size)
 
         if timeout is None:
             expected_timeout = self._get_default_timeout()
@@ -2918,63 +2988,70 @@ class Test_Blob(unittest.TestCase):
             expected_timeout = timeout
             timeout_kwarg = {"timeout": timeout}
 
-        response = blob._do_resumable_upload(
-            client,
-            stream,
-            content_type,
-            size,
-            num_retries,
-            predefined_acl,
-            if_generation_match,
-            if_generation_not_match,
-            if_metageneration_match,
-            if_metageneration_not_match,
-            retry=retry,
-            **timeout_kwarg
-        )
+        with patch.object(
+            _helpers, "_get_invocation_id", return_value=GCCL_INVOCATION_TEST_CONST
+        ):
 
-        # Check the returned values.
-        self.assertIs(response, responses[2])
-        self.assertEqual(stream.tell(), total_bytes)
+            response = blob._do_resumable_upload(
+                client,
+                stream,
+                content_type,
+                size,
+                num_retries,
+                predefined_acl,
+                if_generation_match,
+                if_generation_not_match,
+                if_metageneration_match,
+                if_metageneration_not_match,
+                retry=retry,
+                **timeout_kwarg,
+            )
 
-        # Check the mocks.
-        call0 = self._do_resumable_upload_call0(
-            blob,
-            content_type,
-            size=size,
-            predefined_acl=predefined_acl,
-            if_generation_match=if_generation_match,
-            if_generation_not_match=if_generation_not_match,
-            if_metageneration_match=if_metageneration_match,
-            if_metageneration_not_match=if_metageneration_not_match,
-            timeout=expected_timeout,
-        )
-        call1 = self._do_resumable_upload_call1(
-            blob,
-            content_type,
-            data,
-            resumable_url,
-            size=size,
-            predefined_acl=predefined_acl,
-            if_generation_match=if_generation_match,
-            if_generation_not_match=if_generation_not_match,
-            if_metageneration_match=if_metageneration_match,
-            if_metageneration_not_match=if_metageneration_not_match,
-            timeout=expected_timeout,
-        )
-        call2 = self._do_resumable_upload_call2(
-            blob,
-            content_type,
-            data,
-            resumable_url,
-            total_bytes,
-            predefined_acl=predefined_acl,
-            if_generation_match=if_generation_match,
-            if_generation_not_match=if_generation_not_match,
-            if_metageneration_match=if_metageneration_match,
-            if_metageneration_not_match=if_metageneration_not_match,
-            timeout=expected_timeout,
-        )
+            # Check the returned values.
+            self.assertIs(response, responses[2])
+            self.assertEqual(stream.tell(), total_bytes)
+
+            # Check the mocks.
+            call0 = self._do_resumable_upload_call0(
+                client,
+                blob,
+                content_type,
+                size=size,
+                predefined_acl=predefined_acl,
+                if_generation_match=if_generation_match,
+                if_generation_not_match=if_generation_not_match,
+                if_metageneration_match=if_metageneration_match,
+                if_metageneration_not_match=if_metageneration_not_match,
+                timeout=expected_timeout,
+            )
+            call1 = self._do_resumable_upload_call1(
+                client,
+                blob,
+                content_type,
+                data,
+                resumable_url,
+                size=size,
+                predefined_acl=predefined_acl,
+                if_generation_match=if_generation_match,
+                if_generation_not_match=if_generation_not_match,
+                if_metageneration_match=if_metageneration_match,
+                if_metageneration_not_match=if_metageneration_not_match,
+                timeout=expected_timeout,
+            )
+            call2 = self._do_resumable_upload_call2(
+                client,
+                blob,
+                content_type,
+                data,
+                resumable_url,
+                total_bytes,
+                predefined_acl=predefined_acl,
+                if_generation_match=if_generation_match,
+                if_generation_not_match=if_generation_not_match,
+                if_metageneration_match=if_metageneration_match,
+                if_metageneration_not_match=if_metageneration_not_match,
+                timeout=expected_timeout,
+            )
         self.assertEqual(transport.request.mock_calls, [call0, call1, call2])
 
     def test__do_resumable_upload_with_custom_timeout(self):
@@ -3024,10 +3101,10 @@ class Test_Blob(unittest.TestCase):
     ):
         from google.cloud.storage.blob import _MAX_MULTIPART_SIZE
 
-        blob = self._make_one(u"blob-name", bucket=None)
+        blob = self._make_one("blob-name", bucket=None)
 
         # Create a fake response.
-        response = mock.Mock(spec=[u"json"])
+        response = mock.Mock(spec=["json"])
         response.json.return_value = mock.sentinel.json
         # Mock **both** helpers.
         blob._do_multipart_upload = mock.Mock(return_value=response, spec=[])
@@ -3041,7 +3118,7 @@ class Test_Blob(unittest.TestCase):
 
         client = mock.sentinel.client
         stream = mock.sentinel.stream
-        content_type = u"video/mp4"
+        content_type = "video/mp4"
         if size is None:
             size = 12345654321
 
@@ -3065,7 +3142,7 @@ class Test_Blob(unittest.TestCase):
             if_metageneration_match,
             if_metageneration_not_match,
             retry=retry,
-            **timeout_kwarg
+            **timeout_kwarg,
         )
 
         if retry is DEFAULT_RETRY_IF_GENERATION_SPECIFIED:
@@ -3161,7 +3238,7 @@ class Test_Blob(unittest.TestCase):
         data = b"data is here"
         stream = io.BytesIO(data)
         stream.seek(2)  # Not at zero.
-        content_type = u"font/woff"
+        content_type = "font/woff"
         client = mock.sentinel.client
         predefined_acl = kwargs.get("predefined_acl", None)
         if_generation_match = kwargs.get("if_generation_match", None)
@@ -3215,7 +3292,9 @@ class Test_Blob(unittest.TestCase):
         self._upload_from_file_helper(num_retries=2)
 
         mock_warn.assert_called_once_with(
-            _NUM_RETRIES_MESSAGE, DeprecationWarning, stacklevel=2,
+            _NUM_RETRIES_MESSAGE,
+            DeprecationWarning,
+            stacklevel=2,
         )
 
     @mock.patch("warnings.warn")
@@ -3228,7 +3307,9 @@ class Test_Blob(unittest.TestCase):
         self._upload_from_file_helper(retry=DEFAULT_RETRY, num_retries=2)
 
         mock_warn.assert_called_once_with(
-            _NUM_RETRIES_MESSAGE, DeprecationWarning, stacklevel=2,
+            _NUM_RETRIES_MESSAGE,
+            DeprecationWarning,
+            stacklevel=2,
         )
 
     def test_upload_from_file_with_rewind(self):
@@ -3301,7 +3382,7 @@ class Test_Blob(unittest.TestCase):
         self.assertIsNone(blob.metadata)
 
         data = b"soooo much data"
-        content_type = u"image/svg+xml"
+        content_type = "image/svg+xml"
         client = mock.sentinel.client
         with _NamedTemporaryFile() as temp:
             with open(temp.name, "wb") as file_obj:
@@ -3332,7 +3413,7 @@ class Test_Blob(unittest.TestCase):
         self.assertIsNone(blob.metadata)
 
         data = b"soooo much data"
-        content_type = u"image/svg+xml"
+        content_type = "image/svg+xml"
         client = mock.sentinel.client
         with _NamedTemporaryFile() as temp:
             with open(temp.name, "wb") as file_obj:
@@ -3367,7 +3448,7 @@ class Test_Blob(unittest.TestCase):
         self.assertIsNone(blob.metadata)
 
         data = b"soooo much data"
-        content_type = u"image/svg+xml"
+        content_type = "image/svg+xml"
         client = mock.sentinel.client
         with _NamedTemporaryFile() as temp:
             with open(temp.name, "wb") as file_obj:
@@ -3390,7 +3471,9 @@ class Test_Blob(unittest.TestCase):
         self.assertEqual(stream.name, temp.name)
 
         mock_warn.assert_called_once_with(
-            _NUM_RETRIES_MESSAGE, DeprecationWarning, stacklevel=2,
+            _NUM_RETRIES_MESSAGE,
+            DeprecationWarning,
+            stacklevel=2,
         )
 
     def test_upload_from_filename_w_custom_timeout(self):
@@ -3404,7 +3487,7 @@ class Test_Blob(unittest.TestCase):
         self.assertIsNone(blob.metadata)
 
         data = b"soooo much data"
-        content_type = u"image/svg+xml"
+        content_type = "image/svg+xml"
         client = mock.sentinel.client
         with _NamedTemporaryFile() as temp:
             with open(temp.name, "wb") as file_obj:
@@ -3450,7 +3533,7 @@ class Test_Blob(unittest.TestCase):
             "text/plain",
             len(payload),
             kwargs.get("timeout", self._get_default_timeout()),
-            **extra_kwargs
+            **extra_kwargs,
         )
         self.assertIsInstance(stream, io.BytesIO)
         self.assertEqual(stream.getvalue(), payload)
@@ -3464,22 +3547,24 @@ class Test_Blob(unittest.TestCase):
         self._upload_from_string_helper(data)
 
     def test_upload_from_string_w_text(self):
-        data = u"\N{snowman} \N{sailboat}"
+        data = "\N{snowman} \N{sailboat}"
         self._upload_from_string_helper(data)
 
     def test_upload_from_string_w_text_w_retry(self):
-        data = u"\N{snowman} \N{sailboat}"
+        data = "\N{snowman} \N{sailboat}"
         self._upload_from_string_helper(data, retry=DEFAULT_RETRY)
 
     @mock.patch("warnings.warn")
     def test_upload_from_string_with_num_retries(self, mock_warn):
         from google.cloud.storage._helpers import _NUM_RETRIES_MESSAGE
 
-        data = u"\N{snowman} \N{sailboat}"
+        data = "\N{snowman} \N{sailboat}"
         self._upload_from_string_helper(data, num_retries=2)
 
         mock_warn.assert_called_once_with(
-            _NUM_RETRIES_MESSAGE, DeprecationWarning, stacklevel=2,
+            _NUM_RETRIES_MESSAGE,
+            DeprecationWarning,
+            stacklevel=2,
         )
 
     def _create_resumable_upload_session_helper(
@@ -3506,10 +3591,11 @@ class Test_Blob(unittest.TestCase):
             transport.request.side_effect = side_effect
 
         # Create some mock arguments and call the method under test.
-        content_type = u"text/plain"
+        content_type = "text/plain"
         size = 10000
-        client = mock.Mock(_http=transport, _connection=_Connection, spec=[u"_http"])
+        client = mock.Mock(_http=transport, _connection=_Connection, spec=["_http"])
         client._connection.API_BASE_URL = "https://storage.googleapis.com"
+        client._connection.user_agent = "testing 1.2.3"
 
         if timeout is None:
             expected_timeout = self._get_default_timeout()
@@ -3517,19 +3603,21 @@ class Test_Blob(unittest.TestCase):
         else:
             expected_timeout = timeout
             timeout_kwarg = {"timeout": timeout}
-
-        new_url = blob.create_resumable_upload_session(
-            content_type=content_type,
-            size=size,
-            origin=origin,
-            client=client,
-            if_generation_match=if_generation_match,
-            if_generation_not_match=if_generation_not_match,
-            if_metageneration_match=if_metageneration_match,
-            if_metageneration_not_match=if_metageneration_not_match,
-            retry=retry,
-            **timeout_kwarg
-        )
+        with patch.object(
+            _helpers, "_get_invocation_id", return_value=GCCL_INVOCATION_TEST_CONST
+        ):
+            new_url = blob.create_resumable_upload_session(
+                content_type=content_type,
+                size=size,
+                origin=origin,
+                client=client,
+                if_generation_match=if_generation_match,
+                if_generation_not_match=if_generation_not_match,
+                if_metageneration_match=if_metageneration_match,
+                if_metageneration_not_match=if_metageneration_not_match,
+                retry=retry,
+                **timeout_kwarg,
+            )
 
         # Check the returned value and (lack of) side-effect.
         self.assertEqual(new_url, resumable_url)
@@ -3555,11 +3643,16 @@ class Test_Blob(unittest.TestCase):
 
         upload_url += "?" + urlencode(qs_params)
         payload = b'{"name": "blob-name"}'
-        expected_headers = {
-            "content-type": "application/json; charset=UTF-8",
-            "x-upload-content-length": str(size),
-            "x-upload-content-type": content_type,
-        }
+        with patch.object(
+            _helpers, "_get_invocation_id", return_value=GCCL_INVOCATION_TEST_CONST
+        ):
+            expected_headers = {
+                **_get_default_headers(
+                    client._connection.user_agent, x_upload_content_type=content_type
+                ),
+                "x-upload-content-length": str(size),
+                "x-upload-content-type": content_type,
+            }
         if origin is not None:
             expected_headers["Origin"] = origin
         transport.request.assert_called_once_with(
@@ -3622,7 +3715,7 @@ class Test_Blob(unittest.TestCase):
         from google.api_core.iam import Policy
 
         blob_name = "blob-name"
-        path = "/b/name/o/%s" % (blob_name,)
+        path = f"/b/name/o/{blob_name}"
         etag = "DEADBEEF"
         version = 1
         owner1 = "user:phred@example.com"
@@ -3657,7 +3750,7 @@ class Test_Blob(unittest.TestCase):
         self.assertEqual(policy.version, api_response["version"])
         self.assertEqual(dict(policy), expected_policy)
 
-        expected_path = "%s/iam" % (path,)
+        expected_path = f"{path}/iam"
         expected_query_params = {}
         client._get_resource.assert_called_once_with(
             expected_path,
@@ -3673,7 +3766,7 @@ class Test_Blob(unittest.TestCase):
         blob_name = "blob-name"
         user_project = "user-project-123"
         timeout = 42
-        path = "/b/name/o/%s" % (blob_name,)
+        path = f"/b/name/o/{blob_name}"
         etag = "DEADBEEF"
         version = 1
         api_response = {
@@ -3695,7 +3788,7 @@ class Test_Blob(unittest.TestCase):
         self.assertEqual(policy.version, api_response["version"])
         self.assertEqual(dict(policy), expected_policy)
 
-        expected_path = "%s/iam" % (path,)
+        expected_path = f"{path}/iam"
         expected_query_params = {"userProject": user_project}
         client._get_resource.assert_called_once_with(
             expected_path,
@@ -3709,7 +3802,7 @@ class Test_Blob(unittest.TestCase):
         from google.cloud.storage.iam import STORAGE_OWNER_ROLE
 
         blob_name = "blob-name"
-        path = "/b/name/o/%s" % (blob_name,)
+        path = f"/b/name/o/{blob_name}"
         etag = "DEADBEEF"
         version = 3
         owner1 = "user:phred@example.com"
@@ -3729,7 +3822,7 @@ class Test_Blob(unittest.TestCase):
 
         self.assertEqual(policy.version, version)
 
-        expected_path = "%s/iam" % (path,)
+        expected_path = f"{path}/iam"
         expected_query_params = {"optionsRequestedPolicyVersion": version}
         client._get_resource.assert_called_once_with(
             expected_path,
@@ -3747,7 +3840,7 @@ class Test_Blob(unittest.TestCase):
         from google.api_core.iam import Policy
 
         blob_name = "blob-name"
-        path = "/b/name/o/%s" % (blob_name,)
+        path = f"/b/name/o/{blob_name}"
         etag = "DEADBEEF"
         version = 1
         owner1 = "user:phred@example.com"
@@ -3777,7 +3870,7 @@ class Test_Blob(unittest.TestCase):
         self.assertEqual(returned.version, version)
         self.assertEqual(dict(returned), dict(policy))
 
-        expected_path = "%s/iam" % (path,)
+        expected_path = f"{path}/iam"
         expected_data = {
             "resourceId": path,
             "bindings": mock.ANY,
@@ -3805,7 +3898,7 @@ class Test_Blob(unittest.TestCase):
 
         blob_name = "blob-name"
         user_project = "user-project-123"
-        path = "/b/name/o/%s" % (blob_name,)
+        path = f"/b/name/o/{blob_name}"
         etag = "DEADBEEF"
         version = 1
         bindings = []
@@ -3820,14 +3913,17 @@ class Test_Blob(unittest.TestCase):
         retry = mock.Mock(spec=[])
 
         returned = blob.set_iam_policy(
-            policy, client=client, timeout=timeout, retry=retry,
+            policy,
+            client=client,
+            timeout=timeout,
+            retry=retry,
         )
 
         self.assertEqual(returned.etag, etag)
         self.assertEqual(returned.version, version)
         self.assertEqual(dict(returned), dict(policy))
 
-        expected_path = "%s/iam" % (path,)
+        expected_path = f"{path}/iam"
         expected_data = {  # bindings omitted
             "resourceId": path,
         }
@@ -3863,7 +3959,7 @@ class Test_Blob(unittest.TestCase):
 
         self.assertEqual(found, expected)
 
-        expected_path = "/b/name/o/%s/iam/testPermissions" % (blob_name,)
+        expected_path = f"/b/name/o/{blob_name}/iam/testPermissions"
         expected_query_params = {"permissions": permissions}
         client._get_resource.assert_called_once_with(
             expected_path,
@@ -3898,7 +3994,7 @@ class Test_Blob(unittest.TestCase):
 
         self.assertEqual(found, expected)
 
-        expected_path = "/b/name/o/%s/iam/testPermissions" % (blob_name,)
+        expected_path = f"/b/name/o/{blob_name}/iam/testPermissions"
         expected_query_params = {
             "permissions": permissions,
             "userProject": user_project,
@@ -4088,7 +4184,7 @@ class Test_Blob(unittest.TestCase):
 
         self.assertIsNone(destination.content_type)
 
-        expected_path = "/b/name/o/%s/compose" % destination_name
+        expected_path = f"/b/name/o/{destination_name}/compose"
         expected_data = {
             "sourceObjects": [
                 {"name": source_1.name, "generation": source_1.generation},
@@ -4125,7 +4221,7 @@ class Test_Blob(unittest.TestCase):
 
         self.assertEqual(destination.etag, "DEADBEEF")
 
-        expected_path = "/b/name/o/%s/compose" % destination_name
+        expected_path = f"/b/name/o/{destination_name}/compose"
         expected_data = {
             "sourceObjects": [
                 {"name": source_1.name, "generation": source_1.generation},
@@ -4163,7 +4259,7 @@ class Test_Blob(unittest.TestCase):
 
         self.assertEqual(destination.etag, "DEADBEEF")
 
-        expected_path = "/b/name/o/%s/compose" % destination_name
+        expected_path = f"/b/name/o/{destination_name}/compose"
         expected_data = {
             "sourceObjects": [
                 {"name": source_1.name, "generation": source_1.generation},
@@ -4204,7 +4300,7 @@ class Test_Blob(unittest.TestCase):
             if_source_generation_match=source_generation_numbers,
         )
 
-        expected_path = "/b/name/o/%s/compose" % destination_name
+        expected_path = f"/b/name/o/{destination_name}/compose"
         expected_data = {
             "sourceObjects": [
                 {
@@ -4272,7 +4368,7 @@ class Test_Blob(unittest.TestCase):
             if_source_generation_match=source_generation_numbers,
         )
 
-        expected_path = "/b/name/o/%s/compose" % destination_name
+        expected_path = f"/b/name/o/{destination_name}/compose"
         expected_data = {
             "sourceObjects": [
                 {
@@ -4310,10 +4406,11 @@ class Test_Blob(unittest.TestCase):
         destination = self._make_one(destination_name, bucket=bucket)
 
         destination.compose(
-            sources=[source_1, source_2], if_generation_match=generation_number,
+            sources=[source_1, source_2],
+            if_generation_match=generation_number,
         )
 
-        expected_path = "/b/name/o/%s/compose" % destination_name
+        expected_path = f"/b/name/o/{destination_name}/compose"
         expected_data = {
             "sourceObjects": [
                 {"name": source_1.name, "generation": source_1.generation},
@@ -4349,10 +4446,11 @@ class Test_Blob(unittest.TestCase):
 
         destination = self._make_one(destination_name, bucket=bucket)
         destination.compose(
-            sources=[source_1, source_2], if_generation_match=generation_numbers,
+            sources=[source_1, source_2],
+            if_generation_match=generation_numbers,
         )
 
-        expected_path = "/b/name/o/%s/compose" % destination_name
+        expected_path = f"/b/name/o/{destination_name}/compose"
         expected_data = {
             "sourceObjects": [
                 {
@@ -4383,7 +4481,9 @@ class Test_Blob(unittest.TestCase):
         )
 
         mock_warn.assert_called_with(
-            _COMPOSE_IF_GENERATION_LIST_DEPRECATED, DeprecationWarning, stacklevel=2,
+            _COMPOSE_IF_GENERATION_LIST_DEPRECATED,
+            DeprecationWarning,
+            stacklevel=2,
         )
 
     @mock.patch("warnings.warn")
@@ -4411,7 +4511,9 @@ class Test_Blob(unittest.TestCase):
         client._post_resource.assert_not_called()
 
         mock_warn.assert_called_with(
-            _COMPOSE_IF_GENERATION_LIST_DEPRECATED, DeprecationWarning, stacklevel=2,
+            _COMPOSE_IF_GENERATION_LIST_DEPRECATED,
+            DeprecationWarning,
+            stacklevel=2,
         )
 
     @mock.patch("warnings.warn")
@@ -4430,10 +4532,11 @@ class Test_Blob(unittest.TestCase):
         destination = self._make_one(destination_name, bucket=bucket)
 
         destination.compose(
-            sources=[source_1, source_2], if_metageneration_match=metageneration_number,
+            sources=[source_1, source_2],
+            if_metageneration_match=metageneration_number,
         )
 
-        expected_path = "/b/name/o/%s/compose" % destination_name
+        expected_path = f"/b/name/o/{destination_name}/compose"
         expected_data = {
             "sourceObjects": [
                 {"name": source_1_name, "generation": None},
@@ -4471,10 +4574,11 @@ class Test_Blob(unittest.TestCase):
         destination = self._make_one(destination_name, bucket=bucket)
 
         destination.compose(
-            sources=[source_1, source_2], if_metageneration_match=metageneration_number,
+            sources=[source_1, source_2],
+            if_metageneration_match=metageneration_number,
         )
 
-        expected_path = "/b/name/o/%s/compose" % destination_name
+        expected_path = f"/b/name/o/{destination_name}/compose"
         expected_data = {
             "sourceObjects": [
                 {"name": source_1.name, "generation": source_1.generation},
@@ -4720,7 +4824,7 @@ class Test_Blob(unittest.TestCase):
         self.assertEqual(rewritten, bytes_rewritten)
         self.assertEqual(size, object_size)
 
-        expected_path = "/b/name/o/%s/rewriteTo/b/name/o/%s" % (blob_name, blob_name)
+        expected_path = f"/b/name/o/{blob_name}/rewriteTo/b/name/o/{blob_name}"
         expected_query_params = {"userProject": user_project}
         expected_data = {}
         expected_headers = {
@@ -4768,7 +4872,7 @@ class Test_Blob(unittest.TestCase):
         self.assertEqual(rewritten, bytes_rewritten)
         self.assertEqual(size, object_size)
 
-        expected_path = "/b/name/o/%s/rewriteTo/b/name/o/%s" % (blob_name, blob_name)
+        expected_path = f"/b/name/o/{blob_name}/rewriteTo/b/name/o/{blob_name}"
         expected_data = {}
         expected_query_params = {"rewriteToken": previous_token}
         expected_headers = {
@@ -4820,7 +4924,7 @@ class Test_Blob(unittest.TestCase):
         self.assertEqual(rewritten, bytes_rewritten)
         self.assertEqual(size, object_size)
 
-        expected_path = "/b/name/o/%s/rewriteTo/b/name/o/%s" % (blob_name, blob_name)
+        expected_path = f"/b/name/o/{blob_name}/rewriteTo/b/name/o/{blob_name}"
         expected_data = {"kmsKeyName": dest_kms_resource}
         expected_query_params = {"destinationKmsKeyName": dest_kms_resource}
         expected_headers = {
@@ -4845,13 +4949,13 @@ class Test_Blob(unittest.TestCase):
         blob.rewrite = mock.Mock(spec=[])
 
         with self.assertRaises(ValueError):
-            blob.update_storage_class(u"BOGUS")
+            blob.update_storage_class("BOGUS")
 
         blob.rewrite.assert_not_called()
 
     def _update_storage_class_multi_pass_helper(self, **kw):
         blob_name = "blob-name"
-        storage_class = u"NEARLINE"
+        storage_class = "NEARLINE"
         rewrite_token = "TOKEN"
         bytes_rewritten = 42
         object_size = 84
@@ -4965,7 +5069,7 @@ class Test_Blob(unittest.TestCase):
 
     def _update_storage_class_single_pass_helper(self, **kw):
         blob_name = "blob-name"
-        storage_class = u"NEARLINE"
+        storage_class = "NEARLINE"
         object_size = 84
         client = mock.Mock(spec=[])
         bucket = _Bucket(client=client)
@@ -5609,7 +5713,7 @@ class Test__quote(unittest.TestCase):
         self.assertEqual(quoted, "%DE%AD%BE%EF")
 
     def test_unicode(self):
-        helicopter = u"\U0001f681"
+        helicopter = "\U0001f681"
         quoted = self._call_fut(helicopter)
         self.assertEqual(quoted, "%F0%9F%9A%81")
 
@@ -5641,21 +5745,21 @@ class Test__maybe_rewind(unittest.TestCase):
         return _maybe_rewind(*args, **kwargs)
 
     def test_default(self):
-        stream = mock.Mock(spec=[u"seek"])
+        stream = mock.Mock(spec=["seek"])
         ret_val = self._call_fut(stream)
         self.assertIsNone(ret_val)
 
         stream.seek.assert_not_called()
 
     def test_do_not_rewind(self):
-        stream = mock.Mock(spec=[u"seek"])
+        stream = mock.Mock(spec=["seek"])
         ret_val = self._call_fut(stream, rewind=False)
         self.assertIsNone(ret_val)
 
         stream.seek.assert_not_called()
 
     def test_do_rewind(self):
-        stream = mock.Mock(spec=[u"seek"])
+        stream = mock.Mock(spec=["seek"])
         ret_val = self._call_fut(stream, rewind=True)
         self.assertIsNone(ret_val)
 
@@ -5689,7 +5793,7 @@ class Test__raise_from_invalid_response(unittest.TestCase):
     def test_default(self):
         message = "Failure"
         exc_info = self._helper(message)
-        expected = "GET http://example.com/: {}".format(message)
+        expected = f"GET http://example.com/: {message}"
         self.assertEqual(exc_info.exception.message, expected)
         self.assertEqual(exc_info.exception.errors, [])
 
@@ -5721,24 +5825,21 @@ class Test__add_query_parameters(unittest.TestCase):
     def test_wo_existing_qs(self):
         BASE_URL = "https://test.example.com/base"
         NV_LIST = [("one", "One"), ("two", "Two")]
-        expected = "&".join(["{}={}".format(name, value) for name, value in NV_LIST])
-        self.assertEqual(
-            self._call_fut(BASE_URL, NV_LIST), "{}?{}".format(BASE_URL, expected)
-        )
+        expected = "&".join([f"{name}={value}" for name, value in NV_LIST])
+        self.assertEqual(self._call_fut(BASE_URL, NV_LIST), f"{BASE_URL}?{expected}")
 
     def test_w_existing_qs(self):
         BASE_URL = "https://test.example.com/base?one=Three"
         NV_LIST = [("one", "One"), ("two", "Two")]
-        expected = "&".join(["{}={}".format(name, value) for name, value in NV_LIST])
-        self.assertEqual(
-            self._call_fut(BASE_URL, NV_LIST), "{}&{}".format(BASE_URL, expected)
-        )
+        expected = "&".join([f"{name}={value}" for name, value in NV_LIST])
+        self.assertEqual(self._call_fut(BASE_URL, NV_LIST), f"{BASE_URL}&{expected}")
 
 
 class _Connection(object):
 
     API_BASE_URL = "http://example.com"
     USER_AGENT = "testing 1.2.3"
+    user_agent = "testing 1.2.3"
     credentials = object()
 
 

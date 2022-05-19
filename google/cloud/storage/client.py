@@ -25,12 +25,13 @@ import google.api_core.client_options
 
 from google.auth.credentials import AnonymousCredentials
 
-from google import resumable_media  # type: ignore
+from google import resumable_media
 
 from google.api_core import page_iterator
 from google.cloud._helpers import _LocalStack, _NOW
 from google.cloud.client import ClientWithProject
 from google.cloud.exceptions import NotFound
+from google.cloud.storage._helpers import _get_default_headers
 from google.cloud.storage._helpers import _get_environ_project
 from google.cloud.storage._helpers import _get_storage_host
 from google.cloud.storage._helpers import _BASE_STORAGE_URI
@@ -271,7 +272,7 @@ class Client(ClientWithProject):
         if project is None:
             project = self.project
 
-        path = "/projects/%s/serviceAccount" % (project,)
+        path = f"/projects/{project}/serviceAccount"
         api_response = self._get_resource(path, timeout=timeout, retry=retry)
         return api_response["email_address"]
 
@@ -874,8 +875,9 @@ class Client(ClientWithProject):
                 made via created bucket.
             location (str):
                 (Optional) The location of the bucket. If not passed,
-                the default location, US, will be used. See
-                https://cloud.google.com/storage/docs/bucket-locations
+                the default location, US, will be used. If specifying a dual-region,
+                can be specified as a string, e.g., 'US-CENTRAL1+US-WEST1'. See:
+                https://cloud.google.com/storage/docs/locations
             predefined_acl (str):
                 (Optional) Name of predefined ACL to apply to bucket. See:
                 https://cloud.google.com/storage/docs/access-control/lists#predefined-acl
@@ -1129,8 +1131,11 @@ class Client(ClientWithProject):
         headers = _get_encryption_headers(blob_or_uri._encryption_key)
         headers["accept-encoding"] = "gzip"
         _add_etag_match_headers(
-            headers, if_etag_match=if_etag_match, if_etag_not_match=if_etag_not_match,
+            headers,
+            if_etag_match=if_etag_match,
+            if_etag_not_match=if_etag_not_match,
         )
+        headers = {**_get_default_headers(self._connection.user_agent), **headers}
 
         transport = self._http
         try:
@@ -1466,14 +1471,18 @@ class Client(ClientWithProject):
         if project_id is None:
             project_id = self.project
 
-        path = "/projects/{}/hmacKeys".format(project_id)
+        path = f"/projects/{project_id}/hmacKeys"
         qs_params = {"serviceAccountEmail": service_account_email}
 
         if user_project is not None:
             qs_params["userProject"] = user_project
 
         api_response = self._post_resource(
-            path, None, query_params=qs_params, timeout=timeout, retry=retry,
+            path,
+            None,
+            query_params=qs_params,
+            timeout=timeout,
+            retry=retry,
         )
         metadata = HMACKeyMetadata(self)
         metadata._properties = api_response["metadata"]
@@ -1528,7 +1537,7 @@ class Client(ClientWithProject):
         if project_id is None:
             project_id = self.project
 
-        path = "/projects/{}/hmacKeys".format(project_id)
+        path = f"/projects/{project_id}/hmacKeys"
         extra_params = {}
 
         if service_account_email is not None:
@@ -1738,11 +1747,11 @@ class Client(ClientWithProject):
         )
         # designate URL
         if virtual_hosted_style:
-            url = "https://{}.storage.googleapis.com/".format(bucket_name)
+            url = f"https://{bucket_name}.storage.googleapis.com/"
         elif bucket_bound_hostname:
             url = _bucket_bound_hostname_url(bucket_bound_hostname, scheme)
         else:
-            url = "https://storage.googleapis.com/{}/".format(bucket_name)
+            url = f"https://storage.googleapis.com/{bucket_name}/"
 
         return {"url": url, "fields": policy_fields}
 

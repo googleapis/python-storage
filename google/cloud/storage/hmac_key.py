@@ -133,9 +133,7 @@ class HMACKeyMetadata(object):
     def state(self, value):
         if value not in self._SETTABLE_STATES:
             raise ValueError(
-                "State may only be set to one of: {}".format(
-                    ", ".join(self._SETTABLE_STATES)
-                )
+                f"State may only be set to one of: {', '.join(self._SETTABLE_STATES)}"
             )
 
         self._properties["state"] = value
@@ -177,7 +175,7 @@ class HMACKeyMetadata(object):
         if project is None:
             project = self._client.project
 
-        return "/projects/{}/hmacKeys/{}".format(project, self.access_id)
+        return f"/projects/{project}/hmacKeys/{self.access_id}"
 
     @property
     def user_project(self):
@@ -211,7 +209,10 @@ class HMACKeyMetadata(object):
                 qs_params["userProject"] = self.user_project
 
             self._client._get_resource(
-                self.path, query_params=qs_params, timeout=timeout, retry=retry,
+                self.path,
+                query_params=qs_params,
+                timeout=timeout,
+                retry=retry,
             )
         except NotFound:
             return False
@@ -239,7 +240,10 @@ class HMACKeyMetadata(object):
             qs_params["userProject"] = self.user_project
 
         self._properties = self._client._get_resource(
-            self.path, query_params=qs_params, timeout=timeout, retry=retry,
+            self.path,
+            query_params=qs_params,
+            timeout=timeout,
+            retry=retry,
         )
 
     def update(self, timeout=_DEFAULT_TIMEOUT, retry=DEFAULT_RETRY_IF_ETAG_IN_JSON):
@@ -263,7 +267,11 @@ class HMACKeyMetadata(object):
 
         payload = {"state": self.state}
         self._properties = self._client._put_resource(
-            self.path, payload, query_params=qs_params, timeout=timeout, retry=retry,
+            self.path,
+            payload,
+            query_params=qs_params,
+            timeout=timeout,
+            retry=retry,
         )
 
     def delete(self, timeout=_DEFAULT_TIMEOUT, retry=DEFAULT_RETRY):
@@ -289,5 +297,8 @@ class HMACKeyMetadata(object):
             qs_params["userProject"] = self.user_project
 
         self._client._delete_resource(
-            self.path, query_params=qs_params, timeout=timeout, retry=retry,
+            self.path,
+            query_params=qs_params,
+            timeout=timeout,
+            retry=retry,
         )

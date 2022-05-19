@@ -280,7 +280,7 @@ class TestBatch(unittest.TestCase):
         self.assertEqual(lines[1], "Content-Type: application/http")
         self.assertEqual(lines[2], "MIME-Version: 1.0")
         self.assertEqual(lines[3], "")
-        self.assertEqual(lines[4], "%s %s HTTP/1.1" % (method, url))
+        self.assertEqual(lines[4], f"{method} {url} HTTP/1.1")
         self.assertEqual(lines[5], "")
         self.assertEqual(lines[6], "")
 
@@ -294,14 +294,14 @@ class TestBatch(unittest.TestCase):
         self.assertEqual(lines[1], "Content-Type: application/http")
         self.assertEqual(lines[2], "MIME-Version: 1.0")
         self.assertEqual(lines[3], "")
-        self.assertEqual(lines[4], "%s %s HTTP/1.1" % (method, url))
+        self.assertEqual(lines[4], f"{method} {url} HTTP/1.1")
         if method == "GET":
             self.assertEqual(len(lines), 7)
             self.assertEqual(lines[5], "")
             self.assertEqual(lines[6], "")
         else:
             self.assertEqual(len(lines), 9)
-            self.assertEqual(lines[5], "Content-Length: %d" % len(payload_str))
+            self.assertEqual(lines[5], f"Content-Length: {len(payload_str)}")
             self.assertEqual(lines[6], "Content-Type: application/json")
             self.assertEqual(lines[7], "")
             self.assertEqual(json.loads(lines[8]), payload)
@@ -352,7 +352,7 @@ class TestBatch(unittest.TestCase):
         self.assertEqual(response3.headers, {"Content-Length": "0"})
         self.assertEqual(response3.status_code, NO_CONTENT)
 
-        expected_url = "{}/batch/storage/v1".format(batch.API_BASE_URL)
+        expected_url = f"{batch.API_BASE_URL}/batch/storage/v1"
         http.request.assert_called_once_with(
             method="POST",
             url=expected_url,
@@ -422,7 +422,7 @@ class TestBatch(unittest.TestCase):
         self.assertEqual(target1._properties, {"foo": 1, "bar": 2})
         self.assertIs(target2._properties, target2_future_before)
 
-        expected_url = "{}/batch/storage/v1".format(batch.API_BASE_URL)
+        expected_url = f"{batch.API_BASE_URL}/batch/storage/v1"
         http.request.assert_called_once_with(
             method="POST",
             url=expected_url,
@@ -577,9 +577,9 @@ class Test__unpack_batch_response(unittest.TestCase):
         self.assertEqual(len(result), 3)
 
         self.assertEqual(result[0].status_code, http.client.OK)
-        self.assertEqual(result[0].json(), {u"bar": 2, u"foo": 1})
+        self.assertEqual(result[0].json(), {"bar": 2, "foo": 1})
         self.assertEqual(result[1].status_code, http.client.OK)
-        self.assertEqual(result[1].json(), {u"foo": 1, u"bar": 3})
+        self.assertEqual(result[1].json(), {"foo": 1, "bar": 3})
         self.assertEqual(result[2].status_code, http.client.NO_CONTENT)
 
     def test_bytes_headers(self):
@@ -588,7 +588,7 @@ class Test__unpack_batch_response(unittest.TestCase):
         self._unpack_helper(RESPONSE, CONTENT)
 
     def test_unicode_headers(self):
-        RESPONSE = {"content-type": u'multipart/mixed; boundary="DEADBEEF="'}
+        RESPONSE = {"content-type": 'multipart/mixed; boundary="DEADBEEF="'}
         CONTENT = _THREE_PART_MIME_RESPONSE
         self._unpack_helper(RESPONSE, CONTENT)
 

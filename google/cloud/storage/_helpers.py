@@ -21,8 +21,9 @@ import base64
 from hashlib import md5
 import os
 from urllib.parse import urlsplit
+from uuid import uuid4
 
-from google import resumable_media  # type: ignore
+from google import resumable_media
 from google.auth import environment_vars
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 from google.cloud.storage.retry import DEFAULT_RETRY
@@ -69,7 +70,8 @@ def _get_storage_host():
 
 def _get_environ_project():
     return os.getenv(
-        environment_vars.PROJECT, os.getenv(environment_vars.LEGACY_PROJECT),
+        environment_vars.PROJECT,
+        os.getenv(environment_vars.LEGACY_PROJECT),
     )
 
 
@@ -517,14 +519,12 @@ def _raise_if_more_than_one_set(**kwargs):
     :raises: :class:`~ValueError` containing the fields that were set
     """
     if sum(arg is not None for arg in kwargs.values()) > 1:
-        escaped_keys = ["'%s'" % name for name in kwargs.keys()]
+        escaped_keys = [f"'{name}'" for name in kwargs.keys()]
 
         keys_but_last = ", ".join(escaped_keys[:-1])
         last_key = escaped_keys[-1]
 
-        msg = "Pass at most one of {keys_but_last} and {last_key}".format(
-            keys_but_last=keys_but_last, last_key=last_key
-        )
+        msg = f"Pass at most one of {keys_but_last} and {last_key}"
 
         raise ValueError(msg)
 
@@ -546,7 +546,7 @@ def _bucket_bound_hostname_url(host, scheme=None):
     if url_parts.scheme and url_parts.netloc:
         return host
 
-    return "{scheme}://{host}/".format(scheme=scheme, host=host)
+    return f"{scheme}://{host}/"
 
 
 def _api_core_retry_to_resumable_media_retry(retry, num_retries=None):
@@ -581,3 +581,29 @@ def _api_core_retry_to_resumable_media_retry(retry, num_retries=None):
         return resumable_media.RetryStrategy(max_retries=num_retries)
     else:
         return resumable_media.RetryStrategy(max_retries=0)
+
+
+def _get_invocation_id():
+    return "gccl-invocation-id/" + str(uuid4())
+
+
+def _get_default_headers(
+    user_agent,
+    content_type="application/json; charset=UTF-8",
+    x_upload_content_type=None,
+):
+    """Get the headers for a request.
+
+    Args:
+        user_agent (str): The user-agent for requests.
+    Returns:
+        Dict: The headers to be used for the request.
+    """
+    return {
+        "Accept": "application/json",
+        "Accept-Encoding": "gzip, deflate",
+        "User-Agent": user_agent,
+        "X-Goog-API-Client": f"{user_agent} {_get_invocation_id()}",
+        "content-type": content_type,
+        "x-upload-content-type": x_upload_content_type or content_type,
+    }
