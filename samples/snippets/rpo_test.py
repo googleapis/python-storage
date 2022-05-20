@@ -45,7 +45,7 @@ def test_get_rpo(dual_region_bucket, capsys):
 def test_set_rpo_async_turbo(dual_region_bucket, capsys):
     storage_set_rpo_async_turbo.set_rpo_async_turbo(dual_region_bucket.name)
     out, _ = capsys.readouterr()
-    assert f"RPO is ASYNC_TURBO for {dual_region_bucket.name}." in out
+    assert f"RPO is set to ASYNC_TURBO for {dual_region_bucket.name}." in out
 
 
 def test_set_rpo_default(dual_region_bucket, capsys):
