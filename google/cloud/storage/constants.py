@@ -119,15 +119,15 @@ See: https://cloud.google.com/storage/docs/public-access-prevention
 """
 
 RPO_ASYNC_TURBO = "ASYNC_TURBO"
-"""The recovery point objective (RPO) indicates how quickly newly written objects are asynchronously replicated to a separate geographic location. 
-When the RPO value is set to ASYNC_TURBO, the turbo replication feature is enabled. 
+"""The recovery point objective (RPO) indicates how quickly newly written objects are asynchronously replicated to a separate geographic location.
+When the RPO value is set to ASYNC_TURBO, the turbo replication feature is enabled.
 
 See: https://cloud.google.com/storage/docs/managing-turbo-replication
 """
 
 RPO_DEFAULT = "DEFAULT"
-"""The recovery point objective (RPO) indicates how quickly newly written objects are asynchronously replicated to a separate geographic location. 
-When the RPO value is set to DEFAULT, the default replication behavior is enabled. 
+"""The recovery point objective (RPO) indicates how quickly newly written objects are asynchronously replicated to a separate geographic location.
+When the RPO value is set to DEFAULT, the default replication behavior is enabled.
 
 See: https://cloud.google.com/storage/docs/managing-turbo-replication
 """
