@@ -50,9 +50,7 @@ class _ACLEntity(object):
             return "{acl.type}-{acl.identifier}".format(acl=self)
 
     def __repr__(self):
-        return "<ACL Entity: {acl} ({roles})>".format(
-            acl=self, roles=", ".join(self.roles)
-        )
+        return f"<ACL Entity: {self} ({', '.join(self.roles)})>"
 
     def get_roles(self):
         """Get the list of roles permitted by this entity.
@@ -172,7 +170,7 @@ class ACL(object):
         """
         predefined = cls.PREDEFINED_XML_ACLS.get(predefined, predefined)
         if predefined and predefined not in cls.PREDEFINED_JSON_ACLS:
-            raise ValueError("Invalid predefined ACL: %s" % (predefined,))
+            raise ValueError(f"Invalid predefined ACL: {predefined}")
         return predefined
 
     def reset(self):
@@ -215,7 +213,7 @@ class ACL(object):
             entity = self.entity(entity_type=entity_type, identifier=identifier)
 
         if not isinstance(entity, _ACLEntity):
-            raise ValueError("Invalid dictionary: %s" % entity_dict)
+            raise ValueError(f"Invalid dictionary: {entity_dict}")
 
         entity.grant(role)
         return entity
@@ -700,7 +698,7 @@ class BucketACL(ACL):
     @property
     def reload_path(self):
         """Compute the path for GET API requests for this ACL."""
-        return "%s/%s" % (self.bucket.path, self._URL_PATH_ELEM)
+        return f"{self.bucket.path}/{self._URL_PATH_ELEM}"
 
     @property
     def save_path(self):
@@ -739,7 +737,7 @@ class ObjectACL(ACL):
     @property
     def reload_path(self):
         """Compute the path for GET API requests for this ACL."""
-        return "%s/acl" % self.blob.path
+        return f"{self.blob.path}/acl"
 
     @property
     def save_path(self):
