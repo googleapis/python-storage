@@ -1041,8 +1041,8 @@ class Blob(_PropertyMixin):
         encryption key:
 
          .. literalinclude:: snippets.py
-            :start-after: [START download_to_file]
-            :end-before: [END download_to_file]
+            :start-after: START download_to_file
+            :end-before: END download_to_file
             :dedent: 4
 
         The ``encryption_key`` should be a str or bytes with a length of at
@@ -2438,8 +2438,8 @@ class Blob(_PropertyMixin):
         [`customer-supplied`](https://cloud.google.com/storage/docs/encryption#customer-supplied) encryption key:
 
         .. literalinclude:: snippets.py
-            :start-after: [START upload_from_file]
-            :end-before: [END upload_from_file]
+            :start-after: START upload_from_file
+            :end-before: END upload_from_file
             :dedent: 4
 
         The ``encryption_key`` should be a str or bytes with a length of at
@@ -3576,7 +3576,15 @@ class Blob(_PropertyMixin):
         if source.generation:
             query_params["sourceGeneration"] = source.generation
 
-        if self.kms_key_name is not None:
+        # When a Customer Managed Encryption Key is used to encrypt Cloud Storage object
+        # at rest, object resource metadata will store the version of the Key Management
+        # Service cryptographic material. If a Blob instance with KMS Key metadata set is
+        # used to rewrite the object, then the existing kmsKeyName version
+        # value can't be used in the rewrite request and the client instead ignores it.
+        if (
+            self.kms_key_name is not None
+            and "cryptoKeyVersions" not in self.kms_key_name
+        ):
             query_params["destinationKmsKeyName"] = self.kms_key_name
 
         _add_generation_match_parameters(
