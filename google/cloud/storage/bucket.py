@@ -1787,11 +1787,16 @@ class Bucket(_PropertyMixin):
         for blob in blobs:
             try:
                 blob_name = blob
+                generation = None
                 if not isinstance(blob_name, str):
                     blob_name = blob.name
+                    if blob.generation:
+                        generation = blob.generation
+
                 self.delete_blob(
                     blob_name,
                     client=client,
+                    generation=generation,
                     if_generation_match=next(if_generation_match, None),
                     if_generation_not_match=next(if_generation_not_match, None),
                     if_metageneration_match=next(if_metageneration_match, None),
