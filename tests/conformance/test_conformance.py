@@ -345,7 +345,8 @@ def bucket_delete_blob(client, _preconditions, **resources):
 def bucket_delete_blobs(client, _preconditions, **resources):
     object = resources.get("object")
     bucket = client.bucket(resources.get("bucket").name)
-    sources = [object]
+    # Generation can be propagated from blob instances
+    sources = [object.name]
     source_generations = [object.generation]
     if _preconditions:
         bucket.delete_blobs(sources, if_generation_match=source_generations)
