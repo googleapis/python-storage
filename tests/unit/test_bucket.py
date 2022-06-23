@@ -1437,7 +1437,11 @@ class Test_Bucket(unittest.TestCase):
         client = mock.Mock(spec=["_delete_resource"])
         client._delete_resource.return_value = None
         bucket = self._make_one(client=client, name=name)
-        blobs = [mock.Mock(spec=[]), mock.Mock(spec=[])]
+        blob = mock.Mock(spec=["name", "generation"])
+        blob.name = "blob-name"
+        blob.generation = 1512565576797178
+        blobs = [blob]
+        blob_names = [blob.name]
         bucket.list_blobs = mock.Mock(return_value=iter(blobs))
         bucket.delete_blobs = mock.Mock(return_value=None)
 
@@ -1453,7 +1457,44 @@ class Test_Bucket(unittest.TestCase):
         )
 
         bucket.delete_blobs.assert_called_once_with(
-            blobs,
+            blob_names,
+            on_error=mock.ANY,
+            client=client,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
+        )
+
+        expected_query_params = {}
+        client._delete_resource.assert_called_once_with(
+            bucket.path,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
+            _target_object=None,
+        )
+
+    def test_delete_hit_w_force_no_blobs(self):
+        name = "name"
+        client = mock.Mock(spec=["_delete_resource"])
+        client._delete_resource.return_value = None
+        bucket = self._make_one(client=client, name=name)
+        no_blobs = []
+        bucket.list_blobs = mock.Mock(return_value=iter(no_blobs))
+        bucket.delete_blobs = mock.Mock(return_value=None)
+
+        result = bucket.delete(force=True)
+
+        self.assertIsNone(result)
+
+        bucket.list_blobs.assert_called_once_with(
+            max_results=bucket._MAX_OBJECTS_FOR_ITERATION + 1,
+            client=client,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
+        )
+
+        bucket.delete_blobs.assert_called_once_with(
+            no_blobs,
             on_error=mock.ANY,
             client=client,
             timeout=self._get_default_timeout(),
@@ -1492,7 +1533,7 @@ class Test_Bucket(unittest.TestCase):
         bucket.delete_blob.assert_called_once_with(
             blob_name,
             client=client,
-            generation=generation,
+            generation=None,
             if_generation_match=None,
             if_generation_not_match=None,
             if_metageneration_match=None,

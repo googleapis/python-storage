@@ -1578,6 +1578,9 @@ class Bucket(_PropertyMixin):
                 ) % (self._MAX_OBJECTS_FOR_ITERATION,)
                 raise ValueError(message)
 
+            # Convert to a list of blob names as we want to delete the latest versions of each blob.
+            # Blob generations propagated from the list op may no longer represent the latest versions.
+            blobs = [blob.name for blob in blobs]
             # Ignore 404 errors on delete.
             self.delete_blobs(
                 blobs,
