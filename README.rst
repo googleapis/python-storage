@@ -3,7 +3,7 @@ Python Client for Google Cloud Storage API
 
 |stable| |pypi| |versions|
 
-`Google Cloud Storage API`_: 
+`Google Cloud Storage API`_: is a durable and highly available object storage service. Google Cloud Storage is almost infinitely scalable and guarantees consistency: when a write succeeds, the latest copy of the object will be returned to any GET, globally.
 
 - `Client Library Documentation`_
 - `Product Documentation`_
