@@ -2547,10 +2547,6 @@ class Blob(_PropertyMixin):
 
         :raises: :class:`~google.cloud.exceptions.GoogleCloudError`
                  if the upload response returns an error status.
-        :raises: :exc:`UnicodeEncodeError` if the file handle is opened in text mode
-                and contains non latin-1 characters.
-                [RFC 2616 Section 3.7.1](https://datatracker.ietf.org/doc/html/rfc2616#section-3.7.1)
-                states the text default charset of iso-8859-1.
 
         .. _object versioning: https://cloud.google.com/storage/\
                                docs/object-versioning
