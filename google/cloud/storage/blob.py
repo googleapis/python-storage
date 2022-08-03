@@ -312,7 +312,7 @@ class Blob(_PropertyMixin):
         else:
             bucket_name = None
 
-        return "<Blob: %s, %s, %s>" % (bucket_name, self.name, self.generation)
+        return f"<Blob: {bucket_name}, {self.name}, {self.generation}>"
 
     @property
     def path(self):
@@ -575,20 +575,16 @@ class Blob(_PropertyMixin):
         quoted_name = _quote(self.name, safe=b"/~")
 
         if virtual_hosted_style:
-            api_access_endpoint = "https://{bucket_name}.storage.googleapis.com".format(
-                bucket_name=self.bucket.name
-            )
+            api_access_endpoint = f"https://{self.bucket.name}.storage.googleapis.com"
         elif bucket_bound_hostname:
             api_access_endpoint = _bucket_bound_hostname_url(
                 bucket_bound_hostname, scheme
             )
         else:
-            resource = "/{bucket_name}/{quoted_name}".format(
-                bucket_name=self.bucket.name, quoted_name=quoted_name
-            )
+            resource = f"/{self.bucket.name}/{quoted_name}"
 
         if virtual_hosted_style or bucket_bound_hostname:
-            resource = "/{quoted_name}".format(quoted_name=quoted_name)
+            resource = f"/{quoted_name}"
 
         if credentials is None:
             client = self._require_client(client)
@@ -840,7 +836,7 @@ class Blob(_PropertyMixin):
             hostname = _get_host_name(client._connection)
             base_url = _DOWNLOAD_URL_TEMPLATE.format(hostname=hostname, path=self.path)
             if self.generation is not None:
-                name_value_pairs.append(("generation", "{:d}".format(self.generation)))
+                name_value_pairs.append(("generation", f"{self.generation:d}"))
         else:
             base_url = self.media_link
 
@@ -1045,8 +1041,8 @@ class Blob(_PropertyMixin):
         encryption key:
 
          .. literalinclude:: snippets.py
-            :start-after: [START download_to_file]
-            :end-before: [END download_to_file]
+            :start-after: START download_to_file
+            :end-before: END download_to_file
             :dedent: 4
 
         The ``encryption_key`` should be a str or bytes with a length of at
@@ -2448,8 +2444,8 @@ class Blob(_PropertyMixin):
         [`customer-supplied`](https://cloud.google.com/storage/docs/encryption#customer-supplied) encryption key:
 
         .. literalinclude:: snippets.py
-            :start-after: [START upload_from_file]
-            :end-before: [END upload_from_file]
+            :start-after: START upload_from_file
+            :end-before: END upload_from_file
             :dedent: 4
 
         The ``encryption_key`` should be a str or bytes with a length of at
@@ -2466,7 +2462,7 @@ class Blob(_PropertyMixin):
         to that project.
 
         :type file_obj: file
-        :param file_obj: A file handle open for reading.
+        :param file_obj: A file handle opened in binary mode for reading.
 
         :type rewind: bool
         :param rewind:
@@ -3101,7 +3097,7 @@ class Blob(_PropertyMixin):
             query_params["optionsRequestedPolicyVersion"] = requested_policy_version
 
         info = client._get_resource(
-            "%s/iam" % (self.path,),
+            f"{self.path}/iam",
             query_params=query_params,
             timeout=timeout,
             retry=retry,
@@ -3157,7 +3153,7 @@ class Blob(_PropertyMixin):
         if self.user_project is not None:
             query_params["userProject"] = self.user_project
 
-        path = "{}/iam".format(self.path)
+        path = f"{self.path}/iam"
         resource = policy.to_api_repr()
         resource["resourceId"] = self.path
         info = client._put_resource(
@@ -3213,7 +3209,7 @@ class Blob(_PropertyMixin):
         if self.user_project is not None:
             query_params["userProject"] = self.user_project
 
-        path = "%s/iam/testPermissions" % (self.path,)
+        path = f"{self.path}/iam/testPermissions"
         resp = client._get_resource(
             path,
             query_params=query_params,
@@ -3468,7 +3464,7 @@ class Blob(_PropertyMixin):
         )
 
         api_response = client._post_resource(
-            "{}/compose".format(self.path),
+            f"{self.path}/compose",
             request,
             query_params=query_params,
             timeout=timeout,
@@ -3586,7 +3582,15 @@ class Blob(_PropertyMixin):
         if source.generation:
             query_params["sourceGeneration"] = source.generation
 
-        if self.kms_key_name is not None:
+        # When a Customer Managed Encryption Key is used to encrypt Cloud Storage object
+        # at rest, object resource metadata will store the version of the Key Management
+        # Service cryptographic material. If a Blob instance with KMS Key metadata set is
+        # used to rewrite the object, then the existing kmsKeyName version
+        # value can't be used in the rewrite request and the client instead ignores it.
+        if (
+            self.kms_key_name is not None
+            and "cryptoKeyVersions" not in self.kms_key_name
+        ):
             query_params["destinationKmsKeyName"] = self.kms_key_name
 
         _add_generation_match_parameters(
@@ -3601,7 +3605,7 @@ class Blob(_PropertyMixin):
             if_source_metageneration_not_match=if_source_metageneration_not_match,
         )
 
-        path = "{}/rewriteTo{}".format(source.path, self.path)
+        path = f"{source.path}/rewriteTo{self.path}"
         api_response = client._post_resource(
             path,
             self._properties,
@@ -3718,7 +3722,7 @@ class Blob(_PropertyMixin):
             (Optional) How to retry the RPC. See: :ref:`configuring_retries`
         """
         if new_class not in self.STORAGE_CLASSES:
-            raise ValueError("Invalid storage class: %s" % (new_class,))
+            raise ValueError(f"Invalid storage class: {new_class}")
 
         # Update current blob's storage class prior to rewrite
         self._patch_property("storageClass", new_class)
@@ -3761,7 +3765,7 @@ class Blob(_PropertyMixin):
         encoding=None,
         errors=None,
         newline=None,
-        **kwargs
+        **kwargs,
     ):
         r"""Create a file handler for file-like I/O to or from this blob.
 
@@ -4454,9 +4458,7 @@ def _raise_from_invalid_response(error):
     else:
         error_message = str(error)
 
-    message = "{method} {url}: {error}".format(
-        method=response.request.method, url=response.request.url, error=error_message
-    )
+    message = f"{response.request.method} {response.request.url}: {error_message}"
 
     raise exceptions.from_http_status(response.status_code, message, response=response)
 

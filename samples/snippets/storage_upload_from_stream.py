@@ -25,8 +25,8 @@ def upload_blob_from_stream(bucket_name, file_obj, destination_blob_name):
 
     # The stream or file (file-like object) from which to read
     # import io
-    # file_obj = io.StringIO()
-    # file_obj.write("This is test data.")
+    # file_obj = io.BytesIO()
+    # file_obj.write(b"This is test data.")
 
     # The desired name of the uploaded GCS object (blob)
     # destination_blob_name = "storage-object-name"
@@ -44,9 +44,7 @@ def upload_blob_from_stream(bucket_name, file_obj, destination_blob_name):
     blob.upload_from_file(file_obj)
 
     print(
-        "Stream data uploaded to {} in bucket {}.".format(
-            destination_blob_name, bucket_name
-        )
+        f"Stream data uploaded to {destination_blob_name} in bucket {bucket_name}."
     )
 
 # [END storage_stream_file_upload]

@@ -13,16 +13,7 @@ API Reference
 .. toctree::
   :maxdepth: 2
 
-  client
-  blobs
-  buckets
-  acl
-  batch
-  constants
-  hmac_key
-  notification
-  retry_timeout
-  generation_metageneration
+  storage/modules
 
 More Examples
 -------------

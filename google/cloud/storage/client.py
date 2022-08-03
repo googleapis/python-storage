@@ -272,7 +272,7 @@ class Client(ClientWithProject):
         if project is None:
             project = self.project
 
-        path = "/projects/%s/serviceAccount" % (project,)
+        path = f"/projects/{project}/serviceAccount"
         api_response = self._get_resource(path, timeout=timeout, retry=retry)
         return api_response["email_address"]
 
@@ -602,6 +602,7 @@ class Client(ClientWithProject):
             google.cloud.exceptions.NotFound
                 If the bucket is not found.
         """
+
         return self._connection.api_request(
             method="POST",
             path=path,
@@ -761,8 +762,8 @@ class Client(ClientWithProject):
             Retrieve a bucket using a string.
 
             .. literalinclude:: snippets.py
-                :start-after: [START get_bucket]
-                :end-before: [END get_bucket]
+                :start-after: START get_bucket
+                :end-before: END get_bucket
                 :dedent: 4
 
             Get a bucket using a resource.
@@ -802,8 +803,8 @@ class Client(ClientWithProject):
         than catching an exception:
 
         .. literalinclude:: snippets.py
-            :start-after: [START lookup_bucket]
-            :end-before: [END lookup_bucket]
+            :start-after: START lookup_bucket
+            :end-before: END lookup_bucket
             :dedent: 4
 
         :type bucket_name: str
@@ -847,6 +848,7 @@ class Client(ClientWithProject):
         project=None,
         user_project=None,
         location=None,
+        data_locations=None,
         predefined_acl=None,
         predefined_default_object_acl=None,
         timeout=_DEFAULT_TIMEOUT,
@@ -876,7 +878,11 @@ class Client(ClientWithProject):
             location (str):
                 (Optional) The location of the bucket. If not passed,
                 the default location, US, will be used. If specifying a dual-region,
-                can be specified as a string, e.g., 'US-CENTRAL1+US-WEST1'. See:
+                `data_locations` should be set in conjunction.. See:
+                https://cloud.google.com/storage/docs/locations
+            data_locations (list of str):
+                (Optional) The list of regional locations of a custom dual-region bucket.
+                Dual-regions require exactly 2 regional locations. See:
                 https://cloud.google.com/storage/docs/locations
             predefined_acl (str):
                 (Optional) Name of predefined ACL to apply to bucket. See:
@@ -916,8 +922,8 @@ class Client(ClientWithProject):
             Create a bucket using a string.
 
             .. literalinclude:: snippets.py
-                :start-after: [START create_bucket]
-                :end-before: [END create_bucket]
+                :start-after: START create_bucket
+                :end-before: END create_bucket
                 :dedent: 4
 
             Create a bucket using a resource.
@@ -978,6 +984,9 @@ class Client(ClientWithProject):
 
         if location is not None:
             properties["location"] = location
+
+        if data_locations is not None:
+            properties["customPlacementConfig"] = {"dataLocations": data_locations}
 
         api_response = self._post_resource(
             "/b",
@@ -1333,8 +1342,8 @@ class Client(ClientWithProject):
         bucket.
 
         .. literalinclude:: snippets.py
-            :start-after: [START list_buckets]
-            :end-before: [END list_buckets]
+            :start-after: START list_buckets
+            :end-before: END list_buckets
             :dedent: 4
 
         This implements "storage.buckets.list".
@@ -1471,7 +1480,7 @@ class Client(ClientWithProject):
         if project_id is None:
             project_id = self.project
 
-        path = "/projects/{}/hmacKeys".format(project_id)
+        path = f"/projects/{project_id}/hmacKeys"
         qs_params = {"serviceAccountEmail": service_account_email}
 
         if user_project is not None:
@@ -1537,7 +1546,7 @@ class Client(ClientWithProject):
         if project_id is None:
             project_id = self.project
 
-        path = "/projects/{}/hmacKeys".format(project_id)
+        path = f"/projects/{project_id}/hmacKeys"
         extra_params = {}
 
         if service_account_email is not None:
@@ -1747,11 +1756,11 @@ class Client(ClientWithProject):
         )
         # designate URL
         if virtual_hosted_style:
-            url = "https://{}.storage.googleapis.com/".format(bucket_name)
+            url = f"https://{bucket_name}.storage.googleapis.com/"
         elif bucket_bound_hostname:
             url = _bucket_bound_hostname_url(bucket_bound_hostname, scheme)
         else:
-            url = "https://storage.googleapis.com/{}/".format(bucket_name)
+            url = f"https://storage.googleapis.com/{bucket_name}/"
 
         return {"url": url, "fields": policy_fields}
 

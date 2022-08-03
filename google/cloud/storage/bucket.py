@@ -163,10 +163,18 @@ class LifecycleRuleConditions(dict):
                     rule action to versioned items with at least one newer
                     version.
 
+    :type matches_prefix: list(str)
+    :param matches_prefix: (Optional) Apply rule action to items which
+                                  any prefix matches the beginning of the item name.
+
     :type matches_storage_class: list(str), one or more of
                                  :attr:`Bucket.STORAGE_CLASSES`.
-    :param matches_storage_class: (Optional) Apply rule action to items which
+    :param matches_storage_class: (Optional) Apply rule action to items
                                   whose storage class matches this value.
+
+    :type matches_suffix: list(str)
+    :param matches_suffix: (Optional) Apply rule action to items which
+                                  any suffix matches the end of the item name.
 
     :type number_of_newer_versions: int
     :param number_of_newer_versions: (Optional) Apply rule action to versioned
@@ -211,6 +219,8 @@ class LifecycleRuleConditions(dict):
         custom_time_before=None,
         days_since_noncurrent_time=None,
         noncurrent_time_before=None,
+        matches_prefix=None,
+        matches_suffix=None,
         _factory=False,
     ):
         conditions = {}
@@ -236,14 +246,20 @@ class LifecycleRuleConditions(dict):
         if custom_time_before is not None:
             conditions["customTimeBefore"] = custom_time_before.isoformat()
 
-        if not _factory and not conditions:
-            raise ValueError("Supply at least one condition")
-
         if days_since_noncurrent_time is not None:
             conditions["daysSinceNoncurrentTime"] = days_since_noncurrent_time
 
         if noncurrent_time_before is not None:
             conditions["noncurrentTimeBefore"] = noncurrent_time_before.isoformat()
+
+        if matches_prefix is not None:
+            conditions["matchesPrefix"] = matches_prefix
+
+        if matches_suffix is not None:
+            conditions["matchesSuffix"] = matches_suffix
+
+        if not _factory and not conditions:
+            raise ValueError("Supply at least one condition")
 
         super(LifecycleRuleConditions, self).__init__(conditions)
 
@@ -279,9 +295,19 @@ class LifecycleRuleConditions(dict):
         return self.get("isLive")
 
     @property
+    def matches_prefix(self):
+        """Conditon's 'matches_prefix' value."""
+        return self.get("matchesPrefix")
+
+    @property
     def matches_storage_class(self):
         """Conditon's 'matches_storage_class' value."""
         return self.get("matchesStorageClass")
+
+    @property
+    def matches_suffix(self):
+        """Conditon's 'matches_suffix' value."""
+        return self.get("matchesSuffix")
 
     @property
     def number_of_newer_versions(self):
@@ -647,7 +673,7 @@ class Bucket(_PropertyMixin):
         self._user_project = user_project
 
     def __repr__(self):
-        return "<Bucket: %s>" % (self.name,)
+        return f"<Bucket: {self.name}>"
 
     @property
     def client(self):
@@ -1166,15 +1192,15 @@ class Bucket(_PropertyMixin):
         if_metageneration_not_match=None,
         timeout=_DEFAULT_TIMEOUT,
         retry=DEFAULT_RETRY,
-        **kwargs
+        **kwargs,
     ):
         """Get a blob object by name.
 
         This will return None if the blob doesn't exist:
 
         .. literalinclude:: snippets.py
-          :start-after: [START get_blob]
-          :end-before: [END get_blob]
+          :start-after: START get_blob
+          :end-before: END get_blob
           :dedent: 4
 
         If :attr:`user_project` is set, bills the API request to that project.
@@ -1241,7 +1267,7 @@ class Bucket(_PropertyMixin):
             name=blob_name,
             encryption_key=encryption_key,
             generation=generation,
-            **kwargs
+            **kwargs,
         )
         try:
             # NOTE: This will not fail immediately in a batch. However, when
@@ -1592,8 +1618,8 @@ class Bucket(_PropertyMixin):
         For example:
 
         .. literalinclude:: snippets.py
-          :start-after: [START delete_blob]
-          :end-before: [END delete_blob]
+          :start-after: START delete_blob
+          :end-before: END delete_blob
           :dedent: 4
 
         If :attr:`user_project` is set, bills the API request to that project.
@@ -1640,8 +1666,8 @@ class Bucket(_PropertyMixin):
                  ``on_error`` callback, e.g.:
 
         .. literalinclude:: snippets.py
-            :start-after: [START delete_blobs]
-            :end-before: [END delete_blobs]
+            :start-after: START delete_blobs
+            :end-before: END delete_blobs
             :dedent: 4
 
         """
@@ -2311,8 +2337,8 @@ class Bucket(_PropertyMixin):
              https://cloud.google.com/storage/docs/json_api/v1/buckets
 
         .. literalinclude:: snippets.py
-          :start-after: [START add_lifecycle_delete_rule]
-          :end-before: [END add_lifecycle_delete_rule]
+          :start-after: START add_lifecycle_delete_rule
+          :end-before: END add_lifecycle_delete_rule
           :dedent: 4
 
         :type kw: dict
@@ -2329,8 +2355,8 @@ class Bucket(_PropertyMixin):
              https://cloud.google.com/storage/docs/json_api/v1/buckets
 
         .. literalinclude:: snippets.py
-          :start-after: [START add_lifecycle_set_storage_class_rule]
-          :end-before: [END add_lifecycle_set_storage_class_rule]
+          :start-after: START add_lifecycle_set_storage_class_rule
+          :end-before: END add_lifecycle_set_storage_class_rule
           :dedent: 4
 
         :type storage_class: str, one of :attr:`STORAGE_CLASSES`.
@@ -2393,12 +2419,26 @@ class Bucket(_PropertyMixin):
         self._location = value
 
     @property
+    def data_locations(self):
+        """Retrieve the list of regional locations for custom dual-region buckets.
+
+        See https://cloud.google.com/storage/docs/json_api/v1/buckets and
+        https://cloud.google.com/storage/docs/locations
+
+        Returns ``None`` if the property has not been set before creation,
+        if the bucket's resource has not been loaded from the server,
+        or if the bucket is not a dual-regions bucket.
+        :rtype: list of str or ``NoneType``
+        """
+        custom_placement_config = self._properties.get("customPlacementConfig", {})
+        return custom_placement_config.get("dataLocations")
+
+    @property
     def location_type(self):
-        """Retrieve or set the location type for the bucket.
+        """Retrieve the location type for the bucket.
 
         See https://cloud.google.com/storage/docs/storage-classes
 
-        :setter: Set the location type for this bucket.
         :getter: Gets the the location type for this bucket.
 
         :rtype: str or ``NoneType``
@@ -2600,7 +2640,7 @@ class Bucket(_PropertyMixin):
             :attr:`~google.cloud.storage.constants.DURABLE_REDUCED_AVAILABILITY_LEGACY_STORAGE_CLASS`,
         """
         if value not in self.STORAGE_CLASSES:
-            raise ValueError("Invalid storage class: %s" % (value,))
+            raise ValueError(f"Invalid storage class: {value}")
         self._patch_property("storageClass", value)
 
     @property
@@ -2689,15 +2729,15 @@ class Bucket(_PropertyMixin):
         of an index page and a page to use when a blob isn't found:
 
         .. literalinclude:: snippets.py
-          :start-after: [START configure_website]
-          :end-before: [END configure_website]
+          :start-after: START configure_website
+          :end-before: END configure_website
           :dedent: 4
 
         You probably should also make the whole bucket public:
 
         .. literalinclude:: snippets.py
-            :start-after: [START make_public]
-            :end-before: [END make_public]
+            :start-after: START make_public
+            :end-before: END make_public
             :dedent: 4
 
         This says: "Make the bucket public, and all the stuff already in
@@ -2801,7 +2841,7 @@ class Bucket(_PropertyMixin):
             query_params["optionsRequestedPolicyVersion"] = requested_policy_version
 
         info = client._get_resource(
-            "%s/iam" % (self.path,),
+            f"{self.path}/iam",
             query_params=query_params,
             timeout=timeout,
             retry=retry,
@@ -2850,7 +2890,7 @@ class Bucket(_PropertyMixin):
         if self.user_project is not None:
             query_params["userProject"] = self.user_project
 
-        path = "{}/iam".format(self.path)
+        path = f"{self.path}/iam"
         resource = policy.to_api_repr()
         resource["resourceId"] = self.path
 
@@ -2902,7 +2942,7 @@ class Bucket(_PropertyMixin):
         if self.user_project is not None:
             query_params["userProject"] = self.user_project
 
-        path = "%s/iam/testPermissions" % (self.path,)
+        path = f"{self.path}/iam/testPermissions"
         resp = client._get_resource(
             path,
             query_params=query_params,
@@ -3112,8 +3152,8 @@ class Bucket(_PropertyMixin):
         For example:
 
         .. literalinclude:: snippets.py
-            :start-after: [START policy_document]
-            :end-before: [END policy_document]
+            :start-after: START policy_document
+            :end-before: END policy_document
             :dedent: 4
 
         .. _policy documents:
@@ -3207,7 +3247,7 @@ class Bucket(_PropertyMixin):
         if self.user_project is not None:
             query_params["userProject"] = self.user_project
 
-        path = "/b/{}/lockRetentionPolicy".format(self.name)
+        path = f"/b/{self.name}/lockRetentionPolicy"
         api_response = client._post_resource(
             path,
             None,
@@ -3341,15 +3381,13 @@ class Bucket(_PropertyMixin):
             raise ValueError("'version' must be either 'v2' or 'v4'")
 
         if virtual_hosted_style:
-            api_access_endpoint = "https://{bucket_name}.storage.googleapis.com".format(
-                bucket_name=self.name
-            )
+            api_access_endpoint = f"https://{self.name}.storage.googleapis.com"
         elif bucket_bound_hostname:
             api_access_endpoint = _bucket_bound_hostname_url(
                 bucket_bound_hostname, scheme
             )
         else:
-            resource = "/{bucket_name}".format(bucket_name=self.name)
+            resource = f"/{self.name}"
 
         if virtual_hosted_style or bucket_bound_hostname:
             resource = "/"
@@ -3389,6 +3427,4 @@ def _raise_if_len_differs(expected_len, **generation_match_args):
     """
     for name, value in generation_match_args.items():
         if value is not None and len(value) != expected_len:
-            raise ValueError(
-                "'{}' length must be the same as 'blobs' length".format(name)
-            )
+            raise ValueError(f"'{name}' length must be the same as 'blobs' length")
