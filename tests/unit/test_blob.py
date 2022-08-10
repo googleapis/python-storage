@@ -5752,6 +5752,40 @@ class Test_Blob(unittest.TestCase):
         with self.assertRaises(ValueError):
             blob.open("w", ignore_flush=False)
 
+    def test_upload_many(self):
+        from google.cloud.storage.blob import Blob
+
+        client = self._make_client()
+        bucket = _Bucket(client)
+        FILE_BLOB_PAIRS = [
+            ("file_a.txt", self._make_one("resources/file_a", bucket=bucket)),
+            ("file_b.txt", self._make_one("resources/file_b", bucket=bucket))
+        ]
+        FAKE_CONTENT_TYPE = "text/fake"
+        UPLOAD_KWARGS = {"content-type": FAKE_CONTENT_TYPE}
+        EXPECTED_UPLOAD_KWARGS = {"if_not_generation_match": 0, **UPLOAD_KWARGS}
+
+        with mock.patch.object(Blob, "upload_from_filename", autospec=True) as upload_mock:
+            Blob.upload_many(
+                FILE_BLOB_PAIRS,
+                skip_if_exists=True,
+                upload_kwargs=UPLOAD_KWARGS,
+                max_workers=7)
+            raise Exception(str(upload_mock.call_args_list)) # TODO handle exception inside call!
+            self.assertEqual(upload_mock.call_count, 2)
+            for (file, blob) in FILE_BLOB_PAIRS:
+                upload_mock.assert_any_call(blob, file, **EXPECTED_UPLOAD_KWARGS)
+
+    # def upload_many(
+    #     file_blob_pairs,
+    #     skip_if_exists=False,
+    #     upload_kwargs=None,
+    #     max_workers=8
+    # ):
+
+    def test_download_many(self):
+        pass
+
 
 class Test__quote(unittest.TestCase):
     @staticmethod
