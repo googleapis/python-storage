@@ -1710,6 +1710,9 @@ class Bucket(_PropertyMixin):
 
         Uses :meth:`delete_blob` to delete each individual blob.
 
+        By default, the latest versions of the blobs are deleted. Set `preserve_generation`
+        to True if blob generation should be propagated from the list of blobs.
+
         If :attr:`user_project` is set, bills the API request to that project.
 
         :type blobs: list
