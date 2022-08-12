@@ -443,9 +443,9 @@ def test_create_bucket_dual_region(test_bucket_create, capsys):
     )
     out, _ = capsys.readouterr()
     assert f"Created bucket {test_bucket_create.name}" in out
-    assert f"{location}" in out
-    assert f"{region_1}" in out
-    assert f"{region_2}" in out
+    assert location in out
+    assert region_1 in out
+    assert region_2 in out
     assert "dual-region" in out
 
 
