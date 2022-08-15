@@ -1710,8 +1710,9 @@ class Bucket(_PropertyMixin):
 
         Uses :meth:`delete_blob` to delete each individual blob.
 
-        By default, the latest versions of the blobs are deleted. Set `preserve_generation`
-        to True if blob generation should be propagated from the list of blobs.
+        By default, any generation information in the list of blobs is ignored, and the
+        live versions of all blobs are deleted. Set `preserve_generation` to True
+        if blob generation should instead be propagated from the list of blobs.
 
         If :attr:`user_project` is set, bills the API request to that project.
 
@@ -1730,8 +1731,9 @@ class Bucket(_PropertyMixin):
                        to the ``client`` stored on the current bucket.
 
         :type preserve_generation: bool
-        :param preserve_generation: (Optional) Preserves blob generation if set to True. A list of
-                                    :class:`~google.cloud.storage.blob.Blob`-s is required to preserve generation.
+        :param preserve_generation: (Optional) Deletes only the generation specified on the blob object,
+                                    instead of the live version, if set to True. Only :class:~google.cloud.storage.blob.Blob
+                                    objects can have their generation set in this way.
                                     Default: False.
 
         :type if_generation_match: list of long
@@ -1800,11 +1802,6 @@ class Bucket(_PropertyMixin):
                 if not isinstance(blob_name, str):
                     blob_name = blob.name
                     generation = blob.generation if preserve_generation else None
-                else:
-                    if preserve_generation:
-                        raise ValueError(
-                            "A list of blob instances need to be passed in to preserve blob generations."
-                        )
 
                 self.delete_blob(
                     blob_name,

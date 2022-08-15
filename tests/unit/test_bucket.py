@@ -1770,13 +1770,6 @@ class Test_Bucket(unittest.TestCase):
         bucket.delete_blob = mock.Mock()
         retry = mock.Mock(spec=[])
 
-        # Test raises ValueError when unable to preserve generation from list of blob names
-        with pytest.raises(
-            ValueError,
-            match="A list of blob instances need to be passed in to preserve blob generations.",
-        ):
-            bucket.delete_blobs([blob_name, blob_name2], preserve_generation=True)
-
         # Test generation is propagated from list of blob instances
         bucket.delete_blobs(
             [blob, blob2],
