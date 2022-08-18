@@ -3929,55 +3929,6 @@ class Blob(_PropertyMixin):
                 "Supported modes strings are 'r', 'rb', 'rt', 'w', 'wb', and 'wt' only."
             )
 
-    # TODO FIXME: should this be on the client?
-    def download_chunks_concurrently_to_file(
-        self,
-        file_obj,
-        chunk_size=200*1024*1024,
-        max_workers=8,
-        **download_kwargs
-    ):
-        # We must know the size of the object, and set the generation.
-        if not self.size or not self.generation:
-            self.reload()
-
-        chunks = math.ceil(chunk_size / self.size)
-
-        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-            futures = [executor.submit()] # TODO
-
-    @staticmethod
-    def upload_many(
-        file_blob_pairs,
-        skip_if_exists=False,
-        upload_kwargs=None,
-        max_workers=8
-    ):
-        # If source_path is a string, iteration may produce unexpected results.
-
-        # TODO: support file handlers too
-
-        if skip_if_exists:
-            upload_kwargs["if_not_generation_match"] = 0
-
-        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-            futures = [executor.submit(blob.upload_from_filename, path, **upload_kwargs) for path, blob in file_blob_pairs]
-            for future in concurrent.futures.as_completed(futures):
-                pass # TODO handle exception inside call!
-
-    @staticmethod
-    def download_many(
-        blob_file_pairs,
-        download_kwargs=None,
-        num_workers=8
-    ):
-        # TODO: support file handlers too?
-
-        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-            futures = [executor.submit(blob.download_to_filename, path, **download_kwargs) for blob, path in blob_file_pairs]
-            for future in concurrent.futures.as_completed(futures):
-                pass # TODO
-
     cache_control = _scalar_property("cacheControl")
     """HTTP 'Cache-Control' header for this object.
 

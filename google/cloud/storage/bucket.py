@@ -3426,50 +3426,6 @@ class Bucket(_PropertyMixin):
             query_parameters=query_parameters,
         )
 
-    def upload_many_from_filenames(
-        self,
-        filenames,
-        root,
-        prefix="",
-        skip_if_exists=False,
-        blob_constructor_kwargs=None,
-        upload_kwargs=None,
-        max_workers=8
-    ):
-        file_blob_pairs = []
-
-        for filename in filenames:
-            path = root + filename
-            blob_name = prefix + filename
-            blob = self.blob(blob_name, **blob_constructor_kwargs)
-            file_blob_pairs.append((path, blob))
-
-        return Blob.upload_many(
-            file_blob_pairs,
-            skip_if_exists=skip_if_exists,
-            upload_kwargs=upload_kwargs,
-            max_workers=max_workers
-        )
-
-    def download_many_to_path(
-        self,
-        blobs,
-        path_root,
-        strip_prefix="",
-        download_kwargs=None,
-        max_workers=8
-    ):
-        blob_file_pairs = []
-
-        for blob in blobs:
-            if not blob.name.startswith(strip_prefix):
-                raise ValueError(f"Blob name {blob.name} does not start with strip_prefix {strip_prefix}.")
-            stripped_blob_name = blob.name[len(strip_prefix):]
-            path = path_root + stripped_blob_name
-            blob_file_pairs.append((blob, path))
-
-        return Blob.download_many(blob_file_pairs, download_kwargs=download_kwargs, max_workers=max_workers)
-
 
 def _raise_if_len_differs(expected_len, **generation_match_args):
     """
