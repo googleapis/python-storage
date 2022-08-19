@@ -130,6 +130,7 @@ def download_chunks_concurrently_to_file(
         tmp = future.result()
         tmp.seek(0)
         file_obj.write(tmp.read())
+        tmp.close()
 
 
 def upload_many_from_filenames(
