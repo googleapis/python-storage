@@ -99,7 +99,7 @@ def download_chunks_concurrently_to_file(
     if not blob.size or not blob.generation:
         blob.reload()
 
-    def download_range_via_tempfile(blob, file_obj, start, end, download_kwargs):
+    def download_range_via_tempfile(blob, start, end, download_kwargs):
         tmp = tempfile.TemporaryFile()
         blob.download_to_file(tmp, start=start, end=end, **download_kwargs)
         return tmp
@@ -115,7 +115,6 @@ def download_chunks_concurrently_to_file(
                 executor.submit(
                     download_range_via_tempfile,
                     blob,
-                    file_obj,
                     start=start,
                     end=cursor - 1,
                     download_kwargs=download_kwargs,
