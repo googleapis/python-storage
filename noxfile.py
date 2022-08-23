@@ -128,8 +128,8 @@ def system(session):
     if not system_test_exists and not system_test_folder_exists:
         session.skip("System tests were not found")
 
-    # TODO: Check with grpc and broader team reason to use pre-release gRPC
-    # for system tests, pending https://github.com/grpc/grpc/issues/30651.
+    # TODO: Restore using pre-release gRPC for system tests once grpc issue
+    # is resolved. Pending https://github.com/grpc/grpc/issues/30651.
     session.install("grpcio")
 
     # Install all test dependencies, then install this package into the
