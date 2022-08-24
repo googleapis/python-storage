@@ -42,10 +42,13 @@ def test_bucket_lifecycle_rules(storage_client, buckets_to_delete):
     from google.cloud.storage import constants
     from google.cloud.storage.bucket import LifecycleRuleDelete
     from google.cloud.storage.bucket import LifecycleRuleSetStorageClass
+    from google.cloud.storage.bucket import LifecycleRuleAbortIncompleteMultipartUpload
 
     bucket_name = _helpers.unique_name("w-lifcycle-rules")
     custom_time_before = datetime.date(2018, 8, 1)
     noncurrent_before = datetime.date(2018, 8, 1)
+    matches_prefix = ["storage-sys-test", "gcs-sys-test"]
+    matches_suffix = ["suffix-test"]
 
     with pytest.raises(exceptions.NotFound):
         storage_client.get_bucket(bucket_name)
@@ -58,11 +61,16 @@ def test_bucket_lifecycle_rules(storage_client, buckets_to_delete):
         custom_time_before=custom_time_before,
         days_since_noncurrent_time=2,
         noncurrent_time_before=noncurrent_before,
+        matches_prefix=matches_prefix,
+        matches_suffix=matches_suffix,
     )
     bucket.add_lifecycle_set_storage_class_rule(
         constants.COLDLINE_STORAGE_CLASS,
         is_live=False,
         matches_storage_class=[constants.NEARLINE_STORAGE_CLASS],
+    )
+    bucket.add_lifecycle_abort_incomplete_multipart_upload_rule(
+        age=42,
     )
 
     expected_rules = [
@@ -73,11 +81,16 @@ def test_bucket_lifecycle_rules(storage_client, buckets_to_delete):
             custom_time_before=custom_time_before,
             days_since_noncurrent_time=2,
             noncurrent_time_before=noncurrent_before,
+            matches_prefix=matches_prefix,
+            matches_suffix=matches_suffix,
         ),
         LifecycleRuleSetStorageClass(
             constants.COLDLINE_STORAGE_CLASS,
             is_live=False,
             matches_storage_class=[constants.NEARLINE_STORAGE_CLASS],
+        ),
+        LifecycleRuleAbortIncompleteMultipartUpload(
+            age=42,
         ),
     ]
 
@@ -87,6 +100,24 @@ def test_bucket_lifecycle_rules(storage_client, buckets_to_delete):
     assert bucket.name == bucket_name
     assert list(bucket.lifecycle_rules) == expected_rules
 
+    # Test modifying lifecycle rules
+    expected_rules[0] = LifecycleRuleDelete(
+        age=30,
+        matches_prefix=["new-prefix"],
+        matches_suffix=["new-suffix"],
+    )
+    rules = list(bucket.lifecycle_rules)
+    rules[0]["condition"] = {
+        "age": 30,
+        "matchesPrefix": ["new-prefix"],
+        "matchesSuffix": ["new-suffix"],
+    }
+    bucket.lifecycle_rules = rules
+    bucket.patch()
+
+    assert list(bucket.lifecycle_rules) == expected_rules
+
+    # Test clearing lifecycle rules
     bucket.clear_lifecyle_rules()
     bucket.patch()
 
@@ -136,7 +167,7 @@ def test_bucket_get_set_iam_policy(
     policy = bucket.get_iam_policy(requested_policy_version=3)
     assert policy == policy_no_version
 
-    member = "serviceAccount:{}".format(storage_client.get_service_account_email())
+    member = f"serviceAccount:{storage_client.get_service_account_email()}"
 
     binding_w_condition = {
         "role": STORAGE_OBJECT_VIEWER_ROLE,
@@ -601,6 +632,10 @@ def test_bucket_w_retention_period(
     bucket.default_event_based_hold = False
     bucket.patch()
 
+    # Changes to the bucket will be readable immediately after writing,
+    # but configuration changes may take time to propagate.
+    _helpers.retry_has_retention_period(bucket.reload)()
+
     assert bucket.retention_period == period_secs
     assert isinstance(bucket.retention_policy_effective_time, datetime.datetime)
     assert not bucket.default_event_based_hold
@@ -614,6 +649,7 @@ def test_bucket_w_retention_period(
     blobs_to_delete.append(blob)
 
     other = bucket.get_blob(blob_name)
+    _helpers.retry_has_retention_expiration(other.reload)()
 
     assert not other.event_based_hold
     assert not other.temporary_hold
@@ -625,12 +661,16 @@ def test_bucket_w_retention_period(
     bucket.retention_period = None
     bucket.patch()
 
+    # Changes to the bucket will be readable immediately after writing,
+    # but configuration changes may take time to propagate.
+    _helpers.retry_no_retention_period(bucket.reload)()
+
     assert bucket.retention_period is None
     assert bucket.retention_policy_effective_time is None
     assert not bucket.default_event_based_hold
     assert not bucket.retention_policy_locked
 
-    _helpers.retry_no_event_based_hold(other.reload)()
+    _helpers.retry_no_retention_expiration(other.reload)()
 
     assert not other.event_based_hold
     assert not other.temporary_hold
@@ -688,8 +728,7 @@ def test_bucket_w_default_event_based_hold(
     blob.upload_from_string(payload)
 
     # https://github.com/googleapis/python-storage/issues/435
-    if blob.event_based_hold:
-        _helpers.retry_no_event_based_hold(blob.reload)()
+    _helpers.retry_no_event_based_hold(blob.reload)()
 
     assert not blob.event_based_hold
     assert not blob.temporary_hold
