@@ -2752,6 +2752,11 @@ class Bucket(_PropertyMixin):
         :type value: convertible to boolean
         :param value: If true, enable Autoclass for this bucket.
                       If false, disable Autoclass for this bucket.
+
+        .. note::
+          To enable autoclass, you must set it at bucket creation time.
+          Currently, only patch requests that disable autoclass are supported.
+
         """
         self._patch_property("autoclass", {"enabled": bool(value)})
 

@@ -138,6 +138,17 @@ def test_public_bucket():
     os.environ['GOOGLE_CLOUD_PROJECT'] = original_value
 
 
+@pytest.fixture(scope="module")
+def new_bucket_obj():
+    """Yields a new bucket object that is deleted after the test completes."""
+    bucket = None
+    while bucket is None or bucket.exists():
+        bucket_name = f"storage-snippets-test-{uuid.uuid4()}"
+        bucket = storage.Client().bucket(bucket_name)
+    yield bucket
+    bucket.delete(force=True)
+
+
 @pytest.fixture
 def test_blob(test_bucket):
     """Yields a blob that is deleted after the test completes."""
@@ -410,29 +421,29 @@ def test_versioning(test_bucket, capsys):
     assert bucket.versioning_enabled is False
 
 
-def test_get_set_autoclass(test_bucket, capsys):
+def test_get_set_autoclass(new_bucket_obj, test_bucket, capsys):
     # Test default values when Autoclass is unset
     bucket = storage_get_autoclass.get_autoclass(test_bucket.name)
     out, _ = capsys.readouterr()
     assert "Autoclass enabled is set to False" in out
     assert bucket.autoclass_toggle_time is None
 
-    # Test enabling Autoclass
-    bucket = storage_set_autoclass.set_autoclass(test_bucket.name, True)
-    out, _ = capsys.readouterr()
-    assert "Autoclass enabled is set to True" in out
+    # Test enabling Autoclass at bucket creation
+    new_bucket_obj.autoclass_enabled = True
+    bucket = storage.Client().create_bucket(new_bucket_obj)
     assert bucket.autoclass_enabled is True
 
-    bucket = storage_get_autoclass.get_autoclass(test_bucket.name)
-    out, _ = capsys.readouterr()
-    assert "Autoclass enabled is set to True" in out
-    assert bucket.autoclass_toggle_time is not None
-
     # Test disabling Autoclass
-    bucket = storage_set_autoclass.set_autoclass(test_bucket.name, False)
+    bucket = storage_set_autoclass.set_autoclass(bucket.name, False)
     out, _ = capsys.readouterr()
     assert "Autoclass enabled is set to False" in out
     assert bucket.autoclass_enabled is False
+
+    # Test get Autoclass
+    bucket = storage_get_autoclass.get_autoclass(bucket.name)
+    out, _ = capsys.readouterr()
+    assert "Autoclass enabled is set to False" in out
+    assert bucket.autoclass_toggle_time is not None
 
 
 def test_bucket_lifecycle_management(test_bucket, capsys):
