@@ -146,15 +146,6 @@ class TestHMACKeyMetadata(unittest.TestCase):
         metadata._properties["state"] = expected
         self.assertEqual(metadata.state, expected)
 
-    def test_state_setter_invalid_state(self):
-        metadata = self._make_one()
-        expected = "INVALID"
-
-        with self.assertRaises(ValueError):
-            metadata.state = expected
-
-        self.assertIsNone(metadata.state)
-
     def test_state_setter_inactive(self):
         metadata = self._make_one()
         metadata._properties["state"] = "ACTIVE"
