@@ -4994,17 +4994,6 @@ class Test_Blob(unittest.TestCase):
             _target_object=dest,
         )
 
-    def test_update_storage_class_invalid(self):
-        blob_name = "blob-name"
-        bucket = _Bucket()
-        blob = self._make_one(blob_name, bucket=bucket)
-        blob.rewrite = mock.Mock(spec=[])
-
-        with self.assertRaises(ValueError):
-            blob.update_storage_class("BOGUS")
-
-        blob.rewrite.assert_not_called()
-
     def _update_storage_class_multi_pass_helper(self, **kw):
         blob_name = "blob-name"
         storage_class = "NEARLINE"

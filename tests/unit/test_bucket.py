@@ -2812,13 +2812,6 @@ class Test_Bucket(unittest.TestCase):
         bucket = self._make_one(properties=properties)
         self.assertEqual(bucket.storage_class, NEARLINE_STORAGE_CLASS)
 
-    def test_storage_class_setter_invalid(self):
-        NAME = "name"
-        bucket = self._make_one(name=NAME)
-        with self.assertRaises(ValueError):
-            bucket.storage_class = "BOGUS"
-        self.assertFalse("storageClass" in bucket._changes)
-
     def test_storage_class_setter_STANDARD(self):
         from google.cloud.storage.constants import STANDARD_STORAGE_CLASS
 
