@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import os
+import time
 
 import pytest
 
@@ -150,6 +151,10 @@ def test_bucket_w_default_kms_key_name(
     kms_bucket.patch()
     assert kms_bucket.default_kms_key_name == kms_key_name
 
+    # Changes to the bucket will be readable immediately after writing,
+    # but configuration changes may take time to propagate.
+    time.sleep(3)
+
     defaulted_blob = kms_bucket.blob(blob_name)
     defaulted_blob.upload_from_filename(info["path"])
     blobs_to_delete.append(defaulted_blob)
@@ -249,6 +254,10 @@ def test_blob_upload_w_bucket_cmek_enabled(
     kms_bucket.default_kms_key_name = kms_key_name
     kms_bucket.patch()
     assert kms_bucket.default_kms_key_name == kms_key_name
+
+    # Changes to the bucket will be readable immediately after writing,
+    # but configuration changes may take time to propagate.
+    time.sleep(3)
 
     blob = kms_bucket.blob(blob_name)
     blob.upload_from_string(payload)

@@ -165,6 +165,17 @@ def signing_bucket(storage_client, signing_bucket_name):
     _helpers.delete_bucket(bucket)
 
 
+@pytest.fixture(scope="session")
+def default_ebh_bucket(storage_client, signing_bucket_name):
+    bucket = storage_client.bucket("gcp-system-default-ebh")
+    bucket.default_event_based_hold = True
+    _helpers.retry_429_503(bucket.create)()
+
+    yield bucket
+
+    _helpers.delete_bucket(bucket)
+
+
 @pytest.fixture(scope="function")
 def buckets_to_delete():
     buckets_to_delete = []
