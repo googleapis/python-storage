@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import os
+import time
 
 from google.api_core import exceptions
 
@@ -106,3 +107,10 @@ def delete_bucket(bucket):
     retry = RetryErrors(errors, max_tries=15)
     retry(empty_bucket)(bucket)
     retry(bucket.delete)(force=True)
+
+
+def await_config_changes_propagate(sec=3):
+    # Changes to the bucket will be readable immediately after writing,
+    # but configuration changes may take time to propagate.
+    # See https://cloud.google.com/storage/docs/json_api/v1/buckets/patch
+    time.sleep(sec)

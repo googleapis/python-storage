@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import os
-import time
 
 import pytest
 
@@ -149,7 +148,7 @@ def test_bucket_w_default_kms_key_name(
 
     # Changes to the bucket will be readable immediately after writing,
     # but configuration changes may take time to propagate.
-    time.sleep(3)
+    _helpers.await_config_changes_propagate()
 
     defaulted_blob = kms_bucket.blob(blob_name)
     defaulted_blob.upload_from_filename(info["path"])
@@ -235,7 +234,7 @@ def test_blob_upload_w_bucket_cmek_enabled(
 
     # Changes to the bucket will be readable immediately after writing,
     # but configuration changes may take time to propagate.
-    time.sleep(3)
+    _helpers.await_config_changes_propagate()
 
     blob = kms_bucket.blob(blob_name)
     blob.upload_from_string(payload)

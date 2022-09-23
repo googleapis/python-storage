@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import datetime
-import time
 
 import pytest
 
@@ -692,10 +691,6 @@ def test_bucket_w_default_event_based_hold(
     assert bucket.retention_policy_effective_time is None
     assert not bucket.retention_policy_locked
 
-    # Changes to the bucket will be readable immediately after writing,
-    # but configuration changes may take time to propagate.
-    time.sleep(3)
-
     blob_name = "test-blob"
     payload = b"DEADBEEF"
     blob = bucket.blob(blob_name)
@@ -726,7 +721,7 @@ def test_bucket_w_default_event_based_hold(
 
     # Changes to the bucket will be readable immediately after writing,
     # but configuration changes may take time to propagate.
-    time.sleep(3)
+    _helpers.await_config_changes_propagate()
 
     blob.upload_from_string(payload)
 
@@ -873,10 +868,7 @@ def test_ubla_set_unset_preserves_acls(
     # Clear UBLA
     bucket.iam_configuration.uniform_bucket_level_access_enabled = False
     bucket.patch()
-
-    # Changes to the bucket will be readable immediately after writing,
-    # but configuration changes may take time to propagate.
-    time.sleep(3)
+    _helpers.await_config_changes_propagate()
 
     # Query ACLs after clearing UBLA
     bucket.acl.reload()
