@@ -874,6 +874,10 @@ def test_ubla_set_unset_preserves_acls(
     bucket.iam_configuration.uniform_bucket_level_access_enabled = False
     bucket.patch()
 
+    # Changes to the bucket will be readable immediately after writing,
+    # but configuration changes may take time to propagate.
+    time.sleep(3)
+
     # Query ACLs after clearing UBLA
     bucket.acl.reload()
     bucket_acl_after = list(bucket.acl)

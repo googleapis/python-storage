@@ -166,8 +166,13 @@ def signing_bucket(storage_client, signing_bucket_name):
 
 
 @pytest.fixture(scope="session")
-def default_ebh_bucket(storage_client, signing_bucket_name):
-    bucket = storage_client.bucket("gcp-system-default-ebh")
+def default_ebh_bucket_name():
+    return _helpers.unique_name("gcp-systest-default-ebh")
+
+
+@pytest.fixture(scope="session")
+def default_ebh_bucket(storage_client, default_ebh_bucket_name):
+    bucket = storage_client.bucket(default_ebh_bucket_name)
     bucket.default_event_based_hold = True
     _helpers.retry_429_503(bucket.create)()
 
