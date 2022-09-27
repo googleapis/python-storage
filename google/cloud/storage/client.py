@@ -710,10 +710,9 @@ class Client(ClientWithProject):
         if_metageneration_not_match=None,
         retry=DEFAULT_RETRY,
     ):
-        """API call: retrieve a bucket via a GET request.
+        """Retrieve a bucket via a GET request.
 
-        See
-        https://cloud.google.com/storage/docs/json_api/v1/buckets/get
+        See [API reference docs](https://cloud.google.com/storage/docs/json_api/v1/buckets/get) and a [code sample](https://cloud.google.com/storage/docs/samples/storage-get-bucket-metadata#storage_get_bucket_metadata-python).
 
         Args:
             bucket_or_name (Union[ \
@@ -757,27 +756,6 @@ class Client(ClientWithProject):
         Raises:
             google.cloud.exceptions.NotFound
                 If the bucket is not found.
-
-        Examples:
-            Retrieve a bucket using a string.
-
-            .. literalinclude:: snippets.py
-                :start-after: START get_bucket
-                :end-before: END get_bucket
-                :dedent: 4
-
-            Get a bucket using a resource.
-
-            >>> from google.cloud import storage
-            >>> client = storage.Client()
-
-            >>> # Set properties on a plain resource object.
-            >>> bucket = client.get_bucket("my-bucket-name")
-
-            >>> # Time passes. Another program may have modified the bucket
-            ... # in the meantime, so you want to get the latest state.
-            >>> bucket = client.get_bucket(bucket)  # API request.
-
         """
         bucket = self._bucket_arg_to_bucket(bucket_or_name)
         bucket.reload(
@@ -801,11 +779,17 @@ class Client(ClientWithProject):
 
         You can use this if you would rather check for a None value
         than catching an exception:
+        .. code-block:: python
 
-        .. literalinclude:: snippets.py
-            :start-after: START lookup_bucket
-            :end-before: END lookup_bucket
-            :dedent: 4
+            from google.cloud.storage.bucket import Bucket
+
+            bucket = client.lookup_bucket("doesnt-exist")
+            assert not bucket
+            # None
+
+            bucket = client.lookup_bucket("my-bucket")
+            assert isinstance(bucket, Bucket)
+            # <Bucket: my-bucket>
 
         :type bucket_name: str
         :param bucket_name: The name of the bucket to get.
@@ -854,10 +838,9 @@ class Client(ClientWithProject):
         timeout=_DEFAULT_TIMEOUT,
         retry=DEFAULT_RETRY,
     ):
-        """API call: create a new bucket via a POST request.
+        """Create a new bucket via a POST request.
 
-        See
-        https://cloud.google.com/storage/docs/json_api/v1/buckets/insert
+        See [API reference docs](https://cloud.google.com/storage/docs/json_api/v1/buckets/insert) and a [code sample](https://cloud.google.com/storage/docs/samples/storage-create-bucket#storage_create_bucket-python).
 
         Args:
             bucket_or_name (Union[ \
@@ -917,28 +900,6 @@ class Client(ClientWithProject):
         Raises:
             google.cloud.exceptions.Conflict
                 If the bucket already exists.
-
-        Examples:
-            Create a bucket using a string.
-
-            .. literalinclude:: snippets.py
-                :start-after: START create_bucket
-                :end-before: END create_bucket
-                :dedent: 4
-
-            Create a bucket using a resource.
-
-            >>> from google.cloud import storage
-            >>> client = storage.Client()
-
-            >>> # Set properties on a plain resource object.
-            >>> bucket = storage.Bucket("my-bucket-name")
-            >>> bucket.location = "europe-west6"
-            >>> bucket.storage_class = "COLDLINE"
-
-            >>> # Pass that resource object to the client.
-            >>> bucket = client.create_bucket(bucket)  # API request.
-
         """
         bucket = self._bucket_arg_to_bucket(bucket_or_name)
         query_params = {}
@@ -1019,6 +980,29 @@ class Client(ClientWithProject):
     ):
         """Download the contents of a blob object or blob URI into a file-like object.
 
+        Download a blob using a blob resource.
+
+        .. code-block:: python
+
+            from google.cloud import storage
+            client = storage.Client()
+
+            bucket = client.get_bucket('my-bucket-name')
+            blob = storage.Blob('path/to/blob', bucket)
+
+            with open('file-to-download-to', 'w') as file_obj:
+                client.download_blob_to_file(blob, file_obj)  # API request.
+
+        Download a blob using a URI.
+
+        .. code-block:: python
+
+            from google.cloud import storage
+            client = storage.Client()
+
+            with open('file-to-download-to', 'wb') as file_obj:
+                client.download_blob_to_file('gs://bucket_name/path/to/blob', file_obj)
+
         Args:
             blob_or_uri (Union[ \
             :class:`~google.cloud.storage.blob.Blob`, \
@@ -1090,30 +1074,6 @@ class Client(ClientWithProject):
                 predicates in a Retry object. The default will always be used. Other
                 configuration changes for Retry objects such as delays and deadlines
                 are respected.
-
-        Examples:
-            Download a blob using a blob resource.
-
-            >>> from google.cloud import storage
-            >>> client = storage.Client()
-
-            >>> bucket = client.get_bucket('my-bucket-name')
-            >>> blob = storage.Blob('path/to/blob', bucket)
-
-            >>> with open('file-to-download-to', 'w') as file_obj:
-            >>>     client.download_blob_to_file(blob, file_obj)  # API request.
-
-
-            Download a blob using a URI.
-
-            >>> from google.cloud import storage
-            >>> client = storage.Client()
-
-            >>> with open('file-to-download-to', 'wb') as file_obj:
-            >>>     client.download_blob_to_file(
-            >>>         'gs://bucket_name/path/to/blob', file_obj)
-
-
         """
 
         # Handle ConditionalRetryPolicy.
@@ -1183,6 +1143,11 @@ class Client(ClientWithProject):
         """Return an iterator used to find blobs in the bucket.
 
         If :attr:`user_project` is set, bills the API request to that project.
+
+        .. note::
+          List prefixes (directories) in a bucket using a prefix and delimiter.
+          See a [code sample](https://cloud.google.com/storage/docs/samples/storage-list-files-with-prefix#storage_list_files_with_prefix-python)
+          listing objects using a prefix filter.
 
         Args:
             bucket_or_name (Union[ \
@@ -1274,12 +1239,6 @@ class Client(ClientWithProject):
 
             As part of the response, you'll also get back an iterator.prefixes entity that lists object names
             up to and including the requested delimiter. Duplicate entries are omitted from this list.
-
-        .. note::
-          List prefixes (directories) in a bucket using a prefix and delimiter.
-          See a [sample](https://cloud.google.com/storage/docs/samples/storage-list-files-with-prefix#storage_list_files_with_prefix-python)
-          listing objects using a prefix filter.
-
         """
         bucket = self._bucket_arg_to_bucket(bucket_or_name)
 
@@ -1342,12 +1301,7 @@ class Client(ClientWithProject):
         This will not populate the list of blobs available in each
         bucket.
 
-        .. literalinclude:: snippets.py
-            :start-after: START list_buckets
-            :end-before: END list_buckets
-            :dedent: 4
-
-        This implements "storage.buckets.list".
+        See [API reference docs](https://cloud.google.com/storage/docs/json_api/v1/buckets/list) and a [code sample](https://cloud.google.com/storage/docs/samples/storage-list-buckets#storage_list_buckets-python).
 
         :type max_results: int
         :param max_results: (Optional) The maximum number of buckets to return.
@@ -1606,7 +1560,7 @@ class Client(ClientWithProject):
         service_account_email=None,
         access_token=None,
     ):
-        """Generate a V4 signed policy object.
+        """Generate a V4 signed policy object. Generated policy object allows user to upload objects with a POST request.
 
         .. note::
 
@@ -1615,7 +1569,7 @@ class Client(ClientWithProject):
             ``credentials`` has a ``service_account_email`` property which
             identifies the credentials.
 
-        Generated policy object allows user to upload objects with a POST request.
+        See a [code sample](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_generate_signed_post_policy_v4.py).
 
         :type bucket_name: str
         :param bucket_name: Bucket name.
@@ -1663,28 +1617,6 @@ class Client(ClientWithProject):
 
         :rtype: dict
         :returns: Signed POST policy.
-
-        Example:
-            Generate signed POST policy and upload a file.
-
-            >>> import datetime
-            >>> from google.cloud import storage
-            >>> client = storage.Client()
-            >>> tz = datetime.timezone(datetime.timedelta(hours=1), 'CET')
-            >>> policy = client.generate_signed_post_policy_v4(
-                "bucket-name",
-                "blob-name",
-                expiration=datetime.datetime(2020, 3, 17, tzinfo=tz),
-                conditions=[
-                    ["content-length-range", 0, 255]
-                ],
-                fields=[
-                    "x-goog-meta-hello" => "world"
-                ],
-            )
-            >>> with open("bucket-name", "rb") as f:
-                files = {"file": ("bucket-name", f)}
-                requests.post(policy["url"], data=policy["fields"], files=files)
         """
         credentials = self._credentials if credentials is None else credentials
         ensure_signed_credentials(credentials)
