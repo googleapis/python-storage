@@ -146,6 +146,16 @@ class TestHMACKeyMetadata(unittest.TestCase):
         metadata._properties["state"] = expected
         self.assertEqual(metadata.state, expected)
 
+    def test_state_setter_invalid_state(self):
+        metadata = self._make_one()
+        expected = "INVALID"
+        metadata.state = expected
+
+        # Test that invalid states are allowed without client side validation.
+        # Fall back to server side validation and errors.
+        self.assertEqual(metadata.state, expected)
+        self.assertEqual(metadata._properties["state"], expected)
+
     def test_state_setter_inactive(self):
         metadata = self._make_one()
         metadata._properties["state"] = "ACTIVE"

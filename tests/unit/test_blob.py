@@ -5204,6 +5204,38 @@ class Test_Blob(unittest.TestCase):
         retry = mock.Mock(spec=[])
         self._update_storage_class_single_pass_helper(retry=retry)
 
+    def test_update_storage_class_invalid(self):
+        from google.cloud.exceptions import BadRequest
+
+        storage_class = "BOGUS"
+        blob_name = "blob-name"
+        client = mock.Mock(spec=[])
+        bucket = _Bucket(client=client)
+        blob = self._make_one(blob_name, bucket=bucket)
+        blob.rewrite = mock.Mock(spec=[])
+        blob.rewrite.side_effect = BadRequest("Invalid storage class")
+
+        with self.assertRaises(BadRequest):
+            blob.update_storage_class(storage_class)
+
+        # Test that invalid classes are allowed without client side validation.
+        # Fall back to server side validation and errors.
+        self.assertEqual(blob.storage_class, storage_class)
+
+        blob.rewrite.assert_called_once_with(
+            blob,
+            if_generation_match=None,
+            if_generation_not_match=None,
+            if_metageneration_match=None,
+            if_metageneration_not_match=None,
+            if_source_generation_match=None,
+            if_source_generation_not_match=None,
+            if_source_metageneration_match=None,
+            if_source_metageneration_not_match=None,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+        )
+
     def test_cache_control_getter(self):
         BLOB_NAME = "blob-name"
         bucket = _Bucket()

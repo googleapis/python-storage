@@ -2812,6 +2812,17 @@ class Test_Bucket(unittest.TestCase):
         bucket = self._make_one(properties=properties)
         self.assertEqual(bucket.storage_class, NEARLINE_STORAGE_CLASS)
 
+    def test_storage_class_setter_invalid(self):
+        invalid_class = "BOGUS"
+        NAME = "name"
+        bucket = self._make_one(name=NAME)
+        bucket.storage_class = invalid_class
+
+        # Test that invalid classes are allowed without client side validation.
+        # Fall back to server side validation and errors.
+        self.assertEqual(bucket.storage_class, invalid_class)
+        self.assertTrue("storageClass" in bucket._changes)
+
     def test_storage_class_setter_STANDARD(self):
         from google.cloud.storage.constants import STANDARD_STORAGE_CLASS
 
