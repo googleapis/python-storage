@@ -14,6 +14,8 @@
 
 from google.cloud.storage import transfer_manager
 
+from google.api_core import exceptions
+
 import io
 import tempfile
 import unittest
@@ -25,7 +27,7 @@ class Test_Transfer_Manager(unittest.TestCase):
         FILE_BLOB_PAIRS = [("file_a.txt", mock.Mock()), ("file_b.txt", mock.Mock())]
         FAKE_CONTENT_TYPE = "text/fake"
         UPLOAD_KWARGS = {"content-type": FAKE_CONTENT_TYPE}
-        EXPECTED_UPLOAD_KWARGS = {"if_not_generation_match": 0, **UPLOAD_KWARGS}
+        EXPECTED_UPLOAD_KWARGS = {"if_generation_match": 0, **UPLOAD_KWARGS}
         FAKE_RESULT = "nothing to see here"
 
         for _, blob_mock in FILE_BLOB_PAIRS:
@@ -48,7 +50,7 @@ class Test_Transfer_Manager(unittest.TestCase):
         ]
         FAKE_CONTENT_TYPE = "text/fake"
         UPLOAD_KWARGS = {"content-type": FAKE_CONTENT_TYPE}
-        EXPECTED_UPLOAD_KWARGS = {"if_not_generation_match": 0, **UPLOAD_KWARGS}
+        EXPECTED_UPLOAD_KWARGS = {"if_generation_match": 0, **UPLOAD_KWARGS}
         FAKE_RESULT = "nothing to see here"
 
         for _, blob_mock in FILE_BLOB_PAIRS:
@@ -96,6 +98,19 @@ class Test_Transfer_Manager(unittest.TestCase):
 
         with self.assertRaises(ConnectionError):
             transfer_manager.upload_many(FILE_BLOB_PAIRS, raise_exception=True)
+
+    def test_upload_many_suppresses_412_with_skip_if_exists(self):
+        FILE_BLOB_PAIRS = [("file_a.txt", mock.Mock()), ("file_b.txt", mock.Mock())]
+        for _, mock_blob in FILE_BLOB_PAIRS:
+            mock_blob.upload_from_filename.side_effect = exceptions.PreconditionFailed(
+                "412"
+            )
+
+        results = transfer_manager.upload_many(
+            FILE_BLOB_PAIRS, skip_if_exists=True, raise_exception=True
+        )
+        for result in results:
+            self.assertEqual(type(result), exceptions.PreconditionFailed)
 
     def test_download_many_with_filenames(self):
         BLOB_FILE_PAIRS = [(mock.Mock(), "file_a.txt"), (mock.Mock(), "file_b.txt")]
