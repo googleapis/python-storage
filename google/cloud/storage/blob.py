@@ -432,13 +432,10 @@ class Blob(_PropertyMixin):
         .. note::
 
             If you are on Google Compute Engine, you can't generate a signed
-            URL using GCE service account. Follow `Issue 50`_ for updates on
-            this. If you'd like to be able to generate a signed URL from GCE,
+            URL using GCE service account.
+            If you'd like to be able to generate a signed URL from GCE,
             you can use a standard service account from a JSON file rather
             than a GCE service account.
-
-        .. _Issue 50: https://github.com/GoogleCloudPlatform/\
-                      google-auth-library-python/issues/50
 
         If you have a blob that you want to allow access to for a set
         amount of time, you can use this method to generate a URL that
@@ -587,6 +584,9 @@ class Blob(_PropertyMixin):
 
         quoted_name = _quote(self.name, safe=b"/~")
 
+        # If you are on Google Compute Engine, you can't generate a signed URL
+        # using GCE service account.
+        # See https://github.com/googleapis/google-auth-library-python/issues/50
         if virtual_hosted_style:
             api_access_endpoint = f"https://{self.bucket.name}.storage.googleapis.com"
         elif bucket_bound_hostname:
@@ -2435,8 +2435,9 @@ class Blob(_PropertyMixin):
            bucket.  In the absence of those policies, upload will
            overwrite any existing contents.
 
-           See the `object versioning`_ and `lifecycle`_ API documents
-           for details.
+           See the [`object versioning`](https://cloud.google.com/storage/docs/object-versioning)
+           and [`lifecycle`](https://cloud.google.com/storage/docs/lifecycle)
+           API documents for details.
 
         If the size of the data to be uploaded exceeds 8 MB a resumable media
         request will be used, otherwise the content and the metadata will be
@@ -2540,10 +2541,6 @@ class Blob(_PropertyMixin):
 
         :raises: :class:`~google.cloud.exceptions.GoogleCloudError`
                  if the upload response returns an error status.
-
-        .. _object versioning: https://cloud.google.com/storage/\
-                               docs/object-versioning
-        .. _lifecycle: https://cloud.google.com/storage/docs/lifecycle
         """
         if num_retries is not None:
             warnings.warn(_NUM_RETRIES_MESSAGE, DeprecationWarning, stacklevel=2)
@@ -2607,9 +2604,8 @@ class Blob(_PropertyMixin):
            bucket.  In the absence of those policies, upload will
            overwrite any existing contents.
 
-           See the `object versioning
-           <https://cloud.google.com/storage/docs/object-versioning>`_ and
-           `lifecycle <https://cloud.google.com/storage/docs/lifecycle>`_
+           See the [`object versioning`](https://cloud.google.com/storage/docs/object-versioning)
+           and [`lifecycle`](https://cloud.google.com/storage/docs/lifecycle)
            API documents for details.
 
         If :attr:`user_project` is set on the bucket, bills the API request
@@ -2741,9 +2737,8 @@ class Blob(_PropertyMixin):
            bucket.  In the absence of those policies, upload will
            overwrite any existing contents.
 
-           See the `object versioning
-           <https://cloud.google.com/storage/docs/object-versioning>`_ and
-           `lifecycle <https://cloud.google.com/storage/docs/lifecycle>`_
+           See the [`object versioning`](https://cloud.google.com/storage/docs/object-versioning)
+           and [`lifecycle`](https://cloud.google.com/storage/docs/lifecycle)
            API documents for details.
 
         If :attr:`user_project` is set on the bucket, bills the API request
@@ -2872,12 +2867,10 @@ class Blob(_PropertyMixin):
         passes the session URL to the client that will upload the binary data.
         The client performs a PUT request on the session URL to complete the
         upload. This process allows untrusted clients to upload to an
-        access-controlled bucket. For more details, see the
-        `documentation on signed URLs`_.
+        access-controlled bucket.
 
-        .. _documentation on signed URLs:
-            https://cloud.google.com/storage/\
-            docs/access-control/signed-urls#signing-resumable
+        For more details, see the
+        documentation on [`signed URLs`](https://cloud.google.com/storage/docs/access-control/signed-urls#signing-resumable).
 
         The content type of the upload will be determined in order
         of precedence:
@@ -2892,9 +2885,8 @@ class Blob(_PropertyMixin):
            bucket.  In the absence of those policies, upload will
            overwrite any existing contents.
 
-           See the `object versioning
-           <https://cloud.google.com/storage/docs/object-versioning>`_ and
-           `lifecycle <https://cloud.google.com/storage/docs/lifecycle>`_
+           See the [`object versioning`](https://cloud.google.com/storage/docs/object-versioning)
+           and [`lifecycle`](https://cloud.google.com/storage/docs/lifecycle)
            API documents for details.
 
         If :attr:`encryption_key` is set, the blob will be encrypted with
