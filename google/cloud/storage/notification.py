@@ -414,22 +414,17 @@ class BucketNotification(object):
 def _parse_topic_path(topic_path):
     """Verify that a topic path is in the correct format.
 
-    .. _resource manager docs: https://cloud.google.com/resource-manager/\
-                               reference/rest/v1beta1/projects#\
-                               Project.FIELDS.project_id
-    .. _topic spec: https://cloud.google.com/storage/docs/json_api/v1/\
-                    notifications/insert#topic
-
     Expected to be of the form:
 
         //pubsub.googleapis.com/projects/{project}/topics/{topic}
 
     where the ``project`` value must be "6 to 30 lowercase letters, digits,
     or hyphens. It must start with a letter. Trailing hyphens are prohibited."
-    (see `resource manager docs`_) and ``topic`` must have length at least two,
+    (see [`resource manager docs`](https://cloud.google.com/resource-manager/reference/rest/v1beta1/projects#Project.FIELDS.project_id))
+    and ``topic`` must have length at least two,
     must start with a letter and may only contain alphanumeric characters or
     ``-``, ``_``, ``.``, ``~``, ``+`` or ``%`` (i.e characters used for URL
-    encoding, see `topic spec`_).
+    encoding, see [`topic spec`](https://cloud.google.com/storage/docs/json_api/v1/notifications/insert#topic)).
 
     Args:
         topic_path (str): The topic path to be verified.

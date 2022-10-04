@@ -443,36 +443,12 @@ class Blob(_PropertyMixin):
 
         See a [code sample](https://cloud.google.com/storage/docs/samples/storage-generate-signed-url-v4#storage_generate_signed_url_v4-python).
 
-        If ``bucket_bound_hostname`` is set as an argument of :attr:`api_access_endpoint`,
-        ``https`` works only if using a ``CDN``.
-
-        Generate a signed URL for a blob using bucket_bound_hostname and scheme.
-
-        .. code-block:: python
-
-            from google.cloud import storage
-
-            client = storage.Client()
-            bucket = client.get_bucket('my-bucket-name')
-            blob = bucket.get_blob('my-blob-name')
-            # Generate a signed URL using bucket_bound_hostname
-            url = blob.generate_signed_url(
-                expiration='url-expiration-time',
-                bucket_bound_hostname='mydomain.tld',
-                version='v4'
-            )
-
-            # Generate a signed URL with a scheme if using CDN
-            url = blob.generate_signed_url(
-                expiration='url-expiration-time',
-                bucket_bound_hostname='mydomain.tld',
-                version='v4',
-                scheme='https'  # If using CDN
-            )
-
         This is particularly useful if you don't want publicly
         accessible blobs, but don't want to require users to explicitly
         log in.
+
+        If ``bucket_bound_hostname`` is set as an argument of :attr:`api_access_endpoint`,
+        ``https`` works only if using a ``CDN``.
 
         :type expiration: Union[Integer, datetime.datetime, datetime.timedelta]
         :param expiration:
@@ -3346,14 +3322,11 @@ class Blob(_PropertyMixin):
             destination object's current generation matches the given value.
             Setting to 0 makes the operation succeed only if there are no live
             versions of the object.
-
-            .. note::
-
-              In a previous version, this argument worked identically to the
-              ``if_source_generation_match`` argument. For
-              backwards-compatibility reasons, if a list is passed in,
-              this argument will behave like ``if_source_generation_match``
-              and also issue a DeprecationWarning.
+            Note: In a previous version, this argument worked identically to the
+            ``if_source_generation_match`` argument. For
+            backwards-compatibility reasons, if a list is passed in,
+            this argument will behave like ``if_source_generation_match``
+            and also issue a DeprecationWarning.
 
         :type if_metageneration_match: long
         :param if_metageneration_match:
@@ -3759,6 +3732,34 @@ class Blob(_PropertyMixin):
 
         See a [code sample](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_fileio_write_read.py).
 
+        Keyword arguments to pass to the underlying API calls.
+        For both uploads and downloads, the following arguments are
+        supported:
+
+        - ``if_generation_match``
+        - ``if_generation_not_match``
+        - ``if_metageneration_match``
+        - ``if_metageneration_not_match``
+        - ``timeout``
+        - ``retry``
+
+        For downloads only, the following additional arguments are supported:
+
+        - ``raw_download``
+
+        For uploads only, the following additional arguments are supported:
+
+        - ``content_type``
+        - ``num_retries``
+        - ``predefined_acl``
+        - ``checksum``
+
+        .. note::
+
+           ``num_retries`` is supported for backwards-compatibility
+           reasons only; please use ``retry`` with a Retry object or
+           ConditionalRetryPolicy instead.
+
         :type mode: str
         :param mode:
             (Optional) A mode string, as per standard Python `open()` semantics.The first
@@ -3812,35 +3813,6 @@ class Blob(_PropertyMixin):
             be None, '', '\n', '\r', and '\r\n'. If None, reads use "universal
             newline mode" and writes use the system default. See the Python
             'io' module documentation for 'io.TextIOWrapper' for details.
-
-        :param kwargs:
-            Keyword arguments to pass to the underlying API calls.
-            For both uploads and downloads, the following arguments are
-            supported:
-
-            - ``if_generation_match``
-            - ``if_generation_not_match``
-            - ``if_metageneration_match``
-            - ``if_metageneration_not_match``
-            - ``timeout``
-            - ``retry``
-
-            For downloads only, the following additional arguments are supported:
-
-            - ``raw_download``
-
-            For uploads only, the following additional arguments are supported:
-
-            - ``content_type``
-            - ``num_retries``
-            - ``predefined_acl``
-            - ``checksum``
-
-            .. note::
-
-               ``num_retries`` is supported for backwards-compatibility
-               reasons only; please use ``retry`` with a Retry object or
-               ConditionalRetryPolicy instead.
 
         :returns: A 'BlobReader' or 'BlobWriter' from
             'google.cloud.storage.fileio', or an 'io.TextIOWrapper' around one
@@ -3949,23 +3921,6 @@ class Blob(_PropertyMixin):
 
     If not set before upload, the server will compute the hash.
 
-    .. code-block:: python
-
-        # Retrieve the crc32c hash of blob.
-        from google.cloud import storage
-
-        client = storage.Client()
-        bucket = client.get_bucket("my-bucket-name")
-        blob = bucket.blob('my-blob')
-
-        blob.crc32c  # return None
-        blob.reload()
-        blob.crc32c  # return crc32c hash
-
-        # Another approach
-        blob = bucket.get_blob('my-blob')
-        blob.crc32c  # return crc32c hash
-
     :rtype: str or ``NoneType``
     """
 
@@ -4046,23 +4001,6 @@ class Blob(_PropertyMixin):
     [`API reference docs`](https://cloud.google.com/storage/docs/json_api/v1/objects).
 
     If not set before upload, the server will compute the hash.
-
-    .. code-block:: python
-
-        # Retrieve the md5 hash of blob.
-        from google.cloud import storage
-
-        client = storage.Client()
-        bucket = client.get_bucket("my-bucket-name")
-        blob = bucket.blob('my-blob')
-
-        blob.md5_hash  # return None
-        blob.reload()
-        blob.md5_hash  # return md5 hash
-
-        # Another approach
-        blob = bucket.get_blob('my-blob')
-        blob.md5_hash  # return md5 hash
 
     :rtype: str or ``NoneType``
     """

@@ -11,7 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Support for retry strategy configurations.
 
+See https://cloud.google.com/storage/docs/retry-strategy
+"""
 import requests
 import requests.exceptions as requests_exceptions
 

@@ -778,18 +778,7 @@ class Client(ClientWithProject):
         """Get a bucket by name, returning None if not found.
 
         You can use this if you would rather check for a None value
-        than catching an exception:
-        .. code-block:: python
-
-            from google.cloud.storage.bucket import Bucket
-
-            bucket = client.lookup_bucket("doesnt-exist")
-            assert not bucket
-            # None
-
-            bucket = client.lookup_bucket("my-bucket")
-            assert isinstance(bucket, Bucket)
-            # <Bucket: my-bucket>
+        than catching a NotFound exception.
 
         :type bucket_name: str
         :param bucket_name: The name of the bucket to get.
@@ -811,7 +800,7 @@ class Client(ClientWithProject):
         :param retry:
             (Optional) How to retry the RPC. See: :ref:`configuring_retries`
 
-        :rtype: :class:`google.cloud.storage.bucket.Bucket`
+        :rtype: :class:`google.cloud.storage.bucket.Bucket` or ``NoneType``
         :returns: The bucket matching the name provided or None if not found.
         """
         try:
@@ -861,7 +850,7 @@ class Client(ClientWithProject):
             location (str):
                 (Optional) The location of the bucket. If not passed,
                 the default location, US, will be used. If specifying a dual-region,
-                `data_locations` should be set in conjunction.. See:
+                `data_locations` should be set in conjunction. See:
                 https://cloud.google.com/storage/docs/locations
             data_locations (list of str):
                 (Optional) The list of regional locations of a custom dual-region bucket.
@@ -980,28 +969,7 @@ class Client(ClientWithProject):
     ):
         """Download the contents of a blob object or blob URI into a file-like object.
 
-        Download a blob using a blob resource.
-
-        .. code-block:: python
-
-            from google.cloud import storage
-            client = storage.Client()
-
-            bucket = client.get_bucket('my-bucket-name')
-            blob = storage.Blob('path/to/blob', bucket)
-
-            with open('file-to-download-to', 'w') as file_obj:
-                client.download_blob_to_file(blob, file_obj)  # API request.
-
-        Download a blob using a URI.
-
-        .. code-block:: python
-
-            from google.cloud import storage
-            client = storage.Client()
-
-            with open('file-to-download-to', 'wb') as file_obj:
-                client.download_blob_to_file('gs://bucket_name/path/to/blob', file_obj)
+        See https://cloud.google.com/storage/docs/downloading-objects
 
         Args:
             blob_or_uri (Union[ \
