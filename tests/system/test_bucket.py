@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import datetime
-
+import os
 import pytest
 
 from google.api_core import exceptions
@@ -124,6 +124,10 @@ def test_bucket_lifecycle_rules(storage_client, buckets_to_delete):
     assert list(bucket.lifecycle_rules) == []
 
 
+@pytest.mark.skipif(
+    "API_ENDPOINT_OVERRIDE" in os.environ,
+    reason="Failing test for the overriding endpoint",
+)
 def test_bucket_update_labels(storage_client, buckets_to_delete):
     bucket_name = _helpers.unique_name("update-labels")
     bucket = _helpers.retry_429_503(storage_client.create_bucket)(bucket_name)
@@ -618,6 +622,10 @@ def test_bucket_list_blobs_hierarchy_w_include_trailing_delimiter(
     assert iterator.prefixes == expected_prefixes
 
 
+@pytest.mark.skipif(
+    "API_ENDPOINT_OVERRIDE" in os.environ,
+    reason="Failing test for the overriding endpoint",
+)
 def test_bucket_w_retention_period(
     storage_client,
     buckets_to_delete,
@@ -797,6 +805,10 @@ def test_bucket_lock_retention_policy(
         bucket.patch()
 
 
+@pytest.mark.skipif(
+    "API_ENDPOINT_OVERRIDE" in os.environ,
+    reason="Failing test for the overriding endpoint",
+)
 def test_new_bucket_w_ubla(
     storage_client,
     buckets_to_delete,
@@ -966,6 +978,10 @@ def test_new_bucket_created_w_enforced_pap(
     assert not bucket.iam_configuration.uniform_bucket_level_access_enabled
 
 
+@pytest.mark.skipif(
+    "API_ENDPOINT_OVERRIDE" in os.environ,
+    reason="Failing test for the overriding endpoint",
+)
 def test_new_bucket_with_rpo(
     storage_client,
     buckets_to_delete,
