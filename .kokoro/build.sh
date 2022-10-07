@@ -33,6 +33,12 @@ export GOOGLE_APPLICATION_CREDENTIALS=${KOKORO_GFILE_DIR}/service-account.json
 # Setup project id.
 export PROJECT_ID=$(cat "${KOKORO_GFILE_DIR}/project-id.json")
 
+# Export variable to override api endpoint
+export API_ENDPOINT_OVERRIDE
+
+# Export variable to override api endpoint version
+export API_VERSION_OVERRIDE
+
 # Remove old nox
 python3 -m pip uninstall --yes --quiet nox-automation
 
