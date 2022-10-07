@@ -15,7 +15,7 @@
 """Create / interact with Google Cloud Storage connections."""
 
 import functools
-
+import os
 from google.cloud import _http
 from google.cloud.storage import __version__
 from google.cloud.storage import _helpers
@@ -35,7 +35,9 @@ class Connection(_http.JSONConnection):
     :param api_endpoint: (Optional) api endpoint to use.
     """
 
-    DEFAULT_API_ENDPOINT = "https://storage.googleapis.com"
+    DEFAULT_API_ENDPOINT = os.getenv(
+        "API_ENDPOINT_OVERRIDE", "https://storage.googleapis.com"
+    )
     DEFAULT_API_MTLS_ENDPOINT = "https://storage.mtls.googleapis.com"
 
     def __init__(self, client, client_info=None, api_endpoint=None):
@@ -52,7 +54,7 @@ class Connection(_http.JSONConnection):
         if agent_version not in self._client_info.user_agent:
             self._client_info.user_agent += f" {agent_version} "
 
-    API_VERSION = "v1"
+    API_VERSION = os.getenv("API_VERSION_OVERRIDE", "v1")
     """The version of the API, used in building the API call's URL."""
 
     API_URL_TEMPLATE = "{api_base_url}/storage/{api_version}{path}"
