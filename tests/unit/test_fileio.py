@@ -419,7 +419,6 @@ class TestBlobWriterBinary(unittest.TestCase, _BlobWriterBase):
         with self.assertRaises(ValueError):
             writer.write(TEST_BINARY_DATA)
 
-
     def test_flush_fails(self):
         blob = mock.Mock(chunk_size=None)
         writer = self._make_blob_writer(blob)
