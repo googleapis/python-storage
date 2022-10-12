@@ -82,7 +82,11 @@ def test_create_bucket_dual_region(storage_client, buckets_to_delete):
 
     new_bucket_name = _helpers.unique_name("dual-region-bucket")
     location = "US"
-    data_locations = ["US-EAST1", "US-WEST1"]
+    dual_data_loc_1 = os.getenv("DUAL_REGION_LOC_1", "US-EAST1"  )
+    dual_data_loc_2 = os.getenv("DUAL_REGION_LOC_2", "US-WEST1"  )
+
+    data_locations = [dual_data_loc_1, dual_data_loc_2]
+
 
     with pytest.raises(exceptions.NotFound):
         storage_client.get_bucket(new_bucket_name)
