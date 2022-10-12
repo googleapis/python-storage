@@ -256,7 +256,7 @@ class Test_Transfer_Manager(unittest.TestCase):
                 bucket,
                 FILENAMES,
                 ROOT,
-                prefix=PREFIX,
+                blob_name_prefix=PREFIX,
                 skip_if_exists=True,
                 blob_constructor_kwargs=BLOB_CONSTRUCTOR_KWARGS,
                 upload_kwargs=UPLOAD_KWARGS,
