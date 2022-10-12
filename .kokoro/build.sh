@@ -39,6 +39,10 @@ export API_ENDPOINT_OVERRIDE
 # Export variable to override api endpoint version
 export API_VERSION_OVERRIDE
 
+# Export dual region locations
+export DUAL_REGION_LOC_1
+export DUAL_REGION_LOC_2
+
 # Remove old nox
 python3 -m pip uninstall --yes --quiet nox-automation
 
