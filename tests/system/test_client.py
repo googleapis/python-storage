@@ -73,10 +73,6 @@ def test_create_bucket_simple(storage_client, buckets_to_delete):
     assert created.name == new_bucket_name
 
 
-@pytest.mark.skipif(
-    "API_ENDPOINT_OVERRIDE" in os.environ,
-    reason="Failing test for the overriding endpoint",
-)
 def test_create_bucket_dual_region(storage_client, buckets_to_delete):
     from google.cloud.storage.constants import DUAL_REGION_LOCATION_TYPE
 
