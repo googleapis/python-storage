@@ -1757,12 +1757,15 @@ class Client(ClientWithProject):
             }
         )
         # designate URL
+        
+        
         if virtual_hosted_style:
             url = f"https://{bucket_name}.storage.googleapis.com/"
         elif bucket_bound_hostname:
             url = f"{_bucket_bound_hostname_url(bucket_bound_hostname, scheme)}/"
         else:
-            url = f"os.getenv("API_ENDPOINT_OVERRIDE", "https://storage.googleapis.com")/{bucket_name}/"
+            api_access_endpoint=os.getenv("API_ENDPOINT_OVERRIDE", "https://storage.googleapis.com")
+            url = f"{api_access_endpoint}/{bucket_name}/"
 
         return {"url": url, "fields": policy_fields}
 
