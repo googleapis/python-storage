@@ -380,7 +380,6 @@ def test_create_signed_resumable_upload_url_v4(storage_client, signing_bucket, n
     )
 
 
-
 def test_generate_signed_post_policy_v4(
     storage_client, buckets_to_delete, blobs_to_delete, service_account, no_mtls
 ):
