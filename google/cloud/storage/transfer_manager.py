@@ -12,13 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Concurrent media operations. This is a FEATURE PREVIEW: API may change."""
+"""Concurrent media operations. This is a PREVIEW FEATURE: API may change."""
 
 import concurrent.futures
 
 import tempfile
 
 from google.api_core import exceptions
+
+
+DEFAULT_CHUNK_SIZE = 200 * 1024 * 1024
 
 
 def upload_many(
@@ -31,7 +34,7 @@ def upload_many(
 ):
     """Upload many files concurrently via a worker pool.
 
-    This function is a FEATURE PREVIEW: the API may change in a future version.
+    This function is a PREVIEW FEATURE: the API may change in a future version.
 
     :type file_blob_pairs: List(Tuple(IOBase or str, 'google.cloud.storage.blob.Blob'))
     :param file_blob_pairs:
@@ -64,7 +67,8 @@ def upload_many(
     :param deadline:
         The number of seconds to wait for all threads to resolve. If the
         deadline is reached, all threads will be terminated regardless of their
-        progress and concurrent.futures.TimeoutError will be raised.
+        progress and concurrent.futures.TimeoutError will be raised. This can be
+        left as the default of None (no deadline) for most use cases.
 
     :type raise_exception: bool
     :param raise_exception:
@@ -128,7 +132,7 @@ def download_many(
 ):
     """Download many blobs concurrently via a worker pool.
 
-    This function is a FEATURE PREVIEW: the API may change in a future version.
+    This function is a PREVIEW FEATURE: the API may change in a future version.
 
     :type blob_file_pairs: List(Tuple('google.cloud.storage.blob.Blob', IOBase or str))
     :param blob_file_pairs:
@@ -153,7 +157,8 @@ def download_many(
     :param deadline:
         The number of seconds to wait for all threads to resolve. If the
         deadline is reached, all threads will be terminated regardless of their
-        progress and concurrent.futures.TimeoutError will be raised.
+        progress and concurrent.futures.TimeoutError will be raised. This can be
+        left as the default of None (no deadline) for most use cases.
 
     :type raise_exception: bool
     :param raise_exception:
@@ -200,18 +205,22 @@ def download_many(
 def download_chunks_concurrently_to_file(
     blob,
     file_obj,
-    chunk_size=200 * 1024 * 1024,
+    chunk_size=DEFAULT_CHUNK_SIZE,
     download_kwargs=None,
     max_workers=None,
     deadline=None,
 ):
     """Download a single blob in chunks, concurrently.
 
-    This function is a FEATURE PREVIEW: the API may change in a future version.
+    This function is a PREVIEW FEATURE: the API may change in a future version.
 
     Use of this function, in cases where single threads are unable to fully
     saturate available network bandwidth, may improve download performance for
     large objects.
+
+    The size of the blob must be known in order to calculate the number of
+    chunks. If the size is not already set, blob.reload() will be called
+    automatically to set it.
 
     :type blob: 'google.cloud.storage.blob.Blob'
     :param blob:
@@ -240,6 +249,13 @@ def download_chunks_concurrently_to_file(
         The number of workers (effectively, the number of threads) to use in
         the worker pool. Refer to concurrent.futures.ThreadPoolExecutor
         documentation for details.
+
+    :type deadline: int
+    :param deadline:
+        The number of seconds to wait for all threads to resolve. If the
+        deadline is reached, all threads will be terminated regardless of their
+        progress and concurrent.futures.TimeoutError will be raised. This can be
+        left as the default of None (no deadline) for most use cases.
 
     :raises: :exc:`concurrent.futures.TimeoutError` if deadline is exceeded.
     """
@@ -287,7 +303,7 @@ def upload_many_from_filenames(
     bucket,
     filenames,
     root,
-    prefix="",
+    blob_name_prefix="",
     skip_if_exists=False,
     blob_constructor_kwargs=None,
     upload_kwargs=None,
@@ -297,13 +313,13 @@ def upload_many_from_filenames(
 ):
     """Upload many files concurrently by their filenames.
 
-    This function is a FEATURE PREVIEW: the API may change in a future version.
+    This function is a PREVIEW FEATURE: the API may change in a future version.
 
     The destination blobs are automatically created, with blob names based on
-    the source filenames and the prefix.
+    the source filenames and the blob_name_prefix.
 
     For example, if the `filenames` include "images/icon.jpg", `root` is
-    "/home/myuser/", and `prefix` is "myfiles/", then the file at
+    "/home/myuser/", and `blob_name_prefix` is "myfiles/", then the file at
     "/home/myuser/images/icon.jpg" will be uploaded to a blob named
     "myfiles/images/icon.jpg".
 
@@ -327,25 +343,25 @@ def upload_many_from_filenames(
         but is not required to do so.
 
         For instance, if the root string is "/tmp/img-" and a filename is
-        "0001.jpg", with an empty prefix, then the file uploaded will be
-        "/tmp/img-0001.jpg" and the destination blob will be "0001.jpg".
+        "0001.jpg", with an empty blob_name_prefix, then the file uploaded will
+        be "/tmp/img-0001.jpg" and the destination blob will be "0001.jpg".
 
         This parameter can be an empty string, but has no default because almost
         all use cases will use a non-empty root.
 
-    :type prefix: str
-    :param prefix:
+    :type blob_name_prefix: str
+    :param blob_name_prefix:
         A string that will be prepended to each filename in the input list, in
         order to determine the name of the destination blob. Unlike the filename
         itself, the prefix string does not affect the location the library will
         look for the source data on the local filesystem.
 
-        For instance, if the root is "/tmp/img-", the prefix is
+        For instance, if the root is "/tmp/img-", the blob_name_prefix is
         "myuser/mystuff-" and a filename is "0001.jpg" then the file uploaded
         will be "/tmp/img-0001.jpg" and the destination blob will be
         "myuser/mystuff-0001.jpg".
 
-        The prefix can be blank (an empty string).
+        The blob_name_prefix can be blank (an empty string).
 
     :type skip_if_exists: bool
     :param skip_if_exists:
@@ -380,7 +396,8 @@ def upload_many_from_filenames(
     :param deadline:
         The number of seconds to wait for all threads to resolve. If the
         deadline is reached, all threads will be terminated regardless of their
-        progress and concurrent.futures.TimeoutError will be raised.
+        progress and concurrent.futures.TimeoutError will be raised. This can be
+        left as the default of None (no deadline) for most use cases.
 
     :type raise_exception: bool
     :param raise_exception:
@@ -406,7 +423,7 @@ def upload_many_from_filenames(
 
     for filename in filenames:
         path = root + filename
-        blob_name = prefix + filename
+        blob_name = blob_name_prefix + filename
         blob = bucket.blob(blob_name, **blob_constructor_kwargs)
         file_blob_pairs.append((path, blob))
 
@@ -432,7 +449,7 @@ def download_many_to_path(
 ):
     """Download many files concurrently by their blob names.
 
-    This function is a FEATURE PREVIEW: the API may change in a future version.
+    This function is a PREVIEW FEATURE: the API may change in a future version.
 
     The destination files are automatically created, with filenames based on
     the source blob_names and the path_root.
@@ -497,7 +514,8 @@ def download_many_to_path(
     :param deadline:
         The number of seconds to wait for all threads to resolve. If the
         deadline is reached, all threads will be terminated regardless of their
-        progress and concurrent.futures.TimeoutError will be raised.
+        progress and concurrent.futures.TimeoutError will be raised. This can be
+        left as the default of None (no deadline) for most use cases.
 
     :type raise_exception: bool
     :param raise_exception:
