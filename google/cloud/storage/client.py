@@ -1269,7 +1269,8 @@ class Client(ClientWithProject):
 
         Returns:
             Iterator of all :class:`~google.cloud.storage.blob.Blob`
-            in this bucket matching the arguments.
+            in this bucket matching the arguments. The RPC call
+            returns a response when the iterator is consumed.
 
             As part of the response, you'll also get back an iterator.prefixes entity that lists object names
             up to and including the requested delimiter. Duplicate entries are omitted from this list.
@@ -1758,7 +1759,7 @@ class Client(ClientWithProject):
         if virtual_hosted_style:
             url = f"https://{bucket_name}.storage.googleapis.com/"
         elif bucket_bound_hostname:
-            url = _bucket_bound_hostname_url(bucket_bound_hostname, scheme)
+            url = f"{_bucket_bound_hostname_url(bucket_bound_hostname, scheme)}/"
         else:
             url = f"https://storage.googleapis.com/{bucket_name}/"
 
