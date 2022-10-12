@@ -2732,7 +2732,7 @@ class Bucket(_PropertyMixin):
     def autoclass_enabled(self):
         """Whether Autoclass is enabled for this bucket.
 
-        TODO: See  <docs> for details.
+        See https://cloud.google.com/storage/docs/using-autoclass for details.
 
         :setter: Update whether autoclass is enabled for this bucket.
         :getter: Query whether autoclass is enabled for this bucket.
@@ -2746,7 +2746,9 @@ class Bucket(_PropertyMixin):
     @autoclass_enabled.setter
     def autoclass_enabled(self, value):
         """Enable or disable Autoclass at the bucket-level.
-        TODO: See  <docs> for details.
+
+        See https://cloud.google.com/storage/docs/using-autoclass for details.
+
         :type value: convertible to boolean
         :param value: If true, enable Autoclass for this bucket.
                       If false, disable Autoclass for this bucket.
