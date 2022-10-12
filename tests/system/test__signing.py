@@ -16,7 +16,6 @@ import base64
 import datetime
 import hashlib
 import os
-import pytest
 import time
 
 import requests
