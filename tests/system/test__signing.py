@@ -25,6 +25,10 @@ from google.api_core import path_template
 from google.cloud import iam_credentials_v1
 from . import _helpers
 
+API_ACCESS_ENDPOINT = os.getenv(
+    "API_ENDPOINT_OVERRIDE", "https://storage.googleapis.com"
+)
+
 
 def _morph_expiration(version, expiration):
     if expiration is not None:
@@ -42,17 +46,17 @@ def _create_signed_list_blobs_url_helper(
     expiration = _morph_expiration(version, expiration)
 
     signed_url = bucket.generate_signed_url(
-        expiration=expiration, method=method, client=client, version=version
+        expiration=expiration,
+        method=method,
+        client=client,
+        version=version,
+        api_access_endpoint=API_ACCESS_ENDPOINT,
     )
 
     response = requests.get(signed_url)
     assert response.status_code == 200
 
 
-@pytest.mark.skipif(
-    "API_ENDPOINT_OVERRIDE" in os.environ,
-    reason="Failing test for the overriding endpoint",
-)
 def test_create_signed_list_blobs_url_v2(storage_client, signing_bucket, no_mtls):
     _create_signed_list_blobs_url_helper(
         storage_client,
@@ -61,10 +65,6 @@ def test_create_signed_list_blobs_url_v2(storage_client, signing_bucket, no_mtls
     )
 
 
-@pytest.mark.skipif(
-    "API_ENDPOINT_OVERRIDE" in os.environ,
-    reason="Failing test for the overriding endpoint",
-)
 def test_create_signed_list_blobs_url_v2_w_expiration(
     storage_client, signing_bucket, no_mtls
 ):
@@ -79,10 +79,6 @@ def test_create_signed_list_blobs_url_v2_w_expiration(
     )
 
 
-@pytest.mark.skipif(
-    "API_ENDPOINT_OVERRIDE" in os.environ,
-    reason="Failing test for the overriding endpoint",
-)
 def test_create_signed_list_blobs_url_v4(storage_client, signing_bucket, no_mtls):
     _create_signed_list_blobs_url_helper(
         storage_client,
@@ -91,10 +87,6 @@ def test_create_signed_list_blobs_url_v4(storage_client, signing_bucket, no_mtls
     )
 
 
-@pytest.mark.skipif(
-    "API_ENDPOINT_OVERRIDE" in os.environ,
-    reason="Failing test for the overriding endpoint",
-)
 def test_create_signed_list_blobs_url_v4_w_expiration(
     storage_client, signing_bucket, no_mtls
 ):

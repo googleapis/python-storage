@@ -73,16 +73,15 @@ def test_create_bucket_simple(storage_client, buckets_to_delete):
     assert created.name == new_bucket_name
 
 
-@pytest.mark.skipif(
-    "API_ENDPOINT_OVERRIDE" in os.environ,
-    reason="Failing test for the overriding endpoint",
-)
 def test_create_bucket_dual_region(storage_client, buckets_to_delete):
     from google.cloud.storage.constants import DUAL_REGION_LOCATION_TYPE
 
     new_bucket_name = _helpers.unique_name("dual-region-bucket")
     location = "US"
-    data_locations = ["US-EAST1", "US-WEST1"]
+    dual_data_loc_1 = os.getenv("DUAL_REGION_LOC_1", "US-EAST1")
+    dual_data_loc_2 = os.getenv("DUAL_REGION_LOC_2", "US-WEST1")
+
+    data_locations = [dual_data_loc_1, dual_data_loc_2]
 
     with pytest.raises(exceptions.NotFound):
         storage_client.get_bucket(new_bucket_name)
