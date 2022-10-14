@@ -25,7 +25,6 @@ from google.cloud import iam_credentials_v1
 from . import _helpers
 
 
-
 def _morph_expiration(version, expiration):
     if expiration is not None:
         return expiration
@@ -376,7 +375,10 @@ def test_create_signed_resumable_upload_url_v4(storage_client, signing_bucket, n
     )
 
 
-@pytest.mark.skipif(_helpers.is_api_endpoint_override,reason="Test does not yet support endpoint override")
+@pytest.mark.skipif(
+    _helpers.is_api_endpoint_override,
+    reason="Test does not yet support endpoint override",
+)
 def test_generate_signed_post_policy_v4(
     storage_client, buckets_to_delete, blobs_to_delete, service_account, no_mtls
 ):
