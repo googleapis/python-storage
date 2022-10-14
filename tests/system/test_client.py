@@ -29,10 +29,7 @@ dual_data_loc_2 = os.getenv("DUAL_REGION_LOC_2", "US-WEST1")
 public_bucket = "gcp-public-data-landsat"
 
 
-@pytest.mark.skipif(
-    "API_ENDPOINT_OVERRIDE" in os.environ,
-    reason="Failing test for the overriding endpoint",
-)
+@pytest.mark.skipif(_helpers.is_api_endpoint_override,reason="Test does not yet support endpoint override")
 @vpcsc_config.skip_if_inside_vpcsc
 def test_anonymous_client_access_to_public_bucket():
     from google.cloud.storage.client import Client
@@ -47,10 +44,7 @@ def test_anonymous_client_access_to_public_bucket():
         _helpers.retry_429_503(blob.download_to_file)(stream)
 
 
-@pytest.mark.skipif(
-    "API_ENDPOINT_OVERRIDE" in os.environ,
-    reason="Failing test for the overriding endpoint",
-)
+@pytest.mark.skipif(_helpers.is_api_endpoint_override,reason="Test does not yet support endpoint override")
 def test_get_service_account_email(storage_client, service_account):
     domain = "gs-project-accounts.iam.gserviceaccount.com"
     email = storage_client.get_service_account_email()
