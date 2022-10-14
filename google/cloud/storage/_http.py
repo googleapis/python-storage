@@ -15,7 +15,6 @@
 """Create / interact with Google Cloud Storage connections."""
 
 import functools
-import os
 from google.cloud import _http
 from google.cloud.storage import __version__
 from google.cloud.storage import _helpers
