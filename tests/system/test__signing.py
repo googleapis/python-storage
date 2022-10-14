@@ -22,7 +22,6 @@ import requests
 
 from google.api_core import path_template
 from google.cloud import iam_credentials_v1
-from google.cloud.storage._helpers import _DEFAULT_STORAGE_HOST
 from . import _helpers
 
 
@@ -47,7 +46,7 @@ def _create_signed_list_blobs_url_helper(
         method=method,
         client=client,
         version=version,
-        api_access_endpoint=_DEFAULT_STORAGE_HOST,
+        api_access_endpoint=_helpers._DEFAULT_STORAGE_HOST,
     )
 
     response = requests.get(signed_url)
