@@ -20,7 +20,6 @@ import collections
 import datetime
 import functools
 import json
-import os
 import warnings
 import google.api_core.client_options
 
