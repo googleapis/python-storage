@@ -98,8 +98,8 @@ def test_large_file_write_from_stream_w_failed_checksum(
 
 
 @pytest.mark.skipif(
-    "API_ENDPOINT_OVERRIDE" in os.environ,
-    reason="Failing test for the overriding endpoint",
+    _helpers.is_api_endpoint_override,
+    reason="Test does not yet support endpoint override",
 )
 def test_large_file_write_from_stream_w_encryption_key(
     storage_client,

@@ -24,12 +24,14 @@ from test_utils.vpcsc_config import vpcsc_config
 from . import _helpers
 
 
+dual_data_loc_1 = os.getenv("DUAL_REGION_LOC_1", "US-EAST1")
+dual_data_loc_2 = os.getenv("DUAL_REGION_LOC_2", "US-WEST1")
 public_bucket = "gcp-public-data-landsat"
 
 
 @pytest.mark.skipif(
-    "API_ENDPOINT_OVERRIDE" in os.environ,
-    reason="Failing test for the overriding endpoint",
+    _helpers.is_api_endpoint_override,
+    reason="Test does not yet support endpoint override",
 )
 @vpcsc_config.skip_if_inside_vpcsc
 def test_anonymous_client_access_to_public_bucket():
@@ -46,8 +48,8 @@ def test_anonymous_client_access_to_public_bucket():
 
 
 @pytest.mark.skipif(
-    "API_ENDPOINT_OVERRIDE" in os.environ,
-    reason="Failing test for the overriding endpoint",
+    _helpers.is_api_endpoint_override,
+    reason="Test does not yet support endpoint override",
 )
 def test_get_service_account_email(storage_client, service_account):
     domain = "gs-project-accounts.iam.gserviceaccount.com"
@@ -78,8 +80,6 @@ def test_create_bucket_dual_region(storage_client, buckets_to_delete):
 
     new_bucket_name = _helpers.unique_name("dual-region-bucket")
     location = "US"
-    dual_data_loc_1 = os.getenv("DUAL_REGION_LOC_1", "US-EAST1")
-    dual_data_loc_2 = os.getenv("DUAL_REGION_LOC_2", "US-WEST1")
 
     data_locations = [dual_data_loc_1, dual_data_loc_2]
 

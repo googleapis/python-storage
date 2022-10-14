@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import datetime
-import os
 import pytest
 
 from google.api_core import exceptions
@@ -125,8 +124,8 @@ def test_bucket_lifecycle_rules(storage_client, buckets_to_delete):
 
 
 @pytest.mark.skipif(
-    "API_ENDPOINT_OVERRIDE" in os.environ,
-    reason="Failing test for the overriding endpoint",
+    _helpers.is_api_endpoint_override,
+    reason="Test does not yet support endpoint override",
 )
 def test_bucket_update_labels(storage_client, buckets_to_delete):
     bucket_name = _helpers.unique_name("update-labels")
@@ -623,8 +622,8 @@ def test_bucket_list_blobs_hierarchy_w_include_trailing_delimiter(
 
 
 @pytest.mark.skipif(
-    "API_ENDPOINT_OVERRIDE" in os.environ,
-    reason="Failing test for the overriding endpoint",
+    _helpers.is_api_endpoint_override,
+    reason="Test does not yet support endpoint override",
 )
 def test_bucket_w_retention_period(
     storage_client,
@@ -806,8 +805,8 @@ def test_bucket_lock_retention_policy(
 
 
 @pytest.mark.skipif(
-    "API_ENDPOINT_OVERRIDE" in os.environ,
-    reason="Failing test for the overriding endpoint",
+    _helpers.is_api_endpoint_override,
+    reason="Test does not yet support endpoint override",
 )
 def test_new_bucket_w_ubla(
     storage_client,
@@ -979,8 +978,8 @@ def test_new_bucket_created_w_enforced_pap(
 
 
 @pytest.mark.skipif(
-    "API_ENDPOINT_OVERRIDE" in os.environ,
-    reason="Failing test for the overriding endpoint",
+    _helpers.is_api_endpoint_override,
+    reason="Test does not yet support endpoint override",
 )
 def test_new_bucket_with_rpo(
     storage_client,
