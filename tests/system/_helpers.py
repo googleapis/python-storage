@@ -20,6 +20,7 @@ from google.api_core import exceptions
 from test_utils.retry import RetryErrors
 from test_utils.retry import RetryInstanceState
 from test_utils.system import unique_resource_id
+from google.cloud.storage._helpers import _DEFAULT_STORAGE_HOST
 
 retry_429 = RetryErrors(exceptions.TooManyRequests)
 retry_429_harder = RetryErrors(exceptions.TooManyRequests, max_tries=10)
@@ -31,7 +32,7 @@ retry_failures = RetryErrors(AssertionError)
 user_project = os.environ.get("GOOGLE_CLOUD_TESTS_USER_PROJECT")
 testing_mtls = os.getenv("GOOGLE_API_USE_CLIENT_CERTIFICATE") == "true"
 signing_blob_content = b"This time for sure, Rocky!"
-is_api_endpoint_override = if "API_ENDPOINT_OVERRIDE" in os.environ
+is_api_endpoint_override = _DEFAULT_STORAGE_HOST != "https://storage.googleapis.com"
 
 
 def _bad_copy(bad_request):
