@@ -31,6 +31,7 @@ retry_failures = RetryErrors(AssertionError)
 user_project = os.environ.get("GOOGLE_CLOUD_TESTS_USER_PROJECT")
 testing_mtls = os.getenv("GOOGLE_API_USE_CLIENT_CERTIFICATE") == "true"
 signing_blob_content = b"This time for sure, Rocky!"
+is_api_override = if "API_ENDPOINT_OVERRIDE" in os.environ
 
 
 def _bad_copy(bad_request):
