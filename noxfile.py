@@ -138,7 +138,7 @@ def system(session):
     # 2021-05-06: defer installing 'google-cloud-*' to after this package,
     #             in order to work around Python 2.7 googolapis-common-protos
     #             issue.
-    session.install("mock", "pytest", "-c", constraints_path)
+    session.install("mock", "pytest", "pytest-rerunfailures", "-c", constraints_path)
     session.install("-e", ".", "-c", constraints_path)
     session.install(
         "google-cloud-testutils",
@@ -151,9 +151,17 @@ def system(session):
 
     # Run py.test against the system tests.
     if system_test_exists:
-        session.run("py.test", "--quiet", system_test_path, *session.posargs)
+        session.run(
+            "py.test", "--quiet", "--reruns=7", system_test_path, *session.posargs
+        )
     if system_test_folder_exists:
-        session.run("py.test", "--quiet", system_test_folder_path, *session.posargs)
+        session.run(
+            "py.test",
+            "--quiet",
+            "--reruns=7",
+            system_test_folder_path,
+            *session.posargs,
+        )
 
 
 @nox.session(python=CONFORMANCE_TEST_PYTHON_VERSIONS)
