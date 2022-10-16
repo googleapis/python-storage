@@ -152,13 +152,13 @@ def system(session):
     # Run py.test against the system tests.
     if system_test_exists:
         session.run(
-            "py.test", "--quiet", "--reruns=7", system_test_path, *session.posargs
+            "py.test", "--quiet", "--reruns=9", system_test_path, *session.posargs
         )
     if system_test_folder_exists:
         session.run(
             "py.test",
             "--quiet",
-            "--reruns=7",
+            "--reruns=9",
             system_test_folder_path,
             *session.posargs,
         )
