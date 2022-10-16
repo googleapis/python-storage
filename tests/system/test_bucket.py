@@ -123,10 +123,6 @@ def test_bucket_lifecycle_rules(storage_client, buckets_to_delete):
     assert list(bucket.lifecycle_rules) == []
 
 
-@pytest.mark.skipif(
-    _helpers.is_api_endpoint_override,
-    reason="Test does not yet support endpoint override",
-)
 def test_bucket_update_labels(storage_client, buckets_to_delete):
     bucket_name = _helpers.unique_name("update-labels")
     bucket = _helpers.retry_429_503(storage_client.create_bucket)(bucket_name)
@@ -621,10 +617,6 @@ def test_bucket_list_blobs_hierarchy_w_include_trailing_delimiter(
     assert iterator.prefixes == expected_prefixes
 
 
-@pytest.mark.skipif(
-    _helpers.is_api_endpoint_override,
-    reason="Test does not yet support endpoint override",
-)
 def test_bucket_w_retention_period(
     storage_client,
     buckets_to_delete,
@@ -804,10 +796,6 @@ def test_bucket_lock_retention_policy(
         bucket.patch()
 
 
-@pytest.mark.skipif(
-    _helpers.is_api_endpoint_override,
-    reason="Test does not yet support endpoint override",
-)
 def test_new_bucket_w_ubla(
     storage_client,
     buckets_to_delete,
