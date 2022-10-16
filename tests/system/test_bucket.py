@@ -122,7 +122,7 @@ def test_bucket_lifecycle_rules(storage_client, buckets_to_delete):
 
     assert list(bucket.lifecycle_rules) == []
 
-    
+
 def test_bucket_update_labels(storage_client, buckets_to_delete):
     bucket_name = _helpers.unique_name("update-labels")
     bucket = _helpers.retry_429_503(storage_client.create_bucket)(bucket_name)
