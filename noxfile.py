@@ -127,7 +127,7 @@ def system(session):
         os.getenv("API_ENDPOINT_OVERRIDE", "https://storage.googleapis.com")
         != "https://storage.googleapis.com"
     ):
-        rerun_count = 4
+        rerun_count = 3
 
     system_test_exists = os.path.exists(system_test_path)
     system_test_folder_exists = os.path.exists(system_test_folder_path)
