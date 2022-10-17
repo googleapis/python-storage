@@ -111,7 +111,8 @@ def system(session):
     """Run the system test suite."""
     system_test_path = os.path.join("tests", "system.py")
     system_test_folder_path = os.path.join("tests", "system")
-
+    rerun_count = 0
+    
     # Check the value of `RUN_SYSTEM_TESTS` env var. It defaults to true.
     if os.environ.get("RUN_SYSTEM_TESTS", "true") == "false":
         session.skip("RUN_SYSTEM_TESTS is set to false, skipping")
@@ -121,7 +122,10 @@ def system(session):
     # mTLS tests requires pyopenssl.
     if os.environ.get("GOOGLE_API_USE_CLIENT_CERTIFICATE", "") == "true":
         session.install("pyopenssl")
-
+    # Check if endpoint is being overriden for rerun_count
+    if os.getenv("API_ENDPOINT_OVERRIDE", "https://storage.googleapis.com") != "https://storage.googleapis.com":
+        rerun_count=4
+    
     system_test_exists = os.path.exists(system_test_path)
     system_test_folder_exists = os.path.exists(system_test_folder_path)
     # Environment check: only run tests if found.
@@ -152,13 +156,13 @@ def system(session):
     # Run py.test against the system tests.
     if system_test_exists:
         session.run(
-            "py.test", "--quiet", "--reruns=2", system_test_path, *session.posargs
+            "py.test", "--quiet", "--reruns={}".format(rerun_count), system_test_path, *session.posargs
         )
     if system_test_folder_exists:
         session.run(
             "py.test",
             "--quiet",
-            "--reruns=2",
+            "--reruns={}".format(rerun_count),
             system_test_folder_path,
             *session.posargs,
         )
