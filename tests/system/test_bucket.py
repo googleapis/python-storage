@@ -800,6 +800,10 @@ def test_bucket_lock_retention_policy(
         bucket.patch()
 
 
+@pytest.mark.skipif(
+    _helpers.is_api_endpoint_override,
+    reason="Test does not yet support endpoint override",
+)
 def test_new_bucket_w_ubla(
     storage_client,
     buckets_to_delete,
