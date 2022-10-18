@@ -3572,6 +3572,7 @@ class Test_Blob(unittest.TestCase):
         origin=None,
         side_effect=None,
         timeout=None,
+        predefined_acl=None,
         if_generation_match=None,
         if_generation_not_match=None,
         if_metageneration_match=None,
@@ -3611,6 +3612,7 @@ class Test_Blob(unittest.TestCase):
                 size=size,
                 origin=origin,
                 client=client,
+                predefined_acl=predefined_acl,
                 if_generation_match=if_generation_match,
                 if_generation_not_match=if_generation_not_match,
                 if_metageneration_match=if_metageneration_match,
@@ -3629,6 +3631,9 @@ class Test_Blob(unittest.TestCase):
         )
 
         qs_params = [("uploadType", "resumable")]
+        if predefined_acl is not None:
+            qs_params.append(("predefinedAcl", predefined_acl))
+
         if if_generation_match is not None:
             qs_params.append(("ifGenerationMatch", if_generation_match))
 
@@ -3671,6 +3676,9 @@ class Test_Blob(unittest.TestCase):
 
     def test_create_resumable_upload_session_with_origin(self):
         self._create_resumable_upload_session_helper(origin="http://google.com")
+
+    def test_create_resumable_upload_session_with_predefined_acl(self):
+        self._create_resumable_upload_session_helper(predefined_acl="private")
 
     def test_create_resumable_upload_session_with_generation_match(self):
         self._create_resumable_upload_session_helper(
@@ -4994,17 +5002,6 @@ class Test_Blob(unittest.TestCase):
             _target_object=dest,
         )
 
-    def test_update_storage_class_invalid(self):
-        blob_name = "blob-name"
-        bucket = _Bucket()
-        blob = self._make_one(blob_name, bucket=bucket)
-        blob.rewrite = mock.Mock(spec=[])
-
-        with self.assertRaises(ValueError):
-            blob.update_storage_class("BOGUS")
-
-        blob.rewrite.assert_not_called()
-
     def _update_storage_class_multi_pass_helper(self, **kw):
         blob_name = "blob-name"
         storage_class = "NEARLINE"
@@ -5214,6 +5211,38 @@ class Test_Blob(unittest.TestCase):
     def test_update_storage_class_single_pass_w_retry(self):
         retry = mock.Mock(spec=[])
         self._update_storage_class_single_pass_helper(retry=retry)
+
+    def test_update_storage_class_invalid(self):
+        from google.cloud.exceptions import BadRequest
+
+        storage_class = "BOGUS"
+        blob_name = "blob-name"
+        client = mock.Mock(spec=[])
+        bucket = _Bucket(client=client)
+        blob = self._make_one(blob_name, bucket=bucket)
+        blob.rewrite = mock.Mock(spec=[])
+        blob.rewrite.side_effect = BadRequest("Invalid storage class")
+
+        with self.assertRaises(BadRequest):
+            blob.update_storage_class(storage_class)
+
+        # Test that invalid classes are allowed without client side validation.
+        # Fall back to server side validation and errors.
+        self.assertEqual(blob.storage_class, storage_class)
+
+        blob.rewrite.assert_called_once_with(
+            blob,
+            if_generation_match=None,
+            if_generation_not_match=None,
+            if_metageneration_match=None,
+            if_metageneration_not_match=None,
+            if_source_generation_match=None,
+            if_source_generation_not_match=None,
+            if_source_metageneration_match=None,
+            if_source_metageneration_not_match=None,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+        )
 
     def test_cache_control_getter(self):
         BLOB_NAME = "blob-name"
