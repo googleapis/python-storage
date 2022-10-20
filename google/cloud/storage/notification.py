@@ -12,7 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Support for bucket notification resources."""
+"""Configure bucket notification resources to interact with Google Cloud Pub/Sub.
+
+See [Cloud Pub/Sub Notifications for Google Cloud Storage](https://cloud.google.com/storage/docs/pubsub-notifications)
+"""
 
 import re
 

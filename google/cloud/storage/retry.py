@@ -11,10 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Support for retry strategy configurations.
 
-See https://cloud.google.com/storage/docs/retry-strategy
+"""Helpers for configuring retries with exponential back-off.
+
+See [Retry Strategy for Google Cloud Storage](https://cloud.google.com/storage/docs/retry-strategy#client-libraries)
 """
+
 import requests
 import requests.exceptions as requests_exceptions
 
