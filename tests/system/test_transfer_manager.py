@@ -16,6 +16,7 @@
 import tempfile
 
 from google.cloud.storage import transfer_manager
+from google.cloud.storage._helpers import _base64_md5hash
 
 from google.api_core import exceptions
 
@@ -98,3 +99,6 @@ def test_download_chunks_concurrently_to_file(
     )
     assert result is None
     assert fp.tell() != 0
+
+    fp.seek(0)
+    assert blob.md5_hash.encode('utf8') == _base64_md5hash(fp)
