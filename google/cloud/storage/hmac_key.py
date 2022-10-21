@@ -12,6 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Configure HMAC keys that can be used to authenticate requests to Google Cloud Storage.
+
+See [HMAC keys documentation](https://cloud.google.com/storage/docs/authentication/hmackeys)
+"""
+
 from google.cloud.exceptions import NotFound
 from google.cloud._helpers import _rfc3339_nanos_to_datetime
 
@@ -131,11 +136,6 @@ class HMACKeyMetadata(object):
 
     @state.setter
     def state(self, value):
-        if value not in self._SETTABLE_STATES:
-            raise ValueError(
-                f"State may only be set to one of: {', '.join(self._SETTABLE_STATES)}"
-            )
-
         self._properties["state"] = value
 
     @property
@@ -289,9 +289,6 @@ class HMACKeyMetadata(object):
         :raises :class:`~google.api_core.exceptions.NotFound`:
             if the key does not exist on the back-end.
         """
-        if self.state != self.INACTIVE_STATE:
-            raise ValueError("Cannot delete key if not in 'INACTIVE' state.")
-
         qs_params = {}
         if self.user_project is not None:
             qs_params["userProject"] = self.user_project
