@@ -101,4 +101,4 @@ def test_download_chunks_concurrently_to_file(
     assert fp.tell() != 0
 
     fp.seek(0)
-    assert blob.md5_hash.encode('utf8') == _base64_md5hash(fp)
+    assert blob.md5_hash.encode("utf8") == _base64_md5hash(fp)
