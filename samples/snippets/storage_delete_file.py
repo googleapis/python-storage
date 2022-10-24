@@ -28,8 +28,14 @@ def delete_blob(bucket_name, blob_name):
     storage_client = storage.Client()
 
     bucket = storage_client.bucket(bucket_name)
-    blob = bucket.blob(blob_name)
-    blob.delete()
+    blob = bucket.get_blob(blob_name)
+
+    # Optional: set a generation-match precondition to avoid potential race
+    # conditions and data corruptions. The request to delete returns a 412 error
+    # if the object's generation number does not match your precondition.
+    generation_match = blob.generation
+
+    blob.delete(if_generation_match=generation_match)
 
     print(f"Blob {blob_name} deleted.")
 
