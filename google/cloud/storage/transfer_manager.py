@@ -140,6 +140,9 @@ def download_many(
         downloaded to the corresponding blob by using blob.download_to_file() or
         blob.download_to_filename() as appropriate.
 
+        Note that blob.download_to_filename() does not delete the destination
+        file if the download fails.
+
     :type download_kwargs: dict
     :param download_kwargs:
         A dictionary of keyword arguments to pass to the download method. Refer
@@ -454,6 +457,10 @@ def download_many_to_path(
 
     The destination files are automatically created, with filenames based on
     the source blob_names and the path_root.
+
+    The destination files are not automatically deleted if their downloads fail,
+    so please check the return value of this function for any exceptions, or
+    enable `raise_exception=True`, and process the files accordingly.
 
     For example, if the `blob_names` include "icon.jpg", `path_root` is
     "/home/myuser/", and `blob_name_prefix` is "images/", then the blob named
