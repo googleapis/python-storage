@@ -302,7 +302,7 @@ def download_chunks_concurrently_to_file(
 def upload_many_from_filenames(
     bucket,
     filenames,
-    root,
+    root="",
     blob_name_prefix="",
     skip_if_exists=False,
     blob_constructor_kwargs=None,
@@ -346,8 +346,7 @@ def upload_many_from_filenames(
         "0001.jpg", with an empty blob_name_prefix, then the file uploaded will
         be "/tmp/img-0001.jpg" and the destination blob will be "0001.jpg".
 
-        This parameter can be an empty string, but has no default because almost
-        all use cases will use a non-empty root.
+        This parameter can be an empty string.
 
     :type blob_name_prefix: str
     :param blob_name_prefix:
@@ -440,7 +439,7 @@ def upload_many_from_filenames(
 def download_many_to_path(
     bucket,
     blob_names,
-    path_root,
+    path_root="",
     blob_name_prefix="",
     download_kwargs=None,
     max_workers=None,
@@ -482,9 +481,7 @@ def download_many_to_path(
         not required to do so. For instance, if the path_root string is
         "/tmp/img-" and a blob_name is "0001.jpg", with an empty
         blob_name_prefix, then the source blob "0001.jpg" will be downloaded to
-        destination "/tmp/img-0001.jpg" . This parameter can be an empty string,
-        but has no default because almost all use cases will use a non-blank
-        root.
+        destination "/tmp/img-0001.jpg" . This parameter can be an empty string.
 
     :type blob_name_prefix: str
     :param blob_name_prefix:
