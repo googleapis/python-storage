@@ -417,6 +417,8 @@ def upload_many_from_filenames(
         for that operation. Otherwise, the return value from the successful
         upload method is used (typically, None).
     """
+    if blob_constructor_kwargs is None:
+        blob_constructor_kwargs = {}
 
     file_blob_pairs = []
 

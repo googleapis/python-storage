@@ -276,6 +276,32 @@ class Test_Transfer_Manager(unittest.TestCase):
         bucket.blob.assert_any_call(PREFIX + FILENAMES[0], **BLOB_CONSTRUCTOR_KWARGS)
         bucket.blob.assert_any_call(PREFIX + FILENAMES[1], **BLOB_CONSTRUCTOR_KWARGS)
 
+    def test_upload_many_from_filenames_minimal_args(self):
+        bucket = mock.Mock()
+
+        FILENAMES = ["file_a.txt", "file_b.txt"]
+
+        EXPECTED_FILE_BLOB_PAIRS = [(filename, mock.ANY) for filename in FILENAMES]
+
+        with mock.patch(
+            "google.cloud.storage.transfer_manager.upload_many"
+        ) as mock_upload_many:
+            transfer_manager.upload_many_from_filenames(
+                bucket,
+                FILENAMES,
+            )
+
+        mock_upload_many.assert_called_once_with(
+            EXPECTED_FILE_BLOB_PAIRS,
+            skip_if_exists=False,
+            upload_kwargs=None,
+            max_workers=None,
+            deadline=None,
+            raise_exception=False,
+        )
+        bucket.blob.assert_any_call(FILENAMES[0])
+        bucket.blob.assert_any_call(FILENAMES[1])
+
     def test_download_many_to_path(self):
         bucket = mock.Mock()
 
