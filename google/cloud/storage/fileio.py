@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Module for file-like access of blobs, usually invoked via Blob.open()."""
+
 import io
 import warnings
 
@@ -99,10 +101,12 @@ class BlobReader(io.BufferedIOBase):
         - ``if_metageneration_match``
         - ``if_metageneration_not_match``
         - ``timeout``
+
+        Note that download_kwargs are also applied to blob.reload(), if a reload
+        is needed during seek().
     """
 
     def __init__(self, blob, chunk_size=None, retry=DEFAULT_RETRY, **download_kwargs):
-        """docstring note that download_kwargs also used for reload()"""
         for kwarg in download_kwargs:
             if kwarg not in VALID_DOWNLOAD_KWARGS:
                 raise ValueError(
@@ -423,9 +427,8 @@ class BlobWriter(io.BufferedIOBase):
             )
 
     def close(self):
-        self._checkClosed()  # Raises ValueError if closed.
-
-        self._upload_chunks_from_buffer(1)
+        if not self._buffer.closed:
+            self._upload_chunks_from_buffer(1)
         self._buffer.close()
 
     def _checkClosed(self):
