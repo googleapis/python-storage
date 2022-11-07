@@ -9,8 +9,7 @@
 
 ### Features
 
-* Add "transfer_manager" module for concurrent uploads and downloads as a preview feature ([#844](https://github.com/googleapis/python-storage/issues/844)) ([9dcc684](https://github.com/googleapis/python-storage/commit/9dcc6846b52e460bee8d725099abd4dc734fa7ad))
-* Add Autoclass support and sample ([#791](https://github.com/googleapis/python-storage/issues/791)) ([9ccdc5f](https://github.com/googleapis/python-storage/commit/9ccdc5f2e8a9e28b2df47260d639b6af2708fe9a)), closes [#797](https://github.com/googleapis/python-storage/issues/797)
+* Add Autoclass support and samples ([#791](https://github.com/googleapis/python-storage/issues/791)) ([9ccdc5f](https://github.com/googleapis/python-storage/commit/9ccdc5f2e8a9e28b2df47260d639b6af2708fe9a)), closes [#797](https://github.com/googleapis/python-storage/issues/797)
 * Add predefined_acl to create_resumable_upload_session ([#878](https://github.com/googleapis/python-storage/issues/878)) ([2b3e8f9](https://github.com/googleapis/python-storage/commit/2b3e8f967df95d45c35e150b201e77b8962c7e9b))
 * Enable delete_blobs() to preserve generation ([#840](https://github.com/googleapis/python-storage/issues/840)) ([8fd4c37](https://github.com/googleapis/python-storage/commit/8fd4c376bd5f031836feb8101c9c0c0d1c2e969d)), closes [#814](https://github.com/googleapis/python-storage/issues/814)
 * Make tests run against environments other than prod ([#883](https://github.com/googleapis/python-storage/issues/883)) ([7dfeb62](https://github.com/googleapis/python-storage/commit/7dfeb622bb966e368786e3c9be67ad77b3150725))
@@ -25,10 +24,9 @@
 
 ### Documentation
 
-* Clarify list_blobs usage ([#866](https://github.com/googleapis/python-storage/issues/866)) ([9469f5d](https://github.com/googleapis/python-storage/commit/9469f5dd5ca6d546a47efbc3d673a401ead9d632))
-* Clarify prefixes entity in list_blobs and link sample ([#837](https://github.com/googleapis/python-storage/issues/837)) ([7101f47](https://github.com/googleapis/python-storage/commit/7101f47fde663eec4bbaaa246c7fe4e973ca2506))
-* **nodejs_mono_repo:** Update broken links in README ([#864](https://github.com/googleapis/python-storage/issues/864)) ([dd47bf0](https://github.com/googleapis/python-storage/commit/dd47bf0293d8687b7620fc5f28ffa068c1119dcb))
-* Streamline docs for c.g.c migration ([#876](https://github.com/googleapis/python-storage/issues/876)) ([7c8a178](https://github.com/googleapis/python-storage/commit/7c8a178978d2022482afd301242ae79b2f9c737a))
+* Update comments in list_blobs sample ([#866](https://github.com/googleapis/python-storage/issues/866)) ([9469f5d](https://github.com/googleapis/python-storage/commit/9469f5dd5ca6d546a47efbc3d673a401ead9d632))
+* Clarify prefixes entity in list_blobs usage ([#837](https://github.com/googleapis/python-storage/issues/837)) ([7101f47](https://github.com/googleapis/python-storage/commit/7101f47fde663eec4bbaaa246c7fe4e973ca2506))
+* Streamline docs for migration ([#876](https://github.com/googleapis/python-storage/issues/876)) ([7c8a178](https://github.com/googleapis/python-storage/commit/7c8a178978d2022482afd301242ae79b2f9c737a))
 * Update docstring for lifecycle_rules to match generator behavior ([#841](https://github.com/googleapis/python-storage/issues/841)) ([36fb81b](https://github.com/googleapis/python-storage/commit/36fb81b5b0e5b7e65b9db434c997617136bfc3fc))
 
 ## [2.5.0](https://github.com/googleapis/python-storage/compare/v2.4.0...v2.5.0) (2022-07-24)
