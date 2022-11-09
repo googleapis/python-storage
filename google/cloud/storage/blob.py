@@ -1873,7 +1873,7 @@ class Blob(_PropertyMixin):
 
         hostname = _get_host_name(client._connection)
         base_url = _MULTIPART_URL_TEMPLATE.format(
-            hostname=hostname, bucket_path=self.bucket.path
+            hostname=hostname, bucket_path=self.bucket.path,  api_version=_API_VERSION
         )
         name_value_pairs = []
 
@@ -2060,7 +2060,7 @@ class Blob(_PropertyMixin):
 
         hostname = _get_host_name(client._connection)
         base_url = _RESUMABLE_URL_TEMPLATE.format(
-            hostname=hostname, bucket_path=self.bucket.path
+            hostname=hostname, bucket_path=self.bucket.path,  api_version=_API_VERSION
         )
         name_value_pairs = []
 
