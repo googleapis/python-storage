@@ -21,6 +21,7 @@ import pkg_resources
 from google.cloud import _http
 
 from google.cloud.storage import __version__
+from google.cloud.storage import _helpers
 
 
 if os.getenv("GOOGLE_API_USE_CLIENT_CERTIFICATE") == "true":  # pragma: NO COVER
@@ -43,7 +44,7 @@ class Connection(_http.JSONConnection):
     :param api_endpoint: (Optional) api endpoint to use.
     """
 
-    DEFAULT_API_ENDPOINT = "https://storage.googleapis.com"
+    DEFAULT_API_ENDPOINT = _helpers._DEFAULT_STORAGE_HOST
     DEFAULT_API_MTLS_ENDPOINT = "https://storage.mtls.googleapis.com"
 
     def __init__(self, client, client_info=None, api_endpoint=None):
@@ -60,7 +61,7 @@ class Connection(_http.JSONConnection):
         if agent_version not in self._client_info.user_agent:
             self._client_info.user_agent += " {} ".format(agent_version)
 
-    API_VERSION = "v1"
+    API_VERSION = _helpers._API_VERSION
     """The version of the API, used in building the API call's URL."""
 
     API_URL_TEMPLATE = "{api_base_url}/storage/{api_version}{path}"
