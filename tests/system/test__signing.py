@@ -17,7 +17,7 @@ import datetime
 import hashlib
 import os
 import time
-
+import pytest
 import requests
 
 from google.api_core import path_template
@@ -41,7 +41,7 @@ def _create_signed_list_blobs_url_helper(
     expiration = _morph_expiration(version, expiration)
 
     signed_url = bucket.generate_signed_url(
-        expiration=expiration, method=method, client=client, version=version
+        expiration=expiration, method=method, client=client, version=version,  api_access_endpoint=_helpers._DEFAULT_STORAGE_HOST
     )
 
     response = requests.get(signed_url)
