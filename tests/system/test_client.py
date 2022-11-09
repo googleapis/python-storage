@@ -26,6 +26,10 @@ from . import _helpers
 public_bucket = "gcp-public-data-landsat"
 
 
+@pytest.mark.skipif(
+    _helpers.is_api_endpoint_override,
+    reason="Test does not yet support endpoint override",
+) 
 @vpcsc_config.skip_if_inside_vpcsc
 def test_anonymous_client_access_to_public_bucket():
     from google.cloud.storage.client import Client
@@ -39,6 +43,10 @@ def test_anonymous_client_access_to_public_bucket():
         _helpers.retry_429_503(blob.download_to_file)(stream)
 
 
+@pytest.mark.skipif(
+    _helpers.is_api_endpoint_override,
+    reason="Test does not yet support endpoint override",
+)         
 def test_get_service_account_email(storage_client, service_account):
     domain = "gs-project-accounts.iam.gserviceaccount.com"
     email = storage_client.get_service_account_email()
