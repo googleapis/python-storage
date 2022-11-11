@@ -69,6 +69,10 @@ def _has_retetion_period(bucket):
     return bucket.retention_period is not None
 
 
+def _no_retetion_period(bucket):
+    return bucket.retention_period is None
+
+
 def _no_retention_expiration(blob):
     return blob.retention_expiration_time is None
 
@@ -83,6 +87,7 @@ retry_no_retention_expiration = RetryInstanceState(
     _no_retention_expiration, max_tries=5
 )
 retry_has_retention_period = RetryInstanceState(_has_retetion_period, max_tries=5)
+retry_no_retention_period = RetryInstanceState(_no_retetion_period, max_tries=5)
 
 
 def unique_name(prefix):
