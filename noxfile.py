@@ -167,7 +167,7 @@ def system(session):
     if system_test_folder_exists:
         session.run(
             "py.test",
-            "-s"
+            "-s",
             #"--quiet",
             "--reruns={}".format(rerun_count),
             system_test_folder_path,
