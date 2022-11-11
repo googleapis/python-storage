@@ -595,7 +595,7 @@ def test_bucket_w_retention_period(
     blobs_to_delete.append(blob)
 
     other = bucket.get_blob(blob_name)
-     _helpers.retry_has_retention_expiration(other.reload)()
+    _helpers.retry_has_retention_expiration(other.reload)()
 
     assert not other.event_based_hold
     assert not other.temporary_hold
