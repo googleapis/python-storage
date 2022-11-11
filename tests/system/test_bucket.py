@@ -668,7 +668,11 @@ def test_bucket_w_default_event_based_hold(
     assert bucket.retention_period is None
     assert bucket.retention_policy_effective_time is None
     assert not bucket.retention_policy_locked
-
+    
+    # Changes to the bucket will be readable immediately after writing,
+    # but configuration changes may take time to propagate.
+    _helpers.await_config_changes_propagate()
+    
     blob.upload_from_string(payload)
 
     # https://github.com/googleapis/python-storage/issues/435
