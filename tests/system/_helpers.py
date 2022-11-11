@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import time
 import os
 
 import six
@@ -60,6 +61,10 @@ def _has_kms_key_name(blob):
     return blob.kms_key_name is not None
 
 
+def _has_retention_expiration(blob):
+    return blob.retention_expiration_time is not None
+
+
 def _has_retetion_period(bucket):
     return bucket.retention_period is not None
 
@@ -71,6 +76,9 @@ def _no_retention_expiration(blob):
 retry_bad_copy = RetryErrors(exceptions.BadRequest, error_predicate=_bad_copy)
 retry_no_event_based_hold = RetryInstanceState(_no_event_based_hold)
 retry_has_kms_key_name = RetryInstanceState(_has_kms_key_name)
+retry_has_retention_expiration = RetryInstanceState(
+    _has_retention_expiration, max_tries=5
+)
 retry_no_retention_expiration = RetryInstanceState(
     _no_retention_expiration, max_tries=5
 )
