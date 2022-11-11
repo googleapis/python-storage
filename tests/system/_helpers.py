@@ -60,6 +60,14 @@ def _has_kms_key_name(blob):
     return blob.kms_key_name is not None
 
 
+def _has_retetion_period(bucket):
+    return bucket.retention_period is not None
+
+
+def _no_retention_expiration(blob):
+    return blob.retention_expiration_time is None
+
+
 retry_bad_copy = RetryErrors(exceptions.BadRequest, error_predicate=_bad_copy)
 retry_no_event_based_hold = RetryInstanceState(_no_event_based_hold)
 retry_has_kms_key_name = RetryInstanceState(_has_kms_key_name)
