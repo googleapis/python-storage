@@ -142,7 +142,11 @@ def test_bucket_w_default_kms_key_name(
     kms_bucket.default_kms_key_name = kms_key_name
     kms_bucket.patch()
     assert kms_bucket.default_kms_key_name == kms_key_name
-
+    
+    # Changes to the bucket will be readable immediately after writing,
+    # but configuration changes may take time to propagate.
+    _helpers.await_config_changes_propagate()    
+    
     defaulted_blob = kms_bucket.blob(blob_name)
     defaulted_blob.upload_from_filename(info["path"])
     blobs_to_delete.append(defaulted_blob)
