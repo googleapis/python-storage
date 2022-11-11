@@ -158,7 +158,8 @@ def system(session):
     if system_test_exists:
         session.run(
             "py.test",
-            "--quiet",
+            "-s",
+            #"--quiet",
             "--reruns={}".format(rerun_count),
             system_test_path,
             *session.posargs,
@@ -166,7 +167,8 @@ def system(session):
     if system_test_folder_exists:
         session.run(
             "py.test",
-            "--quiet",
+            "-s"
+            #"--quiet",
             "--reruns={}".format(rerun_count),
             system_test_folder_path,
             *session.posargs,
