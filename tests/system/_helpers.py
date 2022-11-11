@@ -63,6 +63,9 @@ def _has_kms_key_name(blob):
 retry_bad_copy = RetryErrors(exceptions.BadRequest, error_predicate=_bad_copy)
 retry_no_event_based_hold = RetryInstanceState(_no_event_based_hold)
 retry_has_kms_key_name = RetryInstanceState(_has_kms_key_name)
+retry_no_retention_expiration = RetryInstanceState(
+    _no_retention_expiration, max_tries=5
+)
 retry_has_retention_period = RetryInstanceState(_has_retetion_period, max_tries=5)
 
 
