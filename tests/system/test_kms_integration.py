@@ -229,6 +229,10 @@ def test_blob_upload_w_bucket_cmek_enabled(
     kms_bucket.default_kms_key_name = kms_key_name
     kms_bucket.patch()
     assert kms_bucket.default_kms_key_name == kms_key_name
+    
+    # Changes to the bucket will be readable immediately after writing,
+    # but configuration changes may take time to propagate.
+    _helpers.await_config_changes_propagate()
 
     blob = kms_bucket.blob(blob_name)
     blob.upload_from_string(payload)
