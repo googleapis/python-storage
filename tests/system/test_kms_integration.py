@@ -127,13 +127,13 @@ def test_blob_w_explicit_kms_key_name(
 
 @_helpers.retry_failures
 def test_bucket_w_default_kms_key_name(
-    kms_bucket, blobs_to_delete, kms_key_name, alt_kms_key_name, file_data,
+    kms_bucket,
+    blobs_to_delete,
+    kms_key_name,
+    alt_kms_key_name,
+    file_data,
 ):
     blob_name = "default-kms-key-name"
-    override_blob_name = "override-default-kms-key-name"
-    alt_blob_name = "alt-default-kms-key-name"
-    cleartext_blob_name = "cleartext"
-
     info = file_data["simple"]
 
     with open(info["path"], "rb") as file_obj:
@@ -142,11 +142,11 @@ def test_bucket_w_default_kms_key_name(
     kms_bucket.default_kms_key_name = kms_key_name
     kms_bucket.patch()
     assert kms_bucket.default_kms_key_name == kms_key_name
-    
+
     # Changes to the bucket will be readable immediately after writing,
     # but configuration changes may take time to propagate.
-    _helpers.await_config_changes_propagate()    
-    
+    _helpers.await_config_changes_propagate()
+
     defaulted_blob = kms_bucket.blob(blob_name)
     defaulted_blob.upload_from_filename(info["path"])
     blobs_to_delete.append(defaulted_blob)
@@ -156,35 +156,16 @@ def test_bucket_w_default_kms_key_name(
     # We don't know the current version of the key.
     assert defaulted_blob.kms_key_name.startswith(kms_key_name)
 
-    override_blob = kms_bucket.blob(override_blob_name, kms_key_name=alt_kms_key_name)
-    override_blob.upload_from_filename(info["path"])
-    blobs_to_delete.append(override_blob)
-
-    assert override_blob.download_as_bytes() == payload
-    # We don't know the current version of the key.
-    assert override_blob.kms_key_name.startswith(alt_kms_key_name)
-
+    # Test changing the default KMS key.
     kms_bucket.default_kms_key_name = alt_kms_key_name
     kms_bucket.patch()
+    assert kms_bucket.default_kms_key_name == alt_kms_key_name
 
-    alt_blob = kms_bucket.blob(alt_blob_name)
-    alt_blob.upload_from_filename(info["path"])
-    blobs_to_delete.append(alt_blob)
-
-    assert alt_blob.download_as_bytes() == payload
-    # We don't know the current version of the key.
-    assert alt_blob.kms_key_name.startswith(alt_kms_key_name)
-
+    # Test removing the default KMS key.
     kms_bucket.default_kms_key_name = None
     kms_bucket.patch()
-
-    cleartext_blob = kms_bucket.blob(cleartext_blob_name)
-    cleartext_blob.upload_from_filename(info["path"])
-    blobs_to_delete.append(cleartext_blob)
-
-    assert cleartext_blob.download_as_bytes() == payload
-    assert cleartext_blob.kms_key_name is None
-
+    assert kms_bucket.default_kms_key_name is None
+    
 
 def test_blob_rewrite_rotate_csek_to_cmek(
     kms_bucket, blobs_to_delete, kms_key_name, file_data,
