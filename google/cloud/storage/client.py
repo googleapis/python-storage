@@ -101,7 +101,7 @@ class Client(ClientWithProject):
     :param use_auth_w_custom_endpoint:
         (Optional) Whether authentication is required under custom endpoints.
         If false, uses AnonymousCredentials and bypasses authentication.
-        Defaults to True.
+        Defaults to True. Note this is only used when a custom endpoint is set in conjunction.
     """
 
     SCOPE = (
