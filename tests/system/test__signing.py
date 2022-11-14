@@ -196,7 +196,7 @@ def test_create_signed_read_url_v2_w_non_ascii_name(
     _create_signed_read_url_helper(
         storage_client,
         signing_bucket,
-        blob_name="Caf\xe9.txt",
+        blob_name=u"Caf\xe9.txt",
         payload=b"Test signed URL for blob w/ non-ASCII name",
     )
 
@@ -207,7 +207,7 @@ def test_create_signed_read_url_v4_w_non_ascii_name(
     _create_signed_read_url_helper(
         storage_client,
         signing_bucket,
-        blob_name="Caf\xe9.txt",
+        blob_name=u"Caf\xe9.txt",
         payload=b"Test signed URL for blob w/ non-ASCII name",
         version="v4",
     )
