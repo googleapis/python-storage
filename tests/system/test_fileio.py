@@ -59,7 +59,7 @@ def test_blobwriter_and_blobreader_text_mode(
     blob = shared_bucket.blob("MultibyteTextFile")
 
     # Construct a multibyte text_data sample file.
-    base_multibyte_text_string = "abcde あいうえお line: "
+    base_multibyte_text_string = u"abcde あいうえお line: "
     text_data = "\n".join([base_multibyte_text_string + str(x) for x in range(100)])
 
     # Test text BlobWriter works.
