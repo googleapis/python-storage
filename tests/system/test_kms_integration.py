@@ -28,7 +28,10 @@ _key_name_format = "projects/{}/locations/{}/keyRings/{}/cryptoKeys/{}"
 
 def _kms_key_name(client, bucket, key_name):
     return _key_name_format.format(
-        client.project, bucket.location.lower(), keyring_name, key_name,
+        client.project,
+        bucket.location.lower(),
+        keyring_name,
+        key_name,
     )
 
 
@@ -165,10 +168,13 @@ def test_bucket_w_default_kms_key_name(
     kms_bucket.default_kms_key_name = None
     kms_bucket.patch()
     assert kms_bucket.default_kms_key_name is None
-    
+
 
 def test_blob_rewrite_rotate_csek_to_cmek(
-    kms_bucket, blobs_to_delete, kms_key_name, file_data,
+    kms_bucket,
+    blobs_to_delete,
+    kms_key_name,
+    file_data,
 ):
     blob_name = "rotating-keys"
     source_key = os.urandom(32)
@@ -201,7 +207,10 @@ def test_blob_rewrite_rotate_csek_to_cmek(
 
 
 def test_blob_upload_w_bucket_cmek_enabled(
-    kms_bucket, blobs_to_delete, kms_key_name, file_data,
+    kms_bucket,
+    blobs_to_delete,
+    kms_key_name,
+    file_data,
 ):
     blob_name = "test-blob"
     payload = b"DEADBEEF"
@@ -210,7 +219,7 @@ def test_blob_upload_w_bucket_cmek_enabled(
     kms_bucket.default_kms_key_name = kms_key_name
     kms_bucket.patch()
     assert kms_bucket.default_kms_key_name == kms_key_name
-    
+
     # Changes to the bucket will be readable immediately after writing,
     # but configuration changes may take time to propagate.
     _helpers.await_config_changes_propagate()
