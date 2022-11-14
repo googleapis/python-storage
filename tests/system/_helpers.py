@@ -122,7 +122,7 @@ def delete_bucket(bucket):
     retry(empty_bucket)(bucket)
     retry(bucket.delete)(force=True)
 
- 
+
 def await_config_changes_propagate(sec=3):
     # Changes to the bucket will be readable immediately after writing,
     # but configuration changes may take time to propagate.
