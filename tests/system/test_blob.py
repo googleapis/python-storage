@@ -18,6 +18,7 @@ import io
 import os
 import tempfile
 import warnings
+import uuid
 
 import pytest
 import six
@@ -833,14 +834,14 @@ def test_blob_compose_w_generation_match_long(shared_bucket, blobs_to_delete):
 
 def test_blob_compose_w_source_generation_match(shared_bucket, blobs_to_delete):
     payload_before = b"AAA\n"
-    original = shared_bucket.blob("original")
+    original = shared_bucket.blob(uuid.uuid4().hex)
     original.content_type = "text/plain"
     original.upload_from_string(payload_before)
     blobs_to_delete.append(original)
     wrong_source_generations = [6, 7]
 
     payload_to_append = b"BBB\n"
-    to_append = shared_bucket.blob("to_append")
+    to_append = shared_bucket.blob(uuid.uuid4().hex)
     to_append.upload_from_string(payload_to_append)
     blobs_to_delete.append(to_append)
 
