@@ -34,7 +34,6 @@ from google.cloud.exceptions import NotFound
 from google.cloud.storage._helpers import _get_default_headers
 from google.cloud.storage._helpers import _get_environ_project
 from google.cloud.storage._helpers import _get_storage_host
-from google.cloud.storage._helpers import _BASE_STORAGE_URI
 from google.cloud.storage._helpers import _DEFAULT_STORAGE_HOST
 from google.cloud.storage._helpers import _bucket_bound_hostname_url
 from google.cloud.storage._helpers import _add_etag_match_headers
@@ -908,7 +907,7 @@ class Client(ClientWithProject):
             project = self.project
 
         # Use no project if STORAGE_EMULATOR_HOST is set
-        if _BASE_STORAGE_URI not in _get_storage_host():
+        if _get_storage_host() != _DEFAULT_STORAGE_HOST:
             if project is None:
                 project = _get_environ_project()
             if project is None:
@@ -1338,7 +1337,7 @@ class Client(ClientWithProject):
             project = self.project
 
         # Use no project if STORAGE_EMULATOR_HOST is set
-        if _BASE_STORAGE_URI not in _get_storage_host():
+        if _get_storage_host() != _DEFAULT_STORAGE_HOST:
             if project is None:
                 project = _get_environ_project()
             if project is None:
