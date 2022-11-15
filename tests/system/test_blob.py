@@ -18,6 +18,7 @@ import io
 import os
 import tempfile
 import warnings
+import uuid
 
 import pytest
 import six
@@ -40,7 +41,10 @@ def _check_blob_hash(blob, info):
 
 
 def test_large_file_write_from_stream(
-    shared_bucket, blobs_to_delete, file_data, service_account,
+    shared_bucket,
+    blobs_to_delete,
+    file_data,
+    service_account,
 ):
     blob = shared_bucket.blob("LargeFile")
 
@@ -53,7 +57,10 @@ def test_large_file_write_from_stream(
 
 
 def test_large_file_write_from_stream_w_checksum(
-    shared_bucket, blobs_to_delete, file_data, service_account,
+    shared_bucket,
+    blobs_to_delete,
+    file_data,
+    service_account,
 ):
     blob = shared_bucket.blob("LargeFile")
 
@@ -66,7 +73,10 @@ def test_large_file_write_from_stream_w_checksum(
 
 
 def test_large_file_write_from_stream_w_failed_checksum(
-    shared_bucket, blobs_to_delete, file_data, service_account,
+    shared_bucket,
+    blobs_to_delete,
+    file_data,
+    service_account,
 ):
     blob = shared_bucket.blob("LargeFile")
 
@@ -88,8 +98,16 @@ def test_large_file_write_from_stream_w_failed_checksum(
     assert not blob.exists()
 
 
+@pytest.mark.skipif(
+    _helpers.is_api_endpoint_override,
+    reason="Test does not yet support endpoint override",
+)
 def test_large_file_write_from_stream_w_encryption_key(
-    storage_client, shared_bucket, blobs_to_delete, file_data, service_account,
+    storage_client,
+    shared_bucket,
+    blobs_to_delete,
+    file_data,
+    service_account,
 ):
     blob = shared_bucket.blob("LargeFile", encryption_key=encryption_key)
 
@@ -111,7 +129,10 @@ def test_large_file_write_from_stream_w_encryption_key(
 
 
 def test_small_file_write_from_filename(
-    shared_bucket, blobs_to_delete, file_data, service_account,
+    shared_bucket,
+    blobs_to_delete,
+    file_data,
+    service_account,
 ):
     blob = shared_bucket.blob("SmallFile")
 
@@ -123,7 +144,10 @@ def test_small_file_write_from_filename(
 
 
 def test_small_file_write_from_filename_with_checksum(
-    shared_bucket, blobs_to_delete, file_data, service_account,
+    shared_bucket,
+    blobs_to_delete,
+    file_data,
+    service_account,
 ):
     blob = shared_bucket.blob("SmallFile")
 
@@ -135,7 +159,10 @@ def test_small_file_write_from_filename_with_checksum(
 
 
 def test_small_file_write_from_filename_with_failed_checksum(
-    shared_bucket, blobs_to_delete, file_data, service_account,
+    shared_bucket,
+    blobs_to_delete,
+    file_data,
+    service_account,
 ):
     blob = shared_bucket.blob("SmallFile")
 
@@ -236,7 +263,10 @@ def test_blob_crud_w_user_project(
 
 
 def test_blob_crud_w_etag_match(
-    shared_bucket, blobs_to_delete, file_data, service_account,
+    shared_bucket,
+    blobs_to_delete,
+    file_data,
+    service_account,
 ):
     wrong_etag = "kittens"
 
@@ -282,7 +312,10 @@ def test_blob_crud_w_etag_match(
 
 
 def test_blob_crud_w_generation_match(
-    shared_bucket, blobs_to_delete, file_data, service_account,
+    shared_bucket,
+    blobs_to_delete,
+    file_data,
+    service_account,
 ):
     wrong_generation_number = 6
     wrong_metageneration_number = 9
@@ -374,7 +407,10 @@ def test_blob_acl_w_user_project(
 
 
 def test_blob_acl_w_metageneration_match(
-    shared_bucket, blobs_to_delete, file_data, service_account,
+    shared_bucket,
+    blobs_to_delete,
+    file_data,
+    service_account,
 ):
     wrong_metageneration_number = 9
     wrong_generation_number = 6
@@ -409,7 +445,10 @@ def test_blob_acl_w_metageneration_match(
 
 
 def test_blob_acl_upload_predefined(
-    shared_bucket, blobs_to_delete, file_data, service_account,
+    shared_bucket,
+    blobs_to_delete,
+    file_data,
+    service_account,
 ):
     control = shared_bucket.blob("logo")
     control_info = file_data["logo"]
@@ -439,7 +478,10 @@ def test_blob_acl_upload_predefined(
 
 
 def test_blob_patch_metadata(
-    shared_bucket, blobs_to_delete, file_data, service_account,
+    shared_bucket,
+    blobs_to_delete,
+    file_data,
+    service_account,
 ):
     filename = file_data["logo"]["path"]
     blob_name = os.path.basename(filename)
@@ -468,7 +510,9 @@ def test_blob_patch_metadata(
 
 
 def test_blob_direct_write_and_read_into_file(
-    shared_bucket, blobs_to_delete, service_account,
+    shared_bucket,
+    blobs_to_delete,
+    service_account,
 ):
     payload = b"Hello World"
     blob = shared_bucket.blob("MyBuffer")
@@ -490,7 +534,9 @@ def test_blob_direct_write_and_read_into_file(
 
 
 def test_blob_download_w_generation_match(
-    shared_bucket, blobs_to_delete, service_account,
+    shared_bucket,
+    blobs_to_delete,
+    service_account,
 ):
     wrong_generation_number = 6
 
@@ -523,7 +569,9 @@ def test_blob_download_w_generation_match(
 
 
 def test_blob_download_w_failed_crc32c_checksum(
-    shared_bucket, blobs_to_delete, service_account,
+    shared_bucket,
+    blobs_to_delete,
+    service_account,
 ):
     blob = shared_bucket.blob("FailedChecksumBlob")
     payload = b"Hello World"
@@ -556,7 +604,9 @@ def test_blob_download_w_failed_crc32c_checksum(
 
 
 def test_blob_download_as_text(
-    shared_bucket, blobs_to_delete, service_account,
+    shared_bucket,
+    blobs_to_delete,
+    service_account,
 ):
     blob = shared_bucket.blob("MyBuffer")
     payload = "Hello World"
@@ -572,7 +622,9 @@ def test_blob_download_as_text(
 
 
 def test_blob_upload_w_gzip_encoded_download_raw(
-    shared_bucket, blobs_to_delete, service_account,
+    shared_bucket,
+    blobs_to_delete,
+    service_account,
 ):
     payload = b"DEADBEEF" * 1000
     raw_stream = io.BytesIO()
@@ -593,7 +645,10 @@ def test_blob_upload_w_gzip_encoded_download_raw(
 
 
 def test_blob_upload_from_file_resumable_with_generation(
-    shared_bucket, blobs_to_delete, file_data, service_account,
+    shared_bucket,
+    blobs_to_delete,
+    file_data,
+    service_account,
 ):
     blob = shared_bucket.blob("LargeFile")
     wrong_generation = 3
@@ -617,18 +672,23 @@ def test_blob_upload_from_file_resumable_with_generation(
     with pytest.raises(exceptions.PreconditionFailed):
         with open(info["path"], "rb") as file_obj:
             blob.upload_from_file(
-                file_obj, if_generation_match=wrong_generation,
+                file_obj,
+                if_generation_match=wrong_generation,
             )
 
     with pytest.raises(exceptions.PreconditionFailed):
         with open(info["path"], "rb") as file_obj:
             blob.upload_from_file(
-                file_obj, if_metageneration_match=wrong_meta_generation,
+                file_obj,
+                if_metageneration_match=wrong_meta_generation,
             )
 
 
 def test_blob_upload_from_string_w_owner(
-    shared_bucket, blobs_to_delete, file_data, service_account,
+    shared_bucket,
+    blobs_to_delete,
+    file_data,
+    service_account,
 ):
     blob = shared_bucket.blob("MyBuffer")
     payload = b"Hello World"
@@ -643,7 +703,10 @@ def test_blob_upload_from_string_w_owner(
 
 
 def test_blob_upload_from_string_w_custom_time(
-    shared_bucket, blobs_to_delete, file_data, service_account,
+    shared_bucket,
+    blobs_to_delete,
+    file_data,
+    service_account,
 ):
     blob = shared_bucket.blob("CustomTimeBlob")
     payload = b"Hello World"
@@ -659,7 +722,10 @@ def test_blob_upload_from_string_w_custom_time(
 
 
 def test_blob_upload_from_string_w_custom_time_no_micros(
-    shared_bucket, blobs_to_delete, file_data, service_account,
+    shared_bucket,
+    blobs_to_delete,
+    file_data,
+    service_account,
 ):
     # Test that timestamps without microseconds are treated correctly by
     # custom_time encoding/decoding.
@@ -677,7 +743,10 @@ def test_blob_upload_from_string_w_custom_time_no_micros(
 
 
 def test_blob_upload_download_crc32_md5_hash(
-    shared_bucket, blobs_to_delete, file_data, service_account,
+    shared_bucket,
+    blobs_to_delete,
+    file_data,
+    service_account,
 ):
     blob = shared_bucket.blob("MyBuffer")
     payload = b"Hello World"
@@ -694,8 +763,8 @@ def test_blob_upload_download_crc32_md5_hash(
 @pytest.mark.parametrize(
     "blob_name,payload",
     [
-        (u"Caf\u00e9", b"Normalization Form C"),
-        (u"Cafe\u0301", b"Normalization Form D"),
+        ("Caf\u00e9", b"Normalization Form C"),
+        ("Cafe\u0301", b"Normalization Form D"),
     ],
 )
 def test_blob_w_unicode_names(blob_name, payload, shared_bucket, blobs_to_delete):
@@ -829,20 +898,21 @@ def test_blob_compose_w_generation_match_long(shared_bucket, blobs_to_delete):
 
 def test_blob_compose_w_source_generation_match(shared_bucket, blobs_to_delete):
     payload_before = b"AAA\n"
-    original = shared_bucket.blob("original")
+    original = shared_bucket.blob(uuid.uuid4().hex)
     original.content_type = "text/plain"
     original.upload_from_string(payload_before)
     blobs_to_delete.append(original)
     wrong_source_generations = [6, 7]
 
     payload_to_append = b"BBB\n"
-    to_append = shared_bucket.blob("to_append")
+    to_append = shared_bucket.blob(uuid.uuid4().hex)
     to_append.upload_from_string(payload_to_append)
     blobs_to_delete.append(to_append)
 
     with pytest.raises(exceptions.PreconditionFailed):
         original.compose(
-            [original, to_append], if_source_generation_match=wrong_source_generations,
+            [original, to_append],
+            if_source_generation_match=wrong_source_generations,
         )
 
     original.compose(

@@ -24,6 +24,12 @@ cd "${PROJECT_ROOT}"
 # Disable buffering, so that the logs stream through.
 export PYTHONUNBUFFERED=1
 
+# Export variable to override api endpoint
+export API_ENDPOINT_OVERRIDE
+
+# Export variable to override api endpoint version
+export API_VERSION_OVERRIDE
+
 # Debug: show build environment
 env | grep KOKORO
 

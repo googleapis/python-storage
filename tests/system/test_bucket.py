@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import datetime
+import time
 
 import pytest
 import six
@@ -94,6 +95,10 @@ def test_bucket_lifecycle_rules(storage_client, buckets_to_delete):
     assert list(bucket.lifecycle_rules) == []
 
 
+@pytest.mark.skipif(
+    _helpers.is_api_endpoint_override,
+    reason="Test does not yet support endpoint override",
+)
 def test_bucket_update_labels(storage_client, buckets_to_delete):
     bucket_name = _helpers.unique_name("update-labels")
     bucket = _helpers.retry_429_503(storage_client.create_bucket)(bucket_name)
@@ -118,7 +123,9 @@ def test_bucket_update_labels(storage_client, buckets_to_delete):
 
 
 def test_bucket_get_set_iam_policy(
-    storage_client, buckets_to_delete, service_account,
+    storage_client,
+    buckets_to_delete,
+    service_account,
 ):
     from google.cloud.storage.iam import STORAGE_OBJECT_VIEWER_ROLE
     from google.api_core.exceptions import BadRequest
@@ -178,7 +185,10 @@ def test_bucket_crud_w_requester_pays(storage_client, buckets_to_delete, user_pr
     assert created.name == bucket_name
     assert created.requester_pays
 
-    with_user_project = storage_client.bucket(bucket_name, user_project=user_project,)
+    with_user_project = storage_client.bucket(
+        bucket_name,
+        user_project=user_project,
+    )
 
     try:
         # Exercise 'buckets.get' w/ userProject.
@@ -211,7 +221,8 @@ def test_bucket_acls_iam_w_user_project(
 ):
     bucket_name = _helpers.unique_name("acl-w-user-project")
     created = _helpers.retry_429_503(storage_client.create_bucket)(
-        bucket_name, requester_pays=True,
+        bucket_name,
+        requester_pays=True,
     )
     buckets_to_delete.append(created)
 
@@ -283,7 +294,10 @@ def test_bucket_acls_w_metageneration_match(storage_client, buckets_to_delete):
 
 
 def test_bucket_copy_blob(
-    storage_client, buckets_to_delete, blobs_to_delete, user_project,
+    storage_client,
+    buckets_to_delete,
+    blobs_to_delete,
+    user_project,
 ):
     payload = b"DEADBEEF"
     bucket_name = _helpers.unique_name("copy-blob")
@@ -305,7 +319,10 @@ def test_bucket_copy_blob(
 
 
 def test_bucket_copy_blob_w_user_project(
-    storage_client, buckets_to_delete, blobs_to_delete, user_project,
+    storage_client,
+    buckets_to_delete,
+    blobs_to_delete,
+    user_project,
 ):
     payload = b"DEADBEEF"
     bucket_name = _helpers.unique_name("copy-w-requester-pays")
@@ -331,7 +348,9 @@ def test_bucket_copy_blob_w_user_project(
 
 
 def test_bucket_copy_blob_w_generation_match(
-    storage_client, buckets_to_delete, blobs_to_delete,
+    storage_client,
+    buckets_to_delete,
+    blobs_to_delete,
 ):
     payload = b"DEADBEEF"
     bucket_name = _helpers.unique_name("generation-match")
@@ -346,7 +365,10 @@ def test_bucket_copy_blob_w_generation_match(
     dest_bucket = storage_client.bucket(bucket_name)
 
     new_blob = dest_bucket.copy_blob(
-        blob, dest_bucket, "simple-copy", if_source_generation_match=blob.generation,
+        blob,
+        dest_bucket,
+        "simple-copy",
+        if_source_generation_match=blob.generation,
     )
     blobs_to_delete.append(new_blob)
 
@@ -354,7 +376,9 @@ def test_bucket_copy_blob_w_generation_match(
 
 
 def test_bucket_copy_blob_w_metageneration_match(
-    storage_client, buckets_to_delete, blobs_to_delete,
+    storage_client,
+    buckets_to_delete,
+    blobs_to_delete,
 ):
     payload = b"DEADBEEF"
     bucket_name = _helpers.unique_name("generation-match")
@@ -382,7 +406,10 @@ def test_bucket_copy_blob_w_metageneration_match(
 
 
 def test_bucket_get_blob_with_user_project(
-    storage_client, buckets_to_delete, blobs_to_delete, user_project,
+    storage_client,
+    buckets_to_delete,
+    blobs_to_delete,
+    user_project,
 ):
     blob_name = "blob-name"
     payload = b"DEADBEEF"
@@ -414,7 +441,10 @@ def test_bucket_list_blobs(listable_bucket, listable_filenames):
 
 @_helpers.retry_failures
 def test_bucket_list_blobs_w_user_project(
-    storage_client, listable_bucket, listable_filenames, user_project,
+    storage_client,
+    listable_bucket,
+    listable_filenames,
+    user_project,
 ):
     with_user_project = storage_client.bucket(
         listable_bucket.name, user_project=user_project
@@ -546,7 +576,8 @@ def test_bucket_list_blobs_hierarchy_third_level(hierarchy_bucket, hierarchy_fil
 
 @_helpers.retry_failures
 def test_bucket_list_blobs_hierarchy_w_include_trailing_delimiter(
-    hierarchy_bucket, hierarchy_filenames,
+    hierarchy_bucket,
+    hierarchy_filenames,
 ):
     expected_names = ["file01.txt", "parent/"]
     expected_prefixes = set(["parent/"])
@@ -563,7 +594,9 @@ def test_bucket_list_blobs_hierarchy_w_include_trailing_delimiter(
 
 
 def test_bucket_w_retention_period(
-    storage_client, buckets_to_delete, blobs_to_delete,
+    storage_client,
+    buckets_to_delete,
+    blobs_to_delete,
 ):
     period_secs = 10
     bucket_name = _helpers.unique_name("w-retention-period")
@@ -573,6 +606,10 @@ def test_bucket_w_retention_period(
     bucket.retention_period = period_secs
     bucket.default_event_based_hold = False
     bucket.patch()
+
+    # Changes to the bucket will be readable immediately after writing,
+    # but configuration changes may take time to propagate.
+    _helpers.retry_has_retention_period(bucket.reload)()
 
     assert bucket.retention_period == period_secs
     assert isinstance(bucket.retention_policy_effective_time, datetime.datetime)
@@ -587,6 +624,7 @@ def test_bucket_w_retention_period(
     blobs_to_delete.append(blob)
 
     other = bucket.get_blob(blob_name)
+    _helpers.retry_has_retention_expiration(other.reload)()
 
     assert not other.event_based_hold
     assert not other.temporary_hold
@@ -598,12 +636,16 @@ def test_bucket_w_retention_period(
     bucket.retention_period = None
     bucket.patch()
 
+    # Changes to the bucket will be readable immediately after writing,
+    # but configuration changes may take time to propagate.
+    _helpers.retry_no_retention_period(bucket.reload)()
+
     assert bucket.retention_period is None
     assert bucket.retention_policy_effective_time is None
     assert not bucket.default_event_based_hold
     assert not bucket.retention_policy_locked
 
-    _helpers.retry_no_event_based_hold(other.reload)()
+    _helpers.retry_no_retention_expiration(other.reload)()
 
     assert not other.event_based_hold
     assert not other.temporary_hold
@@ -614,7 +656,9 @@ def test_bucket_w_retention_period(
 
 
 def test_bucket_w_default_event_based_hold(
-    storage_client, buckets_to_delete, blobs_to_delete,
+    storage_client,
+    buckets_to_delete,
+    blobs_to_delete,
 ):
     bucket_name = _helpers.unique_name("w-def-ebh")
     bucket = _helpers.retry_429_503(storage_client.create_bucket)(bucket_name)
@@ -656,6 +700,10 @@ def test_bucket_w_default_event_based_hold(
     assert bucket.retention_policy_effective_time is None
     assert not bucket.retention_policy_locked
 
+    # Changes to the bucket will be readable immediately after writing,
+    # but configuration changes may take time to propagate.
+    _helpers.await_config_changes_propagate()
+
     blob.upload_from_string(payload)
 
     # https://github.com/googleapis/python-storage/issues/435
@@ -671,7 +719,9 @@ def test_bucket_w_default_event_based_hold(
 
 
 def test_blob_w_temporary_hold(
-    storage_client, buckets_to_delete, blobs_to_delete,
+    storage_client,
+    buckets_to_delete,
+    blobs_to_delete,
 ):
     bucket_name = _helpers.unique_name("w-tmp-hold")
     bucket = _helpers.retry_429_503(storage_client.create_bucket)(bucket_name)
@@ -703,7 +753,8 @@ def test_blob_w_temporary_hold(
 
 
 def test_bucket_lock_retention_policy(
-    storage_client, buckets_to_delete,
+    storage_client,
+    buckets_to_delete,
 ):
     period_secs = 10
     bucket_name = _helpers.unique_name("loc-ret-policy")
@@ -728,8 +779,14 @@ def test_bucket_lock_retention_policy(
         bucket.patch()
 
 
+@pytest.mark.skipif(
+    _helpers.is_api_endpoint_override,
+    reason="Test does not yet support endpoint override",
+)
 def test_new_bucket_w_ubla(
-    storage_client, buckets_to_delete, blobs_to_delete,
+    storage_client,
+    buckets_to_delete,
+    blobs_to_delete,
 ):
     bucket_name = _helpers.unique_name("new-w-ubla")
     bucket = storage_client.bucket(bucket_name)
@@ -766,7 +823,9 @@ def test_new_bucket_w_ubla(
 
 
 def test_ubla_set_unset_preserves_acls(
-    storage_client, buckets_to_delete, blobs_to_delete,
+    storage_client,
+    buckets_to_delete,
+    blobs_to_delete,
 ):
     bucket_name = _helpers.unique_name("ubla-acls")
     bucket = _helpers.retry_429_503(storage_client.create_bucket)(bucket_name)
@@ -807,7 +866,9 @@ def test_ubla_set_unset_preserves_acls(
 
 
 def test_new_bucket_created_w_inherited_pap(
-    storage_client, buckets_to_delete, blobs_to_delete,
+    storage_client,
+    buckets_to_delete,
+    blobs_to_delete,
 ):
     from google.cloud.storage import constants
 
@@ -858,7 +919,9 @@ def test_new_bucket_created_w_inherited_pap(
 
 @pytest.mark.skip(reason="Unspecified PAP is changing to inherited")
 def test_new_bucket_created_w_enforced_pap(
-    storage_client, buckets_to_delete, blobs_to_delete,
+    storage_client,
+    buckets_to_delete,
+    blobs_to_delete,
 ):
     from google.cloud.storage import constants
 
