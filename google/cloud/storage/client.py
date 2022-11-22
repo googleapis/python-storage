@@ -34,6 +34,7 @@ from google.cloud.exceptions import NotFound
 from google.cloud.storage._helpers import _get_default_headers
 from google.cloud.storage._helpers import _get_environ_project
 from google.cloud.storage._helpers import _get_storage_host
+from google.cloud.storage._helpers import _BASE_STORAGE_URI
 from google.cloud.storage._helpers import _DEFAULT_STORAGE_HOST
 from google.cloud.storage._helpers import _bucket_bound_hostname_url
 from google.cloud.storage._helpers import _add_etag_match_headers
@@ -138,7 +139,7 @@ class Client(ClientWithProject):
         # then mTLS logic will be applied to decide which endpoint will be used.
         storage_host = _get_storage_host()
         kw_args["api_endpoint"] = (
-            storage_host if storage_host != _DEFAULT_STORAGE_HOST else None
+            storage_host if storage_host != _BASE_STORAGE_URI else None
         )
 
         if client_options:
