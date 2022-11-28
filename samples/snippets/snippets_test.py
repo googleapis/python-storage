@@ -70,12 +70,11 @@ import storage_rename_file
 import storage_set_bucket_default_kms_key
 import storage_set_client_endpoint
 import storage_set_metadata
+import storage_transfer_manager
 import storage_upload_file
 import storage_upload_from_memory
 import storage_upload_from_stream
 import storage_upload_with_kms_key
-import storage_transfer_manager
-
 
 KMS_KEY = os.environ["CLOUD_KMS_KEY"]
 
@@ -124,8 +123,8 @@ def test_bucket():
 def test_public_bucket():
     # The new projects don't allow to make a bucket available to public, so
     # for some tests we need to use the old main project for now.
-    original_value = os.environ['GOOGLE_CLOUD_PROJECT']
-    os.environ['GOOGLE_CLOUD_PROJECT'] = os.environ['MAIN_GOOGLE_CLOUD_PROJECT']
+    original_value = os.environ["GOOGLE_CLOUD_PROJECT"]
+    os.environ["GOOGLE_CLOUD_PROJECT"] = os.environ["MAIN_GOOGLE_CLOUD_PROJECT"]
     bucket = None
     while bucket is None or bucket.exists():
         storage_client = storage.Client()
@@ -135,7 +134,7 @@ def test_public_bucket():
     yield bucket
     bucket.delete(force=True)
     # Set the value back.
-    os.environ['GOOGLE_CLOUD_PROJECT'] = original_value
+    os.environ["GOOGLE_CLOUD_PROJECT"] = original_value
 
 
 @pytest.fixture
@@ -244,7 +243,7 @@ def test_download_byte_range(test_blob):
         storage_download_byte_range.download_byte_range(
             test_blob.bucket.name, test_blob.name, 0, 4, dest_file.name
         )
-        assert dest_file.read() == b'Hello'
+        assert dest_file.read() == b"Hello"
 
 
 def test_download_blob(test_blob):
@@ -297,7 +296,8 @@ def test_delete_blob(test_blob):
 
 def test_make_blob_public(test_public_blob):
     storage_make_public.make_blob_public(
-        test_public_blob.bucket.name, test_public_blob.name)
+        test_public_blob.bucket.name, test_public_blob.name
+    )
 
     r = requests.get(test_public_blob.public_url)
     assert r.text == "Hello, is it me you're looking for?"
@@ -329,7 +329,9 @@ def test_generate_upload_signed_url_v4(test_bucket, capsys):
     )
 
     requests.put(
-        url, data=content, headers={"content-type": "application/octet-stream"},
+        url,
+        data=content,
+        headers={"content-type": "application/octet-stream"},
     )
 
     bucket = storage.Client().bucket(test_bucket.name)
@@ -411,16 +413,20 @@ def test_versioning(test_bucket, capsys):
 
 
 def test_bucket_lifecycle_management(test_bucket, capsys):
-    bucket = storage_enable_bucket_lifecycle_management.enable_bucket_lifecycle_management(
-        test_bucket
+    bucket = (
+        storage_enable_bucket_lifecycle_management.enable_bucket_lifecycle_management(
+            test_bucket
+        )
     )
     out, _ = capsys.readouterr()
     assert "[]" in out
     assert "Lifecycle management is enable" in out
     assert len(list(bucket.lifecycle_rules)) > 0
 
-    bucket = storage_disable_bucket_lifecycle_management.disable_bucket_lifecycle_management(
-        test_bucket
+    bucket = (
+        storage_disable_bucket_lifecycle_management.disable_bucket_lifecycle_management(
+            test_bucket
+        )
     )
     out, _ = capsys.readouterr()
     assert "[]" in out
@@ -476,7 +482,8 @@ def test_get_service_account(capsys):
 
 def test_download_public_file(test_public_blob):
     storage_make_public.make_blob_public(
-        test_public_blob.bucket.name, test_public_blob.name)
+        test_public_blob.bucket.name, test_public_blob.name
+    )
     with tempfile.NamedTemporaryFile() as dest_file:
         storage_download_public_file.download_public_file(
             test_public_blob.bucket.name, test_public_blob.name, dest_file.name
@@ -486,8 +493,10 @@ def test_download_public_file(test_public_blob):
 
 
 def test_define_bucket_website_configuration(test_bucket):
-    bucket = storage_define_bucket_website_configuration.define_bucket_website_configuration(
-        test_bucket.name, "index.html", "404.html"
+    bucket = (
+        storage_define_bucket_website_configuration.define_bucket_website_configuration(
+            test_bucket.name, "index.html", "404.html"
+        )
     )
 
     website_val = {"mainPageSuffix": "index.html", "notFoundPage": "404.html"}
@@ -550,7 +559,7 @@ def test_change_default_storage_class(test_bucket, capsys):
     )
     out, _ = capsys.readouterr()
     assert "Default storage class for bucket" in out
-    assert bucket.storage_class == 'COLDLINE'
+    assert bucket.storage_class == "COLDLINE"
 
 
 def test_change_file_storage_class(test_blob, capsys):
@@ -559,7 +568,7 @@ def test_change_file_storage_class(test_blob, capsys):
     )
     out, _ = capsys.readouterr()
     assert f"Blob {blob.name} in bucket {blob.bucket.name}" in out
-    assert blob.storage_class == 'NEARLINE'
+    assert blob.storage_class == "NEARLINE"
 
 
 def test_copy_file_archived_generation(test_blob):
@@ -611,14 +620,19 @@ def test_batch_request(test_bucket):
 
 
 def test_storage_set_client_endpoint(capsys):
-    storage_set_client_endpoint.set_client_endpoint('https://storage.googleapis.com')
+    storage_set_client_endpoint.set_client_endpoint("https://storage.googleapis.com")
     out, _ = capsys.readouterr()
 
     assert "client initiated with endpoint: https://storage.googleapis.com" in out
 
 
 def test_transfer_manager_snippets(test_bucket, capsys):
-    BLOB_NAMES = ["test.txt", "test2.txt", "/blobs/test.txt", "blobs/nesteddir/test.txt"]
+    BLOB_NAMES = [
+        "test.txt",
+        "test2.txt",
+        "/blobs/test.txt",
+        "blobs/nesteddir/test.txt",
+    ]
     BIG_BLOB_NAME = "bigblob.txt"
     ALL_NAMES = BLOB_NAMES + [BIG_BLOB_NAME]
     TEST_DATA_24_BYTES = b"I am a rather big blob! "
@@ -638,7 +652,9 @@ def test_transfer_manager_snippets(test_bucket, capsys):
         with open("{}/{}".format(uploads, BIG_BLOB_NAME), "wb") as f:
             f.write(TEST_DATA_24_BYTES * SIZE_MULTIPLIER)
 
-        storage_transfer_manager.upload_many_blobs_with_transfer_manager(test_bucket.name, ALL_NAMES, root="{}/".format(uploads))
+        storage_transfer_manager.upload_many_blobs_with_transfer_manager(
+            test_bucket.name, ALL_NAMES, root="{}/".format(uploads)
+        )
         out, _ = capsys.readouterr()
 
         for name in ALL_NAMES:
@@ -647,14 +663,26 @@ def test_transfer_manager_snippets(test_bucket, capsys):
     with tempfile.TemporaryDirectory() as downloads:
         # First let's download the bigger file in chunks.
         big_destination_path = "{}/chunkeddl.txt".format(downloads)
-        storage_transfer_manager.download_blob_chunks_concurrently_with_transfer_manager(test_bucket.name, BIG_BLOB_NAME, big_destination_path, chunk_size=SIZE_MULTIPLIER)
+        storage_transfer_manager.download_blob_chunks_concurrently_with_transfer_manager(
+            test_bucket.name,
+            BIG_BLOB_NAME,
+            big_destination_path,
+            chunk_size=SIZE_MULTIPLIER,
+        )
         out, _ = capsys.readouterr()
 
-        assert "Downloaded {} to {} in {} chunk(s).".format(BIG_BLOB_NAME, big_destination_path, len(TEST_DATA_24_BYTES)) in out
+        assert (
+            "Downloaded {} to {} in {} chunk(s).".format(
+                BIG_BLOB_NAME, big_destination_path, len(TEST_DATA_24_BYTES)
+            )
+            in out
+        )
 
         # Now all the smaller files, plus the big file again because it's
         # still in the bucket.
-        storage_transfer_manager.download_all_blobs_with_transfer_manager(test_bucket.name, path_root="{}/".format(downloads))
+        storage_transfer_manager.download_all_blobs_with_transfer_manager(
+            test_bucket.name, path_root="{}/".format(downloads)
+        )
         out, _ = capsys.readouterr()
 
         for name in ALL_NAMES:

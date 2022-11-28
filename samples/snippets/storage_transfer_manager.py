@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from google.cloud.storage import Client
-from google.cloud.storage import transfer_manager
+from google.cloud.storage import Client, transfer_manager
+
 
 def download_all_blobs_with_transfer_manager(bucket_name, path_root=""):
     """Download all of the blobs in a bucket, concurrently in a thread pool.
@@ -37,7 +37,9 @@ def download_all_blobs_with_transfer_manager(bucket_name, path_root=""):
 
     blob_names = [blob.name for blob in bucket.list_blobs()]
 
-    results = transfer_manager.download_many_to_path(bucket, blob_names, path_root=path_root)
+    results = transfer_manager.download_many_to_path(
+        bucket, blob_names, path_root=path_root
+    )
 
     for name, result in zip(blob_names, results):
         # The results list is either `None` or an exception for each blob in
@@ -46,7 +48,7 @@ def download_all_blobs_with_transfer_manager(bucket_name, path_root=""):
         if isinstance(result, Exception):
             print("Failed to download {} due to exception: {}".format(name, result))
         else:
-            print("Downloaded {} to {}.".format(name, path_root+name))
+            print("Downloaded {} to {}.".format(name, path_root + name))
 
 
 def upload_many_blobs_with_transfer_manager(bucket_name, filenames, root=""):
@@ -87,7 +89,9 @@ def upload_many_blobs_with_transfer_manager(bucket_name, filenames, root=""):
             print("Uploaded {} to {}.".format(name, bucket.name))
 
 
-def download_blob_chunks_concurrently_with_transfer_manager(bucket_name, blob_name, local_filename, chunk_size=200 * 1024 * 1024):
+def download_blob_chunks_concurrently_with_transfer_manager(
+    bucket_name, blob_name, local_filename, chunk_size=200 * 1024 * 1024
+):
     """Download a single blob, in chunks, concurrently in a thread pool.
 
     This is intended for use with very large blobs."""
@@ -118,10 +122,15 @@ def download_blob_chunks_concurrently_with_transfer_manager(bucket_name, blob_na
     # Unlike other transfer manager functions, which handle multiple files and
     # return exceptions in a list, this function will simply raise any exception
     # it encounters, and has no return value.
-    transfer_manager.download_chunks_concurrently_to_file(blob, local_file, chunk_size=chunk_size)
+    transfer_manager.download_chunks_concurrently_to_file(
+        blob, local_file, chunk_size=chunk_size
+    )
 
     # If we've gotten this far, it must have been successful.
 
-    number_of_chunks = -(blob.size//-chunk_size)  # Ceiling division
-    print("Downloaded {} to {} in {} chunk(s).".format(blob_name, local_file.name, number_of_chunks))
-
+    number_of_chunks = -(blob.size // -chunk_size)  # Ceiling division
+    print(
+        "Downloaded {} to {} in {} chunk(s).".format(
+            blob_name, local_file.name, number_of_chunks
+        )
+    )
