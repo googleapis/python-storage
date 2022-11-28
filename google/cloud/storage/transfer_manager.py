@@ -370,7 +370,7 @@ def upload_many_from_filenames(
         If True, blobs that already have a live version will not be overwritten.
         This is accomplished by setting "if_generation_match = 0" on uploads.
         Uploads so skipped will result in a 412 Precondition Failed response
-        code, which will be included in the return value but not raised
+        code, which will be included in the return value, but not raised
         as an exception regardless of the value of raise_exception.
 
     :type blob_constructor_kwargs: dict
