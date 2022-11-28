@@ -74,6 +74,8 @@ import storage_upload_file
 import storage_upload_from_memory
 import storage_upload_from_stream
 import storage_upload_with_kms_key
+import storage_transfer_manager
+
 
 KMS_KEY = os.environ["CLOUD_KMS_KEY"]
 
@@ -613,3 +615,47 @@ def test_storage_set_client_endpoint(capsys):
     out, _ = capsys.readouterr()
 
     assert "client initiated with endpoint: https://storage.googleapis.com" in out
+
+
+def test_transfer_manager_snippets(test_bucket, capsys):
+    BLOB_NAMES = ["test.txt", "test2.txt", "/blobs/test.txt", "blobs/nesteddir/test.txt"]
+    BIG_BLOB_NAME = "bigblob.txt"
+    ALL_NAMES = BLOB_NAMES + [BIG_BLOB_NAME]
+    TEST_DATA_24_BYTES = b"I am a rather big blob! "
+    SIZE_MULTIPLIER = 1024
+
+    with tempfile.TemporaryDirectory() as uploads:
+        # Create dirs and nested dirs
+        for name in BLOB_NAMES:
+            relpath = os.path.dirname(name)
+            os.makedirs("{}/{}".format(uploads, relpath), exist_ok=True)
+
+        # Create files with nested dirs to exercise directory handling.
+        for name in BLOB_NAMES:
+            with open("{}/{}".format(uploads, name), "w") as f:
+                f.write(name)
+        # Also create one somewhat bigger file.
+        with open("{}/{}".format(uploads, BIG_BLOB_NAME), "wb") as f:
+            f.write(TEST_DATA_24_BYTES * SIZE_MULTIPLIER)
+
+        storage_transfer_manager.upload_many_blobs_with_transfer_manager(test_bucket.name, ALL_NAMES, root="{}/".format(uploads))
+        out, _ = capsys.readouterr()
+
+        for name in ALL_NAMES:
+            assert "Uploaded {}".format(name) in out
+
+    with tempfile.TemporaryDirectory() as downloads:
+        # First let's download the bigger file in chunks.
+        big_destination_path = "{}/chunkeddl.txt".format(downloads)
+        storage_transfer_manager.download_blob_chunks_concurrently_with_transfer_manager(test_bucket.name, BIG_BLOB_NAME, big_destination_path, chunk_size=SIZE_MULTIPLIER)
+        out, _ = capsys.readouterr()
+
+        assert "Downloaded {} to {} in {} chunk(s).".format(BIG_BLOB_NAME, big_destination_path, len(TEST_DATA_24_BYTES)) in out
+
+        # Now all the smaller files, plus the big file again because it's
+        # still in the bucket.
+        storage_transfer_manager.download_all_blobs_with_transfer_manager(test_bucket.name, path_root="{}/".format(downloads))
+        out, _ = capsys.readouterr()
+
+        for name in ALL_NAMES:
+            assert "Downloaded {}".format(name) in out

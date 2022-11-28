@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 # Copyright 2022 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
@@ -86,7 +84,7 @@ def upload_many_blobs_with_transfer_manager(bucket_name, filenames, root=""):
         if isinstance(result, Exception):
             print("Failed to upload {} due to exception: {}".format(name, result))
         else:
-            print("uploaded {} to {}.".format(name, bucket.name))
+            print("Uploaded {} to {}.".format(name, bucket.name))
 
 
 def download_blob_chunks_concurrently_with_transfer_manager(bucket_name, blob_name, local_filename, chunk_size=200 * 1024 * 1024):
