@@ -290,7 +290,7 @@ def test_set_blob_metadata(test_blob, capsys):
 
 
 def test_delete_blob(test_blob):
-    storage_delete_file.delete_blob(test_blob.bucket.name, test_blob.name)
+    storage_delete_file.delete_blob(test_blob.bucket.name, test_blob.name, test_blob.generation)
 
 
 def test_make_blob_public(test_public_blob):
@@ -373,7 +373,7 @@ def test_move_blob(test_bucket_create, test_blob):
         print(f"test_move_blob not found in bucket {test_bucket_create.name}")
 
     storage_move_file.move_blob(
-        bucket.name, test_blob.name, test_bucket_create.name, "test_move_blob"
+        bucket.name, test_blob.name, test_bucket_create.name, "test_move_blob", destination_blob_generation_match=0
     )
 
     assert test_bucket_create.get_blob("test_move_blob") is not None
@@ -389,7 +389,7 @@ def test_copy_blob(test_blob):
         pass
 
     storage_copy_file.copy_blob(
-        bucket.name, test_blob.name, bucket.name, "test_copy_blob"
+        bucket.name, test_blob.name, bucket.name, "test_copy_blob", destination_blob_generation_match=0
     )
 
     assert bucket.get_blob("test_copy_blob") is not None
@@ -553,7 +553,7 @@ def test_change_default_storage_class(test_bucket, capsys):
 
 def test_change_file_storage_class(test_blob, capsys):
     blob = storage_change_file_storage_class.change_file_storage_class(
-        test_blob.bucket.name, test_blob.name
+        test_blob.bucket.name, test_blob.name,
     )
     out, _ = capsys.readouterr()
     assert f"Blob {blob.name} in bucket {blob.bucket.name}" in out

@@ -21,13 +21,14 @@ from google.cloud import storage
 
 
 def copy_blob(
-    bucket_name, blob_name, destination_bucket_name, destination_blob_name
+    bucket_name, blob_name, destination_bucket_name, destination_blob_name, destination_blob_generation_match,
 ):
     """Copies a blob from one bucket to another with a new name."""
     # bucket_name = "your-bucket-name"
     # blob_name = "your-object-name"
     # destination_bucket_name = "destination-bucket-name"
     # destination_blob_name = "destination-object-name"
+    # destination_blob_generation_match = 0
 
     storage_client = storage.Client()
 
@@ -35,8 +36,15 @@ def copy_blob(
     source_blob = source_bucket.blob(blob_name)
     destination_bucket = storage_client.bucket(destination_bucket_name)
 
+    # Optional:
+    # Set a generation-match precondition to avoid potential race conditions
+    # and data corruptions. The request is aborted if the object's
+    # generation number does not match your precondition. For a destination
+    # object that does not yet exist, set the ifGenerationMatch precondition to 0.
+    # If the destination object already exists in your bucket, set instead a
+    # generation-match precondition using its generation number.
     blob_copy = source_bucket.copy_blob(
-        source_blob, destination_bucket, destination_blob_name
+        source_blob, destination_bucket, destination_blob_name, if_generation_match=destination_blob_generation_match,
     )
 
     print(

@@ -36,13 +36,14 @@ def copy_file_archived_generation(
     source_blob = source_bucket.blob(blob_name)
     destination_bucket = storage_client.bucket(destination_bucket_name)
 
+    # source_generation selects a specific revision of the source object, as opposed to the latest version.
     blob_copy = source_bucket.copy_blob(
         source_blob, destination_bucket, destination_blob_name, source_generation=generation
     )
 
     print(
         "Generation {} of the blob {} in bucket {} copied to blob {} in bucket {}.".format(
-            source_blob.generation,
+            generation,
             source_blob.name,
             source_bucket.name,
             blob_copy.name,
