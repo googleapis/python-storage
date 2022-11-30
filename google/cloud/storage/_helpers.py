@@ -47,9 +47,6 @@ _DEFAULT_STORAGE_HOST = os.getenv(
 _API_VERSION = os.getenv(_API_VERSION_OVERRIDE_ENV_VAR, "v1")
 """API version of the default storage host"""
 
-_BASE_STORAGE_URI = "storage.googleapis.com"
-"""Base request endpoint URI for JSON API."""
-
 # etag match parameters in snake case and equivalent header
 _ETAG_MATCH_PARAMETERS = (
     ("if_etag_match", "If-Match"),

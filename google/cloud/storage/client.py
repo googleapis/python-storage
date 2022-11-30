@@ -34,7 +34,6 @@ from google.cloud.exceptions import NotFound
 from google.cloud.storage._helpers import _get_default_headers
 from google.cloud.storage._helpers import _get_environ_project
 from google.cloud.storage._helpers import _get_storage_host
-from google.cloud.storage._helpers import _BASE_STORAGE_URI
 from google.cloud.storage._helpers import _DEFAULT_STORAGE_HOST
 from google.cloud.storage._helpers import _bucket_bound_hostname_url
 from google.cloud.storage._helpers import _add_etag_match_headers
@@ -134,13 +133,12 @@ class Client(ClientWithProject):
         kw_args = {"client_info": client_info}
 
         # `api_endpoint` should be only set by the user via `client_options`,
-        # or if the _get_storage_host() returns a non-default value.
+        # or if the _get_storage_host() returns a non-default value (_is_emulator_set).
         # `api_endpoint` plays an important role for mTLS, if it is not set,
         # then mTLS logic will be applied to decide which endpoint will be used.
         storage_host = _get_storage_host()
-        kw_args["api_endpoint"] = (
-            storage_host if storage_host != _DEFAULT_STORAGE_HOST else None
-        )
+        _is_emulator_set = storage_host != _DEFAULT_STORAGE_HOST
+        kw_args["api_endpoint"] = storage_host if _is_emulator_set else None
 
         if client_options:
             if type(client_options) == dict:
@@ -157,10 +155,7 @@ class Client(ClientWithProject):
         # (1) STORAGE_EMULATOR_HOST is set (for backwards compatibility), OR
         # (2) use_auth_w_custom_endpoint is set to False.
         if kw_args["api_endpoint"] is not None:
-            if (
-                kw_args["api_endpoint"] == storage_host
-                or not use_auth_w_custom_endpoint
-            ):
+            if _is_emulator_set or not use_auth_w_custom_endpoint:
                 if credentials is None:
                     credentials = AnonymousCredentials()
                 if project is None:
@@ -908,7 +903,8 @@ class Client(ClientWithProject):
             project = self.project
 
         # Use no project if STORAGE_EMULATOR_HOST is set
-        if _BASE_STORAGE_URI not in _get_storage_host():
+        _is_emulator_set = _get_storage_host() != _DEFAULT_STORAGE_HOST
+        if _is_emulator_set:
             if project is None:
                 project = _get_environ_project()
             if project is None:
@@ -1338,7 +1334,8 @@ class Client(ClientWithProject):
             project = self.project
 
         # Use no project if STORAGE_EMULATOR_HOST is set
-        if _BASE_STORAGE_URI not in _get_storage_host():
+        _is_emulator_set = _get_storage_host() != _DEFAULT_STORAGE_HOST
+        if _is_emulator_set:
             if project is None:
                 project = _get_environ_project()
             if project is None:
