@@ -240,7 +240,7 @@ class TestClient(unittest.TestCase):
         self.assertEqual(client._connection.API_BASE_URL, "http://foo")
 
     def test_ctor_w_emulator_wo_project(self):
-        # avoids authentication if STORAGE_EMULATOR_ENV_VAR is set
+        # bypasses authentication if STORAGE_EMULATOR_ENV_VAR is set
         host = "http://localhost:8080"
         environ = {STORAGE_EMULATOR_ENV_VAR: host}
         with mock.patch("os.environ", environ):
@@ -250,16 +250,8 @@ class TestClient(unittest.TestCase):
         self.assertEqual(client._connection.API_BASE_URL, host)
         self.assertIsInstance(client._connection.credentials, AnonymousCredentials)
 
-        # avoids authentication if storage emulator is set through api_endpoint
-        client = self._make_one(
-            client_options={"api_endpoint": "http://localhost:8080"}
-        )
-        self.assertIsNone(client.project)
-        self.assertEqual(client._connection.API_BASE_URL, host)
-        self.assertIsInstance(client._connection.credentials, AnonymousCredentials)
-
     def test_ctor_w_emulator_w_environ_project(self):
-        # avoids authentication and infers the project from the environment
+        # bypasses authentication and infers the project from the environment
         host = "http://localhost:8080"
         environ_project = "environ-project"
         environ = {
@@ -288,6 +280,54 @@ class TestClient(unittest.TestCase):
         self.assertEqual(client.project, project)
         self.assertEqual(client._connection.API_BASE_URL, host)
         self.assertIsInstance(client._connection.credentials, AnonymousCredentials)
+
+    def test_ctor_w_emulator_w_credentials(self):
+        host = "http://localhost:8080"
+        environ = {STORAGE_EMULATOR_ENV_VAR: host}
+        credentials = _make_credentials()
+        with mock.patch("os.environ", environ):
+            client = self._make_one(credentials=credentials)
+
+        self.assertEqual(client._connection.API_BASE_URL, host)
+        self.assertIs(client._connection.credentials, credentials)
+
+    def test_ctor_w_custom_endpoint_use_auth(self):
+        from google.cloud.storage._http import Connection
+
+        custom_endpoint = "storage-example.p.googleapis.com"
+        client = self._make_one(client_options={"api_endpoint": custom_endpoint})
+        self.assertEqual(client._connection.API_BASE_URL, custom_endpoint)
+        self.assertIsNotNone(client.project)
+        self.assertIsInstance(client._connection, Connection)
+        self.assertIsNotNone(client._connection.credentials)
+        self.assertNotIsInstance(client._connection.credentials, AnonymousCredentials)
+
+    def test_ctor_w_custom_endpoint_bypass_auth(self):
+        from google.cloud.storage._http import Connection
+
+        custom_endpoint = "storage-example.p.googleapis.com"
+        client = self._make_one(
+            client_options={"api_endpoint": custom_endpoint},
+            use_auth_w_custom_endpoint=False,
+        )
+        self.assertEqual(client._connection.API_BASE_URL, custom_endpoint)
+        self.assertEqual(client.project, None)
+        self.assertIsInstance(client._connection, Connection)
+        self.assertIsInstance(client._connection.credentials, AnonymousCredentials)
+
+    def test_ctor_w_custom_endpoint_w_credentials(self):
+        from google.cloud.storage._http import Connection
+
+        PROJECT = "PROJECT"
+        custom_endpoint = "storage-example.p.googleapis.com"
+        credentials = _make_credentials(project=PROJECT)
+        client = self._make_one(
+            credentials=credentials, client_options={"api_endpoint": custom_endpoint}
+        )
+        self.assertEqual(client._connection.API_BASE_URL, custom_endpoint)
+        self.assertEqual(client.project, PROJECT)
+        self.assertIsInstance(client._connection, Connection)
+        self.assertIs(client._connection.credentials, credentials)
 
     def test_create_anonymous_client(self):
         from google.cloud.storage._http import Connection
