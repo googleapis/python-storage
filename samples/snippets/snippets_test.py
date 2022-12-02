@@ -687,3 +687,32 @@ def test_transfer_manager_snippets(test_bucket, capsys):
 
         for name in ALL_NAMES:
             assert "Downloaded {}".format(name) in out
+
+
+def test_transfer_manager_directory_upload(test_bucket, capsys):
+    BLOB_NAMES = [
+        "dirtest/test.txt",
+        "dirtest/test2.txt",
+        "dirtest/blobs/test.txt",
+        "dirtest/blobs/nesteddir/test.txt",
+    ]
+
+    with tempfile.TemporaryDirectory() as uploads:
+        # Create dirs and nested dirs
+        for name in BLOB_NAMES:
+            relpath = os.path.dirname(name)
+            os.makedirs(os.path.join(uploads, relpath), exist_ok=True)
+
+        # Create files with nested dirs to exercise directory handling.
+        for name in BLOB_NAMES:
+            with open(os.path.join(uploads, name), "w") as f:
+                f.write(name)
+
+        storage_transfer_manager.upload_directory_with_transfer_manager(
+            test_bucket.name, directory="{}/".format(uploads)
+        )
+        out, _ = capsys.readouterr()
+
+        assert "Found {}".format(len(BLOB_NAMES)) in out
+        for name in BLOB_NAMES:
+            assert "Uploaded {}".format(name) in out
