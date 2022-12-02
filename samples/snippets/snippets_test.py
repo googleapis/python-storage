@@ -628,8 +628,7 @@ def test_storage_configure_retries(test_blob, capsys):
     # This simply checks if the retry configurations were set and printed as intended.
     out, _ = capsys.readouterr()
     assert "The following library method is customized to be retried" in out
-    assert "_should_retry" in out
-    assert "initial=1.5, maximum=45.0, multiplier=1.2, deadline=500.0" in out
+    assert "deleted with a customized retry strategy" in out
 
 
 def test_batch_request(test_bucket):
