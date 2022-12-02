@@ -630,7 +630,7 @@ def test_transfer_manager_snippets(test_bucket, capsys):
     BLOB_NAMES = [
         "test.txt",
         "test2.txt",
-        "/blobs/test.txt",
+        "blobs/test.txt",
         "blobs/nesteddir/test.txt",
     ]
     BIG_BLOB_NAME = "bigblob.txt"
@@ -642,18 +642,18 @@ def test_transfer_manager_snippets(test_bucket, capsys):
         # Create dirs and nested dirs
         for name in BLOB_NAMES:
             relpath = os.path.dirname(name)
-            os.makedirs("{}/{}".format(uploads, relpath), exist_ok=True)
+            os.makedirs(os.path.join(uploads, relpath), exist_ok=True)
 
         # Create files with nested dirs to exercise directory handling.
         for name in BLOB_NAMES:
-            with open("{}/{}".format(uploads, name), "w") as f:
+            with open(os.path.join(uploads, name), "w") as f:
                 f.write(name)
         # Also create one somewhat bigger file.
-        with open("{}/{}".format(uploads, BIG_BLOB_NAME), "wb") as f:
+        with open(os.path.join(uploads, BIG_BLOB_NAME), "wb") as f:
             f.write(TEST_DATA_24_BYTES * SIZE_MULTIPLIER)
 
         storage_transfer_manager.upload_many_blobs_with_transfer_manager(
-            test_bucket.name, ALL_NAMES, root="{}/".format(uploads)
+            test_bucket.name, ALL_NAMES, source_directory="{}/".format(uploads)
         )
         out, _ = capsys.readouterr()
 
@@ -662,7 +662,7 @@ def test_transfer_manager_snippets(test_bucket, capsys):
 
     with tempfile.TemporaryDirectory() as downloads:
         # First let's download the bigger file in chunks.
-        big_destination_path = "{}/chunkeddl.txt".format(downloads)
+        big_destination_path = os.path.join(downloads, "chunkeddl.txt")
         storage_transfer_manager.download_blob_chunks_concurrently_with_transfer_manager(
             test_bucket.name,
             BIG_BLOB_NAME,
@@ -681,7 +681,7 @@ def test_transfer_manager_snippets(test_bucket, capsys):
         # Now all the smaller files, plus the big file again because it's
         # still in the bucket.
         storage_transfer_manager.download_all_blobs_with_transfer_manager(
-            test_bucket.name, path_root="{}/".format(downloads)
+            test_bucket.name, destination_directory=os.path.join(downloads, "")
         )
         out, _ = capsys.readouterr()
 

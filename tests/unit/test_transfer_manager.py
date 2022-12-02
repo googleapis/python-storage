@@ -12,10 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from google.cloud.storage import transfer_manager
+import pytest
+
+with pytest.warns(UserWarning):
+    from google.cloud.storage import transfer_manager
 
 from google.api_core import exceptions
 
+import os
 import io
 import tempfile
 import unittest
@@ -246,7 +250,7 @@ class Test_Transfer_Manager(unittest.TestCase):
         DEADLINE = 10
 
         EXPECTED_FILE_BLOB_PAIRS = [
-            (ROOT + filename, mock.ANY) for filename in FILENAMES
+            (os.path.join(ROOT, filename), mock.ANY) for filename in FILENAMES
         ]
 
         with mock.patch(
@@ -255,7 +259,7 @@ class Test_Transfer_Manager(unittest.TestCase):
             transfer_manager.upload_many_from_filenames(
                 bucket,
                 FILENAMES,
-                ROOT,
+                source_directory=ROOT,
                 blob_name_prefix=PREFIX,
                 skip_if_exists=True,
                 blob_constructor_kwargs=BLOB_CONSTRUCTOR_KWARGS,
@@ -305,7 +309,7 @@ class Test_Transfer_Manager(unittest.TestCase):
     def test_download_many_to_path(self):
         bucket = mock.Mock()
 
-        BLOBNAMES = ["file_a.txt", "file_b.txt"]
+        BLOBNAMES = ["file_a.txt", "file_b.txt", "dir_a/file_c.txt"]
         PATH_ROOT = "mypath/"
         BLOB_NAME_PREFIX = "myprefix/"
         DOWNLOAD_KWARGS = {"accept-encoding": "fake-gzip"}
@@ -313,7 +317,7 @@ class Test_Transfer_Manager(unittest.TestCase):
         DEADLINE = 10
 
         EXPECTED_BLOB_FILE_PAIRS = [
-            (mock.ANY, PATH_ROOT + blobname) for blobname in BLOBNAMES
+            (mock.ANY, os.path.join(PATH_ROOT, blobname)) for blobname in BLOBNAMES
         ]
 
         with mock.patch(
@@ -322,11 +326,12 @@ class Test_Transfer_Manager(unittest.TestCase):
             transfer_manager.download_many_to_path(
                 bucket,
                 BLOBNAMES,
-                PATH_ROOT,
+                destination_directory=PATH_ROOT,
                 blob_name_prefix=BLOB_NAME_PREFIX,
                 download_kwargs=DOWNLOAD_KWARGS,
                 max_workers=MAX_WORKERS,
                 deadline=DEADLINE,
+                create_directories=False,
                 raise_exception=True,
             )
 
@@ -337,5 +342,43 @@ class Test_Transfer_Manager(unittest.TestCase):
             deadline=DEADLINE,
             raise_exception=True,
         )
-        bucket.blob.assert_any_call(BLOB_NAME_PREFIX + BLOBNAMES[0])
-        bucket.blob.assert_any_call(BLOB_NAME_PREFIX + BLOBNAMES[1])
+        for blobname in BLOBNAMES:
+            bucket.blob.assert_any_call(BLOB_NAME_PREFIX + blobname)
+
+    def test_download_many_to_path_creates_directories(self):
+        bucket = mock.Mock()
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            DIR_NAME = "dir_a/dir_b"
+            BLOBNAMES = [
+                "file_a.txt",
+                "file_b.txt",
+                os.path.join(DIR_NAME, "file_c.txt"),
+            ]
+
+            EXPECTED_BLOB_FILE_PAIRS = [
+                (mock.ANY, os.path.join(tempdir, blobname)) for blobname in BLOBNAMES
+            ]
+
+            with mock.patch(
+                "google.cloud.storage.transfer_manager.download_many"
+            ) as mock_download_many:
+                transfer_manager.download_many_to_path(
+                    bucket,
+                    BLOBNAMES,
+                    destination_directory=tempdir,
+                    create_directories=True,
+                    raise_exception=True,
+                )
+
+            mock_download_many.assert_called_once_with(
+                EXPECTED_BLOB_FILE_PAIRS,
+                download_kwargs=None,
+                max_workers=None,
+                deadline=None,
+                raise_exception=True,
+            )
+            for blobname in BLOBNAMES:
+                bucket.blob.assert_any_call(blobname)
+
+            assert os.path.isdir(os.path.join(tempdir, DIR_NAME))
