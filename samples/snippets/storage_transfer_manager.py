@@ -66,7 +66,7 @@ def upload_many_blobs_with_transfer_manager(
             print("Uploaded {} to {}.".format(name, bucket.name))
 
 
-def upload_directory_with_transfer_manager(bucket_name, directory, threads=4):
+def upload_directory_with_transfer_manager(bucket_name, source_directory, threads=4):
     """Upload every file in a directory, including all files in subdirectories.
 
     Each blob name is derived from the filename, not including the `directory`
@@ -81,7 +81,7 @@ def upload_directory_with_transfer_manager(bucket_name, directory, threads=4):
     # The directory on your computer to upload. Files in the directory and its
     # subdirectories will be uploaded. An empty string means "the current
     # working directory".
-    # directory=""
+    # source_directory=""
 
     # The number of threads to use for the operation. The performance impact of
     # this value depends on the use case, but generally, smaller files benefit
@@ -102,7 +102,7 @@ def upload_directory_with_transfer_manager(bucket_name, directory, threads=4):
     # multiple lines here for clarity.
 
     # First, recursively get all files in `directory` as Path objects.
-    directory_as_path_obj = Path(directory)
+    directory_as_path_obj = Path(source_directory)
     paths = directory_as_path_obj.rglob("*")
 
     # Filter so the list only includes files, not directories themselves.
@@ -119,7 +119,7 @@ def upload_directory_with_transfer_manager(bucket_name, directory, threads=4):
 
     # Start the upload.
     results = transfer_manager.upload_many_from_filenames(
-        bucket, string_paths, source_directory=directory, threads=threads
+        bucket, string_paths, source_directory=source_directory, threads=threads
     )
 
     for name, result in zip(string_paths, results):

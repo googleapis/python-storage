@@ -728,7 +728,7 @@ def test_transfer_manager_directory_upload(test_bucket, capsys):
                 f.write(name)
 
         storage_transfer_manager.upload_directory_with_transfer_manager(
-            test_bucket.name, directory="{}/".format(uploads)
+            test_bucket.name, source_directory="{}/".format(uploads)
         )
         out, _ = capsys.readouterr()
 
