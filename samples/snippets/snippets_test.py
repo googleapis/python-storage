@@ -640,7 +640,8 @@ def test_storage_configure_retries(test_blob, capsys):
     out, _ = capsys.readouterr()
     assert "The following library method is customized to be retried" in out
     assert "_should_retry" in out
-    assert "initial=1.5, maximum=45.0, multiplier=1.2, deadline=500.0" in out
+    assert "initial=1.5, maximum=45.0, multiplier=1.2" in out
+    assert "500" in out  # "deadline" or "timeout" depending on dependency ver.
 
 
 def test_batch_request(test_bucket):
