@@ -16,9 +16,16 @@
 
 import concurrent.futures
 
+import os
 import tempfile
+import warnings
 
 from google.api_core import exceptions
+
+warnings.warn(
+    "The module `transfer_manager` is a preview feature. Functionality and API "
+    "may change. This warning will be removed in a future release."
+)
 
 
 DEFAULT_CHUNK_SIZE = 200 * 1024 * 1024
@@ -305,7 +312,7 @@ def download_chunks_concurrently_to_file(
 def upload_many_from_filenames(
     bucket,
     filenames,
-    root="",
+    source_directory="",
     blob_name_prefix="",
     skip_if_exists=False,
     blob_constructor_kwargs=None,
@@ -321,10 +328,10 @@ def upload_many_from_filenames(
     The destination blobs are automatically created, with blob names based on
     the source filenames and the blob_name_prefix.
 
-    For example, if the `filenames` include "images/icon.jpg", `root` is
-    "/home/myuser/", and `blob_name_prefix` is "myfiles/", then the file at
-    "/home/myuser/images/icon.jpg" will be uploaded to a blob named
-    "myfiles/images/icon.jpg".
+    For example, if the `filenames` include "images/icon.jpg",
+    `source_directory` is "/home/myuser/", and `blob_name_prefix` is "myfiles/",
+    then the file at "/home/myuser/images/icon.jpg" will be uploaded to a blob
+    named "myfiles/images/icon.jpg".
 
     :type bucket: 'google.cloud.storage.bucket.Bucket'
     :param bucket:
@@ -333,23 +340,23 @@ def upload_many_from_filenames(
     :type filenames: list(str)
     :param filenames:
         A list of filenames to be uploaded. This may include part of the path.
-        The full path to the file must be root + filename. The filename is
-        separate from the root because the filename will also determine the
-        name of the destination blob.
+        The full path to the file must be source_directory + filename.
 
-    :type root: str
-    :param root:
-        A string that will be prepended to each filename in the input list, in
-        order to find the source file for each blob. Unlike the filename itself,
-        the root string does not affect the name of the uploaded blob itself.
-        The root string will usually end in "/" (or "\\" depending on platform)
-        but is not required to do so.
+    :type source_directory: str
+    :param source_directory:
+        A string that will be prepended (with os.path.join()) to each filename
+        in the input list, in order to find the source file for each blob.
+        Unlike the filename itself, the source_directory does not affect the
+        name of the uploaded blob.
 
-        For instance, if the root string is "/tmp/img-" and a filename is
+        For instance, if the source_directory is "/tmp/img/" and a filename is
         "0001.jpg", with an empty blob_name_prefix, then the file uploaded will
-        be "/tmp/img-0001.jpg" and the destination blob will be "0001.jpg".
+        be "/tmp/img/0001.jpg" and the destination blob will be "0001.jpg".
 
         This parameter can be an empty string.
+
+        Note that this parameter allows directory traversal (e.g. "/", "../")
+        and is not intended for unsanitized end user input.
 
     :type blob_name_prefix: str
     :param blob_name_prefix:
@@ -358,10 +365,10 @@ def upload_many_from_filenames(
         itself, the prefix string does not affect the location the library will
         look for the source data on the local filesystem.
 
-        For instance, if the root is "/tmp/img-", the blob_name_prefix is
-        "myuser/mystuff-" and a filename is "0001.jpg" then the file uploaded
-        will be "/tmp/img-0001.jpg" and the destination blob will be
-        "myuser/mystuff-0001.jpg".
+        For instance, if the source_directory is "/tmp/img/", the
+        blob_name_prefix is "myuser/mystuff-" and a filename is "0001.jpg" then
+        the file uploaded will be "/tmp/img/0001.jpg" and the destination blob
+        will be "myuser/mystuff-0001.jpg".
 
         The blob_name_prefix can be blank (an empty string).
 
@@ -370,7 +377,7 @@ def upload_many_from_filenames(
         If True, blobs that already have a live version will not be overwritten.
         This is accomplished by setting "if_generation_match = 0" on uploads.
         Uploads so skipped will result in a 412 Precondition Failed response
-        code, which will be included in the return value but not raised
+        code, which will be included in the return value, but not raised
         as an exception regardless of the value of raise_exception.
 
     :type blob_constructor_kwargs: dict
@@ -426,7 +433,7 @@ def upload_many_from_filenames(
     file_blob_pairs = []
 
     for filename in filenames:
-        path = root + filename
+        path = os.path.join(source_directory, filename)
         blob_name = blob_name_prefix + filename
         blob = bucket.blob(blob_name, **blob_constructor_kwargs)
         file_blob_pairs.append((path, blob))
@@ -444,26 +451,27 @@ def upload_many_from_filenames(
 def download_many_to_path(
     bucket,
     blob_names,
-    path_root="",
+    destination_directory="",
     blob_name_prefix="",
     download_kwargs=None,
     max_workers=None,
     deadline=None,
+    create_directories=True,
     raise_exception=False,
 ):
     """Download many files concurrently by their blob names.
 
     This function is a PREVIEW FEATURE: the API may change in a future version.
 
-    The destination files are automatically created, with filenames based on
-    the source blob_names and the path_root.
+    The destination files are automatically created, with paths based on the
+    source blob_names and the destination_directory.
 
     The destination files are not automatically deleted if their downloads fail,
     so please check the return value of this function for any exceptions, or
     enable `raise_exception=True`, and process the files accordingly.
 
-    For example, if the `blob_names` include "icon.jpg", `path_root` is
-    "/home/myuser/", and `blob_name_prefix` is "images/", then the blob named
+    For example, if the `blob_names` include "icon.jpg", `destination_directory`
+    is "/home/myuser/", and `blob_name_prefix` is "images/", then the blob named
     "images/icon.jpg" will be downloaded to a file named
     "/home/myuser/icon.jpg".
 
@@ -482,26 +490,31 @@ def download_many_to_path(
         the blob names that need not be part of the destination path should be
         included in the blob_name_prefix.
 
-    :type path_root: str
-    :param path_root:
-        A string that will be prepended to each blob_name in the input list,
-        in order to determine the destination path for that blob. The path_root
-        string will usually end in "/" (or "\\" depending on platform) but is
-        not required to do so. For instance, if the path_root string is
-        "/tmp/img-" and a blob_name is "0001.jpg", with an empty
-        blob_name_prefix, then the source blob "0001.jpg" will be downloaded to
-        destination "/tmp/img-0001.jpg" . This parameter can be an empty string.
+    :type destination_directory: str
+    :param destination_directory:
+        A string that will be prepended (with os.path.join()) to each blob_name
+        in the input list, in order to determine the destination path for that
+        blob.
+
+        For instance, if the destination_directory string is "/tmp/img" and a
+        blob_name is "0001.jpg", with an empty blob_name_prefix, then the source
+        blob "0001.jpg" will be downloaded to destination "/tmp/img/0001.jpg" .
+
+        This parameter can be an empty string.
+
+        Note that this parameter allows directory traversal (e.g. "/", "../")
+        and is not intended for unsanitized end user input.
 
     :type blob_name_prefix: str
     :param blob_name_prefix:
         A string that will be prepended to each blob_name in the input list, in
         order to determine the name of the source blob. Unlike the blob_name
         itself, the prefix string does not affect the destination path on the
-        local filesystem. For instance, if the path_root is "/tmp/img-", the
-        blob_name_prefix is "myuser/mystuff-" and a blob_name is "0001.jpg" then
-        the source blob "myuser/mystuff-0001.jpg" will be downloaded to
-        "/tmp/img-0001.jpg". The blob_name_prefix can be blank (an empty
-        string).
+        local filesystem. For instance, if the destination_directory is
+        "/tmp/img/", the blob_name_prefix is "myuser/mystuff-" and a blob_name
+        is "0001.jpg" then the source blob "myuser/mystuff-0001.jpg" will be
+        downloaded to "/tmp/img/0001.jpg". The blob_name_prefix can be blank
+        (an empty string).
 
     :type download_kwargs: dict
     :param download_kwargs:
@@ -522,6 +535,12 @@ def download_many_to_path(
         deadline is reached, all threads will be terminated regardless of their
         progress and concurrent.futures.TimeoutError will be raised. This can be
         left as the default of None (no deadline) for most use cases.
+
+    :type create_directories: bool
+    :param create_directories:
+        If True, recursively create any directories that do not exist. For
+        instance, if downloading object "images/img001.png", create the
+        directory "images" before downloading.
 
     :type raise_exception: bool
     :param raise_exception:
@@ -545,7 +564,10 @@ def download_many_to_path(
 
     for blob_name in blob_names:
         full_blob_name = blob_name_prefix + blob_name
-        path = path_root + blob_name
+        path = os.path.join(destination_directory, blob_name)
+        if create_directories:
+            directory, _ = os.path.split(path)
+            os.makedirs(directory, exist_ok=True)
         blob_file_pairs.append((bucket.blob(full_blob_name), path))
 
     return download_many(
