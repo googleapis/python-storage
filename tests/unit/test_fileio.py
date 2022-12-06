@@ -287,6 +287,7 @@ class TestBlobReaderBinary(unittest.TestCase, _BlobReaderBase):
         reader = self._make_blob_reader(blob)
 
         reader.close()
+        self.assertTrue(reader.closed)
 
         with self.assertRaises(ValueError):
             reader.read()
@@ -767,6 +768,7 @@ class Test_SlidingBuffer(unittest.TestCase):
     def test_close(self):
         buff = self._make_sliding_buffer()
         buff.close()
+        self.assertTrue(buff.closed())
         with self.assertRaises(ValueError):
             buff.read()
 
@@ -913,6 +915,7 @@ class TestBlobReaderText(unittest.TestCase, _BlobReaderBase):
         reader = self._make_blob_reader(blob)
 
         reader.close()
+        self.assertRaises(self.closed)
 
         with self.assertRaises(ValueError):
             reader.read()
