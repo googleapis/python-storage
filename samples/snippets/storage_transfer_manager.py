@@ -110,7 +110,7 @@ def upload_directory_with_transfer_manager(bucket_name, source_directory, thread
 
     # These paths are relative to the current working directory. Next, make them
     # relative to `directory`
-    relative_paths = [path.relative_to(directory) for path in file_paths]
+    relative_paths = [path.relative_to(source_directory) for path in file_paths]
 
     # Finally, convert them all to strings.
     string_paths = [str(path) for path in relative_paths]
