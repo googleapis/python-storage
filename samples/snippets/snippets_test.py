@@ -671,8 +671,6 @@ def test_transfer_manager_snippets(test_bucket, capsys):
         "blobs/test.txt",
         "blobs/nesteddir/test.txt",
     ]
-    TEST_DATA_24_BYTES = b"I am a rather big blob! "
-    SIZE_MULTIPLIER = 1024
 
     with tempfile.TemporaryDirectory() as uploads:
         # Create dirs and nested dirs
@@ -686,7 +684,10 @@ def test_transfer_manager_snippets(test_bucket, capsys):
                 f.write(name)
 
         storage_transfer_manager.upload_many_blobs_with_transfer_manager(
-            test_bucket.name, BLOB_NAMES, source_directory="{}/".format(uploads)
+            test_bucket.name,
+            BLOB_NAMES,
+            source_directory="{}/".format(uploads),
+            threads=2,
         )
         out, _ = capsys.readouterr()
 
@@ -696,7 +697,9 @@ def test_transfer_manager_snippets(test_bucket, capsys):
     with tempfile.TemporaryDirectory() as downloads:
         # Download the files.
         storage_transfer_manager.download_all_blobs_with_transfer_manager(
-            test_bucket.name, destination_directory=os.path.join(downloads, "")
+            test_bucket.name,
+            destination_directory=os.path.join(downloads, ""),
+            threads=2,
         )
         out, _ = capsys.readouterr()
 

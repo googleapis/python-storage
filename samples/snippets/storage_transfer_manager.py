@@ -14,7 +14,7 @@
 
 
 def upload_many_blobs_with_transfer_manager(
-    bucket_name, filenames, source_directory=""
+    bucket_name, filenames, source_directory="", threads=4
 ):
     """Upload every file in a list to a bucket, concurrently in a thread pool.
 
@@ -40,13 +40,20 @@ def upload_many_blobs_with_transfer_manager(
     # end user input.
     # source_directory=""
 
+    # The number of threads to use for the operation. The performance impact of
+    # this value depends on the use case, but generally, smaller files benefit
+    # from more threads and larger files don't benefit from more threads. Too
+    # many threads can slow operations, especially with large files, due to
+    # contention over the Python GIL.
+    # threads=4
+
     from google.cloud.storage import Client, transfer_manager
 
     storage_client = Client()
     bucket = storage_client.bucket(bucket_name)
 
     results = transfer_manager.upload_many_from_filenames(
-        bucket, filenames, source_directory=source_directory
+        bucket, filenames, source_directory=source_directory, threads=threads
     )
 
     for name, result in zip(filenames, results):
@@ -59,7 +66,7 @@ def upload_many_blobs_with_transfer_manager(
             print("Uploaded {} to {}.".format(name, bucket.name))
 
 
-def upload_directory_with_transfer_manager(bucket_name, directory):
+def upload_directory_with_transfer_manager(bucket_name, directory, threads=4):
     """Upload every file in a directory, including all files in subdirectories.
 
     Each blob name is derived from the filename, not including the `directory`
@@ -75,6 +82,13 @@ def upload_directory_with_transfer_manager(bucket_name, directory):
     # subdirectories will be uploaded. An empty string means "the current
     # working directory".
     # directory=""
+
+    # The number of threads to use for the operation. The performance impact of
+    # this value depends on the use case, but generally, smaller files benefit
+    # from more threads and larger files don't benefit from more threads. Too
+    # many threads can slow operations, especially with large files, due to
+    # contention over the Python GIL.
+    # threads=4
 
     from pathlib import Path
 
@@ -105,7 +119,7 @@ def upload_directory_with_transfer_manager(bucket_name, directory):
 
     # Start the upload.
     results = transfer_manager.upload_many_from_filenames(
-        bucket, string_paths, source_directory=directory
+        bucket, string_paths, source_directory=directory, threads=threads
     )
 
     for name, result in zip(string_paths, results):
@@ -118,7 +132,9 @@ def upload_directory_with_transfer_manager(bucket_name, directory):
             print("Uploaded {} to {}.".format(name, bucket.name))
 
 
-def download_all_blobs_with_transfer_manager(bucket_name, destination_directory=""):
+def download_all_blobs_with_transfer_manager(
+    bucket_name, destination_directory="", threads=4
+):
     """Download all of the blobs in a bucket, concurrently in a thread pool.
 
     The filename of each blob once downloaded is derived from the blob name and
@@ -140,6 +156,13 @@ def download_all_blobs_with_transfer_manager(bucket_name, destination_directory=
     # intended for unsanitized end user input.
     # destination_directory = ""
 
+    # The number of threads to use for the operation. The performance impact of
+    # this value depends on the use case, but generally, smaller files benefit
+    # from more threads and larger files don't benefit from more threads. Too
+    # many threads can slow operations, especially with large files, due to
+    # contention over the Python GIL.
+    # threads=4
+
     from google.cloud.storage import Client, transfer_manager
 
     storage_client = Client()
@@ -148,7 +171,7 @@ def download_all_blobs_with_transfer_manager(bucket_name, destination_directory=
     blob_names = [blob.name for blob in bucket.list_blobs()]
 
     results = transfer_manager.download_many_to_path(
-        bucket, blob_names, destination_directory=destination_directory
+        bucket, blob_names, destination_directory=destination_directory, threads=threads
     )
 
     for name, result in zip(blob_names, results):
