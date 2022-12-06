@@ -671,8 +671,6 @@ def test_transfer_manager_snippets(test_bucket, capsys):
         "blobs/test.txt",
         "blobs/nesteddir/test.txt",
     ]
-    BIG_BLOB_NAME = "bigblob.txt"
-    ALL_NAMES = BLOB_NAMES + [BIG_BLOB_NAME]
     TEST_DATA_24_BYTES = b"I am a rather big blob! "
     SIZE_MULTIPLIER = 1024
 
@@ -686,44 +684,23 @@ def test_transfer_manager_snippets(test_bucket, capsys):
         for name in BLOB_NAMES:
             with open(os.path.join(uploads, name), "w") as f:
                 f.write(name)
-        # Also create one somewhat bigger file.
-        with open(os.path.join(uploads, BIG_BLOB_NAME), "wb") as f:
-            f.write(TEST_DATA_24_BYTES * SIZE_MULTIPLIER)
 
         storage_transfer_manager.upload_many_blobs_with_transfer_manager(
-            test_bucket.name, ALL_NAMES, source_directory="{}/".format(uploads)
+            test_bucket.name, BLOB_NAMES, source_directory="{}/".format(uploads)
         )
         out, _ = capsys.readouterr()
 
-        for name in ALL_NAMES:
+        for name in BLOB_NAMES:
             assert "Uploaded {}".format(name) in out
 
     with tempfile.TemporaryDirectory() as downloads:
-        # First let's download the bigger file in chunks.
-        big_destination_path = os.path.join(downloads, "chunkeddl.txt")
-        storage_transfer_manager.download_blob_chunks_concurrently_with_transfer_manager(
-            test_bucket.name,
-            BIG_BLOB_NAME,
-            big_destination_path,
-            chunk_size=SIZE_MULTIPLIER,
-        )
-        out, _ = capsys.readouterr()
-
-        assert (
-            "Downloaded {} to {} in {} chunk(s).".format(
-                BIG_BLOB_NAME, big_destination_path, len(TEST_DATA_24_BYTES)
-            )
-            in out
-        )
-
-        # Now all the smaller files, plus the big file again because it's
-        # still in the bucket.
+        # Download the files.
         storage_transfer_manager.download_all_blobs_with_transfer_manager(
             test_bucket.name, destination_directory=os.path.join(downloads, "")
         )
         out, _ = capsys.readouterr()
 
-        for name in ALL_NAMES:
+        for name in BLOB_NAMES:
             assert "Downloaded {}".format(name) in out
 
 

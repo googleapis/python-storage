@@ -20,7 +20,6 @@ with pytest.warns(UserWarning):
 from google.api_core import exceptions
 
 import os
-import io
 import tempfile
 import unittest
 import mock
@@ -79,7 +78,7 @@ class Test_Transfer_Manager(unittest.TestCase):
             "concurrent.futures.ThreadPoolExecutor"
         ) as pool_patch, mock.patch("concurrent.futures.wait") as wait_patch:
             transfer_manager.upload_many(
-                FILE_BLOB_PAIRS, max_workers=MAX_WORKERS, deadline=DEADLINE
+                FILE_BLOB_PAIRS, threads=MAX_WORKERS, deadline=DEADLINE
             )
             pool_patch.assert_called_with(max_workers=MAX_WORKERS)
             wait_patch.assert_called_with(
@@ -164,7 +163,7 @@ class Test_Transfer_Manager(unittest.TestCase):
             "concurrent.futures.ThreadPoolExecutor"
         ) as pool_patch, mock.patch("concurrent.futures.wait") as wait_patch:
             transfer_manager.download_many(
-                BLOB_FILE_PAIRS, max_workers=MAX_WORKERS, deadline=DEADLINE
+                BLOB_FILE_PAIRS, threads=MAX_WORKERS, deadline=DEADLINE
             )
             pool_patch.assert_called_with(max_workers=MAX_WORKERS)
             wait_patch.assert_called_with(
@@ -188,54 +187,6 @@ class Test_Transfer_Manager(unittest.TestCase):
         transfer_manager.download_many(BLOB_FILE_PAIRS)
         with self.assertRaises(ConnectionError):
             transfer_manager.download_many(BLOB_FILE_PAIRS, raise_exception=True)
-
-    def test_download_chunks_concurrently_to_file(self):
-        BLOB_CONTENTS = b"1234567812345678A"
-        blob = mock.Mock()
-        blob.size = len(BLOB_CONTENTS)
-        blob.generation = None
-
-        FAKE_ENCODING = "fake-gzip"
-        DOWNLOAD_KWARGS = {"accept-encoding": FAKE_ENCODING}
-
-        def fake_download_to_file(file_obj, start, end, **kwargs):
-            file_obj.write(BLOB_CONTENTS[start : end + 1])
-            self.assertEqual(kwargs, DOWNLOAD_KWARGS)
-
-        blob.download_to_file = fake_download_to_file
-
-        file_obj = io.BytesIO()
-
-        transfer_manager.download_chunks_concurrently_to_file(
-            blob, file_obj, chunk_size=4, download_kwargs=DOWNLOAD_KWARGS
-        )
-
-        # Generation wasn't set, so reload should have been called.
-        blob.reload.assert_called_with()
-
-        file_obj.seek(0)
-        result = file_obj.read()
-        self.assertEqual(result, BLOB_CONTENTS)
-
-    def test_download_chunks_passes_concurrency_arguments_and_kwargs(self):
-        blob = mock.Mock()
-        blob.size = 17
-        blob.generation = 1
-
-        file_obj = mock.Mock()
-
-        MAX_WORKERS = 7
-        DEADLINE = 10
-        with mock.patch(
-            "concurrent.futures.ThreadPoolExecutor"
-        ) as pool_patch, mock.patch("concurrent.futures.wait") as wait_patch:
-            transfer_manager.download_chunks_concurrently_to_file(
-                blob, file_obj, chunk_size=4, max_workers=MAX_WORKERS, deadline=DEADLINE
-            )
-            pool_patch.assert_called_with(max_workers=MAX_WORKERS)
-            wait_patch.assert_called_with(
-                mock.ANY, timeout=DEADLINE, return_when=mock.ANY
-            )
 
     def test_upload_many_from_filenames(self):
         bucket = mock.Mock()
@@ -264,7 +215,7 @@ class Test_Transfer_Manager(unittest.TestCase):
                 skip_if_exists=True,
                 blob_constructor_kwargs=BLOB_CONSTRUCTOR_KWARGS,
                 upload_kwargs=UPLOAD_KWARGS,
-                max_workers=MAX_WORKERS,
+                threads=MAX_WORKERS,
                 deadline=DEADLINE,
                 raise_exception=True,
             )
@@ -273,7 +224,7 @@ class Test_Transfer_Manager(unittest.TestCase):
             EXPECTED_FILE_BLOB_PAIRS,
             skip_if_exists=True,
             upload_kwargs=UPLOAD_KWARGS,
-            max_workers=MAX_WORKERS,
+            threads=MAX_WORKERS,
             deadline=DEADLINE,
             raise_exception=True,
         )
@@ -299,7 +250,7 @@ class Test_Transfer_Manager(unittest.TestCase):
             EXPECTED_FILE_BLOB_PAIRS,
             skip_if_exists=False,
             upload_kwargs=None,
-            max_workers=None,
+            threads=4,
             deadline=None,
             raise_exception=False,
         )
@@ -329,7 +280,7 @@ class Test_Transfer_Manager(unittest.TestCase):
                 destination_directory=PATH_ROOT,
                 blob_name_prefix=BLOB_NAME_PREFIX,
                 download_kwargs=DOWNLOAD_KWARGS,
-                max_workers=MAX_WORKERS,
+                threads=MAX_WORKERS,
                 deadline=DEADLINE,
                 create_directories=False,
                 raise_exception=True,
@@ -338,7 +289,7 @@ class Test_Transfer_Manager(unittest.TestCase):
         mock_download_many.assert_called_once_with(
             EXPECTED_BLOB_FILE_PAIRS,
             download_kwargs=DOWNLOAD_KWARGS,
-            max_workers=MAX_WORKERS,
+            threads=MAX_WORKERS,
             deadline=DEADLINE,
             raise_exception=True,
         )
@@ -374,7 +325,7 @@ class Test_Transfer_Manager(unittest.TestCase):
             mock_download_many.assert_called_once_with(
                 EXPECTED_BLOB_FILE_PAIRS,
                 download_kwargs=None,
-                max_workers=None,
+                threads=4,
                 deadline=None,
                 raise_exception=True,
             )

@@ -16,7 +16,6 @@
 import tempfile
 
 from google.cloud.storage import transfer_manager
-from google.cloud.storage._helpers import _base64_md5hash
 
 from google.api_core import exceptions
 
@@ -83,22 +82,3 @@ def test_download_many(listable_bucket):
     assert results == [None, None]
     for fp in tempfiles:
         assert fp.tell() != 0
-
-
-def test_download_chunks_concurrently_to_file(
-    shared_bucket, file_data, blobs_to_delete
-):
-    blob = shared_bucket.blob("big")
-    blob.upload_from_filename(file_data["big"]["path"])
-    blobs_to_delete.append(blob)
-
-    blob.reload()
-    fp = tempfile.TemporaryFile()
-    result = transfer_manager.download_chunks_concurrently_to_file(
-        blob, fp, chunk_size=1024 * 1024
-    )
-    assert result is None
-    assert fp.tell() != 0
-
-    fp.seek(0)
-    assert blob.md5_hash.encode("utf8") == _base64_md5hash(fp)

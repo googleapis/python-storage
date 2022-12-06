@@ -17,7 +17,6 @@
 import concurrent.futures
 
 import os
-import tempfile
 import warnings
 
 from google.api_core import exceptions
@@ -35,7 +34,7 @@ def upload_many(
     file_blob_pairs,
     skip_if_exists=False,
     upload_kwargs=None,
-    max_workers=None,
+    threads=4,
     deadline=None,
     raise_exception=False,
 ):
@@ -64,11 +63,16 @@ def upload_many(
         blob.upload_from_filename() for more information. The dict is directly
         passed into the upload methods and is not validated by this function.
 
-    :type max_workers: int
-    :param max_workers:
-        The number of workers (effectively, the number of threads) to use in
-        the worker pool. Refer to concurrent.futures.ThreadPoolExecutor
-        documentation for details.
+    :type threads: int
+    :param threads:
+        The number of threads to use in the worker pool. This is passed to
+        `concurrent.futures.ThreadPoolExecutor` as the `max_worker`; refer
+        to standard library documentation for details.
+
+        The performance impact of this value depends on the use case, but
+        generally, smaller files benefit from more threads and larger files
+        don't benefit from more threads. Too many threads can slow operations,
+        especially with large files, due to contention over the Python GIL.
 
     :type deadline: int
     :param deadline:
@@ -101,7 +105,7 @@ def upload_many(
     if skip_if_exists:
         upload_kwargs["if_generation_match"] = 0
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor:
         futures = []
         for path_or_file, blob in file_blob_pairs:
             method = (
@@ -133,7 +137,7 @@ def upload_many(
 def download_many(
     blob_file_pairs,
     download_kwargs=None,
-    max_workers=None,
+    threads=4,
     deadline=None,
     raise_exception=False,
 ):
@@ -157,11 +161,16 @@ def download_many(
         blob.download_to_filename() for more information. The dict is directly
         passed into the download methods and is not validated by this function.
 
-    :type max_workers: int
-    :param max_workers:
-        The number of workers (effectively, the number of threads) to use in
-        the worker pool. Refer to concurrent.futures.ThreadPoolExecutor
-        documentation for details.
+    :type threads: int
+    :param threads:
+        The number of threads to use in the worker pool. This is passed to
+        `concurrent.futures.ThreadPoolExecutor` as the `max_worker`; refer
+        to standard library documentation for details.
+
+        The performance impact of this value depends on the use case, but
+        generally, smaller files benefit from more threads and larger files
+        don't benefit from more threads. Too many threads can slow operations,
+        especially with large files, due to contention over the Python GIL.
 
     :type deadline: int
     :param deadline:
@@ -189,7 +198,7 @@ def download_many(
 
     if download_kwargs is None:
         download_kwargs = {}
-    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor:
         futures = []
         for blob, path_or_file in blob_file_pairs:
             method = (
@@ -212,103 +221,6 @@ def download_many(
     return results
 
 
-def download_chunks_concurrently_to_file(
-    blob,
-    file_obj,
-    chunk_size=DEFAULT_CHUNK_SIZE,
-    download_kwargs=None,
-    max_workers=None,
-    deadline=None,
-):
-    """Download a single blob in chunks, concurrently.
-
-    This function is a PREVIEW FEATURE: the API may change in a future version.
-
-    Use of this function, in cases where single threads are unable to fully
-    saturate available network bandwidth, may improve download performance for
-    large objects.
-
-    The size of the blob must be known in order to calculate the number of
-    chunks. If the size is not already set, blob.reload() will be called
-    automatically to set it.
-
-    :type blob: 'google.cloud.storage.blob.Blob'
-    :param blob:
-        The blob to download.
-
-    :type file_obj: IOBase
-    :param file_obj: The file object to which the downloaded chunks will be
-        written. Chunks are written in order. While the current implementation
-        of this function does not use seek(), a future version may use seek() to
-        write chunks out of order to improve write performance.
-
-    :type chunk_size: int
-    :param chunk_size: The size of each chunk. An excessively small size may
-        have a negative performance impact, as each chunk will be uploaded in a
-        separate HTTP request.
-
-    :type download_kwargs: dict
-    :param download_kwargs:
-        A dictionary of keyword arguments to pass to the download method. Refer
-        to the documentation for blob.download_to_file() or
-        blob.download_to_filename() for more information. The dict is directly
-        passed into the download methods and is not validated by this function.
-
-    :type max_workers: int
-    :param max_workers:
-        The number of workers (effectively, the number of threads) to use in
-        the worker pool. Refer to concurrent.futures.ThreadPoolExecutor
-        documentation for details.
-
-    :type deadline: int
-    :param deadline:
-        The number of seconds to wait for all threads to resolve. If the
-        deadline is reached, all threads will be terminated regardless of their
-        progress and concurrent.futures.TimeoutError will be raised. This can be
-        left as the default of None (no deadline) for most use cases.
-
-    :raises: :exc:`concurrent.futures.TimeoutError` if deadline is exceeded.
-    """
-
-    if download_kwargs is None:
-        download_kwargs = {}
-    # We must know the size of the object, and the generation.
-    if not blob.size or not blob.generation:
-        blob.reload()
-
-    def download_range_via_tempfile(blob, start, end, download_kwargs):
-        tmp = tempfile.TemporaryFile()
-        blob.download_to_file(tmp, start=start, end=end, **download_kwargs)
-        return tmp
-
-    futures = []
-
-    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-        cursor = 0
-        while cursor < blob.size:
-            start = cursor
-            cursor = min(cursor + chunk_size, blob.size)
-            futures.append(
-                executor.submit(
-                    download_range_via_tempfile,
-                    blob,
-                    start=start,
-                    end=cursor - 1,
-                    download_kwargs=download_kwargs,
-                )
-            )
-
-    # Wait until all futures are done and process them in order.
-    concurrent.futures.wait(
-        futures, timeout=deadline, return_when=concurrent.futures.ALL_COMPLETED
-    )
-    for future in futures:
-        tmp = future.result()
-        tmp.seek(0)
-        file_obj.write(tmp.read())
-        tmp.close()
-
-
 def upload_many_from_filenames(
     bucket,
     filenames,
@@ -317,7 +229,7 @@ def upload_many_from_filenames(
     skip_if_exists=False,
     blob_constructor_kwargs=None,
     upload_kwargs=None,
-    max_workers=None,
+    threads=4,
     deadline=None,
     raise_exception=False,
 ):
@@ -395,11 +307,16 @@ def upload_many_from_filenames(
         blob.upload_from_filename() for more information. The dict is directly
         passed into the upload methods and is not validated by this function.
 
-    :type max_workers: int
-    :param max_workers:
-        The number of workers (effectively, the number of threads) to use in
-        the worker pool. Refer to concurrent.futures.ThreadPoolExecutor
-        documentation for details.
+    :type threads: int
+    :param threads:
+        The number of threads to use in the worker pool. This is passed to
+        `concurrent.futures.ThreadPoolExecutor` as the `max_worker`; refer
+        to standard library documentation for details.
+
+        The performance impact of this value depends on the use case, but
+        generally, smaller files benefit from more threads and larger files
+        don't benefit from more threads. Too many threads can slow operations,
+        especially with large files, due to contention over the Python GIL.
 
     :type deadline: int
     :param deadline:
@@ -442,7 +359,7 @@ def upload_many_from_filenames(
         file_blob_pairs,
         skip_if_exists=skip_if_exists,
         upload_kwargs=upload_kwargs,
-        max_workers=max_workers,
+        threads=threads,
         deadline=deadline,
         raise_exception=raise_exception,
     )
@@ -454,7 +371,7 @@ def download_many_to_path(
     destination_directory="",
     blob_name_prefix="",
     download_kwargs=None,
-    max_workers=None,
+    threads=4,
     deadline=None,
     create_directories=True,
     raise_exception=False,
@@ -523,11 +440,16 @@ def download_many_to_path(
         blob.download_to_filename() for more information. The dict is directly
         passed into the download methods and is not validated by this function.
 
-    :type max_workers: int
-    :param max_workers:
-        The number of workers (effectively, the number of threads) to use in
-        the worker pool. Refer to concurrent.futures.ThreadPoolExecutor
-        documentation for details.
+    :type threads: int
+    :param threads:
+        The number of threads to use in the worker pool. This is passed to
+        `concurrent.futures.ThreadPoolExecutor` as the `max_worker` param; refer
+        to standard library documentation for details.
+
+        The performance impact of this value depends on the use case, but
+        generally, smaller files benefit from more threads and larger files
+        don't benefit from more threads. Too many threads can slow operations,
+        especially with large files, due to contention over the Python GIL.
 
     :type deadline: int
     :param deadline:
@@ -573,7 +495,7 @@ def download_many_to_path(
     return download_many(
         blob_file_pairs,
         download_kwargs=download_kwargs,
-        max_workers=max_workers,
+        threads=threads,
         deadline=deadline,
         raise_exception=raise_exception,
     )
