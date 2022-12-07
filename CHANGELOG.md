@@ -10,7 +10,6 @@
 ### Features
 
 * Add "transfer_manager" module for concurrent uploads and downloads, as a preview feature ([#943](https://github.com/googleapis/python-storage/issues/943)) ([9998a5e](https://github.com/googleapis/python-storage/commit/9998a5e1c9e9e8920c4d40e13e39095585de657a))
-* Add support for use_auth_w_custom_endpoint ([#901](https://github.com/googleapis/python-storage/issues/901)) ([4862a9c](https://github.com/googleapis/python-storage/commit/4862a9c34fcd9524f31312227a2ccf5e376f39fa))
 * Add use_auth_w_custom_endpoint support ([#941](https://github.com/googleapis/python-storage/issues/941)) ([5291c08](https://github.com/googleapis/python-storage/commit/5291c08cc76a7dbd853e51c19c944f6336c14d26))
 
 
