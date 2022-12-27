@@ -19,11 +19,10 @@ The python-storage client uses the timeout mechanics of the underlying
 ``requests`` HTTP library. The connect timeout is the number of seconds
 to establish a connection to the server. The read timeout is the number
 of seconds the client will wait for the server to send a response.
-In 99.9% of cases, this is the maximum wait time before the server sends
-the first byte.
+In most cases, this is the maximum wait time before the server sends
+the first byte. Please refer to the `requests documentation <https://requests.readthedocs.io/en/latest/user/advanced/#timeouts>`_ for details.
 
-Rather than blocking your application code for that interval,you may choose to
-configure explicit timeouts in your code, using one of three forms:
+You may also choose to configure explicit timeouts in your code, using one of three forms:
 
 - You can specify a single value for the timeout. The timeout value will be
   applied to both the connect and the read timeouts. E.g.:
