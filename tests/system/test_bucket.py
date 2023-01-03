@@ -626,7 +626,7 @@ def test_bucket_w_retention_period(
     buckets_to_delete,
     blobs_to_delete,
 ):
-    period_secs = 10
+    period_secs = 3
     bucket_name = _helpers.unique_name("w-retention-period")
     bucket = _helpers.retry_429_503(storage_client.create_bucket)(bucket_name)
     buckets_to_delete.append(bucket)
@@ -679,6 +679,8 @@ def test_bucket_w_retention_period(
     assert not other.temporary_hold
     assert other.retention_expiration_time is None
 
+    # Object can be deleted once it reaches the age defined in the retention policy.
+    _helpers.await_config_changes_propagate(sec=period_secs)
     other.delete()
     blobs_to_delete.pop()
 
@@ -996,3 +998,25 @@ def test_new_bucket_with_rpo(
     bucket_from_server = storage_client.get_bucket(bucket_name)
 
     assert bucket_from_server.rpo == constants.RPO_ASYNC_TURBO
+
+
+def test_new_bucket_with_autoclass(
+    storage_client,
+    buckets_to_delete,
+):
+    # Autoclass can be enabled/disabled via bucket create
+    bucket_name = _helpers.unique_name("new-w-autoclass")
+    bucket_obj = storage_client.bucket(bucket_name)
+    bucket_obj.autoclass_enabled = True
+    bucket = storage_client.create_bucket(bucket_obj)
+    previous_toggle_time = bucket.autoclass_toggle_time
+    buckets_to_delete.append(bucket)
+
+    assert bucket.autoclass_enabled is True
+
+    # Autoclass can be enabled/disabled via bucket patch
+    bucket.autoclass_enabled = False
+    bucket.patch()
+
+    assert bucket.autoclass_enabled is False
+    assert bucket.autoclass_toggle_time != previous_toggle_time

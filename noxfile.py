@@ -85,6 +85,7 @@ def default(session):
     session.run(
         "py.test",
         "--quiet",
+        f"--junitxml=unit_{session.python}_sponge_log.xml",
         "--cov=google.cloud.storage",
         "--cov=google.cloud",
         "--cov=tests.unit",
@@ -161,6 +162,7 @@ def system(session):
         session.run(
             "py.test",
             "--quiet",
+            f"--junitxml=system_{session.python}_sponge_log.xml",
             "--reruns={}".format(rerun_count),
             system_test_path,
             *session.posargs,
@@ -169,6 +171,7 @@ def system(session):
         session.run(
             "py.test",
             "--quiet",
+            f"--junitxml=system_{session.python}_sponge_log.xml",
             "--reruns={}".format(rerun_count),
             system_test_folder_path,
             *session.posargs,
@@ -217,7 +220,7 @@ def cover(session):
     session.run("coverage", "erase")
 
 
-@nox.session(python=DEFAULT_PYTHON_VERSION)
+@nox.session(python="3.9")
 def docs(session):
     """Build the docs for this library."""
 
@@ -239,7 +242,7 @@ def docs(session):
     )
 
 
-@nox.session(python=DEFAULT_PYTHON_VERSION)
+@nox.session(python="3.9")
 def docfx(session):
     """Build the docfx yaml files for this library."""
 
