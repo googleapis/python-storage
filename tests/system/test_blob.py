@@ -97,6 +97,10 @@ def test_large_file_write_from_stream_w_failed_checksum(
     assert not blob.exists()
 
 
+@pytest.mark.skipif(
+    _helpers.is_api_endpoint_override,
+    reason="Test does not yet support endpoint override",
+)
 def test_large_file_write_from_stream_w_encryption_key(
     storage_client,
     shared_bucket,
@@ -112,6 +116,11 @@ def test_large_file_write_from_stream_w_encryption_key(
         blobs_to_delete.append(blob)
 
     _check_blob_hash(blob, info)
+
+    blob_without_key = shared_bucket.blob("LargeFile")
+    with tempfile.TemporaryFile() as tmp:
+        with pytest.raises(exceptions.BadRequest):
+            storage_client.download_blob_to_file(blob_without_key, tmp)
 
     with tempfile.NamedTemporaryFile() as temp_f:
         with open(temp_f.name, "wb") as file_obj:

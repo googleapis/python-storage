@@ -34,7 +34,6 @@ from google.cloud.exceptions import NotFound
 from google.cloud.storage._helpers import _get_default_headers
 from google.cloud.storage._helpers import _get_environ_project
 from google.cloud.storage._helpers import _get_storage_host
-from google.cloud.storage._helpers import _BASE_STORAGE_URI
 from google.cloud.storage._helpers import _DEFAULT_STORAGE_HOST
 from google.cloud.storage._helpers import _bucket_bound_hostname_url
 from google.cloud.storage._helpers import _add_etag_match_headers
@@ -96,6 +95,12 @@ class Client(ClientWithProject):
     :type client_options: :class:`~google.api_core.client_options.ClientOptions` or :class:`dict`
     :param client_options: (Optional) Client options used to set user options on the client.
         API Endpoint should be set through client_options.
+
+    :type use_auth_w_custom_endpoint: bool
+    :param use_auth_w_custom_endpoint:
+        (Optional) Whether authentication is required under custom endpoints.
+        If false, uses AnonymousCredentials and bypasses authentication.
+        Defaults to True. Note this is only used when a custom endpoint is set in conjunction.
     """
 
     SCOPE = (
@@ -112,6 +117,7 @@ class Client(ClientWithProject):
         _http=None,
         client_info=None,
         client_options=None,
+        use_auth_w_custom_endpoint=True,
     ):
         self._base_connection = None
 
@@ -127,13 +133,12 @@ class Client(ClientWithProject):
         kw_args = {"client_info": client_info}
 
         # `api_endpoint` should be only set by the user via `client_options`,
-        # or if the _get_storage_host() returns a non-default value.
+        # or if the _get_storage_host() returns a non-default value (_is_emulator_set).
         # `api_endpoint` plays an important role for mTLS, if it is not set,
         # then mTLS logic will be applied to decide which endpoint will be used.
         storage_host = _get_storage_host()
-        kw_args["api_endpoint"] = (
-            storage_host if storage_host != _DEFAULT_STORAGE_HOST else None
-        )
+        _is_emulator_set = storage_host != _DEFAULT_STORAGE_HOST
+        kw_args["api_endpoint"] = storage_host if _is_emulator_set else None
 
         if client_options:
             if type(client_options) == dict:
@@ -144,19 +149,20 @@ class Client(ClientWithProject):
                 api_endpoint = client_options.api_endpoint
                 kw_args["api_endpoint"] = api_endpoint
 
-        # Use anonymous credentials and no project when
-        # STORAGE_EMULATOR_HOST or a non-default api_endpoint is set.
-        if (
-            kw_args["api_endpoint"] is not None
-            and _BASE_STORAGE_URI not in kw_args["api_endpoint"]
-        ):
-            if credentials is None:
-                credentials = AnonymousCredentials()
-            if project is None:
-                project = _get_environ_project()
-            if project is None:
-                no_project = True
-                project = "<none>"
+        # If a custom endpoint is set, the client checks for credentials
+        # or finds the default credentials based on the current environment.
+        # Authentication may be bypassed under certain conditions:
+        # (1) STORAGE_EMULATOR_HOST is set (for backwards compatibility), OR
+        # (2) use_auth_w_custom_endpoint is set to False.
+        if kw_args["api_endpoint"] is not None:
+            if _is_emulator_set or not use_auth_w_custom_endpoint:
+                if credentials is None:
+                    credentials = AnonymousCredentials()
+                if project is None:
+                    project = _get_environ_project()
+                if project is None:
+                    no_project = True
+                    project = "<none>"
 
         super(Client, self).__init__(
             project=project,
@@ -710,10 +716,9 @@ class Client(ClientWithProject):
         if_metageneration_not_match=None,
         retry=DEFAULT_RETRY,
     ):
-        """API call: retrieve a bucket via a GET request.
+        """Retrieve a bucket via a GET request.
 
-        See
-        https://cloud.google.com/storage/docs/json_api/v1/buckets/get
+        See [API reference docs](https://cloud.google.com/storage/docs/json_api/v1/buckets/get) and a [code sample](https://cloud.google.com/storage/docs/samples/storage-get-bucket-metadata#storage_get_bucket_metadata-python).
 
         Args:
             bucket_or_name (Union[ \
@@ -757,27 +762,6 @@ class Client(ClientWithProject):
         Raises:
             google.cloud.exceptions.NotFound
                 If the bucket is not found.
-
-        Examples:
-            Retrieve a bucket using a string.
-
-            .. literalinclude:: snippets.py
-                :start-after: START get_bucket
-                :end-before: END get_bucket
-                :dedent: 4
-
-            Get a bucket using a resource.
-
-            >>> from google.cloud import storage
-            >>> client = storage.Client()
-
-            >>> # Set properties on a plain resource object.
-            >>> bucket = client.get_bucket("my-bucket-name")
-
-            >>> # Time passes. Another program may have modified the bucket
-            ... # in the meantime, so you want to get the latest state.
-            >>> bucket = client.get_bucket(bucket)  # API request.
-
         """
         bucket = self._bucket_arg_to_bucket(bucket_or_name)
         bucket.reload(
@@ -800,12 +784,7 @@ class Client(ClientWithProject):
         """Get a bucket by name, returning None if not found.
 
         You can use this if you would rather check for a None value
-        than catching an exception:
-
-        .. literalinclude:: snippets.py
-            :start-after: START lookup_bucket
-            :end-before: END lookup_bucket
-            :dedent: 4
+        than catching a NotFound exception.
 
         :type bucket_name: str
         :param bucket_name: The name of the bucket to get.
@@ -827,7 +806,7 @@ class Client(ClientWithProject):
         :param retry:
             (Optional) How to retry the RPC. See: :ref:`configuring_retries`
 
-        :rtype: :class:`google.cloud.storage.bucket.Bucket`
+        :rtype: :class:`google.cloud.storage.bucket.Bucket` or ``NoneType``
         :returns: The bucket matching the name provided or None if not found.
         """
         try:
@@ -854,10 +833,9 @@ class Client(ClientWithProject):
         timeout=_DEFAULT_TIMEOUT,
         retry=DEFAULT_RETRY,
     ):
-        """API call: create a new bucket via a POST request.
+        """Create a new bucket via a POST request.
 
-        See
-        https://cloud.google.com/storage/docs/json_api/v1/buckets/insert
+        See [API reference docs](https://cloud.google.com/storage/docs/json_api/v1/buckets/insert) and a [code sample](https://cloud.google.com/storage/docs/samples/storage-create-bucket#storage_create_bucket-python).
 
         Args:
             bucket_or_name (Union[ \
@@ -878,7 +856,7 @@ class Client(ClientWithProject):
             location (str):
                 (Optional) The location of the bucket. If not passed,
                 the default location, US, will be used. If specifying a dual-region,
-                `data_locations` should be set in conjunction.. See:
+                `data_locations` should be set in conjunction. See:
                 https://cloud.google.com/storage/docs/locations
             data_locations (list of str):
                 (Optional) The list of regional locations of a custom dual-region bucket.
@@ -917,28 +895,6 @@ class Client(ClientWithProject):
         Raises:
             google.cloud.exceptions.Conflict
                 If the bucket already exists.
-
-        Examples:
-            Create a bucket using a string.
-
-            .. literalinclude:: snippets.py
-                :start-after: START create_bucket
-                :end-before: END create_bucket
-                :dedent: 4
-
-            Create a bucket using a resource.
-
-            >>> from google.cloud import storage
-            >>> client = storage.Client()
-
-            >>> # Set properties on a plain resource object.
-            >>> bucket = storage.Bucket("my-bucket-name")
-            >>> bucket.location = "europe-west6"
-            >>> bucket.storage_class = "COLDLINE"
-
-            >>> # Pass that resource object to the client.
-            >>> bucket = client.create_bucket(bucket)  # API request.
-
         """
         bucket = self._bucket_arg_to_bucket(bucket_or_name)
         query_params = {}
@@ -947,7 +903,8 @@ class Client(ClientWithProject):
             project = self.project
 
         # Use no project if STORAGE_EMULATOR_HOST is set
-        if _BASE_STORAGE_URI not in _get_storage_host():
+        _is_emulator_set = _get_storage_host() != _DEFAULT_STORAGE_HOST
+        if _is_emulator_set:
             if project is None:
                 project = _get_environ_project()
             if project is None:
@@ -1018,6 +975,8 @@ class Client(ClientWithProject):
         retry=DEFAULT_RETRY,
     ):
         """Download the contents of a blob object or blob URI into a file-like object.
+
+        See https://cloud.google.com/storage/docs/downloading-objects
 
         Args:
             blob_or_uri (Union[ \
@@ -1090,30 +1049,6 @@ class Client(ClientWithProject):
                 predicates in a Retry object. The default will always be used. Other
                 configuration changes for Retry objects such as delays and deadlines
                 are respected.
-
-        Examples:
-            Download a blob using a blob resource.
-
-            >>> from google.cloud import storage
-            >>> client = storage.Client()
-
-            >>> bucket = client.get_bucket('my-bucket-name')
-            >>> blob = storage.Blob('path/to/blob', bucket)
-
-            >>> with open('file-to-download-to', 'w') as file_obj:
-            >>>     client.download_blob_to_file(blob, file_obj)  # API request.
-
-
-            Download a blob using a URI.
-
-            >>> from google.cloud import storage
-            >>> client = storage.Client()
-
-            >>> with open('file-to-download-to', 'wb') as file_obj:
-            >>>     client.download_blob_to_file(
-            >>>         'gs://bucket_name/path/to/blob', file_obj)
-
-
         """
 
         # Handle ConditionalRetryPolicy.
@@ -1183,6 +1118,11 @@ class Client(ClientWithProject):
         """Return an iterator used to find blobs in the bucket.
 
         If :attr:`user_project` is set, bills the API request to that project.
+
+        .. note::
+          List prefixes (directories) in a bucket using a prefix and delimiter.
+          See a [code sample](https://cloud.google.com/storage/docs/samples/storage-list-files-with-prefix#storage_list_files_with_prefix-python)
+          listing objects using a prefix filter.
 
         Args:
             bucket_or_name (Union[ \
@@ -1274,12 +1214,6 @@ class Client(ClientWithProject):
 
             As part of the response, you'll also get back an iterator.prefixes entity that lists object names
             up to and including the requested delimiter. Duplicate entries are omitted from this list.
-
-        .. note::
-          List prefixes (directories) in a bucket using a prefix and delimiter.
-          See a [sample](https://cloud.google.com/storage/docs/samples/storage-list-files-with-prefix#storage_list_files_with_prefix-python)
-          listing objects using a prefix filter.
-
         """
         bucket = self._bucket_arg_to_bucket(bucket_or_name)
 
@@ -1342,12 +1276,7 @@ class Client(ClientWithProject):
         This will not populate the list of blobs available in each
         bucket.
 
-        .. literalinclude:: snippets.py
-            :start-after: START list_buckets
-            :end-before: END list_buckets
-            :dedent: 4
-
-        This implements "storage.buckets.list".
+        See [API reference docs](https://cloud.google.com/storage/docs/json_api/v1/buckets/list) and a [code sample](https://cloud.google.com/storage/docs/samples/storage-list-buckets#storage_list_buckets-python).
 
         :type max_results: int
         :param max_results: (Optional) The maximum number of buckets to return.
@@ -1405,7 +1334,8 @@ class Client(ClientWithProject):
             project = self.project
 
         # Use no project if STORAGE_EMULATOR_HOST is set
-        if _BASE_STORAGE_URI not in _get_storage_host():
+        _is_emulator_set = _get_storage_host() != _DEFAULT_STORAGE_HOST
+        if _is_emulator_set:
             if project is None:
                 project = _get_environ_project()
             if project is None:
@@ -1606,7 +1536,7 @@ class Client(ClientWithProject):
         service_account_email=None,
         access_token=None,
     ):
-        """Generate a V4 signed policy object.
+        """Generate a V4 signed policy object. Generated policy object allows user to upload objects with a POST request.
 
         .. note::
 
@@ -1615,7 +1545,7 @@ class Client(ClientWithProject):
             ``credentials`` has a ``service_account_email`` property which
             identifies the credentials.
 
-        Generated policy object allows user to upload objects with a POST request.
+        See a [code sample](https://github.com/googleapis/python-storage/blob/main/samples/snippets/storage_generate_signed_post_policy_v4.py).
 
         :type bucket_name: str
         :param bucket_name: Bucket name.
@@ -1663,28 +1593,6 @@ class Client(ClientWithProject):
 
         :rtype: dict
         :returns: Signed POST policy.
-
-        Example:
-            Generate signed POST policy and upload a file.
-
-            >>> import datetime
-            >>> from google.cloud import storage
-            >>> client = storage.Client()
-            >>> tz = datetime.timezone(datetime.timedelta(hours=1), 'CET')
-            >>> policy = client.generate_signed_post_policy_v4(
-                "bucket-name",
-                "blob-name",
-                expiration=datetime.datetime(2020, 3, 17, tzinfo=tz),
-                conditions=[
-                    ["content-length-range", 0, 255]
-                ],
-                fields=[
-                    "x-goog-meta-hello" => "world"
-                ],
-            )
-            >>> with open("bucket-name", "rb") as f:
-                files = {"file": ("bucket-name", f)}
-                requests.post(policy["url"], data=policy["fields"], files=files)
         """
         credentials = self._credentials if credentials is None else credentials
         ensure_signed_credentials(credentials)
