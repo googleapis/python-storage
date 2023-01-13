@@ -35,7 +35,12 @@ def object_csek_to_cmek(bucket_name, blob_name, encryption_key, kms_key_name):
     source_blob = bucket.blob(blob_name, encryption_key=current_encryption_key)
 
     destination_blob = bucket.blob(blob_name, kms_key_name=kms_key_name)
-    token, rewritten, total = destination_blob.rewrite(source_blob)
+
+    # Optional: set a generation-match precondition to avoid potential race conditions
+    # and data corruptions. The request to rewrite is aborted if the object's
+    # generation number does not match your precondition.
+    destination_blob.reload()
+    token, rewritten, total = destination_blob.rewrite(source_blob, if_generation_match=destination_blob.generation)
 
     while token is not None:
         token, rewritten, total = destination_blob.rewrite(source_blob, token=token)

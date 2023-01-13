@@ -45,9 +45,14 @@ def rotate_encryption_key(
 
     token = None
 
+    # Optional: set a generation-match precondition to avoid potential race conditions
+    # and data corruptions. The request to rewrite is aborted if the object's
+    # generation number does not match your precondition.
+    destination_blob.reload()
+
     while True:
         token, bytes_rewritten, total_bytes = destination_blob.rewrite(
-            source_blob, token=token
+            source_blob, token=token, if_generation_match=destination_blob.generation
         )
         if token is None:
             break

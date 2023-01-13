@@ -304,7 +304,7 @@ def test_set_blob_metadata(test_blob, capsys):
 
 
 def test_delete_blob(test_blob):
-    storage_delete_file.delete_blob(test_blob.bucket.name, test_blob.name, test_blob.generation)
+    storage_delete_file.delete_blob(test_blob.bucket.name, test_blob.name)
 
 
 def test_make_blob_public(test_public_blob):
@@ -560,9 +560,10 @@ def test_storage_compose_file(test_bucket):
         blob = test_bucket.blob(source)
         blob.upload_from_string(source)
 
+    dest_generation_match = 0
     with tempfile.NamedTemporaryFile() as dest_file:
         destination = storage_compose_file.compose_file(
-            test_bucket.name, source_files[0], source_files[1], dest_file.name
+            test_bucket.name, source_files[0], source_files[1], dest_file.name, dest_generation_match
         )
         composed = destination.download_as_string()
 

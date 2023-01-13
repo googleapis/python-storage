@@ -38,11 +38,10 @@ def move_blob(bucket_name, blob_name, destination_bucket_name, destination_blob_
     source_blob = source_bucket.blob(blob_name)
     destination_bucket = storage_client.bucket(destination_bucket_name)
 
-    # Optional:
-    # Set a generation-match precondition to avoid potential race conditions
+    # Optional: set a generation-match precondition to avoid potential race conditions
     # and data corruptions. The request is aborted if the object's
     # generation number does not match your precondition. For a destination
-    # object that does not yet exist, set the ifGenerationMatch precondition to 0.
+    # object that does not yet exist, set the if_generation_match precondition to 0.
     # If the destination object already exists in your bucket, set instead a
     # generation-match precondition using its generation number.
     blob_copy = source_bucket.copy_blob(
