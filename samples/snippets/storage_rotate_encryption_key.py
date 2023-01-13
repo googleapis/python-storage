@@ -42,17 +42,17 @@ def rotate_encryption_key(
     destination_blob = bucket.blob(
         blob_name, encryption_key=new_encryption_key
     )
-
     token = None
 
     # Optional: set a generation-match precondition to avoid potential race conditions
     # and data corruptions. The request to rewrite is aborted if the object's
     # generation number does not match your precondition.
-    destination_blob.reload()
+    source_blob.reload()
+    generation_match_precondition = source_blob.generation
 
     while True:
         token, bytes_rewritten, total_bytes = destination_blob.rewrite(
-            source_blob, token=token, if_generation_match=destination_blob.generation
+            source_blob, token=token, if_generation_match=generation_match_precondition
         )
         if token is None:
             break

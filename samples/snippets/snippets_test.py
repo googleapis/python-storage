@@ -235,14 +235,17 @@ def test_upload_blob_from_stream(test_bucket, capsys):
 
 
 def test_upload_blob_with_kms(test_bucket):
+    generation_match_precondition = 0
+    blob_name = f"test_upload_with_kms_{uuid.uuid4().hex}"
     with tempfile.NamedTemporaryFile() as source_file:
         source_file.write(b"test")
         storage_upload_with_kms_key.upload_blob_with_kms(
-            test_bucket.name, source_file.name, "test_upload_blob_encrypted", KMS_KEY
+            test_bucket.name, source_file.name, blob_name, KMS_KEY, generation_match_precondition,
         )
         bucket = storage.Client().bucket(test_bucket.name)
-        kms_blob = bucket.get_blob("test_upload_blob_encrypted")
+        kms_blob = bucket.get_blob(blob_name)
         assert kms_blob.kms_key_name.startswith(KMS_KEY)
+    test_bucket.delete_blob(blob_name)
 
 
 def test_async_upload(bucket, capsys):
