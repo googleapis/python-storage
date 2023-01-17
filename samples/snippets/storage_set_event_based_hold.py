@@ -29,8 +29,12 @@ def set_event_based_hold(bucket_name, blob_name):
     bucket = storage_client.bucket(bucket_name)
     blob = bucket.blob(blob_name)
 
+    # Optional: set a metageneration-match precondition to avoid potential race
+    # conditions and data corruptions. The request to patch is aborted if the
+    # object's metageneration does not match your precondition.
+    blob.reload()
     blob.event_based_hold = True
-    blob.patch()
+    blob.patch(if_metageneration_match=blob.metageneration)
 
     print(f"Event based hold was set for {blob_name}")
 

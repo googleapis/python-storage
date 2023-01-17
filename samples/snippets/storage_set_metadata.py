@@ -30,7 +30,11 @@ def set_blob_metadata(bucket_name, blob_name):
     blob = bucket.get_blob(blob_name)
     metadata = {'color': 'Red', 'name': 'Test'}
     blob.metadata = metadata
-    blob.patch()
+
+    # Optional: set a metageneration-match precondition to avoid potential race
+    # conditions and data corruptions. The request to patch is aborted if the
+    # object's metageneration does not match your precondition.
+    blob.patch(if_metageneration_match=blob.metageneration)
 
     print(f"The metadata for the blob {blob.name} is {blob.metadata}")
 
