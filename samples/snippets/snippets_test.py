@@ -546,9 +546,10 @@ def test_define_bucket_website_configuration(test_bucket):
 
 
 def test_object_get_kms_key(test_bucket):
+    generation_match_precondition = 0
     with tempfile.NamedTemporaryFile() as source_file:
         storage_upload_with_kms_key.upload_blob_with_kms(
-            test_bucket.name, source_file.name, "test_upload_blob_encrypted", KMS_KEY
+            test_bucket.name, source_file.name, "test_upload_blob_encrypted", KMS_KEY, generation_match_precondition,
         )
     kms_key = storage_object_get_kms_key.object_get_kms_key(
         test_bucket.name, "test_upload_blob_encrypted"
