@@ -21,14 +21,13 @@ from google.cloud import storage
 
 
 def upload_blob_with_kms(
-    bucket_name, source_file_name, destination_blob_name, kms_key_name, generation_match_precondition,
+    bucket_name, source_file_name, destination_blob_name, kms_key_name,
 ):
     """Uploads a file to the bucket, encrypting it with the given KMS key."""
     # bucket_name = "your-bucket-name"
     # source_file_name = "local/path/to/file"
     # destination_blob_name = "storage-object-name"
     # kms_key_name = "projects/PROJ/locations/LOC/keyRings/RING/cryptoKey/KEY"
-    # generation_match_precondition = 0
 
     storage_client = storage.Client()
     bucket = storage_client.bucket(bucket_name)
@@ -40,6 +39,8 @@ def upload_blob_with_kms(
     # object that does not yet exist, set the if_generation_match precondition to 0.
     # If the destination object already exists in your bucket, set instead a
     # generation-match precondition using its generation number.
+    generation_match_precondition = 0
+
     blob.upload_from_filename(source_file_name, if_generation_match=generation_match_precondition)
 
     print(

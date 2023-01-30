@@ -40,6 +40,7 @@ def upload_blob(bucket_name, source_file_name, destination_blob_name):
     # If the destination object already exists in your bucket, set instead a
     # generation-match precondition using its generation number.
     generation_match_precondition = 0
+
     blob.upload_from_filename(source_file_name, if_generation_match=generation_match_precondition)
 
     print(

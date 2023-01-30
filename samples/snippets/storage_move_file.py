@@ -20,7 +20,7 @@ import sys
 from google.cloud import storage
 
 
-def move_blob(bucket_name, blob_name, destination_bucket_name, destination_blob_name, destination_blob_generation_match,):
+def move_blob(bucket_name, blob_name, destination_bucket_name, destination_blob_name,):
     """Moves a blob from one bucket to another with a new name."""
     # The ID of your GCS bucket
     # bucket_name = "your-bucket-name"
@@ -30,7 +30,6 @@ def move_blob(bucket_name, blob_name, destination_bucket_name, destination_blob_
     # destination_bucket_name = "destination-bucket-name"
     # The ID of your new GCS object (optional)
     # destination_blob_name = "destination-object-name"
-    # destination_blob_generation_match = 0
 
     storage_client = storage.Client()
 
@@ -44,8 +43,11 @@ def move_blob(bucket_name, blob_name, destination_bucket_name, destination_blob_
     # object that does not yet exist, set the if_generation_match precondition to 0.
     # If the destination object already exists in your bucket, set instead a
     # generation-match precondition using its generation number.
+    # There is also an `if_source_generation_match` parameter, which is not used in this example.
+    destination_generation_match_precondition = 0
+
     blob_copy = source_bucket.copy_blob(
-        source_blob, destination_bucket, destination_blob_name, if_generation_match=destination_blob_generation_match
+        source_blob, destination_bucket, destination_blob_name, if_generation_match=destination_generation_match_precondition,
     )
     source_bucket.delete_blob(blob_name)
 

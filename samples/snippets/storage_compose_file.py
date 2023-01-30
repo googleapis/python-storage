@@ -20,13 +20,12 @@ import sys
 from google.cloud import storage
 
 
-def compose_file(bucket_name, first_blob_name, second_blob_name, destination_blob_name, destination_generation_match_precondition):
+def compose_file(bucket_name, first_blob_name, second_blob_name, destination_blob_name):
     """Concatenate source blobs into destination blob."""
     # bucket_name = "your-bucket-name"
     # first_blob_name = "first-object-name"
     # second_blob_name = "second-blob-name"
     # destination_blob_name = "destination-object-name"
-    # destination_generation_match_precondition = 0
 
     storage_client = storage.Client()
     bucket = storage_client.bucket(bucket_name)
@@ -34,7 +33,7 @@ def compose_file(bucket_name, first_blob_name, second_blob_name, destination_blo
     destination.content_type = "text/plain"
 
     # Note sources is a list of Blob instances, up to the max of 32 instances per request
-    sources = [bucket.get_blob(first_blob_name), bucket.get_blob(second_blob_name)]
+    sources = [bucket.blob(first_blob_name), bucket.blob(second_blob_name)]
 
     # Optional: set a generation-match precondition to avoid potential race conditions
     # and data corruptions. The request to compose is aborted if the object's
@@ -42,6 +41,9 @@ def compose_file(bucket_name, first_blob_name, second_blob_name, destination_blo
     # object that does not yet exist, set the if_generation_match precondition to 0.
     # If the destination object already exists in your bucket, set instead a
     # generation-match precondition using its generation number.
+    # There is also an `if_source_generation_match` parameter, which is not used in this example.
+    destination_generation_match_precondition = 0
+
     destination.compose(sources, if_generation_match=destination_generation_match_precondition)
 
     print(

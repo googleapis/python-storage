@@ -47,7 +47,6 @@ def test_generate_encryption_key(capsys):
 
 
 def test_upload_encrypted_blob():
-    generation_match_precondition = 0
     blob_name = f"test_upload_encrypted_{uuid.uuid4().hex}"
     with tempfile.NamedTemporaryFile() as source_file:
         source_file.write(b"test")
@@ -57,7 +56,6 @@ def test_upload_encrypted_blob():
             source_file.name,
             blob_name,
             TEST_ENCRYPTION_KEY,
-            generation_match_precondition,
         )
     bucket = storage.Client().bucket(BUCKET)
     bucket.delete_blob(blob_name)
