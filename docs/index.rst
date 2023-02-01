@@ -8,6 +8,15 @@
    :class:`multiprocessing.Pool` or :class:`multiprocessing.Process` invokes
    :func:`os.fork`.
 
+Guides
+------
+.. toctree::
+  :maxdepth: 2
+
+  acl_guide
+  generation_metageneration
+  retry_timeout
+
 API Reference
 -------------
 .. toctree::
