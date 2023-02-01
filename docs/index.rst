@@ -13,7 +13,17 @@ API Reference
 .. toctree::
   :maxdepth: 2
 
-  storage/modules
+  storage/acl
+  storage/batch
+  storage/blob
+  storage/bucket
+  storage/client
+  storage/constants
+  storage/fileio
+  storage/hmac_key
+  storage/notification
+  storage/retry
+
 
 More Examples
 -------------
