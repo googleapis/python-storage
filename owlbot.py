@@ -51,6 +51,11 @@ s.move(
     ],
 )
 
+# ----------------------------------------------------------------------------
+# build.sh-related changes
+# ----------------------------------------------------------------------------
+
+# Allow testing in non-prod environment (#883)
 s.replace(
     ".kokoro/build.sh",
     "export PYTHONUNBUFFERED=1",
@@ -65,6 +70,17 @@ export API_VERSION_OVERRIDE
 # Export dual region locations
 export DUAL_REGION_LOC_1
 export DUAL_REGION_LOC_2""")
+
+# Enable FlakyBot only for continuous testing in prod
+s.replace(
+    ".kokoro/build.sh",
+    """# If this is a continuous build, send the test log to the FlakyBot.
+# See https://github.com/googleapis/repo-automation-bots/tree/main/packages/flakybot.
+if [[ $KOKORO_BUILD_ARTIFACTS_SUBDIR = *"continuous"* ]]; then""",
+    """# If this is a continuous build in prod, send the test log to the FlakyBot.
+# See https://github.com/googleapis/repo-automation-bots/tree/main/packages/flakybot.
+if [[ $KOKORO_BUILD_ARTIFACTS_SUBDIR = *"continuous"* ]] &&
+      [[$KOKORO_BUILD_ARTIFACTS_SUBDIR != *"preprod"* ]]; then""")
 
 python.py_samples(skip_readmes=True)
 
