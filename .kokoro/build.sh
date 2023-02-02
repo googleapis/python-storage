@@ -50,9 +50,10 @@ python3 -m pip uninstall --yes --quiet nox-automation
 python3 -m pip install --upgrade --quiet nox
 python3 -m nox --version
 
-# If this is a continuous build, send the test log to the FlakyBot.
+# If this is a continuous build in prod, send the test log to the FlakyBot.
 # See https://github.com/googleapis/repo-automation-bots/tree/main/packages/flakybot.
-if [[ $KOKORO_BUILD_ARTIFACTS_SUBDIR = *"continuous"* ]]; then
+if [[ $KOKORO_BUILD_ARTIFACTS_SUBDIR = *"continuous"* ]] && \
+      [[$KOKORO_BUILD_ARTIFACTS_SUBDIR != *"preprod"* ]]; then
   cleanup() {
     chmod +x $KOKORO_GFILE_DIR/linux_amd64/flakybot
     $KOKORO_GFILE_DIR/linux_amd64/flakybot
