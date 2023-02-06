@@ -74,12 +74,8 @@ export DUAL_REGION_LOC_2""")
 # Enable FlakyBot only for continuous testing in prod
 s.replace(
     ".kokoro/build.sh",
-    """# If this is a continuous build, send the test log to the FlakyBot.
-# See https://github.com/googleapis/repo-automation-bots/tree/main/packages/flakybot.
-if [[ $KOKORO_BUILD_ARTIFACTS_SUBDIR = *"continuous"* ]]; then""",
-    """# If this is a continuous build in prod, send the test log to the FlakyBot.
-# See https://github.com/googleapis/repo-automation-bots/tree/main/packages/flakybot.
-if [[ $KOKORO_BUILD_ARTIFACTS_SUBDIR = *"continuous"* ]] &&
+    'if [[ $KOKORO_BUILD_ARTIFACTS_SUBDIR = *"continuous"* ]]; then',
+    """if [[ $KOKORO_BUILD_ARTIFACTS_SUBDIR = *"continuous"* ]] &&
       [[$KOKORO_BUILD_ARTIFACTS_SUBDIR != *"preprod"* ]]; then""")
 
 python.py_samples(skip_readmes=True)
