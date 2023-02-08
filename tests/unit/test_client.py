@@ -1640,7 +1640,7 @@ class TestClient(unittest.TestCase):
         )
 
     def test_download_blob_to_file_with_failure(self):
-        from google.resumable_media import InvalidResponse
+        from google.cloud.storage.resumable_media import InvalidResponse
         from google.cloud.storage.blob import Blob
         from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 

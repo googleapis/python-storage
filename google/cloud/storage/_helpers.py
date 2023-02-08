@@ -23,7 +23,7 @@ import os
 from urllib.parse import urlsplit
 from uuid import uuid4
 
-from google import resumable_media
+from google.cloud.storage import resumable_media
 from google.auth import environment_vars
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 from google.cloud.storage.retry import DEFAULT_RETRY
@@ -558,7 +558,7 @@ def _bucket_bound_hostname_url(host, scheme=None):
 
 
 def _api_core_retry_to_resumable_media_retry(retry, num_retries=None):
-    """Convert google.api.core.Retry to google.resumable_media.RetryStrategy.
+    """Convert google.api.core.Retry to google.cloud.storage.resumable_media.RetryStrategy.
 
     Custom predicates are not translated.
 
@@ -570,7 +570,7 @@ def _api_core_retry_to_resumable_media_retry(retry, num_retries=None):
         supported for backwards compatibility and is mutually exclusive with
         `retry`.
 
-    :rtype: google.resumable_media.RetryStrategy
+    :rtype: google.cloud.storage.resumable_media.RetryStrategy
     :returns: A RetryStrategy with all applicable attributes copied from input,
               or a RetryStrategy with max_retries set to 0 if None was input.
     """
