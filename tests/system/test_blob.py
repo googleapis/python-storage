@@ -23,7 +23,7 @@ import warnings
 import pytest
 import mock
 
-from google import resumable_media
+from google.cloud.storage import resumable_media
 from google.api_core import exceptions
 from google.cloud.storage._helpers import _base64_md5hash
 from . import _helpers
@@ -88,7 +88,7 @@ def test_large_file_write_from_stream_w_failed_checksum(
     with open(info["path"], "rb") as file_obj:
 
         with mock.patch(
-            "google.resumable_media._helpers.prepare_checksum_digest",
+            "google.cloud.storage.resumable_media._helpers.prepare_checksum_digest",
             return_value="FFFFFF==",
         ):
             with pytest.raises(resumable_media.DataCorruption):
@@ -174,7 +174,7 @@ def test_small_file_write_from_filename_with_failed_checksum(
     # Intercept the digest processing at the last stage and replace
     # it with garbage
     with mock.patch(
-        "google.resumable_media._helpers.prepare_checksum_digest",
+        "google.cloud.storage.resumable_media._helpers.prepare_checksum_digest",
         return_value="FFFFFF==",
     ):
         with pytest.raises(exceptions.BadRequest):
@@ -589,7 +589,7 @@ def test_blob_download_w_failed_crc32c_checksum(
         # mock a remote interface like a unit test would.
         # The remote API is still exercised.
         with mock.patch(
-            "google.resumable_media._helpers.prepare_checksum_digest",
+            "google.cloud.storage.resumable_media._helpers.prepare_checksum_digest",
             return_value="FFFFFF==",
         ):
             with pytest.raises(resumable_media.DataCorruption):
