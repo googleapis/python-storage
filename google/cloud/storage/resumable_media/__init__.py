@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Utilities for Google Media Downloads and Resumable Uploads.
+"""Utilities for Google Cloud Storage Resumable Media Downloads and Uploads.
 
-This package has some general purposes modules, e.g.
-:mod:`~google.resumable_media.common`, but the majority of the
-public interface will be contained in subpackages.
+This sub-package has some general purposes modules, e.g.
+:mod:`~google.cloud.storage.resumable_media.common`, but the majority of the
+public interface will be contained in the `requests` subpackage.
 
 ===========
 Subpackages
@@ -24,22 +24,10 @@ Subpackages
 
 Each subpackage is tailored to a specific transport library:
 
-* the :mod:`~google.resumable_media.requests` subpackage uses the ``requests``
+* the :mod:`~google.cloud.storage.resumable_media.requests` subpackage uses the ``requests``
   transport library.
 
 .. _requests: http://docs.python-requests.org/
-
-==========
-Installing
-==========
-
-To install with `pip`_:
-
-.. code-block:: console
-
-  $ pip install --upgrade google-resumable-media
-
-.. _pip: https://pip.pypa.io/
 """
 
 

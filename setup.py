@@ -31,7 +31,7 @@ dependencies = [
     "google-auth >= 1.25.0, < 3.0dev",
     "google-api-core >= 1.31.5, <3.0.0dev,!=2.0.*,!=2.1.*,!=2.2.*,!=2.3.0",
     "google-cloud-core >= 2.3.0, < 3.0dev",
-    'google-crc32c >= 1.0, < 2.0dev',
+    "google-crc32c >= 1.0, < 2.0dev",
     "requests >= 2.18.0, < 3.0.0dev",
 ]
 extras = {"protobuf": ["protobuf<5.0.0dev"]}

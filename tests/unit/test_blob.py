@@ -2407,23 +2407,35 @@ class Test_Blob(unittest.TestCase):
             "POST", upload_url, data=payload, headers=headers, timeout=expected_timeout
         )
 
-    @mock.patch("google.cloud.storage.resumable_media._upload.get_boundary", return_value=b"==0==")
+    @mock.patch(
+        "google.cloud.storage.resumable_media._upload.get_boundary",
+        return_value=b"==0==",
+    )
     def test__do_multipart_upload_no_size(self, mock_get_boundary):
         self._do_multipart_success(mock_get_boundary, predefined_acl="private")
 
-    @mock.patch("google.cloud.storage.resumable_media._upload.get_boundary", return_value=b"==0==")
+    @mock.patch(
+        "google.cloud.storage.resumable_media._upload.get_boundary",
+        return_value=b"==0==",
+    )
     def test__do_multipart_upload_no_size_retry(self, mock_get_boundary):
         self._do_multipart_success(
             mock_get_boundary, predefined_acl="private", retry=DEFAULT_RETRY
         )
 
-    @mock.patch("google.cloud.storage.resumable_media._upload.get_boundary", return_value=b"==0==")
+    @mock.patch(
+        "google.cloud.storage.resumable_media._upload.get_boundary",
+        return_value=b"==0==",
+    )
     def test__do_multipart_upload_no_size_num_retries(self, mock_get_boundary):
         self._do_multipart_success(
             mock_get_boundary, predefined_acl="private", num_retries=2
         )
 
-    @mock.patch("google.cloud.storage.resumable_media._upload.get_boundary", return_value=b"==0==")
+    @mock.patch(
+        "google.cloud.storage.resumable_media._upload.get_boundary",
+        return_value=b"==0==",
+    )
     def test__do_multipart_upload_no_size_retry_conflict(self, mock_get_boundary):
         with self.assertRaises(ValueError):
             self._do_multipart_success(
@@ -2433,22 +2445,34 @@ class Test_Blob(unittest.TestCase):
                 retry=DEFAULT_RETRY,
             )
 
-    @mock.patch("google.cloud.storage.resumable_media._upload.get_boundary", return_value=b"==0==")
+    @mock.patch(
+        "google.cloud.storage.resumable_media._upload.get_boundary",
+        return_value=b"==0==",
+    )
     def test__do_multipart_upload_no_size_mtls(self, mock_get_boundary):
         self._do_multipart_success(
             mock_get_boundary, predefined_acl="private", mtls=True
         )
 
-    @mock.patch("google.cloud.storage.resumable_media._upload.get_boundary", return_value=b"==0==")
+    @mock.patch(
+        "google.cloud.storage.resumable_media._upload.get_boundary",
+        return_value=b"==0==",
+    )
     def test__do_multipart_upload_with_size(self, mock_get_boundary):
         self._do_multipart_success(mock_get_boundary, size=10)
 
-    @mock.patch("google.cloud.storage.resumable_media._upload.get_boundary", return_value=b"==0==")
+    @mock.patch(
+        "google.cloud.storage.resumable_media._upload.get_boundary",
+        return_value=b"==0==",
+    )
     def test__do_multipart_upload_with_user_project(self, mock_get_boundary):
         user_project = "user-project-123"
         self._do_multipart_success(mock_get_boundary, user_project=user_project)
 
-    @mock.patch("google.cloud.storage.resumable_media._upload.get_boundary", return_value=b"==0==")
+    @mock.patch(
+        "google.cloud.storage.resumable_media._upload.get_boundary",
+        return_value=b"==0==",
+    )
     def test__do_multipart_upload_with_kms(self, mock_get_boundary):
         kms_resource = (
             "projects/test-project-123/"
@@ -2458,7 +2482,10 @@ class Test_Blob(unittest.TestCase):
         )
         self._do_multipart_success(mock_get_boundary, kms_key_name=kms_resource)
 
-    @mock.patch("google.cloud.storage.resumable_media._upload.get_boundary", return_value=b"==0==")
+    @mock.patch(
+        "google.cloud.storage.resumable_media._upload.get_boundary",
+        return_value=b"==0==",
+    )
     def test__do_multipart_upload_with_kms_with_version(self, mock_get_boundary):
         kms_resource = (
             "projects/test-project-123/"
@@ -2469,34 +2496,52 @@ class Test_Blob(unittest.TestCase):
         )
         self._do_multipart_success(mock_get_boundary, kms_key_name=kms_resource)
 
-    @mock.patch("google.cloud.storage.resumable_media._upload.get_boundary", return_value=b"==0==")
+    @mock.patch(
+        "google.cloud.storage.resumable_media._upload.get_boundary",
+        return_value=b"==0==",
+    )
     def test__do_multipart_upload_with_retry(self, mock_get_boundary):
         self._do_multipart_success(mock_get_boundary, retry=DEFAULT_RETRY)
 
-    @mock.patch("google.cloud.storage.resumable_media._upload.get_boundary", return_value=b"==0==")
+    @mock.patch(
+        "google.cloud.storage.resumable_media._upload.get_boundary",
+        return_value=b"==0==",
+    )
     def test__do_multipart_upload_with_generation_match(self, mock_get_boundary):
         self._do_multipart_success(
             mock_get_boundary, if_generation_match=4, if_metageneration_match=4
         )
 
-    @mock.patch("google.cloud.storage.resumable_media._upload.get_boundary", return_value=b"==0==")
+    @mock.patch(
+        "google.cloud.storage.resumable_media._upload.get_boundary",
+        return_value=b"==0==",
+    )
     def test__do_multipart_upload_with_custom_timeout(self, mock_get_boundary):
         self._do_multipart_success(mock_get_boundary, timeout=9.58)
 
-    @mock.patch("google.cloud.storage.resumable_media._upload.get_boundary", return_value=b"==0==")
+    @mock.patch(
+        "google.cloud.storage.resumable_media._upload.get_boundary",
+        return_value=b"==0==",
+    )
     def test__do_multipart_upload_with_generation_not_match(self, mock_get_boundary):
         self._do_multipart_success(
             mock_get_boundary, if_generation_not_match=4, if_metageneration_not_match=4
         )
 
-    @mock.patch("google.cloud.storage.resumable_media._upload.get_boundary", return_value=b"==0==")
+    @mock.patch(
+        "google.cloud.storage.resumable_media._upload.get_boundary",
+        return_value=b"==0==",
+    )
     def test__do_multipart_upload_with_client(self, mock_get_boundary):
         transport = self._mock_transport(http.client.OK, {})
         client = mock.Mock(_http=transport, _connection=_Connection, spec=["_http"])
         client._connection.API_BASE_URL = "https://storage.googleapis.com"
         self._do_multipart_success(mock_get_boundary, client=client)
 
-    @mock.patch("google.cloud.storage.resumable_media._upload.get_boundary", return_value=b"==0==")
+    @mock.patch(
+        "google.cloud.storage.resumable_media._upload.get_boundary",
+        return_value=b"==0==",
+    )
     def test__do_multipart_upload_with_metadata(self, mock_get_boundary):
         self._do_multipart_success(mock_get_boundary, metadata={"test": "test"})
 
