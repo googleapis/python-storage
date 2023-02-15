@@ -16,10 +16,15 @@
 
 import concurrent.futures
 
+import io
 import os
 import warnings
+import copy
+import pickle
+import copyreg
 
 from google.api_core import exceptions
+from google.cloud.storage import Client
 
 warnings.warn(
     "The module `transfer_manager` is a preview feature. Functionality and API "
@@ -499,3 +504,83 @@ def download_many_to_path(
         deadline=deadline,
         raise_exception=raise_exception,
     )
+
+def download_chunks_concurrently_to_filename(
+    blob,
+    filename,
+    chunk_size=DEFAULT_CHUNK_SIZE,
+    download_kwargs=None,
+    max_workers=None,
+    deadline=None,
+):
+
+    if download_kwargs is None:
+        download_kwargs = {}
+    # We must know the size of the object, and the generation.
+    if not blob.size or not blob.generation:
+        blob.reload()
+
+    pickled_blob = _pickle_blob(blob)
+
+    futures = []
+
+    with concurrent.futures.ProcessPoolExecutor(max_workers=max_workers) as executor:
+        cursor = 0
+        while cursor < blob.size:
+            start = cursor
+            cursor = min(cursor + chunk_size, blob.size)
+            futures.append(
+                executor.submit(
+                    _download_and_write_chunk_in_place,
+                    pickled_blob,
+                    filename,
+                    start=start,
+                    end=cursor - 1,
+                    download_kwargs=download_kwargs,
+                )
+            )
+
+    concurrent.futures.wait(
+        futures, timeout=deadline, return_when=concurrent.futures.ALL_COMPLETED
+    )
+    
+    # TODO: this was copied from download_many, fix later
+    results = []
+    for future in futures:
+        results.append(future.result())
+    return results
+
+def _download_and_write_chunk_in_place(pickled_blob, filename, start, end, download_kwargs):
+    blob = pickle.loads(pickled_blob)
+
+    f = open(filename, "wb")
+    f.seek(start)
+    return blob.download_to_file(f, start=start, end=end, **download_kwargs)
+
+
+def _reduce_client(cl):
+    """Replicate a Client by constructing a new one with the same params."""
+    project = cl.project
+    credentials = cl._credentials
+    _http=None  # Can't carry this over
+    client_info = cl._initial_client_info
+    client_options = cl._initial_client_options
+    from google.cloud.storage import Client
+    return Client, (project, credentials, _http, client_info, client_options,)
+
+
+def _pickle_blob(blob):
+    """Pickle a Blob (and its Bucket and Client) and return a bytestring."""
+
+    # We need a custom pickler to process Client objects, which are attached to
+    # Buckets (and therefore to Blobs in turn). Unfortunately,
+    # the Python multiprocessing library doesn't seem to have a good way to
+    # use a custom pickler, and using copyreg will mutate global state and
+    # affect code outside of the client library. Instead, we'll pre-pickle the
+    # object and pass the bytestring in.
+    f = io.BytesIO()
+    p = pickle.Pickler(f)
+    p.dispatch_table = copyreg.dispatch_table.copy()
+    p.dispatch_table[Client] = _reduce_client
+    p.dump(blob)
+    return f.getvalue()
