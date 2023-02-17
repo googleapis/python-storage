@@ -122,5 +122,44 @@ Constants used across IAM roles:
 Constants used across IAM permissions:
 ::::::::::::::::::::::::::::::::::::::
 
-- ``STORAGE_BUCKETS_CREATE = "storage.buckets.create``
+- ``STORAGE_BUCKETS_CREATE = "storage.buckets.create"``
   corresponds to permission that can create buckets.
+
+- ``STORAGE_BUCKETS_DELETE = "storage.buckets.delete"``
+  corresponds to permission that can delete buckets.
+
+- ``STORAGE_BUCKETS_GET = "storage.buckets.get"``
+  corresponds to permission that can read bucket metadata, excluding ACLs.
+
+- ``STORAGE_BUCKETS_LIST = "storage.buckets.list"``
+  corresponds to permission that can list buckets.
+
+- ``STORAGE_BUCKETS_GET_IAM_POLICY = "storage.buckets.getIamPolicy"``
+  corresponds to permission that can read bucket ACLs.
+
+- ``STORAGE_BUCKETS_SET_IAM_POLICY = "storage.buckets.setIamPolicy"``
+  corresponds to permission that can update bucket ACLs.
+
+- ``STORAGE_BUCKETS_UPDATE = "storage.buckets.update"``
+  corresponds to permission that can update buckets, excluding ACLS.
+
+- ``STORAGE_OBJECTS_CREATE = "storage.objects.create"``
+  corresponds to permission that can add new objects to a bucket.
+
+- ``STORAGE_OBJECTS_DELETE = "storage.objects.delete"``
+  corresponds to permission that can delete objects.
+
+- ``STORAGE_OBJECTS_GET = "storage.objects.get"``
+  corresponds to permission that can read object data / metadata, excluding ACLs.
+
+- ``STORAGE_OBJECTS_LIST = "storage.objects.list"``
+  corresponds to permission that can list objects in a bucket.
+
+- ``STORAGE_OBJECTS_GET_IAM_POLICY = "storage.objects.getIamPolicy"``
+  corresponds to permission that can read object ACLs.
+
+- ``STORAGE_OBJECTS_SET_IAM_POLICY = "storage.objects.setIamPolicy"``
+  corresponds to permission that can update object ACLs.
+
+- ``STORAGE_OBJECTS_UPDATE = "storage.objects.update"``
+  corresponds to permission that can update object metadata, excluding ACLs.
