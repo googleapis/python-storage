@@ -14,34 +14,27 @@
 
 """Transfer Manager profiling script. This is not an officially supported Google product."""
 
-import csv
-import logging
 import time
 
-from google.cloud import storage
 from google.cloud.storage import transfer_manager
-from . import _perf_utils as _pu
+
+import benchmarking as bm
+import _perf_utils as _pu
 
 
-### PERFORMANCE PROFILING SETUP ###
-TIMESTAMP = time.strftime("%Y%m%d-%H%M%S")
-
-client = storage.Client()
-if not client.bucket(TIMESTAMP).exists():
-    BUCKET = client.create_bucket(TIMESTAMP)
-
-
-# Profiles a test where multiple objects are uploaded in parallel to a bucket.
-def profile_upload_many():
+def profile_upload_many(args):
+    """Profiles a test where multiple objects are uploaded in parallel to a bucket."""
     # Generate random directory and retrieve all file paths
-    directory_info = _pu.generate_random_directory(_pu.DEFAULT_NUM_SAMPLES, _pu.DEFAULT_MIN_SIZE, _pu.DEFAULT_MAX_SIZE, _pu.DEFAULT_BASE_DIR)
+    directory_info = _pu.generate_random_directory(args.num_samples, args.min_size, args.max_size, _pu.DEFAULT_BASE_DIR)
     file_paths = directory_info["paths"]
+    bucket = _pu.get_bucket_instance(args.b)
+    num_threads = args.t
 
     start_time = time.monotonic_ns()
     transfer_manager.upload_many_from_filenames(
-        BUCKET,
+        bucket,
         file_paths,
-        threads=2,
+        threads=num_threads,
     )
     end_time = time.monotonic_ns()
 
@@ -53,7 +46,7 @@ def profile_upload_many():
     _pu.cleanup_directory_tree(_pu.DEFAULT_BASE_DIR)
     res = {
         "ApiName": _pu.DEFAULT_API,
-        "RunID": TIMESTAMP,
+        "RunID": _pu.TIMESTAMP,
         "CpuTimeUs": _pu.NOT_SUPPORTED,
         "AppBufferSize": _pu.NOT_SUPPORTED,
         "LibBufferSize": _pu.DEFAULT_LIB_BUFFER_SIZE,
@@ -69,21 +62,24 @@ def profile_upload_many():
     return _pu.results_to_csv(res)
 
 
-# Profiles a test where multiple objects are downloaded in parallel from a bucket.
-def profile_download_many():
+
+def profile_download_many(args):
+    """Profiles a test where multiple objects are downloaded in parallel from a bucket."""
     # Generate random directory and retrieve all blob names
-    directory_info = _pu.generate_random_directory(_pu.DEFAULT_NUM_SAMPLES, _pu.DEFAULT_MIN_SIZE, _pu.DEFAULT_MAX_SIZE, _pu.DEFAULT_BASE_DIR)
+    directory_info = _pu.generate_random_directory(args.num_samples, args.min_size, args.max_size, _pu.DEFAULT_BASE_DIR)
     file_paths = directory_info["paths"]
+    bucket = _pu.get_bucket_instance(args.b)
+    num_threads = args.t
     transfer_manager.upload_many_from_filenames(
-        BUCKET,
+        bucket,
         file_paths,
-        threads=2,
+        threads=num_threads,
     )
-    blob_names = [blob.name for blob in BUCKET.list_blobs()]
+    blob_names = [blob.name for blob in bucket.list_blobs()]
 
     start_time = time.monotonic_ns()
     transfer_manager.download_many_to_path(
-        BUCKET,
+        bucket,
         blob_names,
         threads=2,
     )
@@ -97,7 +93,7 @@ def profile_download_many():
     _pu.cleanup_directory_tree(_pu.DEFAULT_BASE_DIR)
     res = {
         "ApiName": _pu.DEFAULT_API,
-        "RunID": TIMESTAMP,
+        "RunID": _pu.TIMESTAMP,
         "CpuTimeUs": _pu.NOT_SUPPORTED,
         "AppBufferSize": _pu.NOT_SUPPORTED,
         "LibBufferSize": _pu.DEFAULT_LIB_BUFFER_SIZE,
@@ -113,23 +109,15 @@ def profile_download_many():
     return _pu.results_to_csv(res)
 
 
-def main():
-    # Entry point to run Transfer Manager profiling
-    results = profile_download_many()
+def run_profile_upload_many(args):
+    """This is a wrapper used with the main benchmarking framework."""
+    results = []
+    results.append(profile_upload_many(args))
+    return results
 
-    # Output to CSV file
-    csv_file = f"tm_profiling_{TIMESTAMP}.csv"
-    with open(csv_file, "w") as file:
-        writer = csv.writer(file)
-        writer.writerow(_pu.HEADER)
-        writer.writerow(results)
 
-    print(f"Succesfully ran benchmarking. Please find your output log at {csv_file}")
-
-    # Cleanup and delete bucket
-    try:
-        BUCKET.delete(force=True)
-    except Exception as e:
-        logging.exception(f"Caught an exception while deleting bucket\n {e}")
-
-main()
+def run_profile_download_many(args):
+    """This is a wrapper used with the main benchmarking framework."""
+    results = []
+    results.append(profile_download_many(args))
+    return results

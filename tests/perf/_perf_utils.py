@@ -21,6 +21,8 @@ import shutil
 import time
 import uuid
 
+from google.cloud import storage
+
 ##### DEFAULTS & CONSTANTS #####
 HEADER = [
     "Op",
@@ -42,13 +44,14 @@ DEFAULT_MIN_SIZE = 4  # 5 KiB
 DEFAULT_MAX_SIZE = 5120  # 2 GiB
 DEFAULT_NUM_SAMPLES = 10
 DEFAULT_NUM_PROCESSES = 16
+DEFAULT_NUM_THREADS = 1
 DEFAULT_LIB_BUFFER_SIZE = 104857600  # https://github.com/googleapis/python-storage/blob/main/google/cloud/storage/blob.py#L135
 NOT_SUPPORTED = -1
 DEFAULT_BASE_DIR = "tm-perf-metrics"
 DEFAULT_CREATE_SUBDIR_PROBABILITY = 0.1
 
 
-### helper methods ###
+##### UTILITY METHODS #####
 
 def weighted_random_boolean(create_subdir_probability):
     return random.uniform(0.0, 1.0) <= create_subdir_probability
@@ -79,7 +82,6 @@ def generate_random_directory(max_objects, min_file_size, max_file_size, base_di
             directory_info["total_size_in_bytes"] += rand_size
             directory_info["paths"].append(os.path.join(file_path, file_name))     
     
-    print(directory_info)
     return directory_info
 
 def results_to_csv(res):
@@ -155,3 +157,10 @@ def cleanup_file(file_path):
         os.remove(file_path)
     except Exception as e:
         logging.exception(f"Caught an exception while deleting local file\n {e}")
+
+def get_bucket_instance(bucket_name):
+    client = storage.Client()
+    bucket = client.bucket(bucket_name)
+    if not bucket.exists():
+        client.create_bucket(bucket)
+    return bucket
