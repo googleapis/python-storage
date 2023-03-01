@@ -59,14 +59,62 @@ def main(args):
     p = multiprocessing.Pool(num_processes)
     pool_output = p.map(benchmark_runner, [args for _ in range(args.num_samples)])
 
-    # Output to CSV file
-    with open(args.o, "w") as file:
-        writer = csv.writer(file)
-        writer.writerow(_pu.HEADER)
+    output_type = args.output_type
+    # Output to Cloud Monitoring
+    if output_type == "cloud-monitoring":
+        SB_SIZE_THRESHOLD_BYTES = 1048576
+        bucketName = args.b
         for result in pool_output:
-            for row in result:
-                writer.writerow(row)
-    print(f"Succesfully ran benchmarking. Please find your output log at {args.o}")
+            for res in result:
+                # Handle failed runs
+                if res.get("Status") != ["OK"]:
+                    # do something such as log error
+                    continue
+
+                # Log successful benchmark results, aka res["Status"] == ["OK"]
+                # If the object size is greater than the defined threshold, report in MiB/s, otherwise report in KiB/s.
+                object_size = res.get("ObjectSize")
+                elapsed_time_us = res.get("ElapsedTimeUs")
+                if object_size >= SB_SIZE_THRESHOLD_BYTES:
+                    throughput = object_size / 1024 / 1024 / (elapsed_time_us / 1_000_000)
+                else:
+                    throughput = object_size / 1024 / (elapsed_time_us / 1_000_000)
+
+                cloud_monitoring_output = (
+                    "throughput{"+
+                    "timestamp='{}',".format(_pu.TIMESTAMP)+
+                    "library='python-storage',"+
+                    "api='{}',".format(res.get("ApiName"))+
+                    "op='{}',".format(res.get("Op"))+
+                    "object_size='{}',".format(res.get("ObjectSize"))+
+                    "transfer_offset='0',"+
+                    "transfer_size='{}',".format(res.get("ObjectSize"))+
+                    "app_buffer_size='{}',".format(res.get("AppBufferSize"))+
+                    "crc32c_enabled='{}',".format(res.get("Crc32cEnabled"))+
+                    "md5_enabled='{}',".format(res.get("MD5Enabled"))+
+                    "elapsed_time_us='{}',".format(res.get("ElapsedTimeUs"))+
+                    "cpu_time_us='{}',".format(res.get("CpuTimeUs"))+
+                    "elapsedmicroseconds='{}',".format(res.get("ElapsedTimeUs"))+
+                    "peer='',"+
+                    f"bucket_name='{bucketName}',"+
+                    "object_name='',"+
+                    "generation='',"+
+                    "upload_id='',"+
+                    "retry_count='',"+
+                    "status_code=''}"
+                    f"{throughput}"
+                )
+                print(cloud_monitoring_output)
+    elif output_type == "csv":
+        # Output to CSV file
+        with open(args.o, "w") as file:
+            writer = csv.writer(file)
+            writer.writerow(_pu.HEADER)
+            for result in pool_output:
+                for row in result:
+                    writer.writerow(_pu.results_to_csv(row))
+        print(f"Succesfully ran benchmarking. Please find your output log at {args.o}")
+
 
     # Cleanup and delete bucket
     try:
@@ -121,6 +169,12 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--r", type=str, default=_pu.DEFAULT_BUCKET_LOCATION, help="Bucket location"
+    )
+    parser.add_argument(
+        "--output_type",
+        type=str,
+        default="csv",
+        help="Ouput format, csv or cloud-monitoring",
     )
     parser.add_argument(
         "--o",

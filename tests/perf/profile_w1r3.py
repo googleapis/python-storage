@@ -86,19 +86,7 @@ def log_performance(func):
     if res["Op"] == "READ":
         res["Op"] += f"[{num}]"
 
-    return [
-        res["Op"],
-        res["ObjectSize"],
-        res["AppBufferSize"],
-        res["LibBufferSize"],
-        res["Crc32cEnabled"],
-        res["MD5Enabled"],
-        res["ApiName"],
-        res["ElapsedTimeUs"],
-        res["CpuTimeUs"],
-        res["Status"],
-        res["RunID"],
-    ]
+    return res
 
 
 def WRITE(bucket, blob_name, checksum, size, **kwargs):

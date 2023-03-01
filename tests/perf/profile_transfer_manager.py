@@ -14,6 +14,7 @@
 
 """Transfer Manager profiling script. This is not an officially supported Google product."""
 
+import logging
 import time
 
 from google.cloud.storage import transfer_manager
@@ -59,7 +60,7 @@ def profile_upload_many(args):
     res["Crc32cEnabled"] = checksum == "crc32c"
     res["MD5Enabled"] = checksum == "md5"
 
-    return _pu.results_to_csv(res)
+    return res
 
 
 
@@ -106,18 +107,40 @@ def profile_download_many(args):
     res["Crc32cEnabled"] = checksum == "crc32c"
     res["MD5Enabled"] = checksum == "md5"
 
-    return _pu.results_to_csv(res)
+    return res
 
 
 def run_profile_upload_many(args):
     """This is a wrapper used with the main benchmarking framework."""
     results = []
-    results.append(profile_upload_many(args))
+    try:
+        res = profile_upload_many(args)
+    except Exception as e:
+        logging.exception(
+            f"Caught an exception while running operation profile_upload_many\n {e}"
+        )
+        res["Status"] = ["FAIL"]
+    else:
+        res["Status"] = ["OK"]
+
+    # res = _pu.results_to_csv(res)
+    results.append(res)
     return results
 
 
 def run_profile_download_many(args):
     """This is a wrapper used with the main benchmarking framework."""
     results = []
-    results.append(profile_download_many(args))
+    try:
+        res = profile_download_many(args)
+    except Exception as e:
+        logging.exception(
+            f"Caught an exception while running operation profile_download_many\n {e}"
+        )
+        res["Status"] = ["FAIL"]
+    else:
+        res["Status"] = ["OK"]
+
+    # res = _pu.results_to_csv(res)
+    results.append(res)
     return results

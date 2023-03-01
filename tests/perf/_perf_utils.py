@@ -86,16 +86,16 @@ def generate_random_directory(max_objects, min_file_size, max_file_size, base_di
 
 def results_to_csv(res):
     return [
-        res["Op"],
-        res["ObjectSize"],
-        res["AppBufferSize"],
-        res["LibBufferSize"],
-        res["Crc32cEnabled"],
-        res["MD5Enabled"],
-        res["ApiName"],
-        res["ElapsedTimeUs"],
-        res["CpuTimeUs"],
-        res["Status"],
+        res.get("Op", None),
+        res.get("ObjectSize", None),
+        res.get("AppBufferSize", None),
+        res.get("LibBufferSize", None),
+        res.get("Crc32cEnabled", None),
+        res.get("MD5Enabled", None),
+        res.get("ApiName", None),
+        res.get("ElapsedTimeUs", None),
+        res.get("CpuTimeUs", None),
+        res.get("Status", None),
     ]
 
 def log_performance(func, elapsed_time, checksum=None, api=DEFAULT_API, lib_buffer_size=DEFAULT_LIB_BUFFER_SIZE, cputime=NOT_SUPPORTED, app_buffer_size=NOT_SUPPORTED):
