@@ -1,21 +1,12 @@
-Python Client for Google Cloud Storage
-======================================
+Python Client for Google Cloud Storage API
+==========================================
 
 |stable| |pypi| |versions|
 
-`Google Cloud Storage`_ is a managed service for storing unstructured data. Cloud Storage
-allows world-wide storage and retrieval of any amount of data at any time. You can use
-Cloud Storage for a range of scenarios including serving website content, storing data
-for archival and disaster recovery, or distributing large data objects to users via direct download.
-
-A comprehensive list of changes in each version may be found in the `CHANGELOG`_.
+`Google Cloud Storage API`_: is a durable and highly available object storage service. Google Cloud Storage is almost infinitely scalable and guarantees consistency: when a write succeeds, the latest copy of the object will be returned to any GET, globally.
 
 - `Client Library Documentation`_
 - `Product Documentation`_
-- `github.com/googleapis/python-storage`_
-
-Read more about the client libraries for Cloud APIs, including the older
-Google APIs Client Libraries, in `Client Libraries Explained`_.
 
 .. |stable| image:: https://img.shields.io/badge/support-stable-gold.svg
    :target: https://github.com/googleapis/google-cloud-python/blob/main/README.rst#stability-levels
@@ -23,12 +14,9 @@ Google APIs Client Libraries, in `Client Libraries Explained`_.
    :target: https://pypi.org/project/google-cloud-storage/
 .. |versions| image:: https://img.shields.io/pypi/pyversions/google-cloud-storage.svg
    :target: https://pypi.org/project/google-cloud-storage/
-.. _Google Cloud Storage: https://cloud.google.com/storage
+.. _Google Cloud Storage API: https://cloud.google.com/storage
 .. _Client Library Documentation: https://cloud.google.com/python/docs/reference/storage/latest
 .. _Product Documentation:  https://cloud.google.com/storage
-.. _CHANGELOG:  https://github.com/googleapis/python-storage/blob/main/CHANGELOG.md
-.. _github.com/googleapis/python-storage: https://github.com/googleapis/python-storage
-.. _Client Libraries Explained: https://cloud.google.com/apis/docs/client-libraries-explained
 
 Quick Start
 -----------
@@ -43,7 +31,7 @@ In order to use this library, you first need to go through the following steps:
 .. _Select or create a Cloud Platform project.: https://console.cloud.google.com/project
 .. _Enable billing for your project.: https://cloud.google.com/billing/docs/how-to/modify-project#enable_billing_for_a_project
 .. _Enable the Google Cloud Storage API.:  https://cloud.google.com/storage
-.. _Setup Authentication.: https://cloud.google.com/docs/authentication/client-libraries
+.. _Setup Authentication.: https://googleapis.dev/python/google-api-core/latest/auth.html
 
 Installation
 ~~~~~~~~~~~~
@@ -62,9 +50,7 @@ dependencies.
 Code samples and snippets
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Code samples and snippets live in the `samples/`_ folder.
-
-.. _`samples/`: https://github.com/googleapis/python-storage/tree/main/samples
+Code samples and snippets live in the `samples/` folder.
 
 
 Supported Python Versions
