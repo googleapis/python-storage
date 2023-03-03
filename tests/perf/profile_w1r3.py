@@ -12,12 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Performance benchmarking script. This is not an officially supported Google product."""
+"""Workload W1R3 profiling script. This is not an officially supported Google product."""
 
-import argparse
-import csv
 import logging
-import multiprocessing
 import os
 import random
 import time
@@ -27,42 +24,18 @@ from functools import partial, update_wrapper
 
 from google.cloud import storage
 
-
-##### DEFAULTS & CONSTANTS #####
-HEADER = [
-    "Op",
-    "ObjectSize",
-    "AppBufferSize",
-    "LibBufferSize",
-    "Crc32cEnabled",
-    "MD5Enabled",
-    "ApiName",
-    "ElapsedTimeUs",
-    "CpuTimeUs",
-    "Status",
-    "RunID",
-]
-CHECKSUM = ["md5", "crc32c", None]
-TIMESTAMP = time.strftime("%Y%m%d-%H%M%S")
-DEFAULT_API = "JSON"
-DEFAULT_BUCKET_LOCATION = "US"
-DEFAULT_MIN_SIZE = 5120  # 5 KiB
-DEFAULT_MAX_SIZE = 2147483648  # 2 GiB
-DEFAULT_NUM_SAMPLES = 1000
-DEFAULT_NUM_PROCESSES = 16
-DEFAULT_LIB_BUFFER_SIZE = 104857600  # https://github.com/googleapis/python-storage/blob/main/google/cloud/storage/blob.py#L135
-NOT_SUPPORTED = -1
+import _perf_utils as _pu
 
 
 def log_performance(func):
     """Log latency and throughput output per operation call."""
     # Holds benchmarking results for each operation
     res = {
-        "ApiName": DEFAULT_API,
-        "RunID": TIMESTAMP,
-        "CpuTimeUs": NOT_SUPPORTED,
-        "AppBufferSize": NOT_SUPPORTED,
-        "LibBufferSize": DEFAULT_LIB_BUFFER_SIZE,
+        "ApiName": _pu.DEFAULT_API,
+        "RunID": _pu.TIMESTAMP,
+        "CpuTimeUs": _pu.NOT_SUPPORTED,
+        "AppBufferSize": _pu.NOT_SUPPORTED,
+        "LibBufferSize": _pu.DEFAULT_LIB_BUFFER_SIZE,
     }
 
     try:
@@ -72,7 +45,7 @@ def log_performance(func):
             f"Caught an exception while running operation {func.__name__}\n {e}"
         )
         res["Status"] = ["FAIL"]
-        elapsed_time = NOT_SUPPORTED
+        elapsed_time = _pu.NOT_SUPPORTED
     else:
         res["Status"] = ["OK"]
 
@@ -152,11 +125,11 @@ def _generate_func_list(bucket_name, min_size, max_size):
     """Generate Write-1-Read-3 workload."""
     # generate randmon size in bytes using a uniform distribution
     size = random.randrange(min_size, max_size)
-    blob_name = f"{TIMESTAMP}-{uuid.uuid4().hex}"
+    blob_name = f"{_pu.TIMESTAMP}-{uuid.uuid4().hex}"
 
     # generate random checksumming type: md5, crc32c or None
     idx_checksum = random.choice([0, 1, 2])
-    checksum = CHECKSUM[idx_checksum]
+    checksum = _pu.CHECKSUM[idx_checksum]
 
     func_list = [
         _wrapped_partial(
@@ -188,75 +161,3 @@ def benchmark_runner(args):
         results.append(log_performance(func))
 
     return results
-
-
-def main(args):
-    # Create a storage bucket to run benchmarking
-    client = storage.Client()
-    if not client.bucket(args.b).exists():
-        bucket = client.create_bucket(args.b, location=args.r)
-
-    # Launch benchmark_runner using multiprocessing
-    p = multiprocessing.Pool(args.p)
-    pool_output = p.map(benchmark_runner, [args for _ in range(args.num_samples)])
-
-    # Output to CSV file
-    with open(args.o, "w") as file:
-        writer = csv.writer(file)
-        writer.writerow(HEADER)
-        for result in pool_output:
-            for row in result:
-                writer.writerow(row)
-    print(f"Succesfully ran benchmarking. Please find your output log at {args.o}")
-
-    # Cleanup and delete bucket
-    try:
-        bucket.delete(force=True)
-    except Exception as e:
-        logging.exception(f"Caught an exception while deleting bucket\n {e}")
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--min_size",
-        type=int,
-        default=DEFAULT_MIN_SIZE,
-        help="Minimum object size in bytes",
-    )
-    parser.add_argument(
-        "--max_size",
-        type=int,
-        default=DEFAULT_MAX_SIZE,
-        help="Maximum object size in bytes",
-    )
-    parser.add_argument(
-        "--num_samples",
-        type=int,
-        default=DEFAULT_NUM_SAMPLES,
-        help="Number of iterations",
-    )
-    parser.add_argument(
-        "--p",
-        type=int,
-        default=DEFAULT_NUM_PROCESSES,
-        help="Number of processes- multiprocessing enabled",
-    )
-    parser.add_argument(
-        "--r", type=str, default=DEFAULT_BUCKET_LOCATION, help="Bucket location"
-    )
-    parser.add_argument(
-        "--o",
-        type=str,
-        default=f"benchmarking{TIMESTAMP}.csv",
-        help="File to output results to",
-    )
-    parser.add_argument(
-        "--b",
-        type=str,
-        default=f"benchmarking{TIMESTAMP}",
-        help="Storage bucket name",
-    )
-    args = parser.parse_args()
-
-    main(args)

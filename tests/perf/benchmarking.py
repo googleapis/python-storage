@@ -15,12 +15,11 @@
 """Performance benchmarking main script. This is not an officially supported Google product."""
 
 import argparse
-import csv
 import logging
 import multiprocessing
 
-
 from google.cloud import storage
+
 import _perf_utils as _pu
 import profile_transfer_manager as tm
 import profile_w1r3 as w1r3
@@ -34,7 +33,7 @@ PROFILE_TM_DOWNLOAD_MANY = "download_many"
 
 def main(args):
     print(f"Start benchmarking main script")
-    # Create a storage bucket to run benchmarking
+    # Create a storage bucket to run benchmarking.
     client = storage.Client()
     if not client.bucket(args.b).exists():
         bucket = client.create_bucket(args.b, location=args.r)
@@ -56,67 +55,19 @@ def main(args):
         benchmark_runner = w1r3.benchmark_runner
         print(f"A total of {num_processes} processes are created to run benchmarking {test_type}")
 
+    # Allow multiprocessing to speed up benchmarking tests; Defaults to 1 for no concurrency.
     p = multiprocessing.Pool(num_processes)
     pool_output = p.map(benchmark_runner, [args for _ in range(args.num_samples)])
 
+    # Output to Cloud Monitoring or CSV file.
     output_type = args.output_type
-    # Output to Cloud Monitoring
     if output_type == "cloud-monitoring":
-        SB_SIZE_THRESHOLD_BYTES = 1048576
-        bucketName = args.b
-        for result in pool_output:
-            for res in result:
-                # Handle failed runs
-                if res.get("Status") != ["OK"]:
-                    # do something such as log error
-                    continue
-
-                # Log successful benchmark results, aka res["Status"] == ["OK"]
-                # If the object size is greater than the defined threshold, report in MiB/s, otherwise report in KiB/s.
-                object_size = res.get("ObjectSize")
-                elapsed_time_us = res.get("ElapsedTimeUs")
-                if object_size >= SB_SIZE_THRESHOLD_BYTES:
-                    throughput = object_size / 1024 / 1024 / (elapsed_time_us / 1_000_000)
-                else:
-                    throughput = object_size / 1024 / (elapsed_time_us / 1_000_000)
-
-                cloud_monitoring_output = (
-                    "throughput{"+
-                    "timestamp='{}',".format(_pu.TIMESTAMP)+
-                    "library='python-storage',"+
-                    "api='{}',".format(res.get("ApiName"))+
-                    "op='{}',".format(res.get("Op"))+
-                    "object_size='{}',".format(res.get("ObjectSize"))+
-                    "transfer_offset='0',"+
-                    "transfer_size='{}',".format(res.get("ObjectSize"))+
-                    "app_buffer_size='{}',".format(res.get("AppBufferSize"))+
-                    "crc32c_enabled='{}',".format(res.get("Crc32cEnabled"))+
-                    "md5_enabled='{}',".format(res.get("MD5Enabled"))+
-                    "elapsed_time_us='{}',".format(res.get("ElapsedTimeUs"))+
-                    "cpu_time_us='{}',".format(res.get("CpuTimeUs"))+
-                    "elapsedmicroseconds='{}',".format(res.get("ElapsedTimeUs"))+
-                    "peer='',"+
-                    f"bucket_name='{bucketName}',"+
-                    "object_name='',"+
-                    "generation='',"+
-                    "upload_id='',"+
-                    "retry_count='',"+
-                    "status_code=''}"
-                    f"{throughput}"
-                )
-                print(cloud_monitoring_output)
+        _pu.convert_to_cloud_monitoring(args.b, pool_output)
     elif output_type == "csv":
-        # Output to CSV file
-        with open(args.o, "w") as file:
-            writer = csv.writer(file)
-            writer.writerow(_pu.HEADER)
-            for result in pool_output:
-                for row in result:
-                    writer.writerow(_pu.results_to_csv(row))
+        _pu.convert_to_csv(args.o, pool_output)
         print(f"Succesfully ran benchmarking. Please find your output log at {args.o}")
 
-
-    # Cleanup and delete bucket
+    # Cleanup and delete bucket.
     try:
         bucket.delete(force=True)
     except Exception as e:

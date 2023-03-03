@@ -14,6 +14,7 @@
 
 """Performance benchmarking helper methods. This is not an officially supported Google product."""
 
+import csv
 import logging
 import os
 import random
@@ -22,6 +23,7 @@ import time
 import uuid
 
 from google.cloud import storage
+
 
 ##### DEFAULTS & CONSTANTS #####
 HEADER = [
@@ -40,25 +42,31 @@ CHECKSUM = ["md5", "crc32c", None]
 TIMESTAMP = time.strftime("%Y%m%d-%H%M%S")
 DEFAULT_API = "JSON"
 DEFAULT_BUCKET_LOCATION = "US"
-DEFAULT_MIN_SIZE = 4  # 5 KiB
-DEFAULT_MAX_SIZE = 5120  # 2 GiB
-DEFAULT_NUM_SAMPLES = 10
-DEFAULT_NUM_PROCESSES = 16
+DEFAULT_MIN_SIZE = 5120  # 5 KiB
+DEFAULT_MAX_SIZE = 2147483648  # 2 GiB
+DEFAULT_NUM_SAMPLES = 1000
+DEFAULT_NUM_PROCESSES = 1
 DEFAULT_NUM_THREADS = 1
 DEFAULT_LIB_BUFFER_SIZE = 104857600  # https://github.com/googleapis/python-storage/blob/main/google/cloud/storage/blob.py#L135
 NOT_SUPPORTED = -1
 DEFAULT_BASE_DIR = "tm-perf-metrics"
 DEFAULT_CREATE_SUBDIR_PROBABILITY = 0.1
+SSB_SIZE_THRESHOLD_BYTES = 1048576
 
 
 ##### UTILITY METHODS #####
 
+
+# Returns a boolean value with the provided probability.
 def weighted_random_boolean(create_subdir_probability):
     return random.uniform(0.0, 1.0) <= create_subdir_probability
 
+
+# Creates a random file with the given file name, path and size.
 def generate_random_file(file_name, file_path, size):
     with open(os.path.join(file_path, file_name), "wb") as file_obj:
         file_obj.write(os.urandom(size))
+
 
 # Creates a random directory structure consisting of subdirectories and random files.
 # Returns an array of all the generated paths and total size in bytes of all generated files.
@@ -84,6 +92,7 @@ def generate_random_directory(max_objects, min_file_size, max_file_size, base_di
     
     return directory_info
 
+
 def results_to_csv(res):
     return [
         res.get("Op", None),
@@ -98,50 +107,63 @@ def results_to_csv(res):
         res.get("Status", None),
     ]
 
-def log_performance(func, elapsed_time, checksum=None, api=DEFAULT_API, lib_buffer_size=DEFAULT_LIB_BUFFER_SIZE, cputime=NOT_SUPPORTED, app_buffer_size=NOT_SUPPORTED):
-    """Log latency and throughput output per operation call."""
-    # Holds benchmarking results for each operation
-    res = {
-        "ApiName": DEFAULT_API,
-        "RunID": TIMESTAMP,
-        "CpuTimeUs": NOT_SUPPORTED,
-        "AppBufferSize": NOT_SUPPORTED,
-        "LibBufferSize": DEFAULT_LIB_BUFFER_SIZE,
-    }
 
-    try:
-        elapsed_time = func()
-    except Exception as e:
-        logging.exception(
-            f"Caught an exception while running operation {func.__name__}\n {e}"
-        )
-        res["Status"] = ["FAIL"]
-        elapsed_time = NOT_SUPPORTED
-    else:
-        res["Status"] = ["OK"]
+def convert_to_csv(filename, results):
+    with open(filename, "w") as file:
+            writer = csv.writer(file)
+            writer.writerow(HEADER)
+            # Benchmarking main script uses Multiprocessing Pool.map(),
+            # thus results is structured as List[List[Dict[str, any]]].
+            for result in results:
+                for row in result:
+                    writer.writerow(results_to_csv(row))
 
-    checksum = None
-    num = None
-    res["ElapsedTimeUs"] = elapsed_time
-    res["ObjectSize"] = 16
-    res["Crc32cEnabled"] = checksum == "crc32c"
-    res["MD5Enabled"] = checksum == "md5"
-    res["Op"] = func.__name__
-    if res["Op"] == "READ":
-        res["Op"] += f"[{num}]"
 
-    return [
-        res["Op"],
-        res["ObjectSize"],
-        res["AppBufferSize"],
-        res["LibBufferSize"],
-        res["Crc32cEnabled"],
-        res["MD5Enabled"],
-        res["ApiName"],
-        res["ElapsedTimeUs"],
-        res["CpuTimeUs"],
-        res["Status"],
-    ]
+def convert_to_cloud_monitoring(bucket_name, results):
+    # Benchmarking main script uses Multiprocessing Pool.map(),
+    # thus results is structured as List[List[Dict[str, any]]].
+    for result in results:
+        for res in result:
+            # Handle failed runs
+            if res.get("Status") != ["OK"]:
+                # do something such as log error
+                continue
+
+            # Log successful benchmark results, aka res["Status"] == ["OK"]
+            # If the object size is greater than the defined threshold, report in MiB/s, otherwise report in KiB/s.
+            object_size = res.get("ObjectSize")
+            elapsed_time_us = res.get("ElapsedTimeUs")
+            if object_size >= SSB_SIZE_THRESHOLD_BYTES:
+                throughput = object_size / 1024 / 1024 / (elapsed_time_us / 1_000_000)
+            else:
+                throughput = object_size / 1024 / (elapsed_time_us / 1_000_000)
+
+            cloud_monitoring_output = (
+                "throughput{"+
+                "timestamp='{}',".format(TIMESTAMP)+
+                "library='python-storage',"+
+                "api='{}',".format(res.get("ApiName"))+
+                "op='{}',".format(res.get("Op"))+
+                "object_size='{}',".format(res.get("ObjectSize"))+
+                "transfer_offset='0',"+
+                "transfer_size='{}',".format(res.get("ObjectSize"))+
+                "app_buffer_size='{}',".format(res.get("AppBufferSize"))+
+                "crc32c_enabled='{}',".format(res.get("Crc32cEnabled"))+
+                "md5_enabled='{}',".format(res.get("MD5Enabled"))+
+                "elapsed_time_us='{}',".format(res.get("ElapsedTimeUs"))+
+                "cpu_time_us='{}',".format(res.get("CpuTimeUs"))+
+                "elapsedmicroseconds='{}',".format(res.get("ElapsedTimeUs"))+
+                "peer='',"+
+                f"bucket_name='{bucket_name}',"+
+                "object_name='',"+
+                "generation='',"+
+                "upload_id='',"+
+                "retry_count='',"+
+                "status_code=''}"
+                f"{throughput}"
+            )
+            print(cloud_monitoring_output)
+
 
 def cleanup_directory_tree(directory):
     """Clean up directory tree on disk."""
@@ -151,12 +173,14 @@ def cleanup_directory_tree(directory):
         logging.exception(f"Caught an exception while deleting local directory\n {e}")
     print("Successfully removed local directory")
 
+
 def cleanup_file(file_path):
     """Clean up local file on disk."""
     try:
         os.remove(file_path)
     except Exception as e:
         logging.exception(f"Caught an exception while deleting local file\n {e}")
+
 
 def get_bucket_instance(bucket_name):
     client = storage.Client()

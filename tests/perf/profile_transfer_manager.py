@@ -19,7 +19,6 @@ import time
 
 from google.cloud.storage import transfer_manager
 
-import benchmarking as bm
 import _perf_utils as _pu
 
 
@@ -61,7 +60,6 @@ def profile_upload_many(args):
     res["MD5Enabled"] = checksum == "md5"
 
     return res
-
 
 
 def profile_download_many(args):
@@ -123,7 +121,8 @@ def run_profile_upload_many(args):
     else:
         res["Status"] = ["OK"]
 
-    # res = _pu.results_to_csv(res)
+    # Benchmarking main script uses Multiprocessing Pool.map(),
+    # thus we structure results as List[List[Dict[str, any]]].
     results.append(res)
     return results
 
@@ -141,6 +140,7 @@ def run_profile_download_many(args):
     else:
         res["Status"] = ["OK"]
 
-    # res = _pu.results_to_csv(res)
+    # Benchmarking main script uses Multiprocessing Pool.map(),
+    # thus we structure results as List[List[Dict[str, any]]].
     results.append(res)
     return results
