@@ -34,9 +34,13 @@ PROFILE_TM_DOWNLOAD_MANY = "download_many"
 def main(args):
     print(f"Start benchmarking main script")
     # Create a storage bucket to run benchmarking.
-    client = storage.Client()
-    if not client.bucket(args.b).exists():
-        bucket = client.create_bucket(args.b, location=args.r)
+    if args.project is not None:
+        client = storage.Client(project=args.project)
+    else:
+        client = storage.Client()
+
+    if not client.bucket(args.bucket).exists():
+        bucket = client.create_bucket(args.bucket, location=args.bucket_region)
 
     # Define test type and number of processes to run benchmarking.
     # Note that transfer manager tests defaults to using 1 process.
@@ -44,28 +48,28 @@ def main(args):
     test_type = args.test_type
     if test_type == PROFILE_TM_UPLOAD_MANY:
         benchmark_runner = tm.run_profile_upload_many
-        print(f"Running {test_type} benchmarking with {args.t} threads.")
+        print(f"Running {test_type} benchmarking with {args.threads} threads.")
         print(f"Note that Transfer Manager benchmarking defaults to using {num_processes} process.")
     elif test_type == PROFILE_TM_DOWNLOAD_MANY:
         benchmark_runner = tm.run_profile_download_many
-        print(f"Running {test_type} benchmarking with {args.t} threads.")
+        print(f"Running {test_type} benchmarking with {args.threads} threads.")
         print(f"Note that Transfer Manager benchmarking defaults to using {num_processes} process.")
     elif test_type == PROFILE_WRITE_ONE_READ_THREE:
-        num_processes = args.p
+        num_processes = args.workers
         benchmark_runner = w1r3.benchmark_runner
         print(f"A total of {num_processes} processes are created to run benchmarking {test_type}")
 
     # Allow multiprocessing to speed up benchmarking tests; Defaults to 1 for no concurrency.
     p = multiprocessing.Pool(num_processes)
-    pool_output = p.map(benchmark_runner, [args for _ in range(args.num_samples)])
+    pool_output = p.map(benchmark_runner, [args for _ in range(args.samples)])
 
     # Output to Cloud Monitoring or CSV file.
     output_type = args.output_type
     if output_type == "cloud-monitoring":
-        _pu.convert_to_cloud_monitoring(args.b, pool_output)
+        _pu.convert_to_cloud_monitoring(args.bucket, pool_output)
     elif output_type == "csv":
-        _pu.convert_to_csv(args.o, pool_output)
-        print(f"Succesfully ran benchmarking. Please find your output log at {args.o}")
+        _pu.convert_to_csv(args.output_file, pool_output)
+        print(f"Succesfully ran benchmarking. Please find your output log at {args.output_file}")
 
     # Cleanup and delete bucket.
     try:
@@ -76,6 +80,18 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--project",
+        type=str,
+        default=None,
+        help="GCP project identifier",
+    )
+    parser.add_argument(
+        "--api",
+        type=str,
+        default="JSON",
+        help="API to use",
+    )
     parser.add_argument(
         "--test_type",
         type=str,
@@ -95,49 +111,49 @@ if __name__ == "__main__":
         help="Maximum object size in bytes",
     )
     parser.add_argument(
-        "--num_samples",
+        "--samples",
         type=int,
         default=_pu.DEFAULT_NUM_SAMPLES,
-        help="Number of iterations",
+        help="Number of samples to report",
     )
     parser.add_argument(
-        "--p",
+        "--workers",
         type=int,
         default=_pu.DEFAULT_NUM_PROCESSES,
         help="Number of processes- multiprocessing enabled",
     )
     parser.add_argument(
-        "--t",
+        "--threads",
         type=int,
         default=_pu.DEFAULT_NUM_THREADS,
-        help="Number of threads",
+        help="Number of threads- used for profiling Transfer Manager",
     )
     parser.add_argument(
-        "--b",
+        "--bucket",
         type=str,
-        default=f"benchmarking{_pu.TIMESTAMP}",
+        default=_pu.DEFAULT_BUCKET_NAME,
         help="Storage bucket name",
     )
     parser.add_argument(
-        "--r", type=str, default=_pu.DEFAULT_BUCKET_LOCATION, help="Bucket location"
+        "--bucket_region", type=str, default=_pu.DEFAULT_BUCKET_REGION, help="Bucket region"
     )
     parser.add_argument(
         "--output_type",
         type=str,
-        default="csv",
+        default="cloud-monitoring",
         help="Ouput format, csv or cloud-monitoring",
     )
     parser.add_argument(
-        "--o",
+        "--output_file",
         type=str,
-        default=f"output_benchmarks{_pu.TIMESTAMP}.csv",
+        default=_pu.DEFAULT_OUTPUT_FILE,
         help="File to output results to",
     )
     parser.add_argument(
         "--tmp_dir",
         type=str,
         default=_pu.DEFAULT_BASE_DIR ,
-        help="Storage bucket name",
+        help="Temp directory path on file system",
     )
     args = parser.parse_args()
 

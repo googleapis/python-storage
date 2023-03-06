@@ -18,12 +18,19 @@ $ python3 benchmarking.py --num_samples 10000 --max_size 16384
 
 | Parameter | Description | Possible values | Default |
 | --------- | ----------- | --------------- |:-------:|
+| --project | GCP project identifier | a project id| * |
+| --api | API to use | only JSON is currently supported in python benchmarking | `JSON` |
+| --output_type | output results as csv records or cloud monitoring | `csv`, `cloud-monitoring` | `cloud-monitoring` |
 | --min_size | minimum object size in bytes | any positive integer | `5120` (5 KiB) |
 | --max_size | maximum object size in bytes | any positive integer | `2147483648` (2 GiB) |
-| --num_samples | number of W1R3 iterations | any positive integer | `1000` |
-| --r | bucket region for benchmarks | any GCS region | `US` |
-| --p | number of processes (multiprocessing enabled) | any positive integer | 16 (recommend not to exceed 16) |
-| --o | file to output results to | any file path | `benchmarking<TIMESTAMP>.csv` |
+| --samples | number of W1R3 iterations | any positive integer | `8000` |
+| --bucket | storage bucket name | a bucket name | `pybench<TIMESTAMP>` |
+| --bucket_region | bucket region for benchmarks | any GCS region | `US-WEST1` |
+| --workers | number of processes (multiprocessing enabled) | any positive integer | 16 (recommend not to exceed 16) |
+| --threads | number of threads used in Transfer Manager profiling | any positive integer | 16 (recommend 8 or 16 depending on workload) |
+| --test_type | test type to run benchmarking | `w1r3`, `upload_many`, `download_many`  | `upload_many` |
+| --output_file | file to output results to | any file path | `output_bench<TIMESTAMP>.csv` |
+| --tmp_dir | temp directory path on file system | any file path | `tm-perf-metrics` |
 
 
 ## Workload definition and CSV headers

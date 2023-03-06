@@ -157,7 +157,7 @@ def _generate_func_list(bucket_name, min_size, max_size):
 def benchmark_runner(args):
     """Run benchmarking iterations."""
     results = []
-    for func in _generate_func_list(args.b, args.min_size, args.max_size):
+    for func in _generate_func_list(args.bucket, args.min_size, args.max_size):
         results.append(log_performance(func))
 
     return results

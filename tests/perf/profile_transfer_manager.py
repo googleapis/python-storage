@@ -25,10 +25,10 @@ import _perf_utils as _pu
 def profile_upload_many(args):
     """Profiles a test where multiple objects are uploaded in parallel to a bucket."""
     # Generate random directory and retrieve all file paths
-    directory_info = _pu.generate_random_directory(args.num_samples, args.min_size, args.max_size, _pu.DEFAULT_BASE_DIR)
+    directory_info = _pu.generate_random_directory(args.samples, args.min_size, args.max_size, args.tmp_dir)
     file_paths = directory_info["paths"]
-    bucket = _pu.get_bucket_instance(args.b)
-    num_threads = args.t
+    bucket = _pu.get_bucket_instance(args.bucket)
+    num_threads = args.threads
 
     start_time = time.monotonic_ns()
     transfer_manager.upload_many_from_filenames(
@@ -65,10 +65,10 @@ def profile_upload_many(args):
 def profile_download_many(args):
     """Profiles a test where multiple objects are downloaded in parallel from a bucket."""
     # Generate random directory and retrieve all blob names
-    directory_info = _pu.generate_random_directory(args.num_samples, args.min_size, args.max_size, _pu.DEFAULT_BASE_DIR)
+    directory_info = _pu.generate_random_directory(args.samples, args.min_size, args.max_size, args.tmp_dir)
     file_paths = directory_info["paths"]
-    bucket = _pu.get_bucket_instance(args.b)
-    num_threads = args.t
+    bucket = _pu.get_bucket_instance(args.bucket)
+    num_threads = args.threads
     transfer_manager.upload_many_from_filenames(
         bucket,
         file_paths,
