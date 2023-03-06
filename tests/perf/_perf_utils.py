@@ -72,7 +72,13 @@ def generate_random_file(file_name, file_path, size):
 
 # Creates a random directory structure consisting of subdirectories and random files.
 # Returns an array of all the generated paths and total size in bytes of all generated files.
-def generate_random_directory(max_objects, min_file_size, max_file_size, base_dir, create_subdir_probability=DEFAULT_CREATE_SUBDIR_PROBABILITY):
+def generate_random_directory(
+    max_objects,
+    min_file_size,
+    max_file_size,
+    base_dir,
+    create_subdir_probability=DEFAULT_CREATE_SUBDIR_PROBABILITY,
+):
     directory_info = {
         "paths": [],
         "total_size_in_bytes": 0,
@@ -90,8 +96,8 @@ def generate_random_directory(max_objects, min_file_size, max_file_size, base_di
             rand_size = random.randrange(min_file_size, max_file_size)
             generate_random_file(file_name, file_path, rand_size)
             directory_info["total_size_in_bytes"] += rand_size
-            directory_info["paths"].append(os.path.join(file_path, file_name))     
-    
+            directory_info["paths"].append(os.path.join(file_path, file_name))
+
     return directory_info
 
 
@@ -112,13 +118,13 @@ def results_to_csv(res):
 
 def convert_to_csv(filename, results):
     with open(filename, "w") as file:
-            writer = csv.writer(file)
-            writer.writerow(HEADER)
-            # Benchmarking main script uses Multiprocessing Pool.map(),
-            # thus results is structured as List[List[Dict[str, any]]].
-            for result in results:
-                for row in result:
-                    writer.writerow(results_to_csv(row))
+        writer = csv.writer(file)
+        writer.writerow(HEADER)
+        # Benchmarking main script uses Multiprocessing Pool.map(),
+        # thus results is structured as List[List[Dict[str, any]]].
+        for result in results:
+            for row in result:
+                writer.writerow(results_to_csv(row))
 
 
 def convert_to_cloud_monitoring(bucket_name, results):
@@ -141,27 +147,27 @@ def convert_to_cloud_monitoring(bucket_name, results):
                 throughput = object_size / 1024 / (elapsed_time_us / 1_000_000)
 
             cloud_monitoring_output = (
-                "throughput{"+
-                "timestamp='{}',".format(TIMESTAMP)+
-                "library='python-storage',"+
-                "api='{}',".format(res.get("ApiName"))+
-                "op='{}',".format(res.get("Op"))+
-                "object_size='{}',".format(res.get("ObjectSize"))+
-                "transfer_offset='0',"+
-                "transfer_size='{}',".format(res.get("ObjectSize"))+
-                "app_buffer_size='{}',".format(res.get("AppBufferSize"))+
-                "crc32c_enabled='{}',".format(res.get("Crc32cEnabled"))+
-                "md5_enabled='{}',".format(res.get("MD5Enabled"))+
-                "elapsed_time_us='{}',".format(res.get("ElapsedTimeUs"))+
-                "cpu_time_us='{}',".format(res.get("CpuTimeUs"))+
-                "elapsedmicroseconds='{}',".format(res.get("ElapsedTimeUs"))+
-                "peer='',"+
-                f"bucket_name='{bucket_name}',"+
-                "object_name='',"+
-                "generation='',"+
-                "upload_id='',"+
-                "retry_count='',"+
-                "status_code=''}"
+                "throughput{"
+                + "timestamp='{}',".format(TIMESTAMP)
+                + "library='python-storage',"
+                + "api='{}',".format(res.get("ApiName"))
+                + "op='{}',".format(res.get("Op"))
+                + "object_size='{}',".format(res.get("ObjectSize"))
+                + "transfer_offset='0',"
+                + "transfer_size='{}',".format(res.get("ObjectSize"))
+                + "app_buffer_size='{}',".format(res.get("AppBufferSize"))
+                + "crc32c_enabled='{}',".format(res.get("Crc32cEnabled"))
+                + "md5_enabled='{}',".format(res.get("MD5Enabled"))
+                + "elapsed_time_us='{}',".format(res.get("ElapsedTimeUs"))
+                + "cpu_time_us='{}',".format(res.get("CpuTimeUs"))
+                + "elapsedmicroseconds='{}',".format(res.get("ElapsedTimeUs"))
+                + "peer='',"
+                + f"bucket_name='{bucket_name}',"
+                + "object_name='',"
+                + "generation='',"
+                + "upload_id='',"
+                + "retry_count='',"
+                + "status_code=''}"
                 f"{throughput}"
             )
             print(cloud_monitoring_output)

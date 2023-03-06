@@ -26,7 +26,7 @@ import profile_w1r3 as w1r3
 
 
 ##### PROFILE BENCHMARKING TEST TYPES #####
-PROFILE_WRITE_ONE_READ_THREE = 'w1r3'
+PROFILE_WRITE_ONE_READ_THREE = "w1r3"
 PROFILE_TM_UPLOAD_MANY = "upload_many"
 PROFILE_TM_DOWNLOAD_MANY = "download_many"
 
@@ -49,15 +49,21 @@ def main(args):
     if test_type == PROFILE_TM_UPLOAD_MANY:
         benchmark_runner = tm.run_profile_upload_many
         print(f"Running {test_type} benchmarking with {args.threads} threads.")
-        print(f"Note that Transfer Manager benchmarking defaults to using {num_processes} process.")
+        print(
+            f"Note that Transfer Manager benchmarking defaults to using {num_processes} process."
+        )
     elif test_type == PROFILE_TM_DOWNLOAD_MANY:
         benchmark_runner = tm.run_profile_download_many
         print(f"Running {test_type} benchmarking with {args.threads} threads.")
-        print(f"Note that Transfer Manager benchmarking defaults to using {num_processes} process.")
+        print(
+            f"Note that Transfer Manager benchmarking defaults to using {num_processes} process."
+        )
     elif test_type == PROFILE_WRITE_ONE_READ_THREE:
         num_processes = args.workers
         benchmark_runner = w1r3.benchmark_runner
-        print(f"A total of {num_processes} processes are created to run benchmarking {test_type}")
+        print(
+            f"A total of {num_processes} processes are created to run benchmarking {test_type}"
+        )
 
     # Allow multiprocessing to speed up benchmarking tests; Defaults to 1 for no concurrency.
     p = multiprocessing.Pool(num_processes)
@@ -69,7 +75,9 @@ def main(args):
         _pu.convert_to_cloud_monitoring(args.bucket, pool_output)
     elif output_type == "csv":
         _pu.convert_to_csv(args.output_file, pool_output)
-        print(f"Succesfully ran benchmarking. Please find your output log at {args.output_file}")
+        print(
+            f"Succesfully ran benchmarking. Please find your output log at {args.output_file}"
+        )
 
     # Cleanup and delete bucket.
     try:
@@ -135,7 +143,10 @@ if __name__ == "__main__":
         help="Storage bucket name",
     )
     parser.add_argument(
-        "--bucket_region", type=str, default=_pu.DEFAULT_BUCKET_REGION, help="Bucket region"
+        "--bucket_region",
+        type=str,
+        default=_pu.DEFAULT_BUCKET_REGION,
+        help="Bucket region",
     )
     parser.add_argument(
         "--output_type",
@@ -152,7 +163,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--tmp_dir",
         type=str,
-        default=_pu.DEFAULT_BASE_DIR ,
+        default=_pu.DEFAULT_BASE_DIR,
         help="Temp directory path on file system",
     )
     args = parser.parse_args()

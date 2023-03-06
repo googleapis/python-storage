@@ -25,7 +25,9 @@ import _perf_utils as _pu
 def profile_upload_many(args):
     """Profiles a test where multiple objects are uploaded in parallel to a bucket."""
     # Generate random directory and retrieve all file paths
-    directory_info = _pu.generate_random_directory(args.samples, args.min_size, args.max_size, args.tmp_dir)
+    directory_info = _pu.generate_random_directory(
+        args.samples, args.min_size, args.max_size, args.tmp_dir
+    )
     file_paths = directory_info["paths"]
     bucket = _pu.get_bucket_instance(args.bucket)
     num_threads = args.threads
@@ -65,7 +67,9 @@ def profile_upload_many(args):
 def profile_download_many(args):
     """Profiles a test where multiple objects are downloaded in parallel from a bucket."""
     # Generate random directory and retrieve all blob names
-    directory_info = _pu.generate_random_directory(args.samples, args.min_size, args.max_size, args.tmp_dir)
+    directory_info = _pu.generate_random_directory(
+        args.samples, args.min_size, args.max_size, args.tmp_dir
+    )
     file_paths = directory_info["paths"]
     bucket = _pu.get_bucket_instance(args.bucket)
     num_threads = args.threads
