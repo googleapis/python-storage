@@ -560,7 +560,10 @@ def test_download_chunks_concurrently_forced_start_and_end():
             FILENAME,
             chunk_size=CHUNK_SIZE,
             worker_type=transfer_manager.THREAD,
-            download_kwargs={"start": CHUNK_SIZE, "end": CHUNK_SIZE * (MULTIPLE - 1)},
+            download_kwargs={
+                "start": CHUNK_SIZE,
+                "end": (CHUNK_SIZE * (MULTIPLE - 1)) - 1,
+            },
         )
     for x in range(1, MULTIPLE - 1):
         blob_mock.download_to_file.assert_any_call(
@@ -695,9 +698,13 @@ def test__reduce_client():
 def test__call_method_on_maybe_pickled_blob():
     blob = mock.Mock(spec=Blob)
     blob.download_to_file.return_value = "SUCCESS"
-    result = transfer_manager._call_method_on_maybe_pickled_blob(blob, "download_to_file")
+    result = transfer_manager._call_method_on_maybe_pickled_blob(
+        blob, "download_to_file"
+    )
     assert result == "SUCCESS"
 
     pickled_blob = pickle.dumps(_PickleableMockBlob())
-    result = transfer_manager._call_method_on_maybe_pickled_blob(pickled_blob, "download_to_file")
+    result = transfer_manager._call_method_on_maybe_pickled_blob(
+        pickled_blob, "download_to_file"
+    )
     assert result == "SUCCESS"

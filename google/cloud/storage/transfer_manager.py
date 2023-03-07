@@ -810,7 +810,7 @@ def download_chunks_concurrently(
     with pool_class(max_workers=max_workers) as executor:
         cursor = forced_start
         # forced_end is zero-indexed here, so add 1
-        end = min(forced_end+1, blob.size) if forced_end else blob.size
+        end = min(forced_end + 1, blob.size) if forced_end else blob.size
         while cursor < end:
             start = cursor
             cursor = min(cursor + chunk_size, end)
@@ -832,7 +832,7 @@ def download_chunks_concurrently(
 
     # Raise any exceptions. Successful results can be ignored.
     for future in futures:
-        last_result = future.result()
+        future.result()
     return None
 
 
