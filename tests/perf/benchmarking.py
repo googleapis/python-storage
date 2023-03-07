@@ -32,7 +32,7 @@ PROFILE_TM_DOWNLOAD_MANY = "download_many"
 
 
 def main(args):
-    print(f"Start benchmarking main script")
+    print("Start benchmarking main script")
     # Create a storage bucket to run benchmarking.
     if args.project is not None:
         client = storage.Client(project=args.project)
@@ -117,6 +117,24 @@ if __name__ == "__main__":
         type=int,
         default=_pu.DEFAULT_MAX_SIZE,
         help="Maximum object size in bytes",
+    )
+    parser.add_argument(
+        "--range_read_size",
+        type=int,
+        default=0,
+        help="Size of the range to read in bytes",
+    )
+    parser.add_argument(
+        "--minimum_read_offset",
+        type=int,
+        default=0,
+        help="Minimum offset for the start of the range to be read in bytes",
+    )
+    parser.add_argument(
+        "--maximum_read_offset",
+        type=int,
+        default=0,
+        help="Maximum offset for the start of the range to be read in bytes",
     )
     parser.add_argument(
         "--samples",

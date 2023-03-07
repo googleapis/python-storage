@@ -93,7 +93,7 @@ def generate_random_directory(
             directory_info["paths"].append(file_path)
         else:
             file_name = uuid.uuid4().hex
-            rand_size = random.randrange(min_file_size, max_file_size)
+            rand_size = random.randint(min_file_size, max_file_size)
             generate_random_file(file_name, file_path, rand_size)
             directory_info["total_size_in_bytes"] += rand_size
             directory_info["paths"].append(os.path.join(file_path, file_name))
@@ -102,18 +102,10 @@ def generate_random_directory(
 
 
 def results_to_csv(res):
-    return [
-        res.get("Op", None),
-        res.get("ObjectSize", None),
-        res.get("AppBufferSize", None),
-        res.get("LibBufferSize", None),
-        res.get("Crc32cEnabled", None),
-        res.get("MD5Enabled", None),
-        res.get("ApiName", None),
-        res.get("ElapsedTimeUs", None),
-        res.get("CpuTimeUs", None),
-        res.get("Status", None),
-    ]
+    results = []
+    for metric in HEADER:
+        results.append(res.get(metric, -1))
+    return results
 
 
 def convert_to_csv(filename, results):
@@ -152,9 +144,9 @@ def convert_to_cloud_monitoring(bucket_name, results):
                 + "library='python-storage',"
                 + "api='{}',".format(res.get("ApiName"))
                 + "op='{}',".format(res.get("Op"))
-                + "object_size='{}',".format(res.get("ObjectSize"))
-                + "transfer_offset='0',"
-                + "transfer_size='{}',".format(res.get("ObjectSize"))
+                + "object_size='{}',".format(object_size)
+                + "transfer_offset='{}',".format(res.get("TransferOffset", 0))
+                + "transfer_size='{}',".format(res.get("TransferSize", object_size))
                 + "app_buffer_size='{}',".format(res.get("AppBufferSize"))
                 + "crc32c_enabled='{}',".format(res.get("Crc32cEnabled"))
                 + "md5_enabled='{}',".format(res.get("MD5Enabled"))

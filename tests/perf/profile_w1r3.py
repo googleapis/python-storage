@@ -27,42 +27,7 @@ from google.cloud import storage
 import _perf_utils as _pu
 
 
-def log_performance(func):
-    """Log latency and throughput output per operation call."""
-    # Holds benchmarking results for each operation
-    res = {
-        "ApiName": _pu.DEFAULT_API,
-        "RunID": _pu.TIMESTAMP,
-        "CpuTimeUs": _pu.NOT_SUPPORTED,
-        "AppBufferSize": _pu.NOT_SUPPORTED,
-        "LibBufferSize": _pu.DEFAULT_LIB_BUFFER_SIZE,
-    }
-
-    try:
-        elapsed_time = func()
-    except Exception as e:
-        logging.exception(
-            f"Caught an exception while running operation {func.__name__}\n {e}"
-        )
-        res["Status"] = ["FAIL"]
-        elapsed_time = _pu.NOT_SUPPORTED
-    else:
-        res["Status"] = ["OK"]
-
-    checksum = func.keywords.get("checksum")
-    num = func.keywords.get("num", None)
-    res["ElapsedTimeUs"] = elapsed_time
-    res["ObjectSize"] = func.keywords.get("size")
-    res["Crc32cEnabled"] = checksum == "crc32c"
-    res["MD5Enabled"] = checksum == "md5"
-    res["Op"] = func.__name__
-    if res["Op"] == "READ":
-        res["Op"] += f"[{num}]"
-
-    return res
-
-
-def WRITE(bucket, blob_name, checksum, size, **kwargs):
+def WRITE(bucket, blob_name, checksum, size, args, **kwargs):
     """Perform an upload and return latency."""
     blob = bucket.blob(blob_name)
     file_path = f"{os.getcwd()}/{uuid.uuid4().hex}"
@@ -84,16 +49,26 @@ def WRITE(bucket, blob_name, checksum, size, **kwargs):
     return elapsed_time
 
 
-def READ(bucket, blob_name, checksum, **kwargs):
+def READ(bucket, blob_name, checksum, args, **kwargs):
     """Perform a download and return latency."""
     blob = bucket.blob(blob_name)
     if not blob.exists():
         raise Exception("Blob does not exist. Previous WRITE failed.")
 
+    range_read_size = args.range_read_size
+    range_read_offset = kwargs.get("range_read_offset")
+    # Perfor range read if range_read_size is specified, else get full object.
+    if range_read_size != 0:
+        start = range_read_offset
+        end = start + range_read_size - 1
+    else:
+        start = 0
+        end = -1
+
     file_path = f"{os.getcwd()}/{blob_name}"
     with open(file_path, "wb") as file_obj:
         start_time = time.monotonic_ns()
-        blob.download_to_file(file_obj, checksum=checksum)
+        blob.download_to_file(file_obj, checksum=checksum, start=start, end=end)
         end_time = time.monotonic_ns()
 
     elapsed_time = round(
@@ -121,15 +96,22 @@ def _wrapped_partial(func, *args, **kwargs):
     return partial_func
 
 
-def _generate_func_list(bucket_name, min_size, max_size):
+def _generate_func_list(args):
     """Generate Write-1-Read-3 workload."""
-    # generate randmon size in bytes using a uniform distribution
-    size = random.randrange(min_size, max_size)
+    bucket_name = args.bucket
     blob_name = f"{_pu.TIMESTAMP}-{uuid.uuid4().hex}"
+
+    # generate randmon size in bytes using a uniform distribution
+    size = random.randint(args.min_size, args.max_size)
 
     # generate random checksumming type: md5, crc32c or None
     idx_checksum = random.choice([0, 1, 2])
     checksum = _pu.CHECKSUM[idx_checksum]
+
+    # generated random read_offset
+    range_read_offset = random.randint(
+        args.minimum_read_offset, args.maximum_read_offset
+    )
 
     func_list = [
         _wrapped_partial(
@@ -138,6 +120,7 @@ def _generate_func_list(bucket_name, min_size, max_size):
             blob_name,
             size=size,
             checksum=checksum,
+            args=args,
         ),
         *[
             _wrapped_partial(
@@ -146,7 +129,9 @@ def _generate_func_list(bucket_name, min_size, max_size):
                 blob_name,
                 size=size,
                 checksum=checksum,
+                args=args,
                 num=i,
+                range_read_offset=range_read_offset,
             )
             for i in range(3)
         ],
@@ -154,10 +139,57 @@ def _generate_func_list(bucket_name, min_size, max_size):
     return func_list
 
 
+def log_performance(func, args, elapsed_time, status):
+    """Holds benchmarking results per operation call."""
+    size = func.keywords.get("size")
+    checksum = func.keywords.get("checksum")
+    num = func.keywords.get("num", None)
+
+    res = {
+        "Status": status,
+        "ElapsedTimeUs": elapsed_time,
+        "ApiName": args.api,
+        "RunID": _pu.TIMESTAMP,
+        "CpuTimeUs": _pu.NOT_SUPPORTED,
+        "AppBufferSize": _pu.NOT_SUPPORTED,
+        "LibBufferSize": _pu.DEFAULT_LIB_BUFFER_SIZE,
+        "ObjectSize": size,
+        "TransferSize": size,
+        "TransferOffset": 0,
+    }
+
+    res["Crc32cEnabled"] = checksum == "crc32c"
+    res["MD5Enabled"] = checksum == "md5"
+    res["Op"] = func.__name__
+    if res["Op"] == "READ":
+        res["Op"] += f"[{num}]"
+
+        # For range reads (workload 2), record additional outputs
+        range_read_size = args.range_read_size
+        if range_read_size > 0:
+            res["TransferSize"] = range_read_size
+            res["TransferOffset"] = func.keywords.get("range_read_offset", 0)
+
+    return res
+
+
 def benchmark_runner(args):
     """Run benchmarking iterations."""
     results = []
-    for func in _generate_func_list(args.bucket, args.min_size, args.max_size):
-        results.append(log_performance(func))
+
+    for func in _generate_func_list(args):
+        try:
+            elapsed_time = func()
+        except Exception as e:
+            logging.exception(
+                f"Caught an exception while running operation {func.__name__}\n {e}"
+            )
+            status = ["FAIL"]
+            elapsed_time = _pu.NOT_SUPPORTED
+        else:
+            status = ["OK"]
+
+        res = log_performance(func, args, elapsed_time, status)
+        results.append(res)
 
     return results

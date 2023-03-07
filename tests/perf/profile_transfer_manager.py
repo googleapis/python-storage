@@ -115,6 +115,7 @@ def profile_download_many(args):
 def run_profile_upload_many(args):
     """This is a wrapper used with the main benchmarking framework."""
     results = []
+    res = {}
     try:
         res = profile_upload_many(args)
     except Exception as e:
@@ -133,6 +134,7 @@ def run_profile_upload_many(args):
 
 def run_profile_download_many(args):
     """This is a wrapper used with the main benchmarking framework."""
+    res = {}
     results = []
     try:
         res = profile_download_many(args)

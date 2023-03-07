@@ -23,6 +23,9 @@ $ python3 benchmarking.py --num_samples 10000 --max_size 16384
 | --output_type | output results as csv records or cloud monitoring | `csv`, `cloud-monitoring` | `cloud-monitoring` |
 | --min_size | minimum object size in bytes | any positive integer | `5120` (5 KiB) |
 | --max_size | maximum object size in bytes | any positive integer | `2147483648` (2 GiB) |
+| --range_read_size | size of the range to read in bytes | any positive integer <br> <=0 reads the full object | `0` |
+| --minimum_read_offset | minimum offset for the start of the range to be read in bytes | any integer >0 | `0` |
+| --maximum_read_offset | maximum offset for the start of the range to be read in bytes | any integer >0 | `0` |
 | --samples | number of W1R3 iterations | any positive integer | `8000` |
 | --bucket | storage bucket name | a bucket name | `pybench<TIMESTAMP>` |
 | --bucket_region | bucket region for benchmarks | any GCS region | `US-WEST1` |
