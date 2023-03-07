@@ -32,6 +32,7 @@ UPLOAD_KWARGS = {"content-type": FAKE_CONTENT_TYPE}
 FAKE_RESULT = "nothing to see here"
 FAKE_ENCODING = "fake_gzip"
 DOWNLOAD_KWARGS = {"accept-encoding": FAKE_ENCODING}
+CHUNK_SIZE = 8
 
 
 def _validate_blob_token_in_subprocess(
@@ -121,9 +122,7 @@ def test_threads_deprecation_with_upload():
         "concurrent.futures.wait"
     ) as wait_patch:
         transfer_manager.upload_many(
-            FILE_BLOB_PAIRS,
-            deadline=DEADLINE,
-            threads=MAX_WORKERS
+            FILE_BLOB_PAIRS, deadline=DEADLINE, threads=MAX_WORKERS
         )
         pool_patch.assert_called_with(max_workers=MAX_WORKERS)
         wait_patch.assert_called_with(mock.ANY, timeout=DEADLINE, return_when=mock.ANY)
@@ -232,7 +231,6 @@ def test_upload_many_with_processes_rejects_file_obj():
                 upload_kwargs=UPLOAD_KWARGS,
                 worker_type=transfer_manager.PROCESS,
             )
-
 
 
 def test_download_many_with_filenames():
@@ -521,6 +519,132 @@ def test_download_many_to_path_creates_directories():
         assert os.path.isdir(os.path.join(tempdir, DIR_NAME))
 
 
+def test_download_chunks_concurrently():
+    blob_mock = mock.Mock(spec=Blob)
+    FILENAME = "file_a.txt"
+    MULTIPLE = 4
+    blob_mock.size = CHUNK_SIZE * MULTIPLE
+
+    blob_mock.download_to_filename.return_value = FAKE_RESULT
+
+    with mock.patch("__main__.open", mock.mock_open()):
+        result = transfer_manager.download_chunks_concurrently(
+            blob_mock,
+            FILENAME,
+            chunk_size=CHUNK_SIZE,
+            download_kwargs=DOWNLOAD_KWARGS,
+            worker_type=transfer_manager.THREAD,
+        )
+    for x in range(MULTIPLE):
+        blob_mock.download_to_file.assert_any_call(
+            mock.ANY,
+            **DOWNLOAD_KWARGS,
+            start=x * CHUNK_SIZE,
+            end=((x + 1) * CHUNK_SIZE) - 1
+        )
+    assert blob_mock.download_to_file.call_count == 4
+    assert result is None
+
+
+def test_download_chunks_concurrently_forced_start_and_end():
+    blob_mock = mock.Mock(spec=Blob)
+    FILENAME = "file_a.txt"
+    MULTIPLE = 4
+    blob_mock.size = CHUNK_SIZE * MULTIPLE
+
+    blob_mock.download_to_filename.return_value = FAKE_RESULT
+
+    with mock.patch("__main__.open", mock.mock_open()):
+        result = transfer_manager.download_chunks_concurrently(
+            blob_mock,
+            FILENAME,
+            chunk_size=CHUNK_SIZE,
+            worker_type=transfer_manager.THREAD,
+            download_kwargs={"start": CHUNK_SIZE, "end": CHUNK_SIZE * (MULTIPLE - 1)},
+        )
+    for x in range(1, MULTIPLE - 1):
+        blob_mock.download_to_file.assert_any_call(
+            mock.ANY, start=x * CHUNK_SIZE, end=((x + 1) * CHUNK_SIZE) - 1
+        )
+    assert blob_mock.download_to_file.call_count == 2
+    assert result is None
+
+
+def test_download_chunks_concurrently_passes_concurrency_options():
+    blob_mock = mock.Mock(spec=Blob)
+    FILENAME = "file_a.txt"
+    MAX_WORKERS = 7
+    DEADLINE = 10
+    MULTIPLE = 4
+    blob_mock.size = CHUNK_SIZE * MULTIPLE
+
+    with mock.patch("concurrent.futures.ThreadPoolExecutor") as pool_patch, mock.patch(
+        "concurrent.futures.wait"
+    ) as wait_patch, mock.patch("__main__.open", mock.mock_open()):
+        transfer_manager.download_chunks_concurrently(
+            blob_mock,
+            FILENAME,
+            chunk_size=CHUNK_SIZE,
+            deadline=DEADLINE,
+            worker_type=transfer_manager.THREAD,
+            max_workers=MAX_WORKERS,
+        )
+        pool_patch.assert_called_with(max_workers=MAX_WORKERS)
+        wait_patch.assert_called_with(mock.ANY, timeout=DEADLINE, return_when=mock.ANY)
+
+
+class _PickleableMockBlob:
+    def __init__(
+        self,
+        name="",
+        size=None,
+        generation=None,
+        size_after_reload=None,
+        generation_after_reload=None,
+    ):
+        self.name = name
+        self.size = size
+        self.generation = generation
+        self._size_after_reload = size_after_reload
+        self._generation_after_reload = generation_after_reload
+
+    def reload(self):
+        self.size = self._size_after_reload
+        self.generation = self._generation_after_reload
+
+    def download_to_file(self, *args, **kwargs):
+        return "SUCCESS"
+
+
+def _validate_blob_token_in_subprocess_for_chunk(
+    maybe_pickled_blob, filename, **kwargs
+):
+    blob = pickle.loads(maybe_pickled_blob)
+    assert isinstance(blob, _PickleableMockBlob)
+    assert filename.startswith("file")
+    return FAKE_RESULT
+
+
+def test_download_chunks_concurrently_with_processes():
+    blob = _PickleableMockBlob(
+        "file_a_blob", size_after_reload=24, generation_after_reload=100
+    )
+    FILENAME = "file_a.txt"
+
+    with mock.patch(
+        "google.cloud.storage.transfer_manager._download_and_write_chunk_in_place",
+        new=_validate_blob_token_in_subprocess_for_chunk,
+    ), mock.patch("__main__.open", mock.mock_open()):
+        result = transfer_manager.download_chunks_concurrently(
+            blob,
+            FILENAME,
+            chunk_size=CHUNK_SIZE,
+            download_kwargs=DOWNLOAD_KWARGS,
+            worker_type=transfer_manager.PROCESS,
+        )
+    assert result is None
+
+
 def test__LazyClient():
     fake_cache = {}
     MOCK_ID = 9999
@@ -541,3 +665,28 @@ def test__pickle_blob():
     # the system tests, though.
     pkl = transfer_manager._pickle_blob(FAKE_RESULT)
     assert pickle.loads(pkl) == FAKE_RESULT
+
+
+def test__download_and_write_chunk_in_place():
+    pickled_mock = pickle.dumps(_PickleableMockBlob())
+    FILENAME = "file_a.txt"
+    with mock.patch("__main__.open", mock.mock_open()):
+        result = transfer_manager._download_and_write_chunk_in_place(
+            pickled_mock, FILENAME, 0, 0, 8, {}
+        )
+    assert result == "SUCCESS"
+
+
+def test__get_pool_class_and_requirements_error():
+    with pytest.raises(ValueError):
+        transfer_manager._get_pool_class_and_requirements("garbage")
+
+
+def test__reduce_client():
+    fake_cache = {}
+    client = mock.Mock()
+
+    with mock.patch(
+        "google.cloud.storage.transfer_manager._cached_clients", new=fake_cache
+    ), mock.patch("google.cloud.storage.transfer_manager.Client"):
+        transfer_manager._reduce_client(client)

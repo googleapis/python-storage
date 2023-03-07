@@ -685,7 +685,7 @@ def download_many_to_path(
     )
 
 
-def download_chunks_concurrently_to_filename(
+def download_chunks_concurrently(
     blob,
     filename,
     chunk_size=DEFAULT_CHUNK_SIZE,
