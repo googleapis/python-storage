@@ -109,6 +109,12 @@ def upload_many(
         blob.upload_from_filename() for more information. The dict is directly
         passed into the upload methods and is not validated by this function.
 
+    :type threads: int
+    :param threads:
+        ***DEPRECATED*** Sets `worker_type` to THREAD and `max_workers` to the
+        number specified. If `worker_type` or `max_workers` are set explicitly,
+        this parameter should be set to None.
+
     :type deadline: int
     :param deadline:
         The number of seconds to wait for all threads to resolve. If the
@@ -177,18 +183,16 @@ def upload_many(
 
     pool_class, needs_pickling = _get_pool_class_and_requirements(worker_type)
 
-    # File objects are only supported by the THREAD worker because they can't
-    # be pickled. Finding this out at the last moment is inconvenient, so look
-    # ahead and make sure there aren't any of them in there.
-    if needs_pickling:
-        if any(not isinstance(file, str) for file, _ in file_blob_pairs):
-            raise ValueError(
-                "Passing in a file object is only supported by the THREAD worker type. Please either select THREAD workers, or pass in filenames only."
-            )
-
     with pool_class(max_workers=max_workers) as executor:
         futures = []
         for path_or_file, blob in file_blob_pairs:
+            # File objects are only supported by the THREAD worker because they can't
+            # be pickled.
+            if needs_pickling and not isinstance(path_or_file, str):
+                raise ValueError(
+                    "Passing in a file object is only supported by the THREAD worker type. Please either select THREAD workers, or pass in filenames only."
+                )
+
             futures.append(
                 executor.submit(
                     _call_method_on_maybe_pickled_blob,
@@ -254,6 +258,12 @@ def download_many(
         blob.download_to_filename() for more information. The dict is directly
         passed into the download methods and is not validated by this function.
 
+    :type threads: int
+    :param threads:
+        ***DEPRECATED*** Sets `worker_type` to THREAD and `max_workers` to the
+        number specified. If `worker_type` or `max_workers` are set explicitly,
+        this parameter should be set to None.
+
     :type deadline: int
     :param deadline:
         The number of seconds to wait for all threads to resolve. If the
@@ -317,18 +327,16 @@ def download_many(
 
     pool_class, needs_pickling = _get_pool_class_and_requirements(worker_type)
 
-    # File objects are only supported by the THREAD worker because they can't
-    # be pickled. Finding this out at the last moment is inconvenient, so look
-    # ahead and make sure there aren't any of them in there.
-    if needs_pickling:
-        if any(not isinstance(file, str) for _, file in blob_file_pairs):
-            raise ValueError(
-                "Passing in a file object is only supported by the THREAD worker type. Please either select THREAD workers, or pass in filenames only."
-            )
-
     with pool_class(max_workers=max_workers) as executor:
         futures = []
         for blob, path_or_file in blob_file_pairs:
+            # File objects are only supported by the THREAD worker because they can't
+            # be pickled.
+            if needs_pickling and not isinstance(path_or_file, str):
+                raise ValueError(
+                    "Passing in a file object is only supported by the THREAD worker type. Please either select THREAD workers, or pass in filenames only."
+                )
+
             futures.append(
                 executor.submit(
                     _call_method_on_maybe_pickled_blob,
@@ -445,6 +453,12 @@ def upload_many_from_filenames(
         to the documentation for blob.upload_from_file() or
         blob.upload_from_filename() for more information. The dict is directly
         passed into the upload methods and is not validated by this function.
+
+    :type threads: int
+    :param threads:
+        ***DEPRECATED*** Sets `worker_type` to THREAD and `max_workers` to the
+        number specified. If `worker_type` or `max_workers` are set explicitly,
+        this parameter should be set to None.
 
     :type deadline: int
     :param deadline:
@@ -602,6 +616,12 @@ def download_many_to_path(
         to the documentation for blob.download_to_file() or
         blob.download_to_filename() for more information. The dict is directly
         passed into the download methods and is not validated by this function.
+
+    :type threads: int
+    :param threads:
+        ***DEPRECATED*** Sets `worker_type` to THREAD and `max_workers` to the
+        number specified. If `worker_type` or `max_workers` are set explicitly,
+        this parameter should be set to None.
 
     :type deadline: int
     :param deadline:
@@ -789,7 +809,8 @@ def download_chunks_concurrently(
 
     with pool_class(max_workers=max_workers) as executor:
         cursor = forced_start
-        end = min(forced_end, blob.size) if forced_end else blob.size
+        # forced_end is zero-indexed here, so add 1
+        end = min(forced_end+1, blob.size) if forced_end else blob.size
         while cursor < end:
             start = cursor
             cursor = min(cursor + chunk_size, end)
@@ -811,7 +832,7 @@ def download_chunks_concurrently(
 
     # Raise any exceptions. Successful results can be ignored.
     for future in futures:
-        future.result()
+        last_result = future.result()
     return None
 
 

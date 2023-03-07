@@ -690,3 +690,14 @@ def test__reduce_client():
         "google.cloud.storage.transfer_manager._cached_clients", new=fake_cache
     ), mock.patch("google.cloud.storage.transfer_manager.Client"):
         transfer_manager._reduce_client(client)
+
+
+def test__call_method_on_maybe_pickled_blob():
+    blob = mock.Mock(spec=Blob)
+    blob.download_to_file.return_value = "SUCCESS"
+    result = transfer_manager._call_method_on_maybe_pickled_blob(blob, "download_to_file")
+    assert result == "SUCCESS"
+
+    pickled_blob = pickle.dumps(_PickleableMockBlob())
+    result = transfer_manager._call_method_on_maybe_pickled_blob(pickled_blob, "download_to_file")
+    assert result == "SUCCESS"
