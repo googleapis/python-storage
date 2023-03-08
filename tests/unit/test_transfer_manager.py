@@ -38,7 +38,7 @@ CHUNK_SIZE = 8
 # Used in subprocesses only, so excluded from coverage
 def _validate_blob_token_in_subprocess(  # pragma: no cover
     maybe_pickled_blob, method_name, path_or_file, **kwargs
-):  
+):
     assert pickle.loads(maybe_pickled_blob) == BLOB_TOKEN_STRING
     assert method_name.endswith("filename")
     assert path_or_file.startswith("file")
