@@ -27,6 +27,7 @@ import profile_w1r3 as w1r3
 
 ##### PROFILE BENCHMARKING TEST TYPES #####
 PROFILE_WRITE_ONE_READ_THREE = "w1r3"
+PROFILE_RANGE_READ = "range"
 PROFILE_TM_UPLOAD_MANY = "upload_many"
 PROFILE_TM_DOWNLOAD_MANY = "download_many"
 
@@ -60,7 +61,13 @@ def main(args):
         )
     elif test_type == PROFILE_WRITE_ONE_READ_THREE:
         num_processes = args.workers
-        benchmark_runner = w1r3.benchmark_runner
+        benchmark_runner = w1r3.run_profile_w1r3
+        print(
+            f"A total of {num_processes} processes are created to run benchmarking {test_type}"
+        )
+    elif test_type == PROFILE_RANGE_READ:
+        num_processes = args.workers
+        benchmark_runner = w1r3.run_profile_range_read
         print(
             f"A total of {num_processes} processes are created to run benchmarking {test_type}"
         )
@@ -72,9 +79,9 @@ def main(args):
     # Output to Cloud Monitoring or CSV file.
     output_type = args.output_type
     if output_type == "cloud-monitoring":
-        _pu.convert_to_cloud_monitoring(args.bucket, pool_output)
+        _pu.convert_to_cloud_monitoring(args.bucket, pool_output, num_processes)
     elif output_type == "csv":
-        _pu.convert_to_csv(args.output_file, pool_output)
+        _pu.convert_to_csv(args.output_file, pool_output, num_processes)
         print(
             f"Succesfully ran benchmarking. Please find your output log at {args.output_file}"
         )

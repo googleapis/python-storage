@@ -108,7 +108,7 @@ def results_to_csv(res):
     return results
 
 
-def convert_to_csv(filename, results):
+def convert_to_csv(filename, results, workers):
     with open(filename, "w") as file:
         writer = csv.writer(file)
         writer.writerow(HEADER)
@@ -119,49 +119,56 @@ def convert_to_csv(filename, results):
                 writer.writerow(results_to_csv(row))
 
 
-def convert_to_cloud_monitoring(bucket_name, results):
+def convert_to_cloud_monitoring(bucket_name, results, workers):
     # Benchmarking main script uses Multiprocessing Pool.map(),
     # thus results is structured as List[List[Dict[str, any]]].
     for result in results:
         for res in result:
             # Handle failed runs
-            if res.get("Status") != ["OK"]:
+            status = res.get("Status").pop()
+            if status != "OK":
                 # do something such as log error
                 continue
 
             # Log successful benchmark results, aka res["Status"] == ["OK"]
             # If the object size is greater than the defined threshold, report in MiB/s, otherwise report in KiB/s.
-            object_size = res.get("ObjectSize")
             elapsed_time_us = res.get("ElapsedTimeUs")
-            if object_size >= SSB_SIZE_THRESHOLD_BYTES:
-                throughput = object_size / 1024 / 1024 / (elapsed_time_us / 1_000_000)
+            object_size = res.get("ObjectSize")
+            transfer_size = res.get("TransferSize", object_size)
+            range_read_size = res.get("RangeReadSize", 0)
+            # Handle range reads and calculate throughput using transfer size.
+            if range_read_size > 0:
+                size = transfer_size
             else:
-                throughput = object_size / 1024 / (elapsed_time_us / 1_000_000)
+                size = object_size
+
+            if size >= SSB_SIZE_THRESHOLD_BYTES:
+                throughput = size / 1024 / 1024 / (elapsed_time_us / 1_000_000)
+            else:
+                throughput = size / 1024 / (elapsed_time_us / 1_000_000)
 
             cloud_monitoring_output = (
                 "throughput{"
-                + "timestamp='{}',".format(TIMESTAMP)
                 + "library='python-storage',"
                 + "api='{}',".format(res.get("ApiName"))
                 + "op='{}',".format(res.get("Op"))
+                + "workers='{}',".format(workers)
                 + "object_size='{}',".format(object_size)
                 + "transfer_offset='{}',".format(res.get("TransferOffset", 0))
                 + "transfer_size='{}',".format(res.get("TransferSize", object_size))
                 + "app_buffer_size='{}',".format(res.get("AppBufferSize"))
+                + "chunksize='{}',".format(res.get("TransferSize", object_size))
                 + "crc32c_enabled='{}',".format(res.get("Crc32cEnabled"))
                 + "md5_enabled='{}',".format(res.get("MD5Enabled"))
-                + "elapsed_time_us='{}',".format(res.get("ElapsedTimeUs"))
                 + "cpu_time_us='{}',".format(res.get("CpuTimeUs"))
-                + "elapsedmicroseconds='{}',".format(res.get("ElapsedTimeUs"))
                 + "peer='',"
                 + f"bucket_name='{bucket_name}',"
-                + "object_name='',"
-                + "generation='',"
-                + "upload_id='',"
                 + "retry_count='',"
-                + "status_code=''}"
+                + f"status='{status}'"
+                + "}"
                 f"{throughput}"
             )
+
             print(cloud_monitoring_output)
 
 

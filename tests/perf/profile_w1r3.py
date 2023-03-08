@@ -144,6 +144,7 @@ def log_performance(func, args, elapsed_time, status):
     size = func.keywords.get("size")
     checksum = func.keywords.get("checksum")
     num = func.keywords.get("num", None)
+    range_read_size = args.range_read_size
 
     res = {
         "Status": status,
@@ -156,6 +157,7 @@ def log_performance(func, args, elapsed_time, status):
         "ObjectSize": size,
         "TransferSize": size,
         "TransferOffset": 0,
+        "RangeReadSize": range_read_size,
     }
 
     res["Crc32cEnabled"] = checksum == "crc32c"
@@ -165,7 +167,6 @@ def log_performance(func, args, elapsed_time, status):
         res["Op"] += f"[{num}]"
 
         # For range reads (workload 2), record additional outputs
-        range_read_size = args.range_read_size
         if range_read_size > 0:
             res["TransferSize"] = range_read_size
             res["TransferOffset"] = func.keywords.get("range_read_offset", 0)
@@ -173,8 +174,8 @@ def log_performance(func, args, elapsed_time, status):
     return res
 
 
-def benchmark_runner(args):
-    """Run benchmarking iterations."""
+def run_profile_w1r3(args):
+    """Run w1r3 benchmarking iterations."""
     results = []
 
     for func in _generate_func_list(args):
@@ -191,5 +192,28 @@ def benchmark_runner(args):
 
         res = log_performance(func, args, elapsed_time, status)
         results.append(res)
+
+    return results
+
+
+def run_profile_range_read(args):
+    """Run range read W2 benchmarking iterations."""
+    results = []
+
+    for func in _generate_func_list(args):
+        try:
+            elapsed_time = func()
+        except Exception as e:
+            logging.exception(
+                f"Caught an exception while running operation {func.__name__}\n {e}"
+            )
+            status = ["FAIL"]
+            elapsed_time = _pu.NOT_SUPPORTED
+        else:
+            status = ["OK"]
+
+    # Only measure the last read
+    res = log_performance(func, args, elapsed_time, status)
+    results.append(res)
 
     return results
