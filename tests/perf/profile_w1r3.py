@@ -139,30 +139,34 @@ def _generate_func_list(args):
     return func_list
 
 
-def log_performance(func, args, elapsed_time, status):
-    """Holds benchmarking results per operation call."""
+def log_performance(func, args, elapsed_time, status, failure_msg):
+    """Hold benchmarking results per operation call."""
     size = func.keywords.get("size")
-    checksum = func.keywords.get("checksum")
+    checksum = func.keywords.get("checksum", None)
     num = func.keywords.get("num", None)
     range_read_size = args.range_read_size
 
     res = {
-        "Status": status,
+        "Op": func.__name__,
         "ElapsedTimeUs": elapsed_time,
         "ApiName": args.api,
         "RunID": _pu.TIMESTAMP,
         "CpuTimeUs": _pu.NOT_SUPPORTED,
         "AppBufferSize": _pu.NOT_SUPPORTED,
         "LibBufferSize": _pu.DEFAULT_LIB_BUFFER_SIZE,
+        "ChunkSize": 0,
         "ObjectSize": size,
         "TransferSize": size,
         "TransferOffset": 0,
         "RangeReadSize": range_read_size,
+        "BucketName": args.bucket,
+        "Library": "python-storage",
+        "Crc32cEnabled": checksum == "crc32c",
+        "MD5Enabled": checksum == "md5",
+        "FailureMsg": failure_msg,
+        "Status": status,
     }
 
-    res["Crc32cEnabled"] = checksum == "crc32c"
-    res["MD5Enabled"] = checksum == "md5"
-    res["Op"] = func.__name__
     if res["Op"] == "READ":
         res["Op"] += f"[{num}]"
 
@@ -175,45 +179,49 @@ def log_performance(func, args, elapsed_time, status):
 
 
 def run_profile_w1r3(args):
-    """Run w1r3 benchmarking iterations."""
+    """Run w1r3 benchmarking. This is a wrapper used with the main benchmarking framework."""
     results = []
 
     for func in _generate_func_list(args):
+        failure_msg = ""
         try:
             elapsed_time = func()
         except Exception as e:
-            logging.exception(
+            failure_msg = (
                 f"Caught an exception while running operation {func.__name__}\n {e}"
             )
+            logging.exception(failure_msg)
             status = ["FAIL"]
             elapsed_time = _pu.NOT_SUPPORTED
         else:
             status = ["OK"]
 
-        res = log_performance(func, args, elapsed_time, status)
+        res = log_performance(func, args, elapsed_time, status, failure_msg)
         results.append(res)
 
     return results
 
 
 def run_profile_range_read(args):
-    """Run range read W2 benchmarking iterations."""
+    """Run range read W2 benchmarking. This is a wrapper used with the main benchmarking framework."""
     results = []
 
     for func in _generate_func_list(args):
+        failure_msg = ""
         try:
             elapsed_time = func()
         except Exception as e:
-            logging.exception(
+            failure_msg = (
                 f"Caught an exception while running operation {func.__name__}\n {e}"
             )
+            logging.exception(failure_msg)
             status = ["FAIL"]
             elapsed_time = _pu.NOT_SUPPORTED
         else:
             status = ["OK"]
 
     # Only measure the last read
-    res = log_performance(func, args, elapsed_time, status)
+    res = log_performance(func, args, elapsed_time, status, failure_msg)
     results.append(res)
 
     return results

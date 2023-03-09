@@ -23,7 +23,7 @@ import _perf_utils as _pu
 
 
 def profile_upload_many(args):
-    """Profiles a test where multiple objects are uploaded in parallel to a bucket."""
+    """Profile a test where multiple objects are uploaded in parallel to a bucket."""
     # Generate random directory and retrieve all file paths
     directory_info = _pu.generate_random_directory(
         args.samples, args.min_size, args.max_size, args.tmp_dir
@@ -43,29 +43,15 @@ def profile_upload_many(args):
     elapsed_time = round(
         (end_time - start_time) / 1000
     )  # convert nanoseconds to microseconds
-
+    total_size_in_bytes = directory_info["total_size_in_bytes"]
     # Clean up local files and generate results
     _pu.cleanup_directory_tree(_pu.DEFAULT_BASE_DIR)
-    res = {
-        "ApiName": _pu.DEFAULT_API,
-        "RunID": _pu.TIMESTAMP,
-        "CpuTimeUs": _pu.NOT_SUPPORTED,
-        "AppBufferSize": _pu.NOT_SUPPORTED,
-        "LibBufferSize": _pu.DEFAULT_LIB_BUFFER_SIZE,
-        "Op": "TM_WRITE",
-        "ElapsedTimeUs": elapsed_time,
-        "ObjectSize": directory_info["total_size_in_bytes"],
-        "Status": ["OK"],
-    }
-    checksum = None
-    res["Crc32cEnabled"] = checksum == "crc32c"
-    res["MD5Enabled"] = checksum == "md5"
 
-    return res
+    return elapsed_time, total_size_in_bytes
 
 
 def profile_download_many(args):
-    """Profiles a test where multiple objects are downloaded in parallel from a bucket."""
+    """Profile a test where multiple objects are downloaded in parallel from a bucket."""
     # Generate random directory and retrieve all blob names
     directory_info = _pu.generate_random_directory(
         args.samples, args.min_size, args.max_size, args.tmp_dir
@@ -91,62 +77,81 @@ def profile_download_many(args):
     elapsed_time = round(
         (end_time - start_time) / 1000
     )  # convert nanoseconds to microseconds
+    total_size_in_bytes = directory_info["total_size_in_bytes"]
 
     # Clean up local files and generate results
     _pu.cleanup_directory_tree(_pu.DEFAULT_BASE_DIR)
+
+    return elapsed_time, total_size_in_bytes
+
+
+def log_performance(args, elapsed_time, status, failure_msg, op, size, checksum=None):
+    """Hold benchmarking results per operation call."""
     res = {
-        "ApiName": _pu.DEFAULT_API,
+        "Op": op,
+        "ElapsedTimeUs": elapsed_time,
+        "ApiName": args.api,
         "RunID": _pu.TIMESTAMP,
         "CpuTimeUs": _pu.NOT_SUPPORTED,
         "AppBufferSize": _pu.NOT_SUPPORTED,
         "LibBufferSize": _pu.DEFAULT_LIB_BUFFER_SIZE,
-        "Op": "TM_READ",
-        "ElapsedTimeUs": elapsed_time,
-        "ObjectSize": directory_info["total_size_in_bytes"],
-        "Status": ["OK"],
+        "ChunkSize": 0,
+        "ObjectSize": size,
+        "TransferSize": size,
+        "TransferOffset": 0,
+        "RangeReadSize": args.range_read_size,
+        "BucketName": args.bucket,
+        "Library": "python-storage",
+        "Crc32cEnabled": checksum == "crc32c",
+        "MD5Enabled": checksum == "md5",
+        "FailureMsg": failure_msg,
+        "Status": status,
     }
-    checksum = None
-    res["Crc32cEnabled"] = checksum == "crc32c"
-    res["MD5Enabled"] = checksum == "md5"
 
     return res
 
 
 def run_profile_upload_many(args):
-    """This is a wrapper used with the main benchmarking framework."""
+    """Run upload many benchmarking. This is a wrapper used with the main benchmarking framework."""
     results = []
-    res = {}
+    op = "UPLOAD_MANY"
+    failure_msg = ""
     try:
-        res = profile_upload_many(args)
+        elapsed_time, size = profile_upload_many(args)
     except Exception as e:
-        logging.exception(
-            f"Caught an exception while running operation profile_upload_many\n {e}"
-        )
-        res["Status"] = ["FAIL"]
+        failure_msg = f"Caught an exception while running operation {op}\n {e}"
+        logging.exception(failure_msg)
+        status = ["FAIL"]
+        elapsed_time = _pu.NOT_SUPPORTED
+        size = 0
     else:
-        res["Status"] = ["OK"]
+        status = ["OK"]
 
     # Benchmarking main script uses Multiprocessing Pool.map(),
     # thus we structure results as List[List[Dict[str, any]]].
+    res = log_performance(args, elapsed_time, status, failure_msg, op, size)
     results.append(res)
     return results
 
 
 def run_profile_download_many(args):
-    """This is a wrapper used with the main benchmarking framework."""
-    res = {}
+    """Run download many benchmarking. This is a wrapper used with the main benchmarking framework."""
     results = []
+    op = "DOWNLOAD_MANY"
+    failure_msg = ""
     try:
-        res = profile_download_many(args)
+        elapsed_time, size = profile_download_many(args)
     except Exception as e:
-        logging.exception(
-            f"Caught an exception while running operation profile_download_many\n {e}"
-        )
-        res["Status"] = ["FAIL"]
+        failure_msg = f"Caught an exception while running operation {op}\n {e}"
+        logging.exception(failure_msg)
+        status = ["FAIL"]
+        elapsed_time = _pu.NOT_SUPPORTED
+        size = 0
     else:
-        res["Status"] = ["OK"]
+        status = ["OK"]
 
     # Benchmarking main script uses Multiprocessing Pool.map(),
     # thus we structure results as List[List[Dict[str, any]]].
+    res = log_performance(args, elapsed_time, status, failure_msg, op, size)
     results.append(res)
     return results
