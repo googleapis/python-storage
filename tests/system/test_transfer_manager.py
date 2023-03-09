@@ -21,6 +21,8 @@ from google.cloud.storage._helpers import _base64_md5hash
 
 from google.api_core import exceptions
 
+DEADLINE = 30
+
 
 def test_upload_many(shared_bucket, file_data, blobs_to_delete):
     FILE_BLOB_PAIRS = [
@@ -29,7 +31,9 @@ def test_upload_many(shared_bucket, file_data, blobs_to_delete):
     ]
 
     results = transfer_manager.upload_many(
-        FILE_BLOB_PAIRS, worker_type=transfer_manager.PROCESS
+        FILE_BLOB_PAIRS,
+        worker_type=transfer_manager.PROCESS,
+        deadline=DEADLINE,
     )
     assert results == [None, None]
 
@@ -49,7 +53,9 @@ def test_upload_many_with_threads_and_file_objs(
     ]
 
     results = transfer_manager.upload_many(
-        FILE_BLOB_PAIRS, worker_type=transfer_manager.THREAD
+        FILE_BLOB_PAIRS,
+        worker_type=transfer_manager.THREAD,
+        deadline=DEADLINE,
     )
     assert results == [None, None]
 
@@ -69,7 +75,10 @@ def test_upload_many_skip_if_exists(
     ]
 
     results = transfer_manager.upload_many(
-        FILE_BLOB_PAIRS, skip_if_exists=True, raise_exception=True
+        FILE_BLOB_PAIRS,
+        skip_if_exists=True,
+        raise_exception=True,
+        deadline=DEADLINE,
     )
     assert isinstance(results[0], exceptions.PreconditionFailed)
     assert results[1] is None
@@ -91,7 +100,9 @@ def test_download_many(listable_bucket):
         BLOB_FILE_PAIRS = zip(blobs[:2], filenames)
 
         results = transfer_manager.download_many(
-            BLOB_FILE_PAIRS, worker_type=transfer_manager.PROCESS
+            BLOB_FILE_PAIRS,
+            worker_type=transfer_manager.PROCESS,
+            deadline=DEADLINE,
         )
         assert results == [None, None]
         for count, filename in enumerate(filenames):
@@ -106,7 +117,9 @@ def test_download_many_with_threads_and_file_objs(listable_bucket):
         BLOB_FILE_PAIRS = zip(blobs[:2], tempfiles)
 
         results = transfer_manager.download_many(
-            BLOB_FILE_PAIRS, worker_type=transfer_manager.THREAD
+            BLOB_FILE_PAIRS,
+            worker_type=transfer_manager.THREAD,
+            deadline=DEADLINE,
         )
         assert results == [None, None]
         for fp in tempfiles:
@@ -129,7 +142,10 @@ def test_download_chunks_concurrently(shared_bucket, file_data):
     with tempfile.TemporaryDirectory() as tempdir:
         full_filename = os.path.join(tempdir, "chunky_file")
         transfer_manager.download_chunks_concurrently(
-            download_blob, full_filename, chunk_size=chunk_size
+            download_blob,
+            full_filename,
+            chunk_size=chunk_size,
+            deadline=DEADLINE,
         )
         with open(full_filename, "rb") as file_obj:
             assert _base64_md5hash(file_obj) == source_file["hash"]
@@ -137,7 +153,10 @@ def test_download_chunks_concurrently(shared_bucket, file_data):
         # Now test for case where last chunk is exactly 1 byte.
         trailing_chunk_filename = os.path.join(tempdir, "chunky_file")
         transfer_manager.download_chunks_concurrently(
-            download_blob, trailing_chunk_filename, chunk_size=size - 1
+            download_blob,
+            trailing_chunk_filename,
+            chunk_size=size - 1,
+            deadline=DEADLINE,
         )
         with open(trailing_chunk_filename, "rb") as file_obj:
             assert _base64_md5hash(file_obj) == source_file["hash"]
@@ -149,6 +168,7 @@ def test_download_chunks_concurrently(shared_bucket, file_data):
             first_half_filename,
             chunk_size=chunk_size,
             download_kwargs={"end": midpoint - 1},
+            deadline=DEADLINE,
         )
         second_half_filename = os.path.join(tempdir, "chunky_file_half_b")
         transfer_manager.download_chunks_concurrently(
@@ -157,6 +177,7 @@ def test_download_chunks_concurrently(shared_bucket, file_data):
             chunk_size=chunk_size,
             download_kwargs={"start": midpoint},
             worker_type=transfer_manager.THREAD,
+            deadline=DEADLINE,
         )
 
         joined_filename = os.path.join(tempdir, "chunky_file_joined")
