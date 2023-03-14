@@ -36,9 +36,9 @@ CHUNK_SIZE = 8
 
 
 # Used in subprocesses only, so excluded from coverage
-def _validate_blob_token_in_subprocess(  # pragma: no cover
+def _validate_blob_token_in_subprocess(
     maybe_pickled_blob, method_name, path_or_file, **kwargs
-):
+):  # pragma: NO COVER
     assert pickle.loads(maybe_pickled_blob) == BLOB_TOKEN_STRING
     assert method_name.endswith("filename")
     assert path_or_file.startswith("file")
@@ -122,9 +122,10 @@ def test_threads_deprecation_with_upload():
     with mock.patch("concurrent.futures.ThreadPoolExecutor") as pool_patch, mock.patch(
         "concurrent.futures.wait"
     ) as wait_patch:
-        transfer_manager.upload_many(
-            FILE_BLOB_PAIRS, deadline=DEADLINE, threads=MAX_WORKERS
-        )
+        with pytest.warns():
+            transfer_manager.upload_many(
+                FILE_BLOB_PAIRS, deadline=DEADLINE, threads=MAX_WORKERS
+            )
         pool_patch.assert_called_with(max_workers=MAX_WORKERS)
         wait_patch.assert_called_with(mock.ANY, timeout=DEADLINE, return_when=mock.ANY)
 
@@ -621,9 +622,9 @@ class _PickleableMockBlob:
 
 
 # Used in subprocesses only, so excluded from coverage
-def _validate_blob_token_in_subprocess_for_chunk(  # pragma: no cover
+def _validate_blob_token_in_subprocess_for_chunk(
     maybe_pickled_blob, filename, **kwargs
-):
+):  # pragma: NO COVER
     blob = pickle.loads(maybe_pickled_blob)
     assert isinstance(blob, _PickleableMockBlob)
     assert filename.startswith("file")
