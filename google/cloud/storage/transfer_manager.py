@@ -113,7 +113,8 @@ def upload_many(
     :param threads:
         ***DEPRECATED*** Sets `worker_type` to THREAD and `max_workers` to the
         number specified. If `worker_type` or `max_workers` are set explicitly,
-        this parameter should be set to None.
+        this parameter should be set to None. Please use `worker_type` and
+        `max_workers` instead of this parameter.
 
     :type deadline: int
     :param deadline:
@@ -262,7 +263,8 @@ def download_many(
     :param threads:
         ***DEPRECATED*** Sets `worker_type` to THREAD and `max_workers` to the
         number specified. If `worker_type` or `max_workers` are set explicitly,
-        this parameter should be set to None.
+        this parameter should be set to None. Please use `worker_type` and
+        `max_workers` instead of this parameter.
 
     :type deadline: int
     :param deadline:
@@ -458,7 +460,8 @@ def upload_many_from_filenames(
     :param threads:
         ***DEPRECATED*** Sets `worker_type` to THREAD and `max_workers` to the
         number specified. If `worker_type` or `max_workers` are set explicitly,
-        this parameter should be set to None.
+        this parameter should be set to None. Please use `worker_type` and
+        `max_workers` instead of this parameter.
 
     :type deadline: int
     :param deadline:
@@ -621,7 +624,8 @@ def download_many_to_path(
     :param threads:
         ***DEPRECATED*** Sets `worker_type` to THREAD and `max_workers` to the
         number specified. If `worker_type` or `max_workers` are set explicitly,
-        this parameter should be set to None.
+        this parameter should be set to None. Please use `worker_type` and
+        `max_workers` instead of this parameter.
 
     :type deadline: int
     :param deadline:
