@@ -33,7 +33,8 @@ warnings.warn(
 )
 
 
-DEFAULT_CHUNK_SIZE = 32 * 1024 * 1024
+TM_DEFAULT_CHUNK_SIZE = 32 * 1024 * 1024
+DEFAULT_MAX_WORKERS = 8
 
 
 # Constants to be passed in as `worker_type`.
@@ -79,7 +80,7 @@ def upload_many(
     deadline=None,
     raise_exception=False,
     worker_type=PROCESS,
-    max_workers=8,
+    max_workers=DEFAULT_MAX_WORKERS,
 ):
     """Upload many files concurrently via a worker pool.
 
@@ -234,7 +235,7 @@ def download_many(
     deadline=None,
     raise_exception=False,
     worker_type=PROCESS,
-    max_workers=8,
+    max_workers=DEFAULT_MAX_WORKERS,
 ):
     """Download many blobs concurrently via a worker pool.
 
@@ -380,7 +381,7 @@ def upload_many_from_filenames(
     deadline=None,
     raise_exception=False,
     worker_type=PROCESS,
-    max_workers=8,
+    max_workers=DEFAULT_MAX_WORKERS,
 ):
     """Upload many files concurrently by their filenames.
 
@@ -554,7 +555,7 @@ def download_many_to_path(
     create_directories=True,
     raise_exception=False,
     worker_type=PROCESS,
-    max_workers=8,
+    max_workers=DEFAULT_MAX_WORKERS,
 ):
     """Download many files concurrently by their blob names.
 
@@ -712,11 +713,11 @@ def download_many_to_path(
 def download_chunks_concurrently(
     blob,
     filename,
-    chunk_size=DEFAULT_CHUNK_SIZE,
+    chunk_size=TM_DEFAULT_CHUNK_SIZE,
     download_kwargs=None,
     deadline=None,
     worker_type=PROCESS,
-    max_workers=8,
+    max_workers=DEFAULT_MAX_WORKERS,
 ):
     """Download a single file in chunks, concurrently.
 
@@ -860,6 +861,12 @@ def _download_and_write_chunk_in_place(
 def _call_method_on_maybe_pickled_blob(
     maybe_pickled_blob, method_name, *args, **kwargs
 ):
+    """Helper function that runs inside a thread or subprocess.
+
+    `maybe_pickled_blob` is either a blob (for threads) or a specially pickled
+    blob (for processes) because the default pickling mangles clients which are
+    attached to blobs."""
+
     if isinstance(maybe_pickled_blob, Blob):
         blob = maybe_pickled_blob
     else:
@@ -869,6 +876,7 @@ def _call_method_on_maybe_pickled_blob(
 
 def _reduce_client(cl):
     """Replicate a Client by constructing a new one with the same params."""
+
     client_object_id = id(cl)
     project = cl.project
     credentials = cl._credentials

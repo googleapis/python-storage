@@ -556,7 +556,7 @@ def test_download_chunks_concurrently_raises_on_start_and_end():
 
     with mock.patch("__main__.open", mock.mock_open()):
         with pytest.raises(ValueError):
-            result = transfer_manager.download_chunks_concurrently(
+            transfer_manager.download_chunks_concurrently(
                 blob_mock,
                 FILENAME,
                 chunk_size=CHUNK_SIZE,
