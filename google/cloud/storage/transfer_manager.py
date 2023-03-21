@@ -749,8 +749,10 @@ def download_chunks_concurrently(
         A dictionary of keyword arguments to pass to the download method. Refer
         to the documentation for blob.download_to_file() or
         blob.download_to_filename() for more information. The dict is directly
-        passed into the download methods and is not validated by this function,
-        except for "start" and "end" which must be processed ahead of time.
+        passed into the download methods and is not validated by this function.
+
+        Keyword arguments "start" and "end" which are not supported and will
+        cause a ValueError if present.
 
     :type deadline: int
     :param deadline:
@@ -795,9 +797,12 @@ def download_chunks_concurrently(
 
     if download_kwargs is None:
         download_kwargs = {}
-    forced_start = download_kwargs.pop("start", 0)
-    forced_end = download_kwargs.pop("end", None)
-    # We must know the size of the object, and the generation.
+    if "start" in download_kwargs or "end" in download_kwargs:
+        raise ValueError(
+            "Download arguments 'start' and 'end' are not supported by download_chunks_concurrently."
+        )
+
+    # We must know the size and the generation of the blob.
     if not blob.size or not blob.generation:
         blob.reload()
 
@@ -812,9 +817,8 @@ def download_chunks_concurrently(
         pass
 
     with pool_class(max_workers=max_workers) as executor:
-        cursor = forced_start
-        # forced_end is zero-indexed here, so add 1
-        end = min(forced_end + 1, blob.size) if forced_end else blob.size
+        cursor = 0
+        end = blob.size
         while cursor < end:
             start = cursor
             cursor = min(cursor + chunk_size, end)
@@ -823,7 +827,6 @@ def download_chunks_concurrently(
                     _download_and_write_chunk_in_place,
                     maybe_pickled_blob,
                     filename,
-                    offset=(forced_start * -1),
                     start=start,
                     end=cursor - 1,
                     download_kwargs=download_kwargs,
@@ -841,7 +844,7 @@ def download_chunks_concurrently(
 
 
 def _download_and_write_chunk_in_place(
-    maybe_pickled_blob, filename, offset, start, end, download_kwargs
+    maybe_pickled_blob, filename, start, end, download_kwargs
 ):
     if isinstance(maybe_pickled_blob, Blob):
         blob = maybe_pickled_blob
@@ -850,7 +853,7 @@ def _download_and_write_chunk_in_place(
     with open(
         filename, "rb+"
     ) as f:  # Open in mixed read/write mode to avoid truncating or appending
-        f.seek(offset + start)
+        f.seek(start)
         return blob.download_to_file(f, start=start, end=end, **download_kwargs)
 
 
@@ -887,11 +890,11 @@ def _pickle_blob(blob):
     """Pickle a Blob (and its Bucket and Client) and return a bytestring."""
 
     # We need a custom pickler to process Client objects, which are attached to
-    # Buckets (and therefore to Blobs in turn). Unfortunately,
-    # the Python multiprocessing library doesn't seem to have a good way to
-    # use a custom pickler, and using copyreg will mutate global state and
-    # affect code outside of the client library. Instead, we'll pre-pickle the
-    # object and pass the bytestring in.
+    # Buckets (and therefore to Blobs in turn). Unfortunately, the Python
+    # multiprocessing library doesn't seem to have a good way to use a custom
+    # pickler, and using copyreg will mutate global state and affect code
+    # outside of the client library. Instead, we'll pre-pickle the object and
+    # pass the bytestring in.
     f = io.BytesIO()
     p = pickle.Pickler(f)
     p.dispatch_table = copyreg.dispatch_table.copy()
@@ -902,6 +905,7 @@ def _pickle_blob(blob):
 
 def _get_pool_class_and_requirements(worker_type):
     """Returns the pool class, and whether the pool requires pickled Blobs."""
+
     if worker_type == PROCESS:
         # Use processes. Pickle blobs with custom logic to handle the client.
         return (concurrent.futures.ProcessPoolExecutor, True)

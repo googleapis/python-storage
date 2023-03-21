@@ -134,13 +134,12 @@ def test_download_chunks_concurrently(shared_bucket, file_data):
     upload_blob.reload()
     size = upload_blob.size
     chunk_size = size // 32
-    midpoint = size // 2
 
     # Get a fresh blob obj w/o metadata for testing purposes
     download_blob = shared_bucket.blob("chunky_file")
 
     with tempfile.TemporaryDirectory() as tempdir:
-        full_filename = os.path.join(tempdir, "chunky_file")
+        full_filename = os.path.join(tempdir, "chunky_file_1")
         transfer_manager.download_chunks_concurrently(
             download_blob,
             full_filename,
@@ -151,7 +150,7 @@ def test_download_chunks_concurrently(shared_bucket, file_data):
             assert _base64_md5hash(file_obj) == source_file["hash"]
 
         # Now test for case where last chunk is exactly 1 byte.
-        trailing_chunk_filename = os.path.join(tempdir, "chunky_file")
+        trailing_chunk_filename = os.path.join(tempdir, "chunky_file_2")
         transfer_manager.download_chunks_concurrently(
             download_blob,
             trailing_chunk_filename,
@@ -161,31 +160,14 @@ def test_download_chunks_concurrently(shared_bucket, file_data):
         with open(trailing_chunk_filename, "rb") as file_obj:
             assert _base64_md5hash(file_obj) == source_file["hash"]
 
-        # Also test the start and end handling, and threaded mode.
-        first_half_filename = os.path.join(tempdir, "chunky_file_half_a")
+        # Also test threaded mode.
+        threaded_filename = os.path.join(tempdir, "chunky_file_3")
         transfer_manager.download_chunks_concurrently(
             download_blob,
-            first_half_filename,
+            threaded_filename,
             chunk_size=chunk_size,
-            download_kwargs={"end": midpoint - 1},
             deadline=DEADLINE,
-        )
-        second_half_filename = os.path.join(tempdir, "chunky_file_half_b")
-        transfer_manager.download_chunks_concurrently(
-            download_blob,
-            second_half_filename,
-            chunk_size=chunk_size,
-            download_kwargs={"start": midpoint},
             worker_type=transfer_manager.THREAD,
-            deadline=DEADLINE,
         )
-
-        joined_filename = os.path.join(tempdir, "chunky_file_joined")
-        with open(joined_filename, "wb") as joined, open(
-            first_half_filename, "rb"
-        ) as half_a, open(second_half_filename, "rb") as half_b:
-            joined.write(half_a.read())
-            joined.write(half_b.read())
-
-        with open(joined_filename, "rb") as file_obj:
+        with open(threaded_filename, "rb") as file_obj:
             assert _base64_md5hash(file_obj) == source_file["hash"]

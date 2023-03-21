@@ -548,31 +548,33 @@ def test_download_chunks_concurrently():
     assert result is None
 
 
-def test_download_chunks_concurrently_forced_start_and_end():
+def test_download_chunks_concurrently_raises_on_start_and_end():
     blob_mock = mock.Mock(spec=Blob)
     FILENAME = "file_a.txt"
     MULTIPLE = 4
     blob_mock.size = CHUNK_SIZE * MULTIPLE
 
-    blob_mock.download_to_filename.return_value = FAKE_RESULT
-
     with mock.patch("__main__.open", mock.mock_open()):
-        result = transfer_manager.download_chunks_concurrently(
-            blob_mock,
-            FILENAME,
-            chunk_size=CHUNK_SIZE,
-            worker_type=transfer_manager.THREAD,
-            download_kwargs={
-                "start": CHUNK_SIZE,
-                "end": (CHUNK_SIZE * (MULTIPLE - 1)) - 1,
-            },
-        )
-    for x in range(1, MULTIPLE - 1):
-        blob_mock.download_to_file.assert_any_call(
-            mock.ANY, start=x * CHUNK_SIZE, end=((x + 1) * CHUNK_SIZE) - 1
-        )
-    assert blob_mock.download_to_file.call_count == 2
-    assert result is None
+        with pytest.raises(ValueError):
+            result = transfer_manager.download_chunks_concurrently(
+                blob_mock,
+                FILENAME,
+                chunk_size=CHUNK_SIZE,
+                worker_type=transfer_manager.THREAD,
+                download_kwargs={
+                    "start": CHUNK_SIZE,
+                },
+            )
+        with pytest.raises(ValueError):
+            transfer_manager.download_chunks_concurrently(
+                blob_mock,
+                FILENAME,
+                chunk_size=CHUNK_SIZE,
+                worker_type=transfer_manager.THREAD,
+                download_kwargs={
+                    "end": (CHUNK_SIZE * (MULTIPLE - 1)) - 1,
+                },
+            )
 
 
 def test_download_chunks_concurrently_passes_concurrency_options():
@@ -678,7 +680,7 @@ def test__download_and_write_chunk_in_place():
     FILENAME = "file_a.txt"
     with mock.patch("__main__.open", mock.mock_open()):
         result = transfer_manager._download_and_write_chunk_in_place(
-            pickled_mock, FILENAME, 0, 0, 8, {}
+            pickled_mock, FILENAME, 0, 8, {}
         )
     assert result == "SUCCESS"
 
