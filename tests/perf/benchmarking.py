@@ -21,54 +21,40 @@ import multiprocessing
 from google.cloud import storage
 
 import _perf_utils as _pu
-import profile_transfer_manager as tm
 import profile_w1r3 as w1r3
 
 
 ##### PROFILE BENCHMARKING TEST TYPES #####
 PROFILE_WRITE_ONE_READ_THREE = "w1r3"
 PROFILE_RANGE_READ = "range"
-PROFILE_TM_UPLOAD_MANY = "upload_many"
-PROFILE_TM_DOWNLOAD_MANY = "download_many"
 
 
 def main(args):
-    print("Start benchmarking main script")
+    logging.info("Start benchmarking main script")
     # Create a storage bucket to run benchmarking.
     if args.project is not None:
         client = storage.Client(project=args.project)
     else:
         client = storage.Client()
 
-    if not client.bucket(args.bucket).exists():
-        bucket = client.create_bucket(args.bucket, location=args.bucket_region)
+    bucket = client.bucket(args.bucket)
+    if not bucket.exists():
+        bucket = client.create_bucket(bucket, location=args.bucket_region)
 
     # Define test type and number of processes to run benchmarking.
     # Note that transfer manager tests defaults to using 1 process.
     num_processes = 1
     test_type = args.test_type
-    if test_type == PROFILE_TM_UPLOAD_MANY:
-        benchmark_runner = tm.run_profile_upload_many
-        print(f"Running {test_type} benchmarking with {args.threads} threads.")
-        print(
-            f"Note that Transfer Manager benchmarking defaults to using {num_processes} process."
-        )
-    elif test_type == PROFILE_TM_DOWNLOAD_MANY:
-        benchmark_runner = tm.run_profile_download_many
-        print(f"Running {test_type} benchmarking with {args.threads} threads.")
-        print(
-            f"Note that Transfer Manager benchmarking defaults to using {num_processes} process."
-        )
-    elif test_type == PROFILE_WRITE_ONE_READ_THREE:
+    if test_type == PROFILE_WRITE_ONE_READ_THREE:
         num_processes = args.workers
         benchmark_runner = w1r3.run_profile_w1r3
-        print(
+        logging.info(
             f"A total of {num_processes} processes are created to run benchmarking {test_type}"
         )
     elif test_type == PROFILE_RANGE_READ:
         num_processes = args.workers
         benchmark_runner = w1r3.run_profile_range_read
-        print(
+        logging.info(
             f"A total of {num_processes} processes are created to run benchmarking {test_type}"
         )
 
@@ -82,15 +68,12 @@ def main(args):
         _pu.convert_to_cloud_monitoring(args.bucket, pool_output, num_processes)
     elif output_type == "csv":
         _pu.convert_to_csv(args.output_file, pool_output, num_processes)
-        print(
+        logging.info(
             f"Succesfully ran benchmarking. Please find your output log at {args.output_file}"
         )
 
-    # Cleanup and delete bucket.
-    try:
-        bucket.delete(force=True)
-    except Exception as e:
-        logging.exception(f"Caught an exception while deleting bucket\n {e}")
+    # Cleanup and delete blobs.
+    _pu.cleanup_bucket(bucket)
 
 
 if __name__ == "__main__":
@@ -110,7 +93,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--test_type",
         type=str,
-        default=PROFILE_TM_UPLOAD_MANY,
+        default=PROFILE_WRITE_ONE_READ_THREE,
         help="Benchmarking test type",
     )
     parser.add_argument(
@@ -154,12 +137,6 @@ if __name__ == "__main__":
         type=int,
         default=_pu.DEFAULT_NUM_PROCESSES,
         help="Number of processes- multiprocessing enabled",
-    )
-    parser.add_argument(
-        "--threads",
-        type=int,
-        default=_pu.DEFAULT_NUM_THREADS,
-        help="Number of threads- used for profiling Transfer Manager",
     )
     parser.add_argument(
         "--bucket",

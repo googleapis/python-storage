@@ -47,7 +47,6 @@ DEFAULT_MIN_SIZE = 5120  # 5 KiB
 DEFAULT_MAX_SIZE = 2147483648  # 2 GiB
 DEFAULT_NUM_SAMPLES = 8000
 DEFAULT_NUM_PROCESSES = 16
-DEFAULT_NUM_THREADS = 1
 DEFAULT_LIB_BUFFER_SIZE = 104857600  # 100MB
 DEFAULT_CHUNKSIZE = 104857600  # 100 MB https://github.com/googleapis/python-storage/blob/main/google/cloud/storage/blob.py#L139
 NOT_SUPPORTED = -1
@@ -127,40 +126,39 @@ def convert_to_cloud_monitoring(bucket_name, results, workers):
         for res in result:
             range_read_size = res.get("RangeReadSize", 0)
             object_size = res.get("ObjectSize")
-            transfer_size = res.get("TransferSize", object_size)
             elapsed_time_us = res.get("ElapsedTimeUs")
             status = res.get("Status").pop()  # convert ["OK"] --> "OK"
 
-            # Handle range reads and calculate throughput using transfer size.
+            # Handle range reads and calculate throughput using range_read_size.
             if range_read_size > 0:
-                size = transfer_size
+                size = range_read_size
             else:
                 size = object_size
 
             # If size is greater than the defined threshold, report in MiB/s, otherwise report in KiB/s.
             if size >= SSB_SIZE_THRESHOLD_BYTES:
-                throughput = size / 1024 / 1024 / (elapsed_time_us / 1_000_000)
+                throughput = (size / 1024 / 1024) / (elapsed_time_us / 1_000_000)
             else:
-                throughput = size / 1024 / (elapsed_time_us / 1_000_000)
+                throughput = (size / 1024) / (elapsed_time_us / 1_000_000)
 
             cloud_monitoring_output = (
                 "throughput{"
-                + "library='python-storage',"
-                + "api='{}',".format(res.get("ApiName"))
-                + "op='{}',".format(res.get("Op"))
-                + "workers='{}',".format(workers)
-                + "object_size='{}',".format(object_size)
-                + "transfer_offset='{}',".format(res.get("TransferOffset", 0))
-                + "transfer_size='{}',".format(res.get("TransferSize", object_size))
-                + "app_buffer_size='{}',".format(res.get("AppBufferSize"))
-                + "chunksize='{}',".format(res.get("TransferSize", object_size))
-                + "crc32c_enabled='{}',".format(res.get("Crc32cEnabled"))
-                + "md5_enabled='{}',".format(res.get("MD5Enabled"))
-                + "cpu_time_us='{}',".format(res.get("CpuTimeUs"))
+                + "library=python-storage,"
+                + "api={},".format(res.get("ApiName"))
+                + "op={},".format(res.get("Op"))
+                + "workers={},".format(workers)
+                + "object_size={},".format(object_size)
+                + "transfer_offset={},".format(res.get("TransferOffset", 0))
+                + "transfer_size={},".format(res.get("TransferSize", object_size))
+                + "app_buffer_size={},".format(res.get("AppBufferSize"))
+                + "chunksize={},".format(res.get("TransferSize", object_size))
+                + "crc32c_enabled={},".format(res.get("Crc32cEnabled"))
+                + "md5_enabled={},".format(res.get("MD5Enabled"))
+                + "cpu_time_us={},".format(res.get("CpuTimeUs"))
                 + "peer='',"
-                + f"bucket_name='{bucket_name}',"
+                + f"bucket_name={bucket_name},"
                 + "retry_count='',"
-                + f"status='{status}'"
+                + f"status={status}"
                 + "}"
                 f"{throughput}"
             )
@@ -174,7 +172,7 @@ def cleanup_directory_tree(directory):
         shutil.rmtree(directory)
     except Exception as e:
         logging.exception(f"Caught an exception while deleting local directory\n {e}")
-    print("Successfully removed local directory")
+    logging.info("Successfully removed local directory")
 
 
 def cleanup_file(file_path):
@@ -191,3 +189,18 @@ def get_bucket_instance(bucket_name):
     if not bucket.exists():
         client.create_bucket(bucket)
     return bucket
+
+
+def cleanup_bucket(bucket):
+    # Delete blobs first as the bucket may contain more than 256 blobs.
+    try:
+        blobs = bucket.list_blobs()
+        for blob in blobs:
+            blob.delete()
+    except Exception as e:
+        logging.exception(f"Caught an exception while deleting blobs\n {e}")
+    # Delete bucket.
+    try:
+        bucket.delete(force=True)
+    except Exception as e:
+        logging.exception(f"Caught an exception while deleting bucket\n {e}")

@@ -30,8 +30,7 @@ $ python3 benchmarking.py --num_samples 10000 --max_size 16384
 | --bucket | storage bucket name | a bucket name | `pybench<TIMESTAMP>` |
 | --bucket_region | bucket region for benchmarks | any GCS region | `US-WEST1` |
 | --workers | number of processes (multiprocessing enabled) | any positive integer | 16 (recommend not to exceed 16) |
-| --threads | number of threads used in Transfer Manager profiling | any positive integer | 16 (recommend 8 or 16 depending on workload) |
-| --test_type | test type to run benchmarking | `w1r3`, `upload_many`, `download_many`  | `upload_many` |
+| --test_type | test type to run benchmarking | `w1r3`, `range` | `w1r3` |
 | --output_file | file to output results to | any file path | `output_bench<TIMESTAMP>.csv` |
 | --tmp_dir | temp directory path on file system | any file path | `tm-perf-metrics` |
 
