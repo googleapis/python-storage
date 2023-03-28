@@ -97,16 +97,10 @@ if __name__ == "__main__":
         help="Benchmarking test type",
     )
     parser.add_argument(
-        "--min_size",
-        type=int,
-        default=_pu.DEFAULT_MIN_SIZE,
-        help="Minimum object size in bytes",
-    )
-    parser.add_argument(
-        "--max_size",
-        type=int,
-        default=_pu.DEFAULT_MAX_SIZE,
-        help="Maximum object size in bytes",
+        "--object_size",
+        type=str,
+        default=_pu.DEFAULT_OBJECT_RANGE_SIZE_BYTES,
+        help="Object size in bytes; can be a range min..max",
     )
     parser.add_argument(
         "--range_read_size",

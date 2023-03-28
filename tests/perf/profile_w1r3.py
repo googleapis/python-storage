@@ -101,8 +101,10 @@ def _generate_func_list(args):
     bucket_name = args.bucket
     blob_name = f"{_pu.TIMESTAMP}-{uuid.uuid4().hex}"
 
+    # parse min_size and max_size from object_size
+    min_size, max_size = _pu.get_min_max_size(args.object_size)
     # generate randmon size in bytes using a uniform distribution
-    size = random.randint(args.min_size, args.max_size)
+    size = random.randint(min_size, max_size)
 
     # generate random checksumming type: md5, crc32c or None
     idx_checksum = random.choice([0, 1, 2])

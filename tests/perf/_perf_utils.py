@@ -43,8 +43,7 @@ TIMESTAMP = time.strftime("%Y%m%d-%H%M%S")
 DEFAULT_API = "JSON"
 DEFAULT_BUCKET_NAME = f"pybench{TIMESTAMP}"
 DEFAULT_BUCKET_REGION = "US-WEST1"
-DEFAULT_MIN_SIZE = 5120  # 5 KiB
-DEFAULT_MAX_SIZE = 2147483648  # 2 GiB
+DEFAULT_OBJECT_RANGE_SIZE_BYTES = "1048576"  # 1 MiB
 DEFAULT_NUM_SAMPLES = 8000
 DEFAULT_NUM_PROCESSES = 16
 DEFAULT_LIB_BUFFER_SIZE = 104857600  # 100MB
@@ -204,3 +203,15 @@ def cleanup_bucket(bucket):
         bucket.delete(force=True)
     except Exception as e:
         logging.exception(f"Caught an exception while deleting bucket\n {e}")
+
+
+def get_min_max_size(object_size):
+    # Object size accepts a single value in bytes or a range in bytes min..max
+    if object_size.find("..") < 0:
+        min_size = int(object_size)
+        max_size = int(object_size)
+    else:
+        split_sizes = object_size.split("..")
+        min_size = int(split_sizes[0])
+        max_size = int(split_sizes[1])
+    return min_size, max_size
