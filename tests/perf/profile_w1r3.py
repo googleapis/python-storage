@@ -44,7 +44,7 @@ def WRITE(bucket, blob_name, checksum, size, args, **kwargs):
     )  # convert nanoseconds to microseconds
 
     # Clean up local file
-    cleanup_file(file_path)
+    _pu.cleanup_file(file_path)
 
     return elapsed_time
 
@@ -76,17 +76,9 @@ def READ(bucket, blob_name, checksum, args, **kwargs):
     )  # convert nanoseconds to microseconds
 
     # Clean up local file
-    cleanup_file(file_path)
+    _pu.cleanup_file(file_path)
 
     return elapsed_time
-
-
-def cleanup_file(file_path):
-    """Clean up local file on disk."""
-    try:
-        os.remove(file_path)
-    except Exception as e:
-        logging.exception(f"Caught an exception while deleting local file\n {e}")
 
 
 def _wrapped_partial(func, *args, **kwargs):

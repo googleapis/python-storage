@@ -171,7 +171,6 @@ def cleanup_directory_tree(directory):
         shutil.rmtree(directory)
     except Exception as e:
         logging.exception(f"Caught an exception while deleting local directory\n {e}")
-    logging.info("Successfully removed local directory")
 
 
 def cleanup_file(file_path):
