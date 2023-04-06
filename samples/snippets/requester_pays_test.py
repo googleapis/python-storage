@@ -34,7 +34,7 @@ PROJECT = os.environ["GOOGLE_CLOUD_PROJECT"]
 BLOB_NAME = "storage_snippets_test_rpays_test"
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def requester_pays_bucket():
     """Yields a bucket used for requester pays tests."""
     # We use a different bucket from other tests.
