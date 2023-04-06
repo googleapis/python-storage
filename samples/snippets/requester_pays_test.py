@@ -31,6 +31,7 @@ import storage_get_requester_pays_status
 # The service account for the test needs to have Billing Project Manager role
 # in order to make changes on buckets with requester pays enabled.
 PROJECT = os.environ["GOOGLE_CLOUD_PROJECT"]
+BLOB_NAME = "storage_snippets_test_rpays_test"
 
 
 @pytest.fixture(scope="session")
@@ -43,18 +44,14 @@ def requester_pays_bucket():
     bucket = storage.Client().bucket(rpays_bucket_name)
     if not bucket.exists():
         bucket.create()
+    # Upload a blob for test_download_file_requester_pays
+    blob = bucket.blob(BLOB_NAME)
+    blob.upload_from_string("Hello, is it me you're looking for?")
+
     yield bucket
+
     time.sleep(3)
     bucket.delete(force=True)
-
-
-@pytest.fixture
-def test_blob(requester_pays_bucket):
-    """Provides a pre-existing blob in the test bucket."""
-    bucket = storage.Client().bucket(requester_pays_bucket.name)
-    blob = bucket.blob("storage_snippets_test_sigil")
-    blob.upload_from_string("Hello, is it me you're looking for?")
-    return blob
 
 
 @backoff.on_exception(backoff.expo, GoogleAPIError, max_time=60)
@@ -65,10 +62,10 @@ def test_enable_requester_pays(requester_pays_bucket, capsys):
 
 
 @backoff.on_exception(backoff.expo, GoogleAPIError, max_time=60)
-def test_download_file_requester_pays(requester_pays_bucket, test_blob):
+def test_download_file_requester_pays(requester_pays_bucket):
     with tempfile.NamedTemporaryFile() as dest_file:
         storage_download_file_requester_pays.download_file_requester_pays(
-            requester_pays_bucket.name, PROJECT, test_blob.name, dest_file.name
+            requester_pays_bucket.name, PROJECT, BLOB_NAME, dest_file.name
         )
 
         assert dest_file.read()
