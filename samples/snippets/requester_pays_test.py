@@ -24,44 +24,43 @@ import storage_enable_requester_pays
 import storage_get_requester_pays_status
 
 
-# We use a different bucket from other tests.
+# We use the fixture bucket `requester_pays_bucket`, different from other tests.
 # The service account for the test needs to have Billing Project Manager role
 # in order to make changes on buckets with requester pays enabled.
-BUCKET = os.environ["REQUESTER_PAYS_TEST_BUCKET"]
 PROJECT = os.environ["GOOGLE_CLOUD_PROJECT"]
 
 
-def test_enable_requester_pays(capsys):
-    storage_enable_requester_pays.enable_requester_pays(BUCKET)
+def test_enable_requester_pays(requester_pays_bucket, capsys):
+    storage_enable_requester_pays.enable_requester_pays(requester_pays_bucket.name)
     out, _ = capsys.readouterr()
-    assert f"Requester Pays has been enabled for {BUCKET}" in out
+    assert f"Requester Pays has been enabled for {requester_pays_bucket.name}" in out
 
 
-def test_disable_requester_pays(capsys):
-    storage_disable_requester_pays.disable_requester_pays(BUCKET)
+def test_disable_requester_pays(requester_pays_bucket, capsys):
+    storage_disable_requester_pays.disable_requester_pays(requester_pays_bucket.name)
     out, _ = capsys.readouterr()
-    assert f"Requester Pays has been disabled for {BUCKET}" in out
+    assert f"Requester Pays has been disabled for {requester_pays_bucket.name}" in out
 
 
-def test_get_requester_pays_status(capsys):
-    storage_get_requester_pays_status.get_requester_pays_status(BUCKET)
+def test_get_requester_pays_status(requester_pays_bucket, capsys):
+    storage_get_requester_pays_status.get_requester_pays_status(requester_pays_bucket.name)
     out, _ = capsys.readouterr()
-    assert f"Requester Pays is disabled for {BUCKET}" in out
+    assert f"Requester Pays is disabled for {requester_pays_bucket.name}" in out
 
 
 @pytest.fixture
-def test_blob():
+def test_blob(requester_pays_bucket):
     """Provides a pre-existing blob in the test bucket."""
-    bucket = storage.Client().bucket(BUCKET)
+    bucket = storage.Client().bucket(requester_pays_bucket.name)
     blob = bucket.blob("storage_snippets_test_sigil")
     blob.upload_from_string("Hello, is it me you're looking for?")
     return blob
 
 
-def test_download_file_requester_pays(test_blob, capsys):
+def test_download_file_requester_pays(requester_pays_bucket, test_blob):
     with tempfile.NamedTemporaryFile() as dest_file:
         storage_download_file_requester_pays.download_file_requester_pays(
-            BUCKET, PROJECT, test_blob.name, dest_file.name
+            requester_pays_bucket.name, PROJECT, test_blob.name, dest_file.name
         )
 
         assert dest_file.read()
