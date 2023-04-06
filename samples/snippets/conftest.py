@@ -47,8 +47,9 @@ def requester_pays_bucket():
     # We use a different bucket from other tests.
     # The service account for the test needs to have Billing Project Manager role
     # in order to make changes on buckets with requester pays enabled.
+    rpays_project = os.environ["GOOGLE_CLOUD_PROJECT"]
     rpay_bucket_name = os.environ["REQUESTER_PAYS_TEST_BUCKET"]
-    bucket = storage.Client().bucket(rpay_bucket_name)
+    bucket = storage.Client().bucket(rpay_bucket_name, user_project=rpays_project)
     if not bucket.exists():
         bucket.create()
     yield bucket
