@@ -26,7 +26,7 @@ def enable_requester_pays(bucket_name):
 
     storage_client = storage.Client()
 
-    bucket = storage_client.get_bucket(bucket_name)
+    bucket = storage_client.bucket(bucket_name)
     bucket.requester_pays = True
     bucket.patch()
 

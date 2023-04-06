@@ -39,19 +39,3 @@ def bucket():
     bucket.delete(force=True)
     # Set the value back.
     os.environ['GOOGLE_CLOUD_PROJECT'] = original_value
-
-
-@pytest.fixture(scope="function")
-def requester_pays_bucket():
-    """Yields a bucket used for requester pays tests."""
-    # We use a different bucket from other tests.
-    # The service account for the test needs to have Billing Project Manager role
-    # in order to make changes on buckets with requester pays enabled.
-    rpays_project = os.environ["GOOGLE_CLOUD_PROJECT"]
-    rpay_bucket_name = os.environ["REQUESTER_PAYS_TEST_BUCKET"]
-    bucket = storage.Client().bucket(rpay_bucket_name, user_project=rpays_project)
-    if not bucket.exists():
-        bucket.create()
-    yield bucket
-    time.sleep(3)
-    bucket.delete(force=True)

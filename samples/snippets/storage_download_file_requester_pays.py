@@ -25,7 +25,7 @@ def download_file_requester_pays(
 ):
     """Download file using specified project as the requester"""
     # bucket_name = "your-bucket-name"
-    # project_id = "your-project-id"
+    # project_id = "billing-project-id"
     # source_blob_name = "source-blob-name"
     # destination_file_name = "local-destination-file-name"
 

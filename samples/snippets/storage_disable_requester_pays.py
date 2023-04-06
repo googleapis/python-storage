@@ -20,13 +20,15 @@ import sys
 from google.cloud import storage
 
 
-def disable_requester_pays(bucket_name):
+def disable_requester_pays(bucket_name, project_id):
     """Disable a bucket's requesterpays metadata"""
     # bucket_name = "my-bucket"
+    # project_id = "billing-project-id"
 
     storage_client = storage.Client()
 
-    bucket = storage_client.get_bucket(bucket_name)
+    bucket = storage_client.bucket(bucket_name)
+    bucket = storage_client.bucket(bucket_name, user_project=project_id)
     bucket.requester_pays = False
     bucket.patch()
 
