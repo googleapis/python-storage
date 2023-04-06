@@ -15,9 +15,9 @@
 import backoff
 import os
 import tempfile
-import time
 
 from google.api_core.exceptions import GoogleAPIError
+from google.api_core.exceptions import NotFound
 from google.cloud import storage
 import pytest
 
@@ -32,16 +32,13 @@ import storage_get_requester_pays_status
 # in order to make changes on buckets with requester pays enabled.
 PROJECT = os.environ["GOOGLE_CLOUD_PROJECT"]
 BLOB_NAME = "storage_snippets_test_rpays_test"
+RPAYS_BUCKET_NAME = os.environ["REQUESTER_PAYS_TEST_BUCKET"]
 
 
 @pytest.fixture(scope="module")
 def requester_pays_bucket():
     """Yields a bucket used for requester pays tests."""
-    # We use a different bucket from other tests.
-    # The service account for the test needs to have Billing Project Manager role
-    # in order to make changes on buckets with requester pays enabled.
-    rpays_bucket_name = os.environ["REQUESTER_PAYS_TEST_BUCKET"]
-    bucket = storage.Client().bucket(rpays_bucket_name)
+    bucket = storage.Client().bucket(RPAYS_BUCKET_NAME)
     if not bucket.exists():
         bucket.create()
     # Upload a blob for test_download_file_requester_pays
@@ -50,8 +47,10 @@ def requester_pays_bucket():
 
     yield bucket
 
-    time.sleep(3)
-    bucket.delete(force=True)
+    try:
+        bucket.delete(force=True)
+    except NotFound:  # race
+        pass
 
 
 @backoff.on_exception(backoff.expo, GoogleAPIError, max_time=60)
