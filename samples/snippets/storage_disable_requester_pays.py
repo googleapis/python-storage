@@ -26,8 +26,6 @@ def disable_requester_pays(bucket_name, project_id):
     # project_id = "billing-project-id"
 
     storage_client = storage.Client()
-
-    bucket = storage_client.bucket(bucket_name)
     bucket = storage_client.bucket(bucket_name, user_project=project_id)
     bucket.requester_pays = False
     bucket.patch()

@@ -47,9 +47,11 @@ def requester_pays_bucket():
 
     yield bucket
 
+    # Cleanup - delete bucket and handle race conditions
     try:
+        bucket = storage.Client().bucket(RPAYS_BUCKET_NAME, user_project=PROJECT)
         bucket.delete(force=True)
-    except NotFound:  # race
+    except NotFound:
         pass
 
 
