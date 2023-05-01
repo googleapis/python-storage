@@ -80,8 +80,8 @@ export GOOGLE_CLOUD_PROJECT=[your-project-name]
 ### Run tests with nox
 ```
 nox -s lint
-nox -s py-3.7 -- snippets_test.py
-nox -s py-3.7 -- snippets_test.py::test_list_blobs
+nox -s py-3.9 -- snippets_test.py
+nox -s py-3.9 -- snippets_test.py::test_list_blobs
 ```
 
 ### Special test configurations
