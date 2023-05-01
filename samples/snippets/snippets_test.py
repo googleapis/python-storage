@@ -743,13 +743,13 @@ def test_transfer_manager_directory_upload(test_bucket, capsys):
 
 
 def test_transfer_manager_download_chunks_concurrently(test_bucket, capsys):
-    BLOB_NAME = "test.txt"
+    BLOB_NAME = "test_file.txt"
 
-    with tempfile.NamedTemporaryFile() as source_file:
-        source_file.write(b"test")
+    with tempfile.NamedTemporaryFile() as file:
+        file.write(b"test")
 
         storage_upload_file.upload_blob(
-            test_bucket.name, source_file.name, BLOB_NAME
+            test_bucket.name, file.name, BLOB_NAME
         )
 
     with tempfile.TemporaryDirectory() as downloads:

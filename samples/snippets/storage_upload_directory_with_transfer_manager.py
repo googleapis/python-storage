@@ -77,4 +77,3 @@ def upload_directory_with_transfer_manager(bucket_name, source_directory, thread
             print("Failed to upload {} due to exception: {}".format(name, result))
         else:
             print("Uploaded {} to {}.".format(name, bucket.name))
-            

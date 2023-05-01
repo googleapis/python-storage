@@ -25,11 +25,11 @@ def download_blob_as_chunks_concurrently(bucket_name, blob_name, filename, proce
     # The destination filename or path
     # filename = ""
 
-    # The maximum number of worker processes that should be used to handle the 
-    # workload of downloading the blob concurrently. PROCESS worker type uses more 
-    # system resources (both memory and CPU) and can result in faster operations 
-    # when working with large files. The optimal number of workers depends heavily 
-    # on the specific use case. Refer to the docstring of the underlining method 
+    # The maximum number of worker processes that should be used to handle the
+    # workload of downloading the blob concurrently. PROCESS worker type uses more
+    # system resources (both memory and CPU) and can result in faster operations
+    # when working with large files. The optimal number of workers depends heavily
+    # on the specific use case. Refer to the docstring of the underlining method
     # for more details.
     # processes=8
 
