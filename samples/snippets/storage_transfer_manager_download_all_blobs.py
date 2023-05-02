@@ -14,7 +14,7 @@
 
 
 def download_all_blobs_with_transfer_manager(
-    bucket_name, destination_directory="", threads=4
+    bucket_name, destination_directory="", processes=8
 ):
     """Download all of the blobs in a bucket, concurrently in a thread pool.
 
@@ -37,12 +37,13 @@ def download_all_blobs_with_transfer_manager(
     # intended for unsanitized end user input.
     # destination_directory = ""
 
-    # The number of threads to use for the operation. The performance impact of
-    # this value depends on the use case, but generally, smaller files benefit
-    # from more threads and larger files don't benefit from more threads. Too
-    # many threads can slow operations, especially with large files, due to
-    # contention over the Python GIL.
-    # threads=4
+    # The maximum number of worker processes that should be used to handle the
+    # workload of downloading the blob concurrently. PROCESS worker type uses more
+    # system resources (both memory and CPU) and can result in faster operations
+    # when working with large files. The optimal number of workers depends heavily
+    # on the specific use case. Refer to the docstring of the underlining method
+    # for more details.
+    # processes=8
 
     from google.cloud.storage import Client, transfer_manager
 
@@ -52,7 +53,7 @@ def download_all_blobs_with_transfer_manager(
     blob_names = [blob.name for blob in bucket.list_blobs()]
 
     results = transfer_manager.download_many_to_path(
-        bucket, blob_names, destination_directory=destination_directory, threads=threads
+        bucket, blob_names, destination_directory=destination_directory, max_workers=processes
     )
 
     for name, result in zip(blob_names, results):

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 
-def upload_directory_with_transfer_manager(bucket_name, source_directory, threads=4):
+def upload_directory_with_transfer_manager(bucket_name, source_directory, processes=8):
     """Upload every file in a directory, including all files in subdirectories.
 
     Each blob name is derived from the filename, not including the `directory`
@@ -30,12 +30,13 @@ def upload_directory_with_transfer_manager(bucket_name, source_directory, thread
     # working directory".
     # source_directory=""
 
-    # The number of threads to use for the operation. The performance impact of
-    # this value depends on the use case, but generally, smaller files benefit
-    # from more threads and larger files don't benefit from more threads. Too
-    # many threads can slow operations, especially with large files, due to
-    # contention over the Python GIL.
-    # threads=4
+    # The maximum number of worker processes that should be used to handle the
+    # workload of downloading the blob concurrently. PROCESS worker type uses more
+    # system resources (both memory and CPU) and can result in faster operations
+    # when working with large files. The optimal number of workers depends heavily
+    # on the specific use case. Refer to the docstring of the underlining method
+    # for more details.
+    # processes=8
 
     from pathlib import Path
 
@@ -66,7 +67,7 @@ def upload_directory_with_transfer_manager(bucket_name, source_directory, thread
 
     # Start the upload.
     results = transfer_manager.upload_many_from_filenames(
-        bucket, string_paths, source_directory=source_directory, threads=threads
+        bucket, string_paths, source_directory=source_directory, max_workers=processes
     )
 
     for name, result in zip(string_paths, results):

@@ -14,7 +14,7 @@
 
 
 def upload_many_blobs_with_transfer_manager(
-    bucket_name, filenames, source_directory="", threads=4
+    bucket_name, filenames, source_directory="", processes=8
 ):
     """Upload every file in a list to a bucket, concurrently in a thread pool.
 
@@ -40,12 +40,13 @@ def upload_many_blobs_with_transfer_manager(
     # end user input.
     # source_directory=""
 
-    # The number of threads to use for the operation. The performance impact of
-    # this value depends on the use case, but generally, smaller files benefit
-    # from more threads and larger files don't benefit from more threads. Too
-    # many threads can slow operations, especially with large files, due to
-    # contention over the Python GIL.
-    # threads=4
+    # The maximum number of worker processes that should be used to handle the
+    # workload of downloading the blob concurrently. PROCESS worker type uses more
+    # system resources (both memory and CPU) and can result in faster operations
+    # when working with large files. The optimal number of workers depends heavily
+    # on the specific use case. Refer to the docstring of the underlining method
+    # for more details.
+    # processes=8
 
     from google.cloud.storage import Client, transfer_manager
 
@@ -53,7 +54,7 @@ def upload_many_blobs_with_transfer_manager(
     bucket = storage_client.bucket(bucket_name)
 
     results = transfer_manager.upload_many_from_filenames(
-        bucket, filenames, source_directory=source_directory, threads=threads
+        bucket, filenames, source_directory=source_directory, max_workers=processes
     )
 
     for name, result in zip(filenames, results):
