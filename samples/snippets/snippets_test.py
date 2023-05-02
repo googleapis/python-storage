@@ -81,7 +81,7 @@ import storage_upload_from_stream
 import storage_upload_many_blobs_with_transfer_manager
 import storage_upload_with_kms_key
 
-KMS_KEY = os.environ["CLOUD_KMS_KEY"]
+KMS_KEY = os.environ.get("CLOUD_KMS_KEY")
 
 
 def test_enable_default_kms_key(test_bucket):
