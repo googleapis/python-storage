@@ -13,7 +13,7 @@
 # limitations under the License.
 
 
-def download_blob_as_chunks_concurrently(bucket_name, blob_name, filename, processes=8):
+def download_chunks_concurrently(bucket_name, blob_name, filename, processes=8):
     """Download a single file in chunks, concurrently."""
 
     # The ID of your GCS bucket

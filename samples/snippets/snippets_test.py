@@ -42,8 +42,6 @@ import storage_delete_file
 import storage_delete_file_archived_generation
 import storage_disable_bucket_lifecycle_management
 import storage_disable_versioning
-import storage_download_all_blobs_with_transfer_manager
-import storage_download_blob_as_chunks_concurrently
 import storage_download_byte_range
 import storage_download_file
 import storage_download_into_memory
@@ -74,11 +72,13 @@ import storage_set_autoclass
 import storage_set_bucket_default_kms_key
 import storage_set_client_endpoint
 import storage_set_metadata
-import storage_upload_directory_with_transfer_manager
+import storage_transfer_manager_download_all_blobs
+import storage_transfer_manager_download_chunks_concurrently
+import storage_transfer_manager_upload_directory
+import storage_transfer_manager_upload_many_blobs
 import storage_upload_file
 import storage_upload_from_memory
 import storage_upload_from_stream
-import storage_upload_many_blobs_with_transfer_manager
 import storage_upload_with_kms_key
 
 KMS_KEY = os.environ.get("CLOUD_KMS_KEY")
@@ -689,7 +689,7 @@ def test_transfer_manager_snippets(test_bucket, capsys):
             with open(os.path.join(uploads, name), "w") as f:
                 f.write(name)
 
-        storage_upload_many_blobs_with_transfer_manager.upload_many_blobs_with_transfer_manager(
+        storage_transfer_manager_upload_many_blobs.upload_many_blobs_with_transfer_manager(
             test_bucket.name,
             BLOB_NAMES,
             source_directory="{}/".format(uploads),
@@ -702,7 +702,7 @@ def test_transfer_manager_snippets(test_bucket, capsys):
 
     with tempfile.TemporaryDirectory() as downloads:
         # Download the files.
-        storage_download_all_blobs_with_transfer_manager.download_all_blobs_with_transfer_manager(
+        storage_transfer_manager_download_all_blobs.download_all_blobs_with_transfer_manager(
             test_bucket.name,
             destination_directory=os.path.join(downloads, ""),
             threads=2,
@@ -732,7 +732,7 @@ def test_transfer_manager_directory_upload(test_bucket, capsys):
             with open(os.path.join(uploads, name), "w") as f:
                 f.write(name)
 
-        storage_upload_directory_with_transfer_manager.upload_directory_with_transfer_manager(
+        storage_transfer_manager_upload_directory.upload_directory_with_transfer_manager(
             test_bucket.name, source_directory="{}/".format(uploads)
         )
         out, _ = capsys.readouterr()
@@ -754,7 +754,7 @@ def test_transfer_manager_download_chunks_concurrently(test_bucket, capsys):
 
     with tempfile.TemporaryDirectory() as downloads:
         # Download the file.
-        storage_download_blob_as_chunks_concurrently.download_blob_as_chunks_concurrently(
+        storage_transfer_manager_download_chunks_concurrently.download_chunks_concurrently(
             test_bucket.name,
             BLOB_NAME,
             os.path.join(downloads, BLOB_NAME),
