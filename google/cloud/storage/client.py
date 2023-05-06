@@ -1120,6 +1120,7 @@ class Client(ClientWithProject):
         page_size=None,
         timeout=_DEFAULT_TIMEOUT,
         retry=DEFAULT_RETRY,
+        match_glob=None,
     ):
         """Return an iterator used to find blobs in the bucket.
 
@@ -1213,6 +1214,10 @@ class Client(ClientWithProject):
                 See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
                 information on retry types and how to configure them.
 
+            match_glob (str):
+                (Optional) A glob pattern used to filter results (for example, foo*bar).
+                The string value must be UTF-8 encoded.
+
         Returns:
             Iterator of all :class:`~google.cloud.storage.blob.Blob`
             in this bucket matching the arguments. The RPC call
@@ -1229,8 +1234,8 @@ class Client(ClientWithProject):
             extra_params["prefix"] = prefix
 
         if delimiter is not None:
-            extra_params["delimiter"] = delimiter
-
+            extra_params["delimiter"] = delimiter    
+            
         if start_offset is not None:
             extra_params["startOffset"] = start_offset
 
@@ -1249,6 +1254,9 @@ class Client(ClientWithProject):
         if bucket.user_project is not None:
             extra_params["userProject"] = bucket.user_project
 
+        if match_glob is not None:
+            extra_params["matchGlob"] = match_glob
+            
         path = bucket.path + "/o"
         iterator = self._list_resource(
             path,
