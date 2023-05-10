@@ -259,6 +259,28 @@
         "expectedStringToSign": "GOOG4-RSA-SHA256\n20190201T090000Z\n20190201/auto/storage/goog4_request\n89eeae48258eccdcb1f592fb908008e3f5d36a949c002c1e614c94356dc18fc6"
       },
       {
+        "description": "Get Bucket with HTTP Bucket Bound Hostname Support",
+        "bucket": "test-bucket",
+        "method": "GET",
+        "expiration": 10,
+        "timestamp": "20190201T090000Z",
+        "expectedUrl": "http://mydomain.tld/?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=test-iam-credentials%40test-project-id.iam.gserviceaccount.com%2F20190201%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20190201T090000Z&X-Goog-Expires=10&X-Goog-SignedHeaders=host&X-Goog-Signature=13a256f7afda0a733cc21e9c804b1d2c37f64f9a18956fe11ccce57765115dda24c1d342d364b533e1ab95fcf5ca6b7646f2d5bb008ca9c731d01cdad932f56c21fe5528acfd9cc290c823316992fe791424c5c4b1a2d0b6857d90702be7ec05f3d585ffe1a58a7ab1782643512dad430581dafbeff8669e1b7ec3122c51dbf8c0509f9f746a6208c8d8847493476949959cacdbdc4e024c65055c9af2b51767d2bf8b4e95f10e9ecda3977e9a9cf47d4a4626da1711b79ee344dea82c459826f0e9c31350d8129dc0dc49b203ea301681ba5092e13e362bc657059fd07fd62f0751f6ced8ea50caeb5316c8ed8bca05c793d302853f2fe016305d258e1e212b",
+        "scheme": "http",
+        "urlStyle": "BUCKET_BOUND_HOSTNAME",
+        "bucketBoundHostname": "mydomain.tld"
+      },
+      {
+        "description": "Get Bucket with HTTPS Bucket Bound Hostname Support",
+        "bucket": "test-bucket",
+        "method": "GET",
+        "expiration": 10,
+        "timestamp": "20190201T090000Z",
+        "expectedUrl": "https://mydomain.tld/?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=test-iam-credentials%40test-project-id.iam.gserviceaccount.com%2F20190201%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20190201T090000Z&X-Goog-Expires=10&X-Goog-SignedHeaders=host&X-Goog-Signature=13a256f7afda0a733cc21e9c804b1d2c37f64f9a18956fe11ccce57765115dda24c1d342d364b533e1ab95fcf5ca6b7646f2d5bb008ca9c731d01cdad932f56c21fe5528acfd9cc290c823316992fe791424c5c4b1a2d0b6857d90702be7ec05f3d585ffe1a58a7ab1782643512dad430581dafbeff8669e1b7ec3122c51dbf8c0509f9f746a6208c8d8847493476949959cacdbdc4e024c65055c9af2b51767d2bf8b4e95f10e9ecda3977e9a9cf47d4a4626da1711b79ee344dea82c459826f0e9c31350d8129dc0dc49b203ea301681ba5092e13e362bc657059fd07fd62f0751f6ced8ea50caeb5316c8ed8bca05c793d302853f2fe016305d258e1e212b",
+        "scheme": "https",
+        "urlStyle": "BUCKET_BOUND_HOSTNAME",
+        "bucketBoundHostname": "mydomain.tld"
+      },
+      {
         "description": "HTTP Bucket Bound Hostname Support",
         "bucket": "test-bucket",
         "object": "test-object",
