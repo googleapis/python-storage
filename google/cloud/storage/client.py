@@ -315,11 +315,11 @@ class Client(ClientWithProject):
           a batch object owned by this client.
 
         :type raise_exception: bool
-        :param raise_exception: (Optional) Defaults to True.
-        If True, instead of adding exceptions to the list of return responses,
-        the final exception will be raised. Note that exceptions are
-        unwrapped after all operations are complete in success or failure,
-        and only the last exception is raised.
+        :param raise_exception:
+            (Optional) Defaults to True. If True, instead of adding exceptions
+            to the list of return responses, the final exception will be raised.
+            Note that exceptions are unwrapped after all operations are complete
+            in success or failure, and only the last exception is raised.
 
         :rtype: :class:`google.cloud.storage.batch.Batch`
         :returns: The batch object created.

@@ -135,11 +135,11 @@ class Batch(Connection):
     :param client: The client to use for making connections.
 
     :type raise_exception: bool
-    :param raise_exception: (Optional) Defaults to True.
-    If True, instead of adding exceptions to the list of return responses,
-    the final exception will be raised. Note that exceptions are
-    unwrapped after all operations are complete in success or failure,
-    and only the last exception is raised.
+    :param raise_exception:
+        (Optional) Defaults to True. If True, instead of adding exceptions
+        to the list of return responses, the final exception will be raised.
+        Note that exceptions are unwrapped after all operations are complete
+        in success or failure, and only the last exception is raised.
     """
 
     _MAX_BATCH_SIZE = 1000
@@ -236,11 +236,11 @@ class Batch(Connection):
                           the batch.
 
         :type raise_exception: bool
-        :param raise_exception: (Optional) Defaults to True.
-        If True, instead of adding exceptions to the list of return responses,
-        the final exception will be raised. Note that exceptions are
-        unwrapped after all operations are complete in success or failure,
-        and only the last exception is raised.
+        :param raise_exception:
+            (Optional) Defaults to True. If True, instead of adding exceptions
+            to the list of return responses, the final exception will be raised.
+            Note that exceptions are unwrapped after all operations are complete
+            in success or failure, and only the last exception is raised.
 
         :raises: :class:`ValueError` if no requests have been deferred.
         """
@@ -270,11 +270,11 @@ class Batch(Connection):
         """Submit a single `multipart/mixed` request with deferred requests.
 
         :type raise_exception: bool
-        :param raise_exception: (Optional) Defaults to True.
-        If True, instead of adding exceptions to the list of return responses,
-        the final exception will be raised. Note that exceptions are
-        unwrapped after all operations are complete in success or failure,
-        and only the last exception is raised.
+        :param raise_exception:
+            (Optional) Defaults to True. If True, instead of adding exceptions
+            to the list of return responses, the final exception will be raised.
+            Note that exceptions are unwrapped after all operations are complete
+            in success or failure, and only the last exception is raised.
 
         :rtype: list of tuples
         :returns: one ``(headers, payload)`` tuple per deferred request.
