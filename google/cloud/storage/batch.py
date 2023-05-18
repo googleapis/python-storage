@@ -228,7 +228,7 @@ class Batch(Connection):
         _, body = payload.split("\n\n", 1)
         return dict(multi._headers), body, timeout
 
-    def _finish_futures(self, responses, raise_exception):
+    def _finish_futures(self, responses, raise_exception=True):
         """Apply all the batch responses to the futures created.
 
         :type responses: list of (headers, payload) tuples.
