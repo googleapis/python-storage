@@ -331,6 +331,18 @@ class Blob(_PropertyMixin):
         return self.path_helper(self.bucket.path, self.name)
 
     @property
+    def gsutil_uri(self):
+        """Getter property for the gsutil URI path to this Blob.
+
+        :rtype: str
+        :returns: The gsutil URI path to this Blob.
+        """
+        if not self.name:
+            raise ValueError("Cannot determine path without a blob name.")
+
+        return f"gs://{self.bucket.name}/{_quote(self.name)}"
+
+    @property
     def client(self):
         """The client bound to this blob."""
         return self.bucket.client
@@ -984,7 +996,6 @@ class Blob(_PropertyMixin):
             response = download.consume(transport, timeout=timeout)
             self._extract_headers_from_download(response)
         else:
-
             if checksum:
                 msg = _CHUNKED_DOWNLOAD_CHECKSUM_MESSAGE.format(checksum)
                 _logger.info(msg)
