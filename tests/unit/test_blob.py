@@ -334,6 +334,35 @@ class Test_Blob(unittest.TestCase):
         bucket = _Bucket()
         blob = self._make_one(blob_name, bucket=bucket)
         self.assertEqual(blob.path, "/b/name/o/Caf%C3%A9")
+    
+    def test_gsutil_uri_bad_bucket(self):
+        fake_bucket = object()
+        name = "blob-name"
+        blob = self._make_one(name, bucket=fake_bucket)
+        self.assertRaises(AttributeError, getattr, blob, "gsutil_uri")
+
+    def test_gsutil_uri_no_name(self):
+        bucket = _Bucket()
+        blob = self._make_one("", bucket=bucket)
+        self.assertRaises(ValueError, getattr, blob, "gsutil_uri")
+
+    def test_gsutil_uri_normal(self):
+        BLOB_NAME = "blob-name"
+        bucket = _Bucket()
+        blob = self._make_one(BLOB_NAME, bucket=bucket)
+        self.assertEqual(blob.gsutil_uri, f"gs://name/{BLOB_NAME}")
+
+    def test_gsutil_uri_w_slash_in_name(self):
+        BLOB_NAME = "parent/child"
+        bucket = _Bucket()
+        blob = self._make_one(BLOB_NAME, bucket=bucket)
+        self.assertEqual(blob.gsutil_uri, "gs://name/parent%2Fchild")
+    
+    def test_gsutil_uri_with_non_ascii(self):
+        blob_name = "Caf\xe9"
+        bucket = _Bucket()
+        blob = self._make_one(blob_name, bucket=bucket)
+        self.assertEqual(blob.gsutil_uri, "gs://name/Caf%C3%A9")
 
     def test_bucket_readonly_property(self):
         blob_name = "BLOB"
