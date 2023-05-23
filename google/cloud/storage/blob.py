@@ -329,7 +329,7 @@ class Blob(_PropertyMixin):
             raise ValueError("Cannot determine path without a blob name.")
 
         return self.path_helper(self.bucket.path, self.name)
-    
+
     @property
     def gsutil_uri(self):
         """Getter property for the gsutil URI path to this Blob.

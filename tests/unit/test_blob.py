@@ -334,7 +334,7 @@ class Test_Blob(unittest.TestCase):
         bucket = _Bucket()
         blob = self._make_one(blob_name, bucket=bucket)
         self.assertEqual(blob.path, "/b/name/o/Caf%C3%A9")
-    
+
     def test_gsutil_uri_bad_bucket(self):
         fake_bucket = object()
         name = "blob-name"
@@ -357,7 +357,7 @@ class Test_Blob(unittest.TestCase):
         bucket = _Bucket()
         blob = self._make_one(BLOB_NAME, bucket=bucket)
         self.assertEqual(blob.gsutil_uri, "gs://name/parent%2Fchild")
-    
+
     def test_gsutil_uri_with_non_ascii(self):
         blob_name = "Caf\xe9"
         bucket = _Bucket()
@@ -3020,7 +3020,6 @@ class Test_Blob(unittest.TestCase):
         with patch.object(
             _helpers, "_get_invocation_id", return_value=GCCL_INVOCATION_TEST_CONST
         ):
-
             response = blob._do_resumable_upload(
                 client,
                 stream,
@@ -5946,7 +5945,6 @@ class Test__add_query_parameters(unittest.TestCase):
 
 
 class _Connection(object):
-
     API_BASE_URL = "http://example.com"
     USER_AGENT = "testing 1.2.3"
     user_agent = "testing 1.2.3"
