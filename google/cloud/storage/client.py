@@ -1111,6 +1111,7 @@ class Client(ClientWithProject):
         page_token=None,
         prefix=None,
         delimiter=None,
+        match_glob=None,
         start_offset=None,
         end_offset=None,
         include_trailing_delimiter=None,
@@ -1230,6 +1231,9 @@ class Client(ClientWithProject):
 
         if delimiter is not None:
             extra_params["delimiter"] = delimiter
+
+        if match_glob is not None:
+            extra_params["matchGlob"] = match_glob
 
         if start_offset is not None:
             extra_params["startOffset"] = start_offset

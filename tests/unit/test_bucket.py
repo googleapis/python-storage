@@ -1143,6 +1143,7 @@ class Test_Bucket(unittest.TestCase):
         expected_max_results = None
         expected_prefix = None
         expected_delimiter = None
+        expected_match_glob = None
         expected_start_offset = None
         expected_end_offset = None
         expected_include_trailing_delimiter = None
@@ -1155,6 +1156,7 @@ class Test_Bucket(unittest.TestCase):
             page_token=expected_page_token,
             prefix=expected_prefix,
             delimiter=expected_delimiter,
+            match_glob=expected_match_glob,
             start_offset=expected_start_offset,
             end_offset=expected_end_offset,
             include_trailing_delimiter=expected_include_trailing_delimiter,
@@ -1171,6 +1173,7 @@ class Test_Bucket(unittest.TestCase):
         page_token = "ABCD"
         prefix = "subfolder"
         delimiter = "/"
+        match_glob = "**txt"
         start_offset = "c"
         end_offset = "g"
         include_trailing_delimiter = True
@@ -1188,6 +1191,7 @@ class Test_Bucket(unittest.TestCase):
             page_token=page_token,
             prefix=prefix,
             delimiter=delimiter,
+            match_glob=match_glob,
             start_offset=start_offset,
             end_offset=end_offset,
             include_trailing_delimiter=include_trailing_delimiter,
@@ -1205,6 +1209,7 @@ class Test_Bucket(unittest.TestCase):
         expected_max_results = max_results
         expected_prefix = prefix
         expected_delimiter = delimiter
+        expected_match_glob = match_glob
         expected_start_offset = start_offset
         expected_end_offset = end_offset
         expected_include_trailing_delimiter = include_trailing_delimiter
@@ -1217,6 +1222,7 @@ class Test_Bucket(unittest.TestCase):
             page_token=expected_page_token,
             prefix=expected_prefix,
             delimiter=expected_delimiter,
+            match_glob=expected_match_glob,
             start_offset=expected_start_offset,
             end_offset=expected_end_offset,
             include_trailing_delimiter=expected_include_trailing_delimiter,
