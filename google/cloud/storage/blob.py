@@ -1124,24 +1124,7 @@ class Blob(_PropertyMixin):
 
         :raises: :class:`google.cloud.exceptions.NotFound`
         """
-        # client = self._require_client(client)
 
-        # client.download_blob_to_file(
-        #     self,
-        #     file_obj=file_obj,
-        #     start=start,
-        #     end=end,
-        #     raw_download=raw_download,
-        #     if_etag_match=if_etag_match,
-        #     if_etag_not_match=if_etag_not_match,
-        #     if_generation_match=if_generation_match,
-        #     if_generation_not_match=if_generation_not_match,
-        #     if_metageneration_match=if_metageneration_match,
-        #     if_metageneration_not_match=if_metageneration_not_match,
-        #     timeout=timeout,
-        #     checksum=checksum,
-        #     retry=retry,
-        # )
         self._download_blob(
             file_obj=file_obj,
             client=client,
@@ -1266,25 +1249,9 @@ class Blob(_PropertyMixin):
 
         :raises: :class:`google.cloud.exceptions.NotFound`
         """
-        # client = self._require_client(client)
+
         try:
             with open(filename, "wb") as file_obj:
-                # client.download_blob_to_file(
-                #     self,
-                #     file_obj,
-                #     start=start,
-                #     end=end,
-                #     raw_download=raw_download,
-                #     if_etag_match=if_etag_match,
-                #     if_etag_not_match=if_etag_not_match,
-                #     if_generation_match=if_generation_match,
-                #     if_generation_not_match=if_generation_not_match,
-                #     if_metageneration_match=if_metageneration_match,
-                #     if_metageneration_not_match=if_metageneration_not_match,
-                #     timeout=timeout,
-                #     checksum=checksum,
-                #     retry=retry,
-                # )
                 self._download_blob(
                     file_obj=file_obj,
                     client=client,
@@ -1414,24 +1381,9 @@ class Blob(_PropertyMixin):
 
         :raises: :class:`google.cloud.exceptions.NotFound`
         """
-        # client = self._require_client(client)
+
         string_buffer = BytesIO()
-        # client.download_blob_to_file(
-        #     self,
-        #     string_buffer,
-        #     start=start,
-        #     end=end,
-        #     raw_download=raw_download,
-        #     if_etag_match=if_etag_match,
-        #     if_etag_not_match=if_etag_not_match,
-        #     if_generation_match=if_generation_match,
-        #     if_generation_not_match=if_generation_not_match,
-        #     if_metageneration_match=if_metageneration_match,
-        #     if_metageneration_not_match=if_metageneration_not_match,
-        #     timeout=timeout,
-        #     checksum=checksum,
-        #     retry=retry,
-        # )
+
         self._download_blob(
             string_buffer,
             client=client,
@@ -4085,7 +4037,6 @@ class Blob(_PropertyMixin):
             configuration changes for Retry objects such as delays and deadlines
             are respected.
         """
-
         # Handle ConditionalRetryPolicy.
         if isinstance(retry, ConditionalRetryPolicy):
             # Conditional retries are designed for non-media calls, which change
@@ -4098,9 +4049,6 @@ class Blob(_PropertyMixin):
             }
             retry = retry.get_retry_policy_if_conditions_met(query_params=query_params)
 
-        # if not isinstance(blob_or_uri, Blob):
-        #     blob_or_uri = Blob.from_string(blob_or_uri)
-        # download_url = blob_or_uri._get_download_url(
         client = self._require_client(client)
 
         download_url = self._get_download_url(

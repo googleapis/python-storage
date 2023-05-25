@@ -1060,64 +1060,9 @@ class Client(ClientWithProject):
                 are respected.
         """
 
-        # # Handle ConditionalRetryPolicy.
-        # if isinstance(retry, ConditionalRetryPolicy):
-        #     # Conditional retries are designed for non-media calls, which change
-        #     # arguments into query_params dictionaries. Media operations work
-        #     # differently, so here we make a "fake" query_params to feed to the
-        #     # ConditionalRetryPolicy.
-        #     query_params = {
-        #         "ifGenerationMatch": if_generation_match,
-        #         "ifMetagenerationMatch": if_metageneration_match,
-        #     }
-        #     retry = retry.get_retry_policy_if_conditions_met(query_params=query_params)
-
         if not isinstance(blob_or_uri, Blob):
             blob_or_uri = Blob.from_string(blob_or_uri)
-        # download_url = blob_or_uri._get_download_url(
-        #     self,
-        #     if_generation_match=if_generation_match,
-        #     if_generation_not_match=if_generation_not_match,
-        #     if_metageneration_match=if_metageneration_match,
-        #     if_metageneration_not_match=if_metageneration_not_match,
-        # )
-        # headers = _get_encryption_headers(blob_or_uri._encryption_key)
-        # headers["accept-encoding"] = "gzip"
-        # _add_etag_match_headers(
-        #     headers,
-        #     if_etag_match=if_etag_match,
-        #     if_etag_not_match=if_etag_not_match,
-        # )
-        # headers = {**_get_default_headers(self._connection.user_agent), **headers}
 
-        # transport = self._http
-
-        # transport, download_url, headers = _download_blob_args(
-        #     blob_or_uri=blob_or_uri,
-        #     client=self,
-        #     if_etag_match=if_etag_match,
-        #     if_etag_not_match=if_etag_not_match,
-        #     if_generation_match=if_generation_match,
-        #     if_generation_not_match=if_generation_not_match,
-        #     if_metageneration_match=if_metageneration_match,
-        #     if_metageneration_not_match=if_metageneration_not_match,
-        #     retry=retry,
-        # )
-        # try:
-        #     blob_or_uri._do_download(
-        #         transport,
-        #         file_obj,
-        #         download_url,
-        #         headers,
-        #         start,
-        #         end,
-        #         raw_download,
-        #         timeout=timeout,
-        #         checksum=checksum,
-        #         retry=retry,
-        #     )
-        # except resumable_media.InvalidResponse as exc:
-        #     _raise_from_invalid_response(exc)
         blob_or_uri._download_blob(
             file_obj,
             client=self,
