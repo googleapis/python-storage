@@ -1315,6 +1315,12 @@ class Bucket(_PropertyMixin):
         :param delimiter: (Optional) Delimiter, used with ``prefix`` to
                           emulate hierarchy.
 
+        :type match_glob: str
+        :param match_glob:
+            (Optional) A glob pattern used to filter results (for example, foo*bar).
+            The string value must be UTF-8 encoded. See:
+            https://cloud.google.com/storage/docs/json_api/v1/objects/list#list-object-glob
+
         :type start_offset: str
         :param start_offset:
             (Optional) Filter results to objects whose names are

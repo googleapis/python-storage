@@ -1155,6 +1155,11 @@ class Client(ClientWithProject):
                 (Optional) Delimiter, used with ``prefix`` to
                 emulate hierarchy.
 
+            match_glob (str):
+                (Optional) A glob pattern used to filter results (for example, foo*bar).
+                The string value must be UTF-8 encoded. See:
+                https://cloud.google.com/storage/docs/json_api/v1/objects/list#list-object-glob
+
             start_offset (str):
                 (Optional) Filter results to objects whose names are
                 lexicographically equal to or after ``startOffset``. If

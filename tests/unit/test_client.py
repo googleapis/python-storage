@@ -1928,6 +1928,7 @@ class TestClient(unittest.TestCase):
         page_token = "ABCD"
         prefix = "subfolder"
         delimiter = "/"
+        match_glob = "**txt"
         start_offset = "c"
         end_offset = "g"
         include_trailing_delimiter = True
@@ -1953,6 +1954,7 @@ class TestClient(unittest.TestCase):
             page_token=page_token,
             prefix=prefix,
             delimiter=delimiter,
+            match_glob=match_glob,
             start_offset=start_offset,
             end_offset=end_offset,
             include_trailing_delimiter=include_trailing_delimiter,
@@ -1976,6 +1978,7 @@ class TestClient(unittest.TestCase):
             "projection": projection,
             "prefix": prefix,
             "delimiter": delimiter,
+            "matchGlob": match_glob,
             "startOffset": start_offset,
             "endOffset": end_offset,
             "includeTrailingDelimiter": include_trailing_delimiter,
