@@ -957,7 +957,7 @@ class Blob(_PropertyMixin):
 
             This private method does not accept ConditionalRetryPolicy values
             because the information necessary to evaluate the policy is instead
-            evaluated in client.download_blob_to_file().
+            evaluated in blob._download_blob().
 
             See the retry.py source code and docstrings in this package
             (google.cloud.storage.retry) for information on retry types and how
@@ -1126,7 +1126,7 @@ class Blob(_PropertyMixin):
         """
 
         self._download_blob(
-            file_obj=file_obj,
+            file_obj,
             client=client,
             start=start,
             end=end,
@@ -1253,7 +1253,7 @@ class Blob(_PropertyMixin):
         try:
             with open(filename, "wb") as file_obj:
                 self._download_blob(
-                    file_obj=file_obj,
+                    file_obj,
                     client=client,
                     start=start,
                     end=end,
@@ -3950,7 +3950,7 @@ class Blob(_PropertyMixin):
         retry=DEFAULT_RETRY,
     ):
         
-        """Download the contents of a blob object or blob URI into a file-like object.
+        """Download the contents of a blob object into a file-like object.
 
         See https://cloud.google.com/storage/docs/downloading-objects
 

@@ -32,13 +32,11 @@ from google.cloud._helpers import _LocalStack, _NOW
 from google.cloud.client import ClientWithProject
 from google.cloud.exceptions import NotFound
 
-# from google.cloud.storage._helpers import _get_default_headers
 from google.cloud.storage._helpers import _get_environ_project
 from google.cloud.storage._helpers import _get_storage_host
 from google.cloud.storage._helpers import _DEFAULT_STORAGE_HOST
 from google.cloud.storage._helpers import _bucket_bound_hostname_url
 
-# from google.cloud.storage._helpers import _add_etag_match_headers
 from google.cloud.storage._http import Connection
 from google.cloud.storage._signing import (
     get_expiration_seconds_v4,
@@ -48,18 +46,12 @@ from google.cloud.storage._signing import (
 )
 from google.cloud.storage.batch import Batch
 from google.cloud.storage.bucket import Bucket, _item_to_blob, _blobs_page_start
-from google.cloud.storage.blob import (
-    Blob,
-    # _get_encryption_headers,
-    _raise_from_invalid_response,
-)
+from google.cloud.storage.blob import Blob
 from google.cloud.storage.hmac_key import HMACKeyMetadata
 from google.cloud.storage.acl import BucketACL
 from google.cloud.storage.acl import DefaultObjectACL
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 from google.cloud.storage.retry import DEFAULT_RETRY
-
-# from google.cloud.storage.retry import ConditionalRetryPolicy
 
 
 _marker = object()
