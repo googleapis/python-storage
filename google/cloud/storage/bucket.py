@@ -1936,8 +1936,11 @@ class Bucket(_PropertyMixin):
           old blob.  This means that with very large objects renaming
           could be a very (temporarily) costly or a very slow operation.
           If you need more control over the copy and deletion, instead
-          use `google.cloud.storage.blob.Blob.copy_to` and
-          `google.cloud.storage.blob.Blob.delete` directly.
+          use ``google.cloud.storage.blob.Blob.copy_to`` and
+          ``google.cloud.storage.blob.Blob.delete`` directly.
+
+          Also note that this method is not fully supported in a
+          ``Batch`` context.
 
         :type blob: :class:`google.cloud.storage.blob.Blob`
         :param blob: The blob to be renamed.
