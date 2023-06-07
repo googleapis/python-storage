@@ -1638,16 +1638,18 @@ class TestClient(unittest.TestCase):
             retry=DEFAULT_RETRY,
             _target_object=bucket,
         )
-    
+
     @staticmethod
     def _make_blob(*args, **kw):
         from google.cloud.storage.blob import Blob
+
         blob = Blob(*args, **kw)
 
         return blob
 
     def test_download_blob_to_file_with_failure(self):
         from google.resumable_media import InvalidResponse
+
         # from google.cloud.storage.blob import Blob
         from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 

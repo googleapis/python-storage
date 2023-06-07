@@ -25,8 +25,6 @@ import google.api_core.client_options
 
 from google.auth.credentials import AnonymousCredentials
 
-from google import resumable_media
-
 from google.api_core import page_iterator
 from google.cloud._helpers import _LocalStack, _NOW
 from google.cloud.client import ClientWithProject

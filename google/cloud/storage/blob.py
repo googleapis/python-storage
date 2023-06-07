@@ -3949,7 +3949,7 @@ class Blob(_PropertyMixin):
         checksum="md5",
         retry=DEFAULT_RETRY,
     ):
-        
+
         """Download the contents of a blob object into a file-like object.
 
         See https://cloud.google.com/storage/docs/downloading-objects

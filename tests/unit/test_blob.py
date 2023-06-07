@@ -1549,7 +1549,7 @@ class Test_Blob(unittest.TestCase):
         extra_kwargs.update(timeout_kwarg)
 
         file_obj = io.BytesIO()
-        
+
         with mock.patch.object(blob, "_download_blob"):
             if raw_download:
                 blob.download_to_file(file_obj, raw_download=True, **extra_kwargs)
@@ -1630,7 +1630,9 @@ class Test_Blob(unittest.TestCase):
                     updated_time = blob.updated.timestamp()
                     self.assertEqual(mtime, updated_time)
 
-            expected_timeout = self._get_default_timeout() if timeout is None else timeout
+            expected_timeout = (
+                self._get_default_timeout() if timeout is None else timeout
+            )
 
             expected_retry = extra_kwargs.get("retry", DEFAULT_RETRY)
 
@@ -1718,7 +1720,9 @@ class Test_Blob(unittest.TestCase):
 
         with mock.patch.object(blob, "_download_blob"):
             with _NamedTemporaryFile() as temp:
-                blob.download_to_filename(temp.name, if_generation_match=generation_number)
+                blob.download_to_filename(
+                    temp.name, if_generation_match=generation_number
+                )
 
             expected_timeout = self._get_default_timeout()
             blob._download_blob.assert_called_once_with(
@@ -1793,7 +1797,9 @@ class Test_Blob(unittest.TestCase):
         with mock.patch.object(blob, "_download_blob"):
             if timeout is None:
                 expected_timeout = self._get_default_timeout()
-                fetched = blob.download_as_bytes(raw_download=raw_download, **extra_kwargs)
+                fetched = blob.download_as_bytes(
+                    raw_download=raw_download, **extra_kwargs
+                )
             else:
                 expected_timeout = timeout
                 fetched = blob.download_as_bytes(
