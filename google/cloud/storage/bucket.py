@@ -1281,7 +1281,6 @@ class Bucket(_PropertyMixin):
         page_token=None,
         prefix=None,
         delimiter=None,
-        match_glob=None,
         start_offset=None,
         end_offset=None,
         include_trailing_delimiter=None,
@@ -1291,6 +1290,7 @@ class Bucket(_PropertyMixin):
         client=None,
         timeout=_DEFAULT_TIMEOUT,
         retry=DEFAULT_RETRY,
+        match_glob=None,
     ):
         """Return an iterator used to find blobs in the bucket.
 
@@ -1314,12 +1314,6 @@ class Bucket(_PropertyMixin):
         :type delimiter: str
         :param delimiter: (Optional) Delimiter, used with ``prefix`` to
                           emulate hierarchy.
-
-        :type match_glob: str
-        :param match_glob:
-            (Optional) A glob pattern used to filter results (for example, foo*bar).
-            The string value must be UTF-8 encoded. See:
-            https://cloud.google.com/storage/docs/json_api/v1/objects/list#list-object-glob
 
         :type start_offset: str
         :param start_offset:
@@ -1371,6 +1365,12 @@ class Bucket(_PropertyMixin):
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
         :param retry:
             (Optional) How to retry the RPC. See: :ref:`configuring_retries`
+
+        :type match_glob: str
+        :param match_glob:
+            (Optional) A glob pattern used to filter results (for example, foo*bar).
+            The string value must be UTF-8 encoded. See:
+            https://cloud.google.com/storage/docs/json_api/v1/objects/list#list-object-glob
 
         :rtype: :class:`~google.api_core.page_iterator.Iterator`
         :returns: Iterator of all :class:`~google.cloud.storage.blob.Blob`
