@@ -1415,8 +1415,8 @@ class Test_Blob(unittest.TestCase):
         blob = self._make_one(blob_name, bucket=bucket)
         file_obj = io.BytesIO()
 
-        with mock.patch.object(blob, "_download_blob"):
-            blob._download_blob.side_effect = NotFound("testing")
+        with mock.patch.object(blob, "_prep_and_do_download"):
+            blob._prep_and_do_download.side_effect = NotFound("testing")
 
             with self.assertRaises(NotFound):
                 blob.download_to_file(file_obj)
@@ -1424,7 +1424,7 @@ class Test_Blob(unittest.TestCase):
             self.assertEqual(file_obj.tell(), 0)
 
             expected_timeout = self._get_default_timeout()
-            blob._download_blob.assert_called_once_with(
+            blob._prep_and_do_download.assert_called_once_with(
                 file_obj,
                 client=None,
                 start=None,
@@ -1448,14 +1448,14 @@ class Test_Blob(unittest.TestCase):
         blob = self._make_one(blob_name, bucket=bucket)
         file_obj = io.BytesIO()
 
-        with mock.patch.object(blob, "_download_blob"):
+        with mock.patch.object(blob, "_prep_and_do_download"):
             blob.download_to_file(file_obj)
 
             # Make sure the media link is still unknown.
             self.assertIsNone(blob.media_link)
 
             expected_timeout = self._get_default_timeout()
-            blob._download_blob.assert_called_once_with(
+            blob._prep_and_do_download.assert_called_once_with(
                 file_obj,
                 client=None,
                 start=None,
@@ -1478,11 +1478,11 @@ class Test_Blob(unittest.TestCase):
         blob = self._make_one("blob-name", bucket=_Bucket(client))
         file_obj = io.BytesIO()
 
-        with mock.patch.object(blob, "_download_blob"):
+        with mock.patch.object(blob, "_prep_and_do_download"):
             blob.download_to_file(file_obj, if_etag_not_match=etag)
 
             expected_timeout = self._get_default_timeout()
-            blob._download_blob.assert_called_once_with(
+            blob._prep_and_do_download.assert_called_once_with(
                 file_obj,
                 client=None,
                 start=None,
@@ -1505,11 +1505,11 @@ class Test_Blob(unittest.TestCase):
         blob = self._make_one("blob-name", bucket=_Bucket(client))
         file_obj = io.BytesIO()
 
-        with mock.patch.object(blob, "_download_blob"):
+        with mock.patch.object(blob, "_prep_and_do_download"):
             blob.download_to_file(file_obj, if_generation_not_match=generation_number)
 
             expected_timeout = self._get_default_timeout()
-            blob._download_blob.assert_called_once_with(
+            blob._prep_and_do_download.assert_called_once_with(
                 file_obj,
                 client=None,
                 start=None,
@@ -1550,14 +1550,14 @@ class Test_Blob(unittest.TestCase):
 
         file_obj = io.BytesIO()
 
-        with mock.patch.object(blob, "_download_blob"):
+        with mock.patch.object(blob, "_prep_and_do_download"):
             if raw_download:
                 blob.download_to_file(file_obj, raw_download=True, **extra_kwargs)
             else:
                 blob.download_to_file(file_obj, **extra_kwargs)
 
             expected_retry = extra_kwargs.get("retry", DEFAULT_RETRY)
-            blob._download_blob.assert_called_once_with(
+            blob._prep_and_do_download.assert_called_once_with(
                 file_obj,
                 client=None,
                 start=None,
@@ -1609,7 +1609,7 @@ class Test_Blob(unittest.TestCase):
 
         blob = self._make_one(blob_name, bucket=bucket, properties=properties)
 
-        with mock.patch.object(blob, "_download_blob"):
+        with mock.patch.object(blob, "_prep_and_do_download"):
             with _NamedTemporaryFile() as temp:
                 if timeout is None:
                     blob.download_to_filename(
@@ -1636,7 +1636,7 @@ class Test_Blob(unittest.TestCase):
 
             expected_retry = extra_kwargs.get("retry", DEFAULT_RETRY)
 
-            blob._download_blob.assert_called_once_with(
+            blob._prep_and_do_download.assert_called_once_with(
                 mock.ANY,
                 client=None,
                 start=None,
@@ -1652,7 +1652,7 @@ class Test_Blob(unittest.TestCase):
                 checksum="md5",
                 retry=expected_retry,
             )
-            stream = blob._download_blob.mock_calls[0].args[0]
+            stream = blob._prep_and_do_download.mock_calls[0].args[0]
             self.assertEqual(stream.name, temp.name)
 
     def test_download_to_filename_w_updated_wo_raw(self):
@@ -1687,12 +1687,12 @@ class Test_Blob(unittest.TestCase):
         client = self._make_client()
         blob = self._make_one("blob-name", bucket=_Bucket(client))
 
-        with mock.patch.object(blob, "_download_blob"):
+        with mock.patch.object(blob, "_prep_and_do_download"):
             with _NamedTemporaryFile() as temp:
                 blob.download_to_filename(temp.name, if_etag_match=etag)
 
             expected_timeout = self._get_default_timeout()
-            blob._download_blob.assert_called_once_with(
+            blob._prep_and_do_download.assert_called_once_with(
                 mock.ANY,
                 client=None,
                 start=None,
@@ -1708,7 +1708,7 @@ class Test_Blob(unittest.TestCase):
                 checksum="md5",
                 retry=DEFAULT_RETRY,
             )
-            stream = blob._download_blob.mock_calls[0].args[0]
+            stream = blob._prep_and_do_download.mock_calls[0].args[0]
             self.assertEqual(stream.name, temp.name)
 
     def test_download_to_filename_w_generation_match(self):
@@ -1718,14 +1718,14 @@ class Test_Blob(unittest.TestCase):
         client = self._make_client()
         blob = self._make_one("blob-name", bucket=_Bucket(client))
 
-        with mock.patch.object(blob, "_download_blob"):
+        with mock.patch.object(blob, "_prep_and_do_download"):
             with _NamedTemporaryFile() as temp:
                 blob.download_to_filename(
                     temp.name, if_generation_match=generation_number
                 )
 
             expected_timeout = self._get_default_timeout()
-            blob._download_blob.assert_called_once_with(
+            blob._prep_and_do_download.assert_called_once_with(
                 mock.ANY,
                 client=None,
                 start=None,
@@ -1741,7 +1741,7 @@ class Test_Blob(unittest.TestCase):
                 checksum="md5",
                 retry=DEFAULT_RETRY,
             )
-            stream = blob._download_blob.mock_calls[0].args[0]
+            stream = blob._prep_and_do_download.mock_calls[0].args[0]
             self.assertEqual(stream.name, temp.name)
 
     def test_download_to_filename_corrupted(self):
@@ -1752,8 +1752,8 @@ class Test_Blob(unittest.TestCase):
         bucket = _Bucket(client)
         blob = self._make_one(blob_name, bucket=bucket)
 
-        with mock.patch.object(blob, "_download_blob"):
-            blob._download_blob.side_effect = DataCorruption("testing")
+        with mock.patch.object(blob, "_prep_and_do_download"):
+            blob._prep_and_do_download.side_effect = DataCorruption("testing")
 
             # Try to download into a temporary file (don't use
             # `_NamedTemporaryFile` it will try to remove after the file is
@@ -1769,7 +1769,7 @@ class Test_Blob(unittest.TestCase):
             self.assertFalse(os.path.exists(filename))
 
             expected_timeout = self._get_default_timeout()
-            blob._download_blob.assert_called_once_with(
+            blob._prep_and_do_download.assert_called_once_with(
                 mock.ANY,
                 client=None,
                 start=None,
@@ -1785,7 +1785,7 @@ class Test_Blob(unittest.TestCase):
                 checksum="md5",
                 retry=DEFAULT_RETRY,
             )
-            stream = blob._download_blob.mock_calls[0].args[0]
+            stream = blob._prep_and_do_download.mock_calls[0].args[0]
             self.assertEqual(stream.name, filename)
 
     def _download_as_bytes_helper(self, raw_download, timeout=None, **extra_kwargs):
@@ -1794,7 +1794,7 @@ class Test_Blob(unittest.TestCase):
         bucket = _Bucket(client)
         blob = self._make_one(blob_name, bucket=bucket)
 
-        with mock.patch.object(blob, "_download_blob"):
+        with mock.patch.object(blob, "_prep_and_do_download"):
             if timeout is None:
                 expected_timeout = self._get_default_timeout()
                 fetched = blob.download_as_bytes(
@@ -1809,7 +1809,7 @@ class Test_Blob(unittest.TestCase):
 
             expected_retry = extra_kwargs.get("retry", DEFAULT_RETRY)
 
-            blob._download_blob.assert_called_once_with(
+            blob._prep_and_do_download.assert_called_once_with(
                 mock.ANY,
                 client=None,
                 start=None,
@@ -1825,7 +1825,7 @@ class Test_Blob(unittest.TestCase):
                 checksum="md5",
                 retry=expected_retry,
             )
-            stream = blob._download_blob.mock_calls[0].args[0]
+            stream = blob._prep_and_do_download.mock_calls[0].args[0]
             self.assertIsInstance(stream, io.BytesIO)
 
     def test_download_as_bytes_w_custom_timeout(self):
@@ -1839,12 +1839,12 @@ class Test_Blob(unittest.TestCase):
         blob = self._make_one(
             "blob-name", bucket=_Bucket(client), properties={"mediaLink": MEDIA_LINK}
         )
-        blob._download_blob = mock.Mock()
+        blob._prep_and_do_download = mock.Mock()
 
         fetched = blob.download_as_bytes(if_etag_match=ETAG)
         self.assertEqual(fetched, b"")
 
-        blob._download_blob.assert_called_once_with(
+        blob._prep_and_do_download.assert_called_once_with(
             mock.ANY,
             client=None,
             start=None,
@@ -1869,12 +1869,12 @@ class Test_Blob(unittest.TestCase):
         blob = self._make_one(
             "blob-name", bucket=_Bucket(client), properties={"mediaLink": MEDIA_LINK}
         )
-        blob._download_blob = mock.Mock()
+        blob._prep_and_do_download = mock.Mock()
 
         fetched = blob.download_as_bytes(if_generation_match=GENERATION_NUMBER)
         self.assertEqual(fetched, b"")
 
-        blob._download_blob.assert_called_once_with(
+        blob._prep_and_do_download.assert_called_once_with(
             mock.ANY,
             client=None,
             start=None,
@@ -2106,12 +2106,12 @@ class Test_Blob(unittest.TestCase):
         blob = self._make_one(
             "blob-name", bucket=_Bucket(client), properties={"mediaLink": MEDIA_LINK}
         )
-        blob._download_blob = mock.Mock()
+        blob._prep_and_do_download = mock.Mock()
 
         fetched = blob.download_as_string()
         self.assertEqual(fetched, b"")
 
-        blob._download_blob.assert_called_once_with(
+        blob._prep_and_do_download.assert_called_once_with(
             mock.ANY,
             client=None,
             start=None,
@@ -2144,12 +2144,12 @@ class Test_Blob(unittest.TestCase):
         blob = self._make_one(
             "blob-name", bucket=_Bucket(client), properties={"mediaLink": MEDIA_LINK}
         )
-        blob._download_blob = mock.Mock()
+        blob._prep_and_do_download = mock.Mock()
 
         fetched = blob.download_as_string(retry=None)
         self.assertEqual(fetched, b"")
 
-        blob._download_blob.assert_called_once_with(
+        blob._prep_and_do_download.assert_called_once_with(
             mock.ANY,
             client=None,
             start=None,

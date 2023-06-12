@@ -1649,8 +1649,6 @@ class TestClient(unittest.TestCase):
 
     def test_download_blob_to_file_with_failure(self):
         from google.resumable_media import InvalidResponse
-
-        # from google.cloud.storage.blob import Blob
         from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 
         project = "PROJECT"
@@ -1661,7 +1659,7 @@ class TestClient(unittest.TestCase):
         grmp_response = InvalidResponse(raw_response)
         credentials = _make_credentials(project=project)
         client = self._make_one(credentials=credentials)
-        blob = self._make_blob(name="blob_name", bucket="source_name")
+        blob = self._make_blob(name="blob_name", bucket=None)
         blob._encryption_key = None
         blob._get_download_url = mock.Mock()
         blob._do_download = mock.Mock()
@@ -1698,7 +1696,7 @@ class TestClient(unittest.TestCase):
         project = "PROJECT"
         credentials = _make_credentials(project=project)
         client = self._make_one(project=project, credentials=credentials)
-        blob = self._make_blob(name="blob_name", bucket="source_name")
+        blob = self._make_blob(name="blob_name", bucket=None)
         file_obj = io.BytesIO()
         blob._encryption_key = None
         blob._get_download_url = mock.Mock()
@@ -1801,7 +1799,7 @@ class TestClient(unittest.TestCase):
         project = "PROJECT"
         credentials = _make_credentials(project=project)
         client = self._make_one(credentials=credentials)
-        blob = self._make_blob(name="blob_name", bucket="source_name")
+        blob = self._make_blob(name="blob_name", bucket=None)
         blob._encryption_key = None
         blob._get_download_url = mock.Mock()
         if use_chunks:
@@ -1874,7 +1872,7 @@ class TestClient(unittest.TestCase):
         project = "PROJECT"
         credentials = _make_credentials(project=project)
         client = self._make_one(credentials=credentials)
-        blob = self._make_blob(name="blob_name", bucket="source_name")
+        blob = self._make_blob(name="blob_name", bucket=None)
         blob._encryption_key = None
         blob._do_download = mock.Mock()
         blob._get_download_url = mock.Mock()

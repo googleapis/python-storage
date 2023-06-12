@@ -904,7 +904,7 @@ class Blob(_PropertyMixin):
     ):
         """Perform a download without any error handling.
 
-        This is intended to be called by :meth:`download_to_file` so it can
+        This is intended to be called by :meth:`_prep_and_do_download` so it can
         be wrapped with error handling / remapping.
 
         :type transport:
@@ -957,7 +957,7 @@ class Blob(_PropertyMixin):
 
             This private method does not accept ConditionalRetryPolicy values
             because the information necessary to evaluate the policy is instead
-            evaluated in blob._download_blob().
+            evaluated in blob._prep_and_do_download().
 
             See the retry.py source code and docstrings in this package
             (google.cloud.storage.retry) for information on retry types and how
@@ -1125,7 +1125,7 @@ class Blob(_PropertyMixin):
         :raises: :class:`google.cloud.exceptions.NotFound`
         """
 
-        self._download_blob(
+        self._prep_and_do_download(
             file_obj,
             client=client,
             start=start,
@@ -1252,7 +1252,7 @@ class Blob(_PropertyMixin):
 
         try:
             with open(filename, "wb") as file_obj:
-                self._download_blob(
+                self._prep_and_do_download(
                     file_obj,
                     client=client,
                     start=start,
@@ -1384,7 +1384,7 @@ class Blob(_PropertyMixin):
 
         string_buffer = BytesIO()
 
-        self._download_blob(
+        self._prep_and_do_download(
             string_buffer,
             client=client,
             start=start,
@@ -3932,7 +3932,7 @@ class Blob(_PropertyMixin):
     :rtype: str or ``NoneType``
     """
 
-    def _download_blob(
+    def _prep_and_do_download(
         self,
         file_obj,
         client=None,
