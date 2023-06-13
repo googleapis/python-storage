@@ -904,7 +904,7 @@ class Blob(_PropertyMixin):
     ):
         """Perform a download without any error handling.
 
-        This is intended to be called by :meth:`download_to_file` so it can
+        This is intended to be called by :meth:`_prep_and_do_download` so it can
         be wrapped with error handling / remapping.
 
         :type transport:
@@ -957,7 +957,7 @@ class Blob(_PropertyMixin):
 
             This private method does not accept ConditionalRetryPolicy values
             because the information necessary to evaluate the policy is instead
-            evaluated in client.download_blob_to_file().
+            evaluated in blob._prep_and_do_download().
 
             See the retry.py source code and docstrings in this package
             (google.cloud.storage.retry) for information on retry types and how
@@ -1124,11 +1124,10 @@ class Blob(_PropertyMixin):
 
         :raises: :class:`google.cloud.exceptions.NotFound`
         """
-        client = self._require_client(client)
 
-        client.download_blob_to_file(
-            self,
-            file_obj=file_obj,
+        self._prep_and_do_download(
+            file_obj,
+            client=client,
             start=start,
             end=end,
             raw_download=raw_download,
@@ -1250,12 +1249,12 @@ class Blob(_PropertyMixin):
 
         :raises: :class:`google.cloud.exceptions.NotFound`
         """
-        client = self._require_client(client)
+
         try:
             with open(filename, "wb") as file_obj:
-                client.download_blob_to_file(
-                    self,
+                self._prep_and_do_download(
                     file_obj,
+                    client=client,
                     start=start,
                     end=end,
                     raw_download=raw_download,
@@ -1382,11 +1381,12 @@ class Blob(_PropertyMixin):
 
         :raises: :class:`google.cloud.exceptions.NotFound`
         """
-        client = self._require_client(client)
+
         string_buffer = BytesIO()
-        client.download_blob_to_file(
-            self,
+
+        self._prep_and_do_download(
             string_buffer,
+            client=client,
             start=start,
             end=end,
             raw_download=raw_download,
@@ -3935,6 +3935,159 @@ class Blob(_PropertyMixin):
 
     :rtype: str or ``NoneType``
     """
+
+    def _prep_and_do_download(
+        self,
+        file_obj,
+        client=None,
+        start=None,
+        end=None,
+        raw_download=False,
+        if_etag_match=None,
+        if_etag_not_match=None,
+        if_generation_match=None,
+        if_generation_not_match=None,
+        if_metageneration_match=None,
+        if_metageneration_not_match=None,
+        timeout=_DEFAULT_TIMEOUT,
+        checksum="md5",
+        retry=DEFAULT_RETRY,
+    ):
+
+        """Download the contents of a blob object into a file-like object.
+
+        See https://cloud.google.com/storage/docs/downloading-objects
+
+        If :attr:`user_project` is set on the bucket, bills the API request
+        to that project.
+
+        :type file_obj: file
+        :param file_obj: A file handle to which to write the blob's data.
+
+        :type client: :class:`~google.cloud.storage.client.Client`
+        :param client:
+            (Optional) The client to use. If not passed, falls back to the
+            ``client`` stored on the blob's bucket.
+
+        :type start: int
+        :param start: (Optional) The first byte in a range to be downloaded.
+
+        :type end: int
+        :param end: (Optional) The last byte in a range to be downloaded.
+
+        :type raw_download: bool
+        :param raw_download:
+            (Optional) If true, download the object without any expansion.
+
+        :type if_etag_match: Union[str, Set[str]]
+        :param if_etag_match:
+            (Optional) See :ref:`using-if-etag-match`
+
+        :type if_etag_not_match: Union[str, Set[str]]
+        :param if_etag_not_match:
+            (Optional) See :ref:`using-if-etag-not-match`
+
+        :type if_generation_match: long
+        :param if_generation_match:
+            (Optional) See :ref:`using-if-generation-match`
+
+        :type if_generation_not_match: long
+        :param if_generation_not_match:
+            (Optional) See :ref:`using-if-generation-not-match`
+
+        :type if_metageneration_match: long
+        :param if_metageneration_match:
+            (Optional) See :ref:`using-if-metageneration-match`
+
+        :type if_metageneration_not_match: long
+        :param if_metageneration_not_match:
+            (Optional) See :ref:`using-if-metageneration-not-match`
+
+        :type timeout: float or tuple
+        :param timeout:
+            (Optional) The amount of time, in seconds, to wait
+            for the server response.  See: :ref:`configuring_timeouts`
+
+        :type checksum: str
+        :param checksum:
+            (Optional) The type of checksum to compute to verify the integrity
+            of the object. The response headers must contain a checksum of the
+            requested type. If the headers lack an appropriate checksum (for
+            instance in the case of transcoded or ranged downloads where the
+            remote service does not know the correct checksum, including
+            downloads where chunk_size is set) an INFO-level log will be
+            emitted. Supported values are "md5", "crc32c" and None. The default
+            is "md5".
+
+        :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
+        :param retry: (Optional) How to retry the RPC. A None value will disable
+            retries. A google.api_core.retry.Retry value will enable retries,
+            and the object will define retriable response codes and errors and
+            configure backoff and timeout options.
+
+            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a
+            Retry object and activates it only if certain conditions are met.
+            This class exists to provide safe defaults for RPC calls that are
+            not technically safe to retry normally (due to potential data
+            duplication or other side-effects) but become safe to retry if a
+            condition such as if_metageneration_match is set.
+
+            See the retry.py source code and docstrings in this package
+            (google.cloud.storage.retry) for information on retry types and how
+            to configure them.
+
+            Media operations (downloads and uploads) do not support non-default
+            predicates in a Retry object. The default will always be used. Other
+            configuration changes for Retry objects such as delays and deadlines
+            are respected.
+        """
+        # Handle ConditionalRetryPolicy.
+        if isinstance(retry, ConditionalRetryPolicy):
+            # Conditional retries are designed for non-media calls, which change
+            # arguments into query_params dictionaries. Media operations work
+            # differently, so here we make a "fake" query_params to feed to the
+            # ConditionalRetryPolicy.
+            query_params = {
+                "ifGenerationMatch": if_generation_match,
+                "ifMetagenerationMatch": if_metageneration_match,
+            }
+            retry = retry.get_retry_policy_if_conditions_met(query_params=query_params)
+
+        client = self._require_client(client)
+
+        download_url = self._get_download_url(
+            client,
+            if_generation_match=if_generation_match,
+            if_generation_not_match=if_generation_not_match,
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
+        )
+        headers = _get_encryption_headers(self._encryption_key)
+        headers["accept-encoding"] = "gzip"
+        _add_etag_match_headers(
+            headers,
+            if_etag_match=if_etag_match,
+            if_etag_not_match=if_etag_not_match,
+        )
+        headers = {**_get_default_headers(client._connection.user_agent), **headers}
+
+        transport = client._http
+
+        try:
+            self._do_download(
+                transport,
+                file_obj,
+                download_url,
+                headers,
+                start,
+                end,
+                raw_download,
+                timeout=timeout,
+                checksum=checksum,
+                retry=retry,
+            )
+        except resumable_media.InvalidResponse as exc:
+            _raise_from_invalid_response(exc)
 
     @property
     def component_count(self):
