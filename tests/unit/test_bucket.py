@@ -1156,7 +1156,6 @@ class Test_Bucket(unittest.TestCase):
             page_token=expected_page_token,
             prefix=expected_prefix,
             delimiter=expected_delimiter,
-            match_glob=expected_match_glob,
             start_offset=expected_start_offset,
             end_offset=expected_end_offset,
             include_trailing_delimiter=expected_include_trailing_delimiter,
@@ -1165,6 +1164,7 @@ class Test_Bucket(unittest.TestCase):
             fields=expected_fields,
             timeout=self._get_default_timeout(),
             retry=DEFAULT_RETRY,
+            match_glob=expected_match_glob,
         )
 
     def test_list_blobs_w_explicit(self):
@@ -1191,7 +1191,6 @@ class Test_Bucket(unittest.TestCase):
             page_token=page_token,
             prefix=prefix,
             delimiter=delimiter,
-            match_glob=match_glob,
             start_offset=start_offset,
             end_offset=end_offset,
             include_trailing_delimiter=include_trailing_delimiter,
@@ -1201,6 +1200,7 @@ class Test_Bucket(unittest.TestCase):
             client=other_client,
             timeout=timeout,
             retry=retry,
+            match_glob=match_glob,
         )
 
         self.assertIs(iterator, other_client.list_blobs.return_value)
@@ -1222,7 +1222,6 @@ class Test_Bucket(unittest.TestCase):
             page_token=expected_page_token,
             prefix=expected_prefix,
             delimiter=expected_delimiter,
-            match_glob=expected_match_glob,
             start_offset=expected_start_offset,
             end_offset=expected_end_offset,
             include_trailing_delimiter=expected_include_trailing_delimiter,
@@ -1231,6 +1230,7 @@ class Test_Bucket(unittest.TestCase):
             fields=expected_fields,
             timeout=timeout,
             retry=retry,
+            match_glob=expected_match_glob,
         )
 
     def test_list_notifications_w_defaults(self):

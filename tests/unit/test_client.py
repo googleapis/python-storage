@@ -1954,7 +1954,6 @@ class TestClient(unittest.TestCase):
             page_token=page_token,
             prefix=prefix,
             delimiter=delimiter,
-            match_glob=match_glob,
             start_offset=start_offset,
             end_offset=end_offset,
             include_trailing_delimiter=include_trailing_delimiter,
@@ -1964,6 +1963,7 @@ class TestClient(unittest.TestCase):
             page_size=page_size,
             timeout=timeout,
             retry=retry,
+            match_glob=match_glob,
         )
 
         self.assertIs(iterator, client._list_resource.return_value)

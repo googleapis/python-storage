@@ -1383,7 +1383,6 @@ class Bucket(_PropertyMixin):
             page_token=page_token,
             prefix=prefix,
             delimiter=delimiter,
-            match_glob=match_glob,
             start_offset=start_offset,
             end_offset=end_offset,
             include_trailing_delimiter=include_trailing_delimiter,
@@ -1392,6 +1391,7 @@ class Bucket(_PropertyMixin):
             fields=fields,
             timeout=timeout,
             retry=retry,
+            match_glob=match_glob,
         )
 
     def list_notifications(
