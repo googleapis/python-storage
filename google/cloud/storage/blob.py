@@ -2385,7 +2385,7 @@ class Blob(_PropertyMixin):
             )
 
         return response.json()
-    
+
     def _prep_and_do_upload(
         self,
         file_obj,
@@ -2695,7 +2695,6 @@ class Blob(_PropertyMixin):
         :raises: :class:`~google.cloud.exceptions.GoogleCloudError`
                  if the upload response returns an error status.
         """
-        
         self._prep_and_do_upload(
             file_obj,
             rewind=rewind,
@@ -4110,7 +4109,6 @@ class Blob(_PropertyMixin):
         checksum="md5",
         retry=DEFAULT_RETRY,
     ):
-
         """Download the contents of a blob object into a file-like object.
 
         See https://cloud.google.com/storage/docs/downloading-objects
