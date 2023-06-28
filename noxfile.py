@@ -249,9 +249,7 @@ def docfx(session):
 
     session.install("-e", ".")
     session.install("grpcio")
-    session.install(
-        "gcp-sphinx-docfx-yaml", "alabaster", "recommonmark"
-    )
+    session.install("gcp-sphinx-docfx-yaml", "alabaster", "recommonmark")
 
     shutil.rmtree(os.path.join("docs", "_build"), ignore_errors=True)
     session.run(
