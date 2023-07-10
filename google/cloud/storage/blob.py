@@ -2386,7 +2386,7 @@ class Blob(_PropertyMixin):
 
         return response.json()
 
-    def upload_from_file(
+    def _prep_and_do_upload(
         self,
         file_obj,
         rewind=False,
@@ -2556,6 +2556,162 @@ class Blob(_PropertyMixin):
         except resumable_media.InvalidResponse as exc:
             _raise_from_invalid_response(exc)
 
+    def upload_from_file(
+        self,
+        file_obj,
+        rewind=False,
+        size=None,
+        content_type=None,
+        num_retries=None,
+        client=None,
+        predefined_acl=None,
+        if_generation_match=None,
+        if_generation_not_match=None,
+        if_metageneration_match=None,
+        if_metageneration_not_match=None,
+        timeout=_DEFAULT_TIMEOUT,
+        checksum=None,
+        retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+    ):
+        """Upload the contents of this blob from a file-like object.
+
+        The content type of the upload will be determined in order
+        of precedence:
+
+        - The value passed in to this method (if not :data:`None`)
+        - The value stored on the current blob
+        - The default value ('application/octet-stream')
+
+        .. note::
+           The effect of uploading to an existing blob depends on the
+           "versioning" and "lifecycle" policies defined on the blob's
+           bucket.  In the absence of those policies, upload will
+           overwrite any existing contents.
+
+           See the [`object versioning`](https://cloud.google.com/storage/docs/object-versioning)
+           and [`lifecycle`](https://cloud.google.com/storage/docs/lifecycle)
+           API documents for details.
+
+        If the size of the data to be uploaded exceeds 8 MB a resumable media
+        request will be used, otherwise the content and the metadata will be
+        uploaded in a single multipart upload request.
+
+        For more fine-grained over the upload process, check out
+        [`google-resumable-media`](https://googleapis.dev/python/google-resumable-media/latest/index.html).
+
+        If :attr:`user_project` is set on the bucket, bills the API request
+        to that project.
+
+        :type file_obj: file
+        :param file_obj: A file handle opened in binary mode for reading.
+
+        :type rewind: bool
+        :param rewind:
+            If True, seek to the beginning of the file handle before writing
+            the file to Cloud Storage.
+
+        :type size: int
+        :param size:
+            The number of bytes to be uploaded (which will be read from
+            ``file_obj``). If not provided, the upload will be concluded once
+            ``file_obj`` is exhausted.
+
+        :type content_type: str
+        :param content_type: (Optional) Type of content being uploaded.
+
+        :type num_retries: int
+        :param num_retries:
+            Number of upload retries. By default, only uploads with
+            if_generation_match set will be retried, as uploads without the
+            argument are not guaranteed to be idempotent. Setting num_retries
+            will override this default behavior and guarantee retries even when
+            if_generation_match is not set.  (Deprecated: This argument
+            will be removed in a future release.)
+
+        :type client: :class:`~google.cloud.storage.client.Client`
+        :param client:
+            (Optional) The client to use.  If not passed, falls back to the
+            ``client`` stored on the blob's bucket.
+
+        :type predefined_acl: str
+        :param predefined_acl: (Optional) Predefined access control list
+
+        :type if_generation_match: long
+        :param if_generation_match:
+            (Optional) See :ref:`using-if-generation-match`
+
+        :type if_generation_not_match: long
+        :param if_generation_not_match:
+            (Optional) See :ref:`using-if-generation-not-match`
+
+        :type if_metageneration_match: long
+        :param if_metageneration_match:
+            (Optional) See :ref:`using-if-metageneration-match`
+
+        :type if_metageneration_not_match: long
+        :param if_metageneration_not_match:
+            (Optional) See :ref:`using-if-metageneration-not-match`
+
+        :type timeout: float or tuple
+        :param timeout:
+            (Optional) The amount of time, in seconds, to wait
+            for the server response.  See: :ref:`configuring_timeouts`
+
+        :type checksum: str
+        :param checksum:
+            (Optional) The type of checksum to compute to verify
+            the integrity of the object. If the upload is completed in a single
+            request, the checksum will be entirely precomputed and the remote
+            server will handle verification and error handling. If the upload
+            is too large and must be transmitted in multiple requests, the
+            checksum will be incrementally computed and the client will handle
+            verification and error handling, raising
+            google.resumable_media.common.DataCorruption on a mismatch and
+            attempting to delete the corrupted file. Supported values are
+            "md5", "crc32c" and None. The default is None.
+
+        :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
+        :param retry: (Optional) How to retry the RPC. A None value will disable
+            retries. A google.api_core.retry.Retry value will enable retries,
+            and the object will define retriable response codes and errors and
+            configure backoff and timeout options.
+
+            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a
+            Retry object and activates it only if certain conditions are met.
+            This class exists to provide safe defaults for RPC calls that are
+            not technically safe to retry normally (due to potential data
+            duplication or other side-effects) but become safe to retry if a
+            condition such as if_generation_match is set.
+
+            See the retry.py source code and docstrings in this package
+            (google.cloud.storage.retry) for information on retry types and how
+            to configure them.
+
+            Media operations (downloads and uploads) do not support non-default
+            predicates in a Retry object. The default will always be used. Other
+            configuration changes for Retry objects such as delays and deadlines
+            are respected.
+
+        :raises: :class:`~google.cloud.exceptions.GoogleCloudError`
+                 if the upload response returns an error status.
+        """
+        self._prep_and_do_upload(
+            file_obj,
+            rewind=rewind,
+            size=size,
+            content_type=content_type,
+            num_retries=num_retries,
+            client=client,
+            predefined_acl=predefined_acl,
+            if_generation_match=if_generation_match,
+            if_generation_not_match=if_generation_not_match,
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
+            timeout=timeout,
+            checksum=checksum,
+            retry=retry,
+        )
+
     def upload_from_filename(
         self,
         filename,
@@ -2681,7 +2837,7 @@ class Blob(_PropertyMixin):
 
         with open(filename, "rb") as file_obj:
             total_bytes = os.fstat(file_obj.fileno()).st_size
-            self.upload_from_file(
+            self._prep_and_do_upload(
                 file_obj,
                 content_type=content_type,
                 num_retries=num_retries,
@@ -3953,7 +4109,6 @@ class Blob(_PropertyMixin):
         checksum="md5",
         retry=DEFAULT_RETRY,
     ):
-
         """Download the contents of a blob object into a file-like object.
 
         See https://cloud.google.com/storage/docs/downloading-objects
