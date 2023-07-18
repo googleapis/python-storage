@@ -1697,7 +1697,7 @@ class Blob(_PropertyMixin):
 
         return object_metadata
 
-    def _get_upload_arguments(self, client, content_type):
+    def _get_upload_arguments(self, client, content_type, command=None):
         """Get required arguments for performing an upload.
 
         The content type returned will be determined in order of precedence:
@@ -1709,6 +1709,10 @@ class Blob(_PropertyMixin):
         :type content_type: str
         :param content_type: Type of content being uploaded (or :data:`None`).
 
+        :type command: str
+        :param command: (Optional) Information that can be passed into default 
+            header "X-Goog-API-Client". The default is None.
+
         :rtype: tuple
         :returns: A triple of
 
@@ -1718,7 +1722,7 @@ class Blob(_PropertyMixin):
         """
         content_type = self._get_content_type(content_type)
         headers = {
-            **_get_default_headers(client._connection.user_agent, content_type),
+            **_get_default_headers(client._connection.user_agent, content_type, command=command),
             **_get_encryption_headers(self._encryption_key),
         }
         object_metadata = self._get_writable_metadata()
@@ -1739,6 +1743,7 @@ class Blob(_PropertyMixin):
         timeout=_DEFAULT_TIMEOUT,
         checksum=None,
         retry=None,
+        command=None,
     ):
         """Perform a multipart upload.
 
@@ -1822,6 +1827,10 @@ class Blob(_PropertyMixin):
             (google.cloud.storage.retry) for information on retry types and how
             to configure them.
 
+        :type command: str
+        :param command: (Optional) Information that can be passed into default 
+            header "X-Goog-API-Client". The default is None.
+
         :rtype: :class:`~requests.Response`
         :returns: The "200 OK" response object returned after the multipart
                   upload request.
@@ -1840,7 +1849,7 @@ class Blob(_PropertyMixin):
         transport = self._get_transport(client)
         if "metadata" in self._properties and "metadata" not in self._changes:
             self._changes.add("metadata")
-        info = self._get_upload_arguments(client, content_type)
+        info = self._get_upload_arguments(client, content_type, command=command)
         headers, object_metadata, content_type = info
 
         hostname = _get_host_name(client._connection)
@@ -1910,6 +1919,7 @@ class Blob(_PropertyMixin):
         timeout=_DEFAULT_TIMEOUT,
         checksum=None,
         retry=None,
+        command=None,
     ):
         """Initiate a resumable upload.
 
@@ -2008,6 +2018,10 @@ class Blob(_PropertyMixin):
             (google.cloud.storage.retry) for information on retry types and how
             to configure them.
 
+        :type command: str
+        :param command: (Optional) Information that can be passed into default 
+            header "X-Goog-API-Client". The default is None.
+
         :rtype: tuple
         :returns:
             Pair of
@@ -2025,7 +2039,7 @@ class Blob(_PropertyMixin):
         transport = self._get_transport(client)
         if "metadata" in self._properties and "metadata" not in self._changes:
             self._changes.add("metadata")
-        info = self._get_upload_arguments(client, content_type)
+        info = self._get_upload_arguments(client, content_type, command=command)
         headers, object_metadata, content_type = info
         if extra_headers is not None:
             headers.update(extra_headers)
@@ -2103,6 +2117,7 @@ class Blob(_PropertyMixin):
         timeout=_DEFAULT_TIMEOUT,
         checksum=None,
         retry=None,
+        command=None,
     ):
         """Perform a resumable upload.
 
@@ -2191,6 +2206,10 @@ class Blob(_PropertyMixin):
             (google.cloud.storage.retry) for information on retry types and how
             to configure them.
 
+        :type command: str
+        :param command: (Optional) Information that can be passed into default 
+            header "X-Goog-API-Client". The default is None.
+
         :rtype: :class:`~requests.Response`
         :returns: The "200 OK" response object returned after the final chunk
                   is uploaded.
@@ -2209,6 +2228,7 @@ class Blob(_PropertyMixin):
             timeout=timeout,
             checksum=checksum,
             retry=retry,
+            command=command,
         )
         while not upload.finished:
             try:
@@ -2234,6 +2254,7 @@ class Blob(_PropertyMixin):
         timeout=_DEFAULT_TIMEOUT,
         checksum=None,
         retry=None,
+        command=None,
     ):
         """Determine an upload strategy and then perform the upload.
 
@@ -2333,6 +2354,10 @@ class Blob(_PropertyMixin):
             configuration changes for Retry objects such as delays and deadlines
             are respected.
 
+        :type command: str
+        :param command: (Optional) Information that can be passed into default 
+            header "X-Goog-API-Client". The default is None.
+
         :rtype: dict
         :returns: The parsed JSON from the "200 OK" response. This will be the
                   **only** response in the multipart case and it will be the
@@ -2366,6 +2391,7 @@ class Blob(_PropertyMixin):
                 timeout=timeout,
                 checksum=checksum,
                 retry=retry,
+                command=command,
             )
         else:
             response = self._do_resumable_upload(
@@ -2382,6 +2408,7 @@ class Blob(_PropertyMixin):
                 timeout=timeout,
                 checksum=checksum,
                 retry=retry,
+                command=command,
             )
 
         return response.json()
@@ -2402,6 +2429,7 @@ class Blob(_PropertyMixin):
         timeout=_DEFAULT_TIMEOUT,
         checksum=None,
         retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+        command=None,
     ):
         """Upload the contents of this blob from a file-like object.
 
@@ -2522,6 +2550,10 @@ class Blob(_PropertyMixin):
             configuration changes for Retry objects such as delays and deadlines
             are respected.
 
+        :type command: str
+        :param command: (Optional) Information that can be passed into default 
+            header "X-Goog-API-Client". The default is None.
+
         :raises: :class:`~google.cloud.exceptions.GoogleCloudError`
                  if the upload response returns an error status.
         """
@@ -2551,6 +2583,7 @@ class Blob(_PropertyMixin):
                 timeout=timeout,
                 checksum=checksum,
                 retry=retry,
+                command=command,
             )
             self._set_properties(created_json)
         except resumable_media.InvalidResponse as exc:
@@ -4108,6 +4141,7 @@ class Blob(_PropertyMixin):
         timeout=_DEFAULT_TIMEOUT,
         checksum="md5",
         retry=DEFAULT_RETRY,
+        command=None,
     ):
         """Download the contents of a blob object into a file-like object.
 
@@ -4195,6 +4229,10 @@ class Blob(_PropertyMixin):
             predicates in a Retry object. The default will always be used. Other
             configuration changes for Retry objects such as delays and deadlines
             are respected.
+
+        :type command: str
+        :param command: (Optional) Information that can be passed into default 
+            header "X-Goog-API-Client". The default is None.
         """
         # Handle ConditionalRetryPolicy.
         if isinstance(retry, ConditionalRetryPolicy):
@@ -4224,7 +4262,10 @@ class Blob(_PropertyMixin):
             if_etag_match=if_etag_match,
             if_etag_not_match=if_etag_not_match,
         )
-        headers = {**_get_default_headers(client._connection.user_agent), **headers}
+        headers = {
+            **_get_default_headers(client._connection.user_agent, command=command),
+            **headers,
+        }
 
         transport = client._http
 

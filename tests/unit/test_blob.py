@@ -2251,11 +2251,12 @@ class Test_Blob(unittest.TestCase):
         blob = self._make_one(name, bucket=None, encryption_key=key)
         blob.content_disposition = "inline"
 
+        COMMAND = "tm.upload_many"
         content_type = "image/jpeg"
         with patch.object(
             _helpers, "_get_invocation_id", return_value=GCCL_INVOCATION_TEST_CONST
         ):
-            info = blob._get_upload_arguments(client, content_type)
+            info = blob._get_upload_arguments(client, content_type, command=COMMAND)
 
         headers, object_metadata, new_content_type = info
         header_key_value = "W3BYd0AscEBAQWZCZnJSM3gtMmIyU0NIUiwuP1l3Uk8="
@@ -2264,11 +2265,15 @@ class Test_Blob(unittest.TestCase):
             _helpers, "_get_invocation_id", return_value=GCCL_INVOCATION_TEST_CONST
         ):
             expected_headers = {
-                **_get_default_headers(client._connection.user_agent, content_type),
+                **_get_default_headers(client._connection.user_agent, content_type, command=COMMAND),
                 "X-Goog-Encryption-Algorithm": "AES256",
                 "X-Goog-Encryption-Key": header_key_value,
                 "X-Goog-Encryption-Key-Sha256": header_key_hash_value,
             }
+        self.assertEqual(
+            headers["X-Goog-API-Client"],
+            f"{client._connection.user_agent} {GCCL_INVOCATION_TEST_CONST} gccl-gcs-cmd/{COMMAND}"
+        )
         self.assertEqual(headers, expected_headers)
         expected_metadata = {
             "contentDisposition": blob.content_disposition,
@@ -3184,6 +3189,7 @@ class Test_Blob(unittest.TestCase):
                 timeout=expected_timeout,
                 checksum=None,
                 retry=retry,
+                command=None,
             )
             blob._do_resumable_upload.assert_not_called()
         else:
@@ -3202,6 +3208,7 @@ class Test_Blob(unittest.TestCase):
                 timeout=expected_timeout,
                 checksum=None,
                 retry=retry,
+                command=None,
             )
 
     def test__do_upload_uses_multipart(self):
@@ -3294,6 +3301,7 @@ class Test_Blob(unittest.TestCase):
             timeout=expected_timeout,
             checksum=None,
             retry=retry,
+            command=None,
         )
         return stream
 
@@ -3385,7 +3393,7 @@ class Test_Blob(unittest.TestCase):
         if not retry:
             retry = DEFAULT_RETRY_IF_GENERATION_SPECIFIED if not num_retries else None
         self.assertEqual(
-            kwargs, {"timeout": expected_timeout, "checksum": None, "retry": retry}
+            kwargs, {"timeout": expected_timeout, "checksum": None, "retry": retry, "command": None,}
         )
 
         return pos_args[1]
