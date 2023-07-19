@@ -1710,7 +1710,7 @@ class Blob(_PropertyMixin):
         :param content_type: Type of content being uploaded (or :data:`None`).
 
         :type command: str
-        :param command: (Optional) Information that can be passed into default 
+        :param command: (Optional) Information that can be passed into default
             header "X-Goog-API-Client". The default is None.
 
         :rtype: tuple
@@ -1722,7 +1722,9 @@ class Blob(_PropertyMixin):
         """
         content_type = self._get_content_type(content_type)
         headers = {
-            **_get_default_headers(client._connection.user_agent, content_type, command=command),
+            **_get_default_headers(
+                client._connection.user_agent, content_type, command=command
+            ),
             **_get_encryption_headers(self._encryption_key),
         }
         object_metadata = self._get_writable_metadata()
@@ -1828,7 +1830,7 @@ class Blob(_PropertyMixin):
             to configure them.
 
         :type command: str
-        :param command: (Optional) Information that can be passed into default 
+        :param command: (Optional) Information that can be passed into default
             header "X-Goog-API-Client". The default is None.
 
         :rtype: :class:`~requests.Response`
@@ -2019,7 +2021,7 @@ class Blob(_PropertyMixin):
             to configure them.
 
         :type command: str
-        :param command: (Optional) Information that can be passed into default 
+        :param command: (Optional) Information that can be passed into default
             header "X-Goog-API-Client". The default is None.
 
         :rtype: tuple
@@ -2207,7 +2209,7 @@ class Blob(_PropertyMixin):
             to configure them.
 
         :type command: str
-        :param command: (Optional) Information that can be passed into default 
+        :param command: (Optional) Information that can be passed into default
             header "X-Goog-API-Client". The default is None.
 
         :rtype: :class:`~requests.Response`
@@ -2355,7 +2357,7 @@ class Blob(_PropertyMixin):
             are respected.
 
         :type command: str
-        :param command: (Optional) Information that can be passed into default 
+        :param command: (Optional) Information that can be passed into default
             header "X-Goog-API-Client". The default is None.
 
         :rtype: dict
@@ -2551,7 +2553,7 @@ class Blob(_PropertyMixin):
             are respected.
 
         :type command: str
-        :param command: (Optional) Information that can be passed into default 
+        :param command: (Optional) Information that can be passed into default
             header "X-Goog-API-Client". The default is None.
 
         :raises: :class:`~google.cloud.exceptions.GoogleCloudError`
@@ -4231,7 +4233,7 @@ class Blob(_PropertyMixin):
             are respected.
 
         :type command: str
-        :param command: (Optional) Information that can be passed into default 
+        :param command: (Optional) Information that can be passed into default
             header "X-Goog-API-Client". The default is None.
         """
         # Handle ConditionalRetryPolicy.

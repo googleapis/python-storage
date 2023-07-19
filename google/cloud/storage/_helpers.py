@@ -607,7 +607,7 @@ def _get_default_headers(
     :param user_agent: The user-agent for requests.
 
     :type command: str
-    :param user_agent: (Optional) Information that can be passed into default 
+    :param user_agent: (Optional) Information that can be passed into default
         header "X-Goog-API-Client". The default is None.
 
     :rtype: dict
@@ -616,7 +616,9 @@ def _get_default_headers(
     if not command:
         x_goog_api_client = f"{user_agent} {_get_invocation_id()}"
     else:
-        x_goog_api_client = f"{user_agent} {_get_invocation_id()} gccl-gcs-cmd/{command}"
+        x_goog_api_client = (
+            f"{user_agent} {_get_invocation_id()} gccl-gcs-cmd/{command}"
+        )
 
     return {
         "Accept": "application/json",
