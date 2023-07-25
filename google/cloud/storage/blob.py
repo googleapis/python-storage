@@ -1710,8 +1710,8 @@ class Blob(_PropertyMixin):
         :param content_type: Type of content being uploaded (or :data:`None`).
 
         :type command: str
-        :param command: (Optional) Information that can be passed into default
-            header "X-Goog-API-Client". The default is None.
+        :param command:
+            (Optional) Information about which interface for upload was used, to be included in the X-Goog-API-Client header for traffic analysis purposes. Please leave as None unless otherwise directed.
 
         :rtype: tuple
         :returns: A triple of
@@ -1830,8 +1830,8 @@ class Blob(_PropertyMixin):
             to configure them.
 
         :type command: str
-        :param command: (Optional) Information that can be passed into default
-            header "X-Goog-API-Client". The default is None.
+        :param command:
+            (Optional) Information about which interface for upload was used, to be included in the X-Goog-API-Client header for traffic analysis purposes. Please leave as None unless otherwise directed.
 
         :rtype: :class:`~requests.Response`
         :returns: The "200 OK" response object returned after the multipart
@@ -2021,8 +2021,8 @@ class Blob(_PropertyMixin):
             to configure them.
 
         :type command: str
-        :param command: (Optional) Information that can be passed into default
-            header "X-Goog-API-Client". The default is None.
+        :param command:
+            (Optional) Information about which interface for upload was used, to be included in the X-Goog-API-Client header for traffic analysis purposes. Please leave as None unless otherwise directed.
 
         :rtype: tuple
         :returns:
@@ -2209,8 +2209,8 @@ class Blob(_PropertyMixin):
             to configure them.
 
         :type command: str
-        :param command: (Optional) Information that can be passed into default
-            header "X-Goog-API-Client". The default is None.
+        :param command:
+            (Optional) Information about which interface for upload was used, to be included in the X-Goog-API-Client header for traffic analysis purposes. Please leave as None unless otherwise directed.
 
         :rtype: :class:`~requests.Response`
         :returns: The "200 OK" response object returned after the final chunk
@@ -2357,8 +2357,8 @@ class Blob(_PropertyMixin):
             are respected.
 
         :type command: str
-        :param command: (Optional) Information that can be passed into default
-            header "X-Goog-API-Client". The default is None.
+        :param command:
+            (Optional) Information about which interface for upload was used, to be included in the X-Goog-API-Client header for traffic analysis purposes. Please leave as None unless otherwise directed.
 
         :rtype: dict
         :returns: The parsed JSON from the "200 OK" response. This will be the
@@ -2553,8 +2553,8 @@ class Blob(_PropertyMixin):
             are respected.
 
         :type command: str
-        :param command: (Optional) Information that can be passed into default
-            header "X-Goog-API-Client". The default is None.
+        :param command:
+            (Optional) Information about which interface for upload was used, to be included in the X-Goog-API-Client header for traffic analysis purposes. Please leave as None unless otherwise directed.
 
         :raises: :class:`~google.cloud.exceptions.GoogleCloudError`
                  if the upload response returns an error status.
@@ -4233,8 +4233,8 @@ class Blob(_PropertyMixin):
             are respected.
 
         :type command: str
-        :param command: (Optional) Information that can be passed into default
-            header "X-Goog-API-Client". The default is None.
+        :param command:
+            (Optional) Information about which interface for download was used, to be included in the X-Goog-API-Client header for traffic analysis purposes. Please leave as None unless otherwise directed.
         """
         # Handle ConditionalRetryPolicy.
         if isinstance(retry, ConditionalRetryPolicy):
