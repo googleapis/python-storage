@@ -2763,7 +2763,7 @@ class Blob(_PropertyMixin):
             retry=retry,
         )
 
-    def _handle_filename_and_upload(self, filename, content_type, *args, **kwargs):
+    def _handle_filename_and_upload(self, filename, content_type=None, *args, **kwargs):
         """Upload this blob's contents from the content of a named file.
 
         :type filename: str
