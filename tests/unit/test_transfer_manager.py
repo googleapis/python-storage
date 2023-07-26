@@ -28,10 +28,16 @@ import pickle
 
 BLOB_TOKEN_STRING = "blob token"
 FAKE_CONTENT_TYPE = "text/fake"
-UPLOAD_KWARGS = {"content-type": FAKE_CONTENT_TYPE}
+UPLOAD_KWARGS = {
+    "content-type": FAKE_CONTENT_TYPE,
+    "command": "tm.upload_many",
+}
 FAKE_RESULT = "nothing to see here"
 FAKE_ENCODING = "fake_gzip"
-DOWNLOAD_KWARGS = {"accept-encoding": FAKE_ENCODING}
+DOWNLOAD_KWARGS = {
+    "accept-encoding": FAKE_ENCODING,
+    "command": "tm.download_many",
+}
 CHUNK_SIZE = 8
 
 
@@ -40,7 +46,7 @@ def _validate_blob_token_in_subprocess(
     maybe_pickled_blob, method_name, path_or_file, **kwargs
 ):  # pragma: NO COVER
     assert pickle.loads(maybe_pickled_blob) == BLOB_TOKEN_STRING
-    assert method_name.endswith("filename")
+    assert "filename" in method_name
     assert path_or_file.startswith("file")
     assert kwargs == UPLOAD_KWARGS or kwargs == DOWNLOAD_KWARGS
     return FAKE_RESULT
@@ -54,7 +60,7 @@ def test_upload_many_with_filenames():
     EXPECTED_UPLOAD_KWARGS = {"if_generation_match": 0, **UPLOAD_KWARGS}
 
     for _, blob_mock in FILE_BLOB_PAIRS:
-        blob_mock.upload_from_filename.return_value = FAKE_RESULT
+        blob_mock._handle_filename_and_upload.return_value = FAKE_RESULT
 
     results = transfer_manager.upload_many(
         FILE_BLOB_PAIRS,
@@ -63,7 +69,7 @@ def test_upload_many_with_filenames():
         worker_type=transfer_manager.THREAD,
     )
     for (filename, mock_blob) in FILE_BLOB_PAIRS:
-        mock_blob.upload_from_filename.assert_any_call(
+        mock_blob._handle_filename_and_upload.assert_any_call(
             filename, **EXPECTED_UPLOAD_KWARGS
         )
     for result in results:
@@ -78,7 +84,7 @@ def test_upload_many_with_file_objs():
     EXPECTED_UPLOAD_KWARGS = {"if_generation_match": 0, **UPLOAD_KWARGS}
 
     for _, blob_mock in FILE_BLOB_PAIRS:
-        blob_mock.upload_from_file.return_value = FAKE_RESULT
+        blob_mock._prep_and_do_upload.return_value = FAKE_RESULT
 
     results = transfer_manager.upload_many(
         FILE_BLOB_PAIRS,
@@ -87,7 +93,7 @@ def test_upload_many_with_file_objs():
         worker_type=transfer_manager.THREAD,
     )
     for (file, mock_blob) in FILE_BLOB_PAIRS:
-        mock_blob.upload_from_file.assert_any_call(file, **EXPECTED_UPLOAD_KWARGS)
+        mock_blob._prep_and_do_upload.assert_any_call(file, **EXPECTED_UPLOAD_KWARGS)
     for result in results:
         assert result == FAKE_RESULT
 
@@ -153,7 +159,7 @@ def test_upload_many_suppresses_exceptions():
         ("file_b.txt", mock.Mock(spec=Blob)),
     ]
     for _, mock_blob in FILE_BLOB_PAIRS:
-        mock_blob.upload_from_filename.side_effect = ConnectionError()
+        mock_blob._handle_filename_and_upload.side_effect = ConnectionError()
 
     results = transfer_manager.upload_many(
         FILE_BLOB_PAIRS, worker_type=transfer_manager.THREAD
@@ -168,7 +174,7 @@ def test_upload_many_raises_exceptions():
         ("file_b.txt", mock.Mock(spec=Blob)),
     ]
     for _, mock_blob in FILE_BLOB_PAIRS:
-        mock_blob.upload_from_filename.side_effect = ConnectionError()
+        mock_blob._handle_filename_and_upload.side_effect = ConnectionError()
 
     with pytest.raises(ConnectionError):
         transfer_manager.upload_many(
@@ -182,8 +188,8 @@ def test_upload_many_suppresses_412_with_skip_if_exists():
         ("file_b.txt", mock.Mock(spec=Blob)),
     ]
     for _, mock_blob in FILE_BLOB_PAIRS:
-        mock_blob.upload_from_filename.side_effect = exceptions.PreconditionFailed(
-            "412"
+        mock_blob._handle_filename_and_upload.side_effect = (
+            exceptions.PreconditionFailed("412")
         )
     results = transfer_manager.upload_many(
         FILE_BLOB_PAIRS,
@@ -242,7 +248,7 @@ def test_download_many_with_filenames():
     ]
 
     for blob_mock, _ in BLOB_FILE_PAIRS:
-        blob_mock.download_to_filename.return_value = FAKE_RESULT
+        blob_mock._handle_filename_and_download.return_value = FAKE_RESULT
 
     results = transfer_manager.download_many(
         BLOB_FILE_PAIRS,
@@ -250,7 +256,7 @@ def test_download_many_with_filenames():
         worker_type=transfer_manager.THREAD,
     )
     for (mock_blob, file) in BLOB_FILE_PAIRS:
-        mock_blob.download_to_filename.assert_any_call(file, **DOWNLOAD_KWARGS)
+        mock_blob._handle_filename_and_download.assert_any_call(file, **DOWNLOAD_KWARGS)
     for result in results:
         assert result == FAKE_RESULT
 
@@ -262,7 +268,7 @@ def test_download_many_with_file_objs():
     ]
 
     for blob_mock, _ in BLOB_FILE_PAIRS:
-        blob_mock.download_to_file.return_value = FAKE_RESULT
+        blob_mock._prep_and_do_download.return_value = FAKE_RESULT
 
     results = transfer_manager.download_many(
         BLOB_FILE_PAIRS,
@@ -270,7 +276,7 @@ def test_download_many_with_file_objs():
         worker_type=transfer_manager.THREAD,
     )
     for (mock_blob, file) in BLOB_FILE_PAIRS:
-        mock_blob.download_to_file.assert_any_call(file, **DOWNLOAD_KWARGS)
+        mock_blob._prep_and_do_download.assert_any_call(file, **DOWNLOAD_KWARGS)
     for result in results:
         assert result == FAKE_RESULT
 
@@ -301,7 +307,7 @@ def test_download_many_suppresses_exceptions():
         (mock.Mock(spec=Blob), "file_b.txt"),
     ]
     for mock_blob, _ in BLOB_FILE_PAIRS:
-        mock_blob.download_to_filename.side_effect = ConnectionError()
+        mock_blob._handle_filename_and_download.side_effect = ConnectionError()
 
     results = transfer_manager.download_many(
         BLOB_FILE_PAIRS, worker_type=transfer_manager.THREAD
@@ -316,7 +322,7 @@ def test_download_many_raises_exceptions():
         (mock.Mock(spec=Blob), "file_b.txt"),
     ]
     for mock_blob, _ in BLOB_FILE_PAIRS:
-        mock_blob.download_to_filename.side_effect = ConnectionError()
+        mock_blob._handle_filename_and_download.side_effect = ConnectionError()
 
     with pytest.raises(ConnectionError):
         transfer_manager.download_many(
@@ -527,7 +533,7 @@ def test_download_chunks_concurrently():
     MULTIPLE = 4
     blob_mock.size = CHUNK_SIZE * MULTIPLE
 
-    blob_mock.download_to_filename.return_value = FAKE_RESULT
+    blob_mock._handle_filename_and_download.return_value = FAKE_RESULT
 
     with mock.patch("__main__.open", mock.mock_open()):
         result = transfer_manager.download_chunks_concurrently(
@@ -538,13 +544,13 @@ def test_download_chunks_concurrently():
             worker_type=transfer_manager.THREAD,
         )
     for x in range(MULTIPLE):
-        blob_mock.download_to_file.assert_any_call(
+        blob_mock._prep_and_do_download.assert_any_call(
             mock.ANY,
             **DOWNLOAD_KWARGS,
             start=x * CHUNK_SIZE,
             end=((x + 1) * CHUNK_SIZE) - 1
         )
-    assert blob_mock.download_to_file.call_count == 4
+    assert blob_mock._prep_and_do_download.call_count == 4
     assert result is None
 
 
@@ -619,7 +625,7 @@ class _PickleableMockBlob:
         self.size = self._size_after_reload
         self.generation = self._generation_after_reload
 
-    def download_to_file(self, *args, **kwargs):
+    def _prep_and_do_download(self, *args, **kwargs):
         return "SUCCESS"
 
 
@@ -702,14 +708,14 @@ def test__reduce_client():
 
 def test__call_method_on_maybe_pickled_blob():
     blob = mock.Mock(spec=Blob)
-    blob.download_to_file.return_value = "SUCCESS"
+    blob._prep_and_do_download.return_value = "SUCCESS"
     result = transfer_manager._call_method_on_maybe_pickled_blob(
-        blob, "download_to_file"
+        blob, "_prep_and_do_download"
     )
     assert result == "SUCCESS"
 
     pickled_blob = pickle.dumps(_PickleableMockBlob())
     result = transfer_manager._call_method_on_maybe_pickled_blob(
-        pickled_blob, "download_to_file"
+        pickled_blob, "_prep_and_do_download"
     )
     assert result == "SUCCESS"
