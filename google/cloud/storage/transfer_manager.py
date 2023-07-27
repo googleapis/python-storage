@@ -843,6 +843,114 @@ def download_chunks_concurrently(
         future.result()
     return None
 
+def upload_chunks_concurrently(
+    filename,
+    blob,
+    content_type=None, # FIXME - check against other similar args and positions
+    chunk_size=TM_DEFAULT_CHUNK_SIZE,
+    upload_kwargs=None,
+    deadline=None,
+    worker_type=PROCESS,
+    max_workers=DEFAULT_MAX_WORKERS,
+):
+    """Upload a single file in chunks, concurrently."""
+
+    # TODO:
+    # async/pool
+    # automatic chunk division
+    # use requests query params constructors instead of strings
+    # use resumable media
+    # impl retries
+    # impl md5 of chunks
+    # open bug for crc32c of finished product (also other tm stuff)
+
+    from google.cloud.storage.blob import _get_host_name
+    from xml.etree import ElementTree
+
+    _MPU_URL_TEMPLATE = "https://{bucket}.{hostname}/{blob}{query}"
+    _MPU_INITIATE_QUERY = "?uploads"
+    _MPU_CHUNK_QUERY_TEMPLATE = "?partNumber=${partNumber}&uploadId=${this.uploadId}"
+
+    bucket = blob.bucket
+    client = blob.client
+    timeout = 60 # fixme
+
+    #hostname = _get_host_name(blob.bucket.client._connection)
+    hostname = "storage.googleapis.com"
+    url = _MPU_URL_TEMPLATE.format(
+        hostname=hostname, bucket=bucket.name, blob=blob.name, query=_MPU_INITIATE_QUERY
+    )
+    content_type = blob._get_content_type(content_type)
+    info = blob._get_upload_arguments(client, content_type)
+    headers, object_metadata, content_type = info
+
+    response = client._base_connection._make_request(
+        "POST", url, headers=headers, timeout=timeout
+    )
+
+    print(response.text)
+
+    root = ElementTree.fromstring(response.text)
+    upload_id = root.find("{http://s3.amazonaws.com/doc/2006-03-01/}UploadId").text # FIXME: turn into a constant
+
+    print("upload id {}".format(upload_id))
+
+    _CHUNK_QUERY_TEMPLATE = "?partNumber={part}&uploadId={upload_id}"
+
+    part = 1 # fixme
+    chunk_query = _CHUNK_QUERY_TEMPLATE.format(part=part, upload_id=upload_id)
+    chunk_url = _MPU_URL_TEMPLATE.format(
+        hostname=hostname, bucket=bucket.name, blob=blob.name, query=chunk_query
+    )
+
+    with open(filename, 'r') as f:
+        response = client._base_connection._make_request("PUT", chunk_url, headers=headers, timeout=timeout, data=f.read())
+    print("chunk headers:")
+    print(response.headers)
+    etag = response.headers['etag']
+
+    _FINAL_QUERY_TEMPLATE = "?uploadId={upload_id}"
+    final_query = _FINAL_QUERY_TEMPLATE.format(upload_id=upload_id)
+    final_url = _MPU_URL_TEMPLATE.format(
+        hostname=hostname, bucket=bucket.name, blob=blob.name, query=final_query
+    )
+
+    final_xml_root = ElementTree.Element("CompleteMultipartUpload")
+    part = ElementTree.SubElement(final_xml_root, "Part") # put in a loop
+    ElementTree.SubElement(part, "PartNumber").text = "1"
+    ElementTree.SubElement(part, "ETag").text = etag
+    final_xml = ElementTree.tostring(final_xml_root)
+    print("final xml:")
+    print(final_xml)
+
+    response = client._base_connection._make_request("POST", final_url, headers=headers, timeout=timeout, data=final_xml)
+    print("finish:")
+    print(response.text)
+
+#  https://github.com/googleapis/nodejs-storage/pull/2192/files
+
+# "<?xml version='1.0' encoding='UTF-8'?><InitiateMultipartUploadResult xmlns='http://s3.amazonaws.com/doc/2006-03-01/'><Bucket>andrewsg-test</Bucket><Key>index.html</Key><UploadId>ABPnzm6owR0finnvnKpRLuaA_xsAF1-HO5L6C8qx8amqNzr5kx5zzYwzVYMs</UploadId></InitiateMultipartUploadResult>"
+
+    #         this.baseUrl = `https://${bucket.name}.${new URL(this.bucket.storage.apiEndpoint).hostname}/${fileName}`;
+    #         const url = `${this.baseUrl}?uploads`;
+       # try {
+       #  const res = await this.authClient.request({
+       #    method: 'POST',
+       #    url,
+       #  });
+       #  if (res.data && res.data.error) {
+       #    throw res.data.error;
+       #  }
+       #  const parsedXML = this.xmlParser.parse(res.data);
+       #  this.uploadId = parsedXML.InitiateMultipartUploadResult.UploadId;
+# Get the true URL
+# Compose an XML request to start the process
+# Send request
+
+
+
+
+
 
 def _download_and_write_chunk_in_place(
     maybe_pickled_blob, filename, start, end, download_kwargs
