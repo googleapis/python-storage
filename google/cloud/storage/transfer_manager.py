@@ -89,7 +89,7 @@ def upload_many(
     :type file_blob_pairs: List(Tuple(IOBase or str, 'google.cloud.storage.blob.Blob'))
     :param file_blob_pairs:
         A list of tuples of a file or filename and a blob. Each file will be
-        uploaded to the corresponding blob by using blob._prep_and_do_upload() or blob._handle_filename_and_upload() as appropriate.
+        uploaded to the corresponding blob by using APIs identical to blob.upload_from_file() or blob.upload_from_filename() as appropriate.
 
         File handlers are only supported if worker_type is set to THREAD.
         If worker_type is set to PROCESS, please use filenames only.
@@ -105,8 +105,8 @@ def upload_many(
     :type upload_kwargs: dict
     :param upload_kwargs:
         A dictionary of keyword arguments to pass to the upload method. Refer
-        to the documentation for blob._prep_and_do_upload() or
-        blob._handle_filename_and_upload() for more information. The dict is directly passed into the upload methods and is not validated by this function.
+        to the documentation for blob.upload_from_file() or
+        blob.upload_from_filename() for more information. The dict is directly passed into the upload methods and is not validated by this function.
 
     :type threads: int
     :param threads:
@@ -254,7 +254,7 @@ def download_many(
     :type download_kwargs: dict
     :param download_kwargs:
         A dictionary of keyword arguments to pass to the download method. Refer
-        to the documentation for blob.downlod_to_file() or blob.download_to_filename() for more information. The dict is directly passed into the download methods and is not validated by this function.
+        to the documentation for blob.download_to_file() or blob.download_to_filename() for more information. The dict is directly passed into the download methods and is not validated by this function.
 
     :type threads: int
     :param threads:
@@ -451,8 +451,8 @@ def upload_many_from_filenames(
     :type upload_kwargs: dict
     :param upload_kwargs:
         A dictionary of keyword arguments to pass to the upload method. Refer
-        to the documentation for blob._prep_and_do_upload() or
-        blob._handle_filename_and_upload() for more information. The dict is directly passed into the upload methods and is not validated by this function.
+        to the documentation for blob.upload_from_file() or
+        blob.upload_from_filename() for more information. The dict is directly passed into the upload methods and is not validated by this function.
 
     :type threads: int
     :param threads:
@@ -614,8 +614,8 @@ def download_many_to_path(
     :type download_kwargs: dict
     :param download_kwargs:
         A dictionary of keyword arguments to pass to the download method. Refer
-        to the documentation for blob._prep_and_do_download() or
-        blob._handle_filename_and_download() for more information. The dict is directly
+        to the documentation for blob.download_to_file() or
+        blob.download_to_filename() for more information. The dict is directly
         passed into the download methods and is not validated by this function.
 
     :type threads: int
@@ -745,8 +745,8 @@ def download_chunks_concurrently(
     :type download_kwargs: dict
     :param download_kwargs:
         A dictionary of keyword arguments to pass to the download method. Refer
-        to the documentation for blob._prep_and_do_download() or
-        blob._handle_filename_and_download() for more information. The dict is directly passed into the download methods and is not validated by this function.
+        to the documentation for blob.download_to_file() or
+        blob.download_to_filename() for more information. The dict is directly passed into the download methods and is not validated by this function.
 
         Keyword arguments "start" and "end" which are not supported and will
         cause a ValueError if present.
@@ -799,7 +799,7 @@ def download_chunks_concurrently(
             "Download arguments 'start' and 'end' are not supported by download_chunks_concurrently."
         )
 
-    download_kwargs["command"] = "tm.download_many"
+    download_kwargs["command"] = "tm.download_sharded"
 
     # We must know the size and the generation of the blob.
     if not blob.size or not blob.generation:
