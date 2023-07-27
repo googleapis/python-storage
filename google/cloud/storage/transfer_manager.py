@@ -244,10 +244,9 @@ def download_many(
 
     :type blob_file_pairs: List(Tuple('google.cloud.storage.blob.Blob', IOBase or str))
     :param blob_file_pairs:
-        A list of tuples of blob and a file or filename. Each blob will be
-        downloaded to the corresponding blob by using blob._prep_and_do_download() or blob._handle_filename_and_download() as appropriate.
+        A list of tuples of blob and a file or filename. Each blob will be downloaded to the corresponding blob by using APIs identical to blob.download_to_file() or blob.download_to_filename() as appropriate.
 
-        Note that blob._handle_filename_and_download() does not delete the destination file if the download fails.
+        Note that blob.download_to_filename() does not delete the destination file if the download fails.
 
         File handlers are only supported if worker_type is set to THREAD.
         If worker_type is set to PROCESS, please use filenames only.
@@ -255,7 +254,7 @@ def download_many(
     :type download_kwargs: dict
     :param download_kwargs:
         A dictionary of keyword arguments to pass to the download method. Refer
-        to the documentation for blob._prep_and_do_download() or blob._handle_filename_and_download() for more information. The dict is directly passed into the download methods and is not validated by this function.
+        to the documentation for blob.downlod_to_file() or blob.download_to_filename() for more information. The dict is directly passed into the download methods and is not validated by this function.
 
     :type threads: int
     :param threads:
@@ -799,6 +798,8 @@ def download_chunks_concurrently(
         raise ValueError(
             "Download arguments 'start' and 'end' are not supported by download_chunks_concurrently."
         )
+
+    download_kwargs["command"] = "tm.download_many"
 
     # We must know the size and the generation of the blob.
     if not blob.size or not blob.generation:
