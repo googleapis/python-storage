@@ -59,7 +59,8 @@ def test_upload_many_with_filenames():
         ("file_a.txt", mock.Mock(spec=Blob)),
         ("file_b.txt", mock.Mock(spec=Blob)),
     ]
-    EXPECTED_UPLOAD_KWARGS["if_generation_match"] = 0
+    expected_upload_kwargs = EXPECTED_UPLOAD_KWARGS.copy()
+    expected_upload_kwargs["if_generation_match"] = 0
 
     for _, blob_mock in FILE_BLOB_PAIRS:
         blob_mock._handle_filename_and_upload.return_value = FAKE_RESULT
@@ -72,7 +73,7 @@ def test_upload_many_with_filenames():
     )
     for (filename, mock_blob) in FILE_BLOB_PAIRS:
         mock_blob._handle_filename_and_upload.assert_any_call(
-            filename, **EXPECTED_UPLOAD_KWARGS
+            filename, **expected_upload_kwargs
         )
     for result in results:
         assert result == FAKE_RESULT
@@ -83,7 +84,8 @@ def test_upload_many_with_file_objs():
         (tempfile.TemporaryFile(), mock.Mock(spec=Blob)),
         (tempfile.TemporaryFile(), mock.Mock(spec=Blob)),
     ]
-    EXPECTED_UPLOAD_KWARGS["if_generation_match"] = 0
+    expected_upload_kwargs = EXPECTED_UPLOAD_KWARGS.copy()
+    expected_upload_kwargs["if_generation_match"] = 0
 
     for _, blob_mock in FILE_BLOB_PAIRS:
         blob_mock._prep_and_do_upload.return_value = FAKE_RESULT
@@ -95,7 +97,7 @@ def test_upload_many_with_file_objs():
         worker_type=transfer_manager.THREAD,
     )
     for (file, mock_blob) in FILE_BLOB_PAIRS:
-        mock_blob._prep_and_do_upload.assert_any_call(file, **EXPECTED_UPLOAD_KWARGS)
+        mock_blob._prep_and_do_upload.assert_any_call(file, **expected_upload_kwargs)
     for result in results:
         assert result == FAKE_RESULT
 
@@ -536,7 +538,9 @@ def test_download_chunks_concurrently():
     FILENAME = "file_a.txt"
     MULTIPLE = 4
     blob_mock.size = CHUNK_SIZE * MULTIPLE
-    EXPECTED_DOWNLOAD_KWARGS["command"] = "tm.download_sharded"
+
+    expected_download_kwargs = EXPECTED_DOWNLOAD_KWARGS.copy()
+    expected_download_kwargs["command"] = "tm.download_sharded"
 
     blob_mock._handle_filename_and_download.return_value = FAKE_RESULT
 
@@ -551,7 +555,7 @@ def test_download_chunks_concurrently():
     for x in range(MULTIPLE):
         blob_mock._prep_and_do_download.assert_any_call(
             mock.ANY,
-            **EXPECTED_DOWNLOAD_KWARGS,
+            **expected_download_kwargs,
             start=x * CHUNK_SIZE,
             end=((x + 1) * CHUNK_SIZE) - 1
         )
