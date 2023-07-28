@@ -28,17 +28,19 @@ import pickle
 
 BLOB_TOKEN_STRING = "blob token"
 FAKE_CONTENT_TYPE = "text/fake"
-UPLOAD_KWARGS = {
-    "content-type": FAKE_CONTENT_TYPE,
-    "command": "tm.upload_many",
-}
+UPLOAD_KWARGS = {"content-type": FAKE_CONTENT_TYPE}
 FAKE_RESULT = "nothing to see here"
 FAKE_ENCODING = "fake_gzip"
-DOWNLOAD_KWARGS = {
-    "accept-encoding": FAKE_ENCODING,
-    "command": "tm.download_many",
-}
+DOWNLOAD_KWARGS = {"accept-encoding": FAKE_ENCODING}
 CHUNK_SIZE = 8
+EXPECTED_UPLOAD_KWARGS = {
+    "command": "tm.upload_many",
+    **UPLOAD_KWARGS,
+}
+EXPECTED_DOWNLOAD_KWARGS = {
+    "command": "tm.download_many",
+    **DOWNLOAD_KWARGS,
+}
 
 
 # Used in subprocesses only, so excluded from coverage
@@ -48,7 +50,7 @@ def _validate_blob_token_in_subprocess(
     assert pickle.loads(maybe_pickled_blob) == BLOB_TOKEN_STRING
     assert "filename" in method_name
     assert path_or_file.startswith("file")
-    assert kwargs == UPLOAD_KWARGS or kwargs == DOWNLOAD_KWARGS
+    assert kwargs == EXPECTED_UPLOAD_KWARGS or kwargs == EXPECTED_DOWNLOAD_KWARGS
     return FAKE_RESULT
 
 
@@ -57,7 +59,7 @@ def test_upload_many_with_filenames():
         ("file_a.txt", mock.Mock(spec=Blob)),
         ("file_b.txt", mock.Mock(spec=Blob)),
     ]
-    EXPECTED_UPLOAD_KWARGS = {"if_generation_match": 0, **UPLOAD_KWARGS}
+    EXPECTED_UPLOAD_KWARGS["if_generation_match"] = 0
 
     for _, blob_mock in FILE_BLOB_PAIRS:
         blob_mock._handle_filename_and_upload.return_value = FAKE_RESULT
@@ -81,7 +83,7 @@ def test_upload_many_with_file_objs():
         (tempfile.TemporaryFile(), mock.Mock(spec=Blob)),
         (tempfile.TemporaryFile(), mock.Mock(spec=Blob)),
     ]
-    EXPECTED_UPLOAD_KWARGS = {"if_generation_match": 0, **UPLOAD_KWARGS}
+    EXPECTED_UPLOAD_KWARGS["if_generation_match"] = 0
 
     for _, blob_mock in FILE_BLOB_PAIRS:
         blob_mock._prep_and_do_upload.return_value = FAKE_RESULT
@@ -256,7 +258,9 @@ def test_download_many_with_filenames():
         worker_type=transfer_manager.THREAD,
     )
     for (mock_blob, file) in BLOB_FILE_PAIRS:
-        mock_blob._handle_filename_and_download.assert_any_call(file, **DOWNLOAD_KWARGS)
+        mock_blob._handle_filename_and_download.assert_any_call(
+            file, **EXPECTED_DOWNLOAD_KWARGS
+        )
     for result in results:
         assert result == FAKE_RESULT
 
@@ -532,6 +536,7 @@ def test_download_chunks_concurrently():
     FILENAME = "file_a.txt"
     MULTIPLE = 4
     blob_mock.size = CHUNK_SIZE * MULTIPLE
+    EXPECTED_DOWNLOAD_KWARGS["command"] = "tm.download_sharded"
 
     blob_mock._handle_filename_and_download.return_value = FAKE_RESULT
 
@@ -546,7 +551,7 @@ def test_download_chunks_concurrently():
     for x in range(MULTIPLE):
         blob_mock._prep_and_do_download.assert_any_call(
             mock.ANY,
-            **DOWNLOAD_KWARGS,
+            **EXPECTED_DOWNLOAD_KWARGS,
             start=x * CHUNK_SIZE,
             end=((x + 1) * CHUNK_SIZE) - 1
         )
