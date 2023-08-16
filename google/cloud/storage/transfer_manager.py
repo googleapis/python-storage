@@ -27,6 +27,9 @@ from google.api_core import exceptions
 from google.cloud.storage import Client
 from google.cloud.storage import Blob
 
+from google.resumable_media.requests.upload import XMLMPUContainer
+from google.resumable_media.requests.upload import XMLMPUPart
+
 warnings.warn(
     "The module `transfer_manager` is a preview feature. Functionality and API "
     "may change. This warning will be removed in a future release."
@@ -843,33 +846,32 @@ def download_chunks_concurrently(
         future.result()
     return None
 
+
 def upload_chunks_concurrently(
     filename,
     blob,
-    content_type=None, # FIXME - check against other similar args and positions
+    content_type=None,
     chunk_size=TM_DEFAULT_CHUNK_SIZE,
-    upload_kwargs=None,
     deadline=None,
     worker_type=PROCESS,
     max_workers=DEFAULT_MAX_WORKERS,
+    *,
+    checksum=None
 ):
     """Upload a single file in chunks, concurrently."""
 
     # TODO:
-    # async/pool
-    # automatic chunk division
-    # use requests query params constructors instead of strings
-    # use resumable media
-    # impl retries
-    # impl md5 of chunks
-    # open bug for crc32c of finished product (also other tm stuff)
+    # open bug for crc32c of finished product (also other tm checksum stuff)
+    # metadata
+    # headers
+    # resumable media docs in init
 
     from google.cloud.storage.blob import _get_host_name
     from xml.etree import ElementTree
 
     _MPU_URL_TEMPLATE = "https://{bucket}.{hostname}/{blob}{query}"
     _MPU_INITIATE_QUERY = "?uploads"
-    _MPU_CHUNK_QUERY_TEMPLATE = "?partNumber=${partNumber}&uploadId=${this.uploadId}"
+    _CHUNK_QUERY_TEMPLATE = "?partNumber={part}&uploadId={upload_id}"
 
     bucket = blob.bucket
     client = blob.client
@@ -878,78 +880,61 @@ def upload_chunks_concurrently(
     #hostname = _get_host_name(blob.bucket.client._connection)
     hostname = "storage.googleapis.com"
     url = _MPU_URL_TEMPLATE.format(
-        hostname=hostname, bucket=bucket.name, blob=blob.name, query=_MPU_INITIATE_QUERY
-    )
-    content_type = blob._get_content_type(content_type)
-    info = blob._get_upload_arguments(client, content_type)
-    headers, object_metadata, content_type = info
+        hostname=hostname, bucket=bucket.name, blob=blob.name, query=""
+    ) # FIXME
 
-    response = client._base_connection._make_request(
-        "POST", url, headers=headers, timeout=timeout
-    )
+    container = XMLMPUContainer(url, filename)
 
-    print(response.text)
+    content_type = blob._get_content_type(content_type, filename=filename)
 
-    root = ElementTree.fromstring(response.text)
-    upload_id = root.find("{http://s3.amazonaws.com/doc/2006-03-01/}UploadId").text # FIXME: turn into a constant
+    container.initiate(transport=blob._get_transport(client), content_type=content_type)
+    upload_id = container.upload_id
 
-    print("upload id {}".format(upload_id))
+    size = os.path.getsize(filename)
 
-    _CHUNK_QUERY_TEMPLATE = "?partNumber={part}&uploadId={upload_id}"
-
-    part = 1 # fixme
-    chunk_query = _CHUNK_QUERY_TEMPLATE.format(part=part, upload_id=upload_id)
-    chunk_url = _MPU_URL_TEMPLATE.format(
-        hostname=hostname, bucket=bucket.name, blob=blob.name, query=chunk_query
-    )
-
-    with open(filename, 'r') as f:
-        response = client._base_connection._make_request("PUT", chunk_url, headers=headers, timeout=timeout, data=f.read())
-    print("chunk headers:")
-    print(response.headers)
-    etag = response.headers['etag']
-
-    _FINAL_QUERY_TEMPLATE = "?uploadId={upload_id}"
-    final_query = _FINAL_QUERY_TEMPLATE.format(upload_id=upload_id)
-    final_url = _MPU_URL_TEMPLATE.format(
-        hostname=hostname, bucket=bucket.name, blob=blob.name, query=final_query
-    )
-
-    final_xml_root = ElementTree.Element("CompleteMultipartUpload")
-    part = ElementTree.SubElement(final_xml_root, "Part") # put in a loop
-    ElementTree.SubElement(part, "PartNumber").text = "1"
-    ElementTree.SubElement(part, "ETag").text = etag
-    final_xml = ElementTree.tostring(final_xml_root)
-    print("final xml:")
-    print(final_xml)
-
-    response = client._base_connection._make_request("POST", final_url, headers=headers, timeout=timeout, data=final_xml)
-    print("finish:")
-    print(response.text)
-
-#  https://github.com/googleapis/nodejs-storage/pull/2192/files
-
-# "<?xml version='1.0' encoding='UTF-8'?><InitiateMultipartUploadResult xmlns='http://s3.amazonaws.com/doc/2006-03-01/'><Bucket>andrewsg-test</Bucket><Key>index.html</Key><UploadId>ABPnzm6owR0finnvnKpRLuaA_xsAF1-HO5L6C8qx8amqNzr5kx5zzYwzVYMs</UploadId></InitiateMultipartUploadResult>"
-
-    #         this.baseUrl = `https://${bucket.name}.${new URL(this.bucket.storage.apiEndpoint).hostname}/${fileName}`;
-    #         const url = `${this.baseUrl}?uploads`;
-       # try {
-       #  const res = await this.authClient.request({
-       #    method: 'POST',
-       #    url,
-       #  });
-       #  if (res.data && res.data.error) {
-       #    throw res.data.error;
-       #  }
-       #  const parsedXML = this.xmlParser.parse(res.data);
-       #  this.uploadId = parsedXML.InitiateMultipartUploadResult.UploadId;
-# Get the true URL
-# Compose an XML request to start the process
-# Send request
+    num_of_parts = -(size // -chunk_size)
 
 
+    pool_class, needs_pickling = _get_pool_class_and_requirements(worker_type)
+    # Pickle the blob ahead of time (just once, not once per chunk) if needed.
+    maybe_pickled_client = _pickle_blob(client) if needs_pickling else client
 
+    futures = []
 
+    with pool_class(max_workers=max_workers) as executor:
+
+        for part_number in range(1, num_of_parts+1):
+            start = (part_number-1) * chunk_size
+            end = min(part_number * chunk_size, size)
+
+            futures.append(
+                executor.submit(
+                    _upload_part,
+                    maybe_pickled_client, url, upload_id, filename, start=start, end=end, part_number=part_number, checksum=checksum
+                )
+            )
+
+        concurrent.futures.wait(
+            futures, timeout=deadline, return_when=concurrent.futures.ALL_COMPLETED
+        )
+
+    # Harvest results and raise exceptions.
+    for future in futures:
+        part_number, etag = future.result()
+        container._parts[str(part_number)] = etag
+
+    container.finalize(blob._get_transport(client))
+
+def _upload_part(
+    maybe_pickled_client, url, upload_id, filename, start, end, part_number, checksum
+):
+    if isinstance(maybe_pickled_client, Client):
+        client = maybe_pickled_client
+    else:
+        client = pickle.loads(maybe_pickled_client)
+    part = XMLMPUPart(url, upload_id, filename, start=start, end=end, part_number=part_number, checksum=checksum)
+    part.upload(client._http)
+    return (part_number, part.etag)
 
 
 def _download_and_write_chunk_in_place(
@@ -1001,6 +986,22 @@ def _reduce_client(cl):
         client_options,
     )
 
+
+def _pickle_client(client):
+    """Pickle a Client and return a bytestring."""
+
+    # We need a custom pickler to process Client objects, which are attached to
+    # Buckets (and therefore to Blobs in turn). Unfortunately, the Python
+    # multiprocessing library doesn't seem to have a good way to use a custom
+    # pickler, and using copyreg will mutate global state and affect code
+    # outside of the client library. Instead, we'll pre-pickle the object and
+    # pass the bytestring in.
+    f = io.BytesIO()
+    p = pickle.Pickler(f)
+    p.dispatch_table = copyreg.dispatch_table.copy()
+    p.dispatch_table[Client] = _reduce_client
+    p.dump(client)
+    return f.getvalue()
 
 def _pickle_blob(blob):
     """Pickle a Blob (and its Bucket and Client) and return a bytestring."""
