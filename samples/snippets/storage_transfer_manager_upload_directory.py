@@ -13,7 +13,6 @@
 # limitations under the License.
 
 # [START storage_transfer_manager_upload_directory]
-
 def upload_directory_with_transfer_manager(bucket_name, source_directory, processes=8):
     """Upload every file in a directory, including all files in subdirectories.
 
@@ -77,5 +76,4 @@ def upload_directory_with_transfer_manager(bucket_name, source_directory, proces
             print("Failed to upload {} due to exception: {}".format(name, result))
         else:
             print("Uploaded {} to {}.".format(name, bucket.name))
-
 # [END storage_transfer_manager_upload_directory]
