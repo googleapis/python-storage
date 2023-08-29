@@ -706,11 +706,26 @@ def test_transfer_manager_snippets(test_bucket, capsys):
             test_bucket.name,
             destination_directory=os.path.join(downloads, ""),
             processes=8,
+            max_results=len(BLOB_NAMES),
         )
         out, _ = capsys.readouterr()
 
         for name in BLOB_NAMES:
             assert "Downloaded {}".format(name) in out
+
+    with tempfile.TemporaryDirectory() as downloads:
+        # Download the files.
+        storage_transfer_manager_download_many.download_many_blobs_with_transfer_manager(
+            test_bucket.name,
+            blob_names=BLOB_NAMES,
+            destination_directory=os.path.join(downloads, ""),
+            processes=8,
+        )
+        out, _ = capsys.readouterr()
+
+        for name in BLOB_NAMES:
+            assert "Downloaded {}".format(name) in out
+
 
 
 def test_transfer_manager_directory_upload(test_bucket, capsys):
