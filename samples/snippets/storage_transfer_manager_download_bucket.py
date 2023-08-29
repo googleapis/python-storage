@@ -16,12 +16,7 @@
 def download_bucket_with_transfer_manager(
     bucket_name, destination_directory="", processes=8, max_results=1000
 ):
-    """Download blobs in a bucket, concurrently in a process pool.
-
-    The max_results option can be set to None to download all of the blobs
-    regardless of how many there are, but this function fetches and queues all
-    of the blob names at once, which can be taxing on memory in cases of very
-    large numbers of blobs.
+    """Download all of the blobs in a bucket, concurrently in a process pool.
 
     The filename of each blob once downloaded is derived from the blob name and
     the `destination_directory `parameter. For complete control of the filename
@@ -67,4 +62,4 @@ def download_bucket_with_transfer_manager(
             print("Failed to download {} due to exception: {}".format(name, result))
         else:
             print("Downloaded {} to {}.".format(name, destination_directory + name))
-# [END storage_transfer_manager_download_all_blobs]
+# [END storage_transfer_manager_download_bucket]

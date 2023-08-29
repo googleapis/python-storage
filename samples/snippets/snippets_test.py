@@ -72,10 +72,11 @@ import storage_set_autoclass
 import storage_set_bucket_default_kms_key
 import storage_set_client_endpoint
 import storage_set_metadata
-import storage_transfer_manager_download_all_blobs
+import storage_transfer_manager_download_bucket
 import storage_transfer_manager_download_chunks_concurrently
+import storage_transfer_manager_download_many
 import storage_transfer_manager_upload_directory
-import storage_transfer_manager_upload_many_blobs
+import storage_transfer_manager_upload_many
 import storage_upload_file
 import storage_upload_from_memory
 import storage_upload_from_stream
@@ -689,7 +690,7 @@ def test_transfer_manager_snippets(test_bucket, capsys):
             with open(os.path.join(uploads, name), "w") as f:
                 f.write(name)
 
-        storage_transfer_manager_upload_many_blobs.upload_many_blobs_with_transfer_manager(
+        storage_transfer_manager_upload_many.upload_many_blobs_with_transfer_manager(
             test_bucket.name,
             BLOB_NAMES,
             source_directory="{}/".format(uploads),
@@ -702,7 +703,7 @@ def test_transfer_manager_snippets(test_bucket, capsys):
 
     with tempfile.TemporaryDirectory() as downloads:
         # Download the files.
-        storage_transfer_manager_download_all_blobs.download_all_blobs_with_transfer_manager(
+        storage_transfer_manager_download_bucket.download_bucket_with_transfer_manager(
             test_bucket.name,
             destination_directory=os.path.join(downloads, ""),
             processes=8,
@@ -725,7 +726,6 @@ def test_transfer_manager_snippets(test_bucket, capsys):
 
         for name in BLOB_NAMES:
             assert "Downloaded {}".format(name) in out
-
 
 
 def test_transfer_manager_directory_upload(test_bucket, capsys):
