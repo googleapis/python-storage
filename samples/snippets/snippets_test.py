@@ -707,7 +707,7 @@ def test_transfer_manager_snippets(test_bucket, capsys):
             test_bucket.name,
             destination_directory=os.path.join(downloads, ""),
             processes=8,
-            max_results=len(BLOB_NAMES),
+            max_results=10000,
         )
         out, _ = capsys.readouterr()
 
