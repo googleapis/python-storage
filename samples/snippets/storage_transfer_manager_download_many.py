@@ -1,4 +1,4 @@
-# Copyright 2022 Google LLC
+# Copyright 2023 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -28,6 +28,12 @@ def download_many_blobs_with_transfer_manager(
 
     # The ID of your GCS bucket
     # bucket_name = "your-bucket-name"
+
+    # The list of blob names to download. The names of each blobs will also
+    # be the name of each destination file (use transfer_manager.download_many()
+    # instead to control each destination file name). If there is a "/" in the
+    # blob name, then corresponding directories will be created on download.
+    # blob_names = ["myblob", "myblob2"]
 
     # The directory on your computer to which to download all of the files. This
     # string is prepended (with os.path.join()) to the name of each blob to form

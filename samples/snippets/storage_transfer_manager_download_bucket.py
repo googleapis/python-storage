@@ -43,6 +43,15 @@ def download_bucket_with_transfer_manager(
     # some CPU and memory resources until finished.
     # processes=8
 
+    # The maximum number of results to fetch from bucket.list_blobs(). This
+    # sample code fetches all of the blobs up to max_results and queues them all
+    # for download at once. Though they will still be executed in batches up to
+    # the processes limit, queueing them all at once can be taxing on system
+    # memory if buckets are very large. Adjust max_results as needed for your
+    # system environment, or set it to None if you are sure the bucket is not
+    # too large to hold in memory easily.
+    # max_results=1000
+
     from google.cloud.storage import Client, transfer_manager
 
     storage_client = Client()
