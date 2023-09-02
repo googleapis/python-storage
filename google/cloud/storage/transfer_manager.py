@@ -26,9 +26,12 @@ import copyreg
 from google.api_core import exceptions
 from google.cloud.storage import Client
 from google.cloud.storage import Blob
+from google.cloud.storage.blob import _get_host_name
+from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 
 from google.resumable_media.requests.upload import XMLMPUContainer
 from google.resumable_media.requests.upload import XMLMPUPart
+
 
 warnings.warn(
     "The module `transfer_manager` is a preview feature. Functionality and API "
@@ -201,7 +204,7 @@ def upload_many(
             futures.append(
                 executor.submit(
                     _call_method_on_maybe_pickled_blob,
-                    _pickle_blob(blob) if needs_pickling else blob,
+                    _pickle_client(blob) if needs_pickling else blob,
                     "upload_from_filename"
                     if isinstance(path_or_file, str)
                     else "upload_from_file",
@@ -346,7 +349,7 @@ def download_many(
             futures.append(
                 executor.submit(
                     _call_method_on_maybe_pickled_blob,
-                    _pickle_blob(blob) if needs_pickling else blob,
+                    _pickle_client(blob) if needs_pickling else blob,
                     "download_to_filename"
                     if isinstance(path_or_file, str)
                     else "download_to_file",
@@ -736,7 +739,6 @@ def download_chunks_concurrently(
     Checksumming (md5 or crc32c) is not supported for chunked operations. Any
     `checksum` parameter passed in to download_kwargs will be ignored.
 
-    :type bucket: 'google.cloud.storage.bucket.Bucket'
     :param bucket:
         The bucket which contains the blobs to be downloaded
 
@@ -747,6 +749,12 @@ def download_chunks_concurrently(
     :type filename: str
     :param filename:
         The destination filename or path.
+
+    :type chunk_size: int
+    :param chunk_size:
+        The size in bytes of each chunk to send. The optimal chunk size for
+        maximum throughput may vary depending on the exact network environment
+        and size of the blob.
 
     :type download_kwargs: dict
     :param download_kwargs:
@@ -812,7 +820,7 @@ def download_chunks_concurrently(
 
     pool_class, needs_pickling = _get_pool_class_and_requirements(worker_type)
     # Pickle the blob ahead of time (just once, not once per chunk) if needed.
-    maybe_pickled_blob = _pickle_blob(blob) if needs_pickling else blob
+    maybe_pickled_blob = _pickle_client(blob) if needs_pickling else blob
 
     futures = []
 
@@ -856,61 +864,145 @@ def upload_chunks_concurrently(
     worker_type=PROCESS,
     max_workers=DEFAULT_MAX_WORKERS,
     *,
-    checksum=None
+    checksum="md5",
+    timeout=_DEFAULT_TIMEOUT,
 ):
-    """Upload a single file in chunks, concurrently."""
+    """Upload a single file in chunks, concurrently.
+
+    This function uses the XML MPU API to initialize an upload and upload a
+    file in chunks, concurrently with a worker pool.
+
+    The XML MPU API is significantly different from other uploads; please review
+    the documentation at https://cloud.google.com/storage/docs/multipart-uploads
+    before using this feature.
+
+    Blob metadata beyond the name is not currently transmitted with this
+    feature. Please set blob metadata separately after uploading.
+
+    Encryption is also not supported at present. Please do not use customer-
+    supplied encryption keys or customer-managed encryption keys with this
+    feature.
+
+    Using this feature with multiple threads is unlikely to improve upload
+    performance under normal circumstances due to Python interpreter threading
+    behavior. The default is therefore to use processes instead of threads.
+
+    :type filename: str
+    :param filename:
+        The path to the file to upload. File-like objects are not supported.
+
+    :type blob: `google.cloud.storage.Blob`
+    :param blob:
+        The blob to which to upload.
+
+    :type content_type: str
+    :param content_type: (Optional) Type of content being uploaded.
+
+    :type chunk_size: int
+    :param chunk_size:
+        The size in bytes of each chunk to send. The optimal chunk size for
+        maximum throughput may vary depending on the exact network environment
+        and size of the blob.
+
+    :type deadline: int
+    :param deadline:
+        The number of seconds to wait for all threads to resolve. If the
+        deadline is reached, all threads will be terminated regardless of their
+        progress and concurrent.futures.TimeoutError will be raised. This can be
+        left as the default of None (no deadline) for most use cases.
+
+    :type worker_type: str
+    :param worker_type:
+        The worker type to use; one of google.cloud.storage.transfer_manager.PROCESS
+        or google.cloud.storage.transfer_manager.THREAD.
+
+        Although the exact performance impact depends on the use case, in most
+        situations the PROCESS worker type will use more system resources (both
+        memory and CPU) and result in faster operations than THREAD workers.
+
+        Because the subprocesses of the PROCESS worker type can't access memory
+        from the main process, Client objects have to be serialized and then
+        recreated in each subprocess. The serialization of the Client object
+        for use in subprocesses is an approximation and may not capture every
+        detail of the Client object, especially if the Client was modified after
+        its initial creation or if `Client._http` was modified in any way.
+
+        THREAD worker types are observed to be relatively efficient for
+        operations with many small files, but not for operations with large
+        files. PROCESS workers are recommended for large file operations.
+
+    :type max_workers: int
+    :param max_workers:
+        The maximum number of workers to create to handle the workload.
+
+        With PROCESS workers, a larger number of workers will consume more
+        system resources (memory and CPU) at once.
+
+        How many workers is optimal depends heavily on the specific use case,
+        and the default is a conservative number that should work okay in most
+        cases without consuming excessive resources.
+
+    :type checksum: str
+    :param checksum:
+        (Optional) The checksum scheme to use: either 'md5', 'crc32c' or None.
+        Each individual part is checksummed. At present, the selected checksum
+        rule is only applied to parts and a separate checksum of the entire
+        resulting blob is not computed. Please compute and compare the checksum
+        of the file to the resulting blob separately if needed, using the
+        'crc32c' algorithm as per the XML MPU documentation.
+
+    :type timeout: float or tuple
+    :param timeout:
+        (Optional) The amount of time, in seconds, to wait
+        for the server response.  See: :ref:`configuring_timeouts`
+
+    :raises: :exc:`concurrent.futures.TimeoutError` if deadline is exceeded.
+    """
 
     # TODO:
-    # open bug for crc32c of finished product (also other tm checksum stuff)
+    # make base url creation more robust than string addition - consider also using that for query strings in resumable media
     # metadata
-    # headers
-    # resumable media docs in init
-
-    from google.cloud.storage.blob import _get_host_name
-    from xml.etree import ElementTree
-
-    _MPU_URL_TEMPLATE = "https://{bucket}.{hostname}/{blob}{query}"
-    _MPU_INITIATE_QUERY = "?uploads"
-    _CHUNK_QUERY_TEMPLATE = "?partNumber={part}&uploadId={upload_id}"
+    # other special purpose header stuff like encryption
+    # figure out custom client stuff
 
     bucket = blob.bucket
     client = blob.client
-    timeout = 60 # fixme
+    transport = blob._get_transport(client)
 
-    #hostname = _get_host_name(blob.bucket.client._connection)
-    hostname = "storage.googleapis.com"
-    url = _MPU_URL_TEMPLATE.format(
-        hostname=hostname, bucket=bucket.name, blob=blob.name, query=""
-    ) # FIXME
-
-    container = XMLMPUContainer(url, filename)
-
+    hostname = _get_host_name(client._connection)
+    url = hostname + "/" + bucket.name + "/" + blob.name  # FIXME: make this nicer
     content_type = blob._get_content_type(content_type, filename=filename)
 
-    container.initiate(transport=blob._get_transport(client), content_type=content_type)
+    container = XMLMPUContainer(url, filename)
+    container.initiate(transport=transport, content_type=content_type)
     upload_id = container.upload_id
 
     size = os.path.getsize(filename)
-
     num_of_parts = -(size // -chunk_size)
-
 
     pool_class, needs_pickling = _get_pool_class_and_requirements(worker_type)
     # Pickle the blob ahead of time (just once, not once per chunk) if needed.
-    maybe_pickled_client = _pickle_blob(client) if needs_pickling else client
+    maybe_pickled_client = _pickle_client(client) if needs_pickling else client
 
     futures = []
 
     with pool_class(max_workers=max_workers) as executor:
 
-        for part_number in range(1, num_of_parts+1):
-            start = (part_number-1) * chunk_size
+        for part_number in range(1, num_of_parts + 1):
+            start = (part_number - 1) * chunk_size
             end = min(part_number * chunk_size, size)
 
             futures.append(
                 executor.submit(
                     _upload_part,
-                    maybe_pickled_client, url, upload_id, filename, start=start, end=end, part_number=part_number, checksum=checksum
+                    maybe_pickled_client,
+                    url,
+                    upload_id,
+                    filename,
+                    start=start,
+                    end=end,
+                    part_number=part_number,
+                    checksum=checksum,
                 )
             )
 
@@ -918,21 +1010,40 @@ def upload_chunks_concurrently(
             futures, timeout=deadline, return_when=concurrent.futures.ALL_COMPLETED
         )
 
-    # Harvest results and raise exceptions.
-    for future in futures:
-        part_number, etag = future.result()
-        container._parts[str(part_number)] = etag
+    try:
+        # Harvest results and raise exceptions.
+        for future in futures:
+            part_number, etag = future.result()
+            container.register_part(part_number, etag)
 
-    container.finalize(blob._get_transport(client))
+        container.finalize(blob._get_transport(client))
+    except Exception:
+        container.cancel(blob._get_transport(client))
+        raise
+
 
 def _upload_part(
     maybe_pickled_client, url, upload_id, filename, start, end, part_number, checksum
 ):
+    """Helper function that runs inside a thread or subprocess to upload a part.
+
+    `maybe_pickled_client` is either a Client (for threads) or a specially
+    pickled Client (for processes) because the default pickling mangles Client
+    objects."""
+
     if isinstance(maybe_pickled_client, Client):
         client = maybe_pickled_client
     else:
         client = pickle.loads(maybe_pickled_client)
-    part = XMLMPUPart(url, upload_id, filename, start=start, end=end, part_number=part_number, checksum=checksum)
+    part = XMLMPUPart(
+        url,
+        upload_id,
+        filename,
+        start=start,
+        end=end,
+        part_number=part_number,
+        checksum=checksum,
+    )
     part.upload(client._http)
     return (part_number, part.etag)
 
@@ -940,6 +1051,12 @@ def _upload_part(
 def _download_and_write_chunk_in_place(
     maybe_pickled_blob, filename, start, end, download_kwargs
 ):
+    """Helper function that runs inside a thread or subprocess.
+
+    `maybe_pickled_blob` is either a Blob (for threads) or a specially pickled
+    Blob (for processes) because the default pickling mangles Client objects
+    which are attached to Blobs."""
+
     if isinstance(maybe_pickled_blob, Blob):
         blob = maybe_pickled_blob
     else:
@@ -956,9 +1073,9 @@ def _call_method_on_maybe_pickled_blob(
 ):
     """Helper function that runs inside a thread or subprocess.
 
-    `maybe_pickled_blob` is either a blob (for threads) or a specially pickled
-    blob (for processes) because the default pickling mangles clients which are
-    attached to blobs."""
+    `maybe_pickled_blob` is either a Blob (for threads) or a specially pickled
+    Blob (for processes) because the default pickling mangles Client objects
+    which are attached to Blobs."""
 
     if isinstance(maybe_pickled_blob, Blob):
         blob = maybe_pickled_blob
@@ -987,8 +1104,8 @@ def _reduce_client(cl):
     )
 
 
-def _pickle_client(client):
-    """Pickle a Client and return a bytestring."""
+def _pickle_client(obj):
+    """Pickle a Client or an object that owns a Client (like a Blob)"""
 
     # We need a custom pickler to process Client objects, which are attached to
     # Buckets (and therefore to Blobs in turn). Unfortunately, the Python
@@ -1000,23 +1117,7 @@ def _pickle_client(client):
     p = pickle.Pickler(f)
     p.dispatch_table = copyreg.dispatch_table.copy()
     p.dispatch_table[Client] = _reduce_client
-    p.dump(client)
-    return f.getvalue()
-
-def _pickle_blob(blob):
-    """Pickle a Blob (and its Bucket and Client) and return a bytestring."""
-
-    # We need a custom pickler to process Client objects, which are attached to
-    # Buckets (and therefore to Blobs in turn). Unfortunately, the Python
-    # multiprocessing library doesn't seem to have a good way to use a custom
-    # pickler, and using copyreg will mutate global state and affect code
-    # outside of the client library. Instead, we'll pre-pickle the object and
-    # pass the bytestring in.
-    f = io.BytesIO()
-    p = pickle.Pickler(f)
-    p.dispatch_table = copyreg.dispatch_table.copy()
-    p.dispatch_table[Client] = _reduce_client
-    p.dump(blob)
+    p.dump(obj)
     return f.getvalue()
 
 
