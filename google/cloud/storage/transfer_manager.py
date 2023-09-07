@@ -876,8 +876,17 @@ def upload_chunks_concurrently(
     the documentation at https://cloud.google.com/storage/docs/multipart-uploads
     before using this feature.
 
+    Downloads that fail due to an exception will be proactively canceled by the
+    library. If the download fails due to reason that precludes cancellation,
+    such as a hardware failure, process termination or power outage, then the
+    incomplete upload may persist indefinitely. To mitigate this, set
+    the `AbortIncompleteMultipartUpload` with a nonzero `Age` in bucket
+    lifecycle rules, or refer to the XML API documentation linked above to learn
+    more about how to list and delete individual downloads.
+
     Blob metadata beyond the name is not currently transmitted with this
-    feature. Please set blob metadata separately after uploading.
+    feature. Please set blob metadata separately after uploading. This includes
+    storage class and custom time options.
 
     Encryption is also not supported at present. Please do not use customer-
     supplied encryption keys or customer-managed encryption keys with this
@@ -959,12 +968,6 @@ def upload_chunks_concurrently(
     :raises: :exc:`concurrent.futures.TimeoutError` if deadline is exceeded.
     """
 
-    # TODO:
-    # make base url creation more robust than string addition - consider also using that for query strings in resumable media
-    # metadata
-    # other special purpose header stuff like encryption
-    # figure out custom client stuff
-
     bucket = blob.bucket
     client = blob.client
     transport = blob._get_transport(client)
@@ -978,7 +981,7 @@ def upload_chunks_concurrently(
     upload_id = container.upload_id
 
     size = os.path.getsize(filename)
-    num_of_parts = -(size // -chunk_size)
+    num_of_parts = -(size // -chunk_size)  # Ceiling division
 
     pool_class, needs_pickling = _get_pool_class_and_requirements(worker_type)
     # Pickle the blob ahead of time (just once, not once per chunk) if needed.

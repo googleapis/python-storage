@@ -171,3 +171,50 @@ def test_download_chunks_concurrently(shared_bucket, file_data):
         )
         with open(threaded_filename, "rb") as file_obj:
             assert _base64_md5hash(file_obj) == source_file["hash"]
+
+
+def test_upload_chunks_concurrently(shared_bucket, file_data):
+    source_file = file_data["big"]
+    filename = source_file["path"]
+    blob_name = "mpu_file"
+    upload_blob = shared_bucket.blob(blob_name)
+    chunk_size = 5 * 1024 * 1024  # Minimum supported by XML MPU API
+    assert os.path.getsize(filename) > chunk_size  # Won't make a good test otherwise
+
+    transfer_manager.upload_chunks_concurrently(
+        filename, upload_blob, chunk_size=chunk_size, deadline=DEADLINE
+    )
+
+    with tempfile.NamedTemporaryFile() as tmp:
+        download_blob = shared_bucket.blob(blob_name)
+        download_blob.download_to_file(tmp)
+        tmp.seek(0)
+
+        with open(source_file["path"], "rb") as sf:
+            source_contents = sf.read()
+            temp_contents = tmp.read()
+            assert source_contents == temp_contents
+
+    # Also test threaded mode
+    blob_name = "mpu_threaded"
+    upload_blob = shared_bucket.blob(blob_name)
+    chunk_size = 5 * 1024 * 1024  # Minimum supported by XML MPU API
+    assert os.path.getsize(filename) > chunk_size  # Won't make a good test otherwise
+
+    transfer_manager.upload_chunks_concurrently(
+        filename,
+        upload_blob,
+        chunk_size=chunk_size,
+        deadline=DEADLINE,
+        worker_type=transfer_manager.THREAD,
+    )
+
+    with tempfile.NamedTemporaryFile() as tmp:
+        download_blob = shared_bucket.blob(blob_name)
+        download_blob.download_to_file(tmp)
+        tmp.seek(0)
+
+        with open(source_file["path"], "rb") as sf:
+            source_contents = sf.read()
+            temp_contents = tmp.read()
+            assert source_contents == temp_contents
