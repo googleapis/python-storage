@@ -975,9 +975,13 @@ def upload_chunks_concurrently(
     transport = blob._get_transport(client)
 
     hostname = _get_host_name(client._connection)
-    url = "{hostname}/{bucket}/{blob}".format(hostname=hostname, bucket=bucket.name, blob=blob.name)
+    url = "{hostname}/{bucket}/{blob}".format(
+        hostname=hostname, bucket=bucket.name, blob=blob.name
+    )
 
-    base_headers, object_metadata, content_type = blob._get_upload_arguments(client, content_type, filename=filename)
+    base_headers, object_metadata, content_type = blob._get_upload_arguments(
+        client, content_type, filename=filename
+    )
     headers = {**base_headers, **_headers_from_metadata(object_metadata)}
 
     container = XMLMPUContainer(url, filename, headers=headers)
@@ -1010,7 +1014,7 @@ def upload_chunks_concurrently(
                     end=end,
                     part_number=part_number,
                     checksum=checksum,
-                    headers=headers
+                    headers=headers,
                 )
             )
 
@@ -1031,7 +1035,15 @@ def upload_chunks_concurrently(
 
 
 def _upload_part(
-    maybe_pickled_client, url, upload_id, filename, start, end, part_number, checksum, headers
+    maybe_pickled_client,
+    url,
+    upload_id,
+    filename,
+    start,
+    end,
+    part_number,
+    checksum,
+    headers,
 ):
     """Helper function that runs inside a thread or subprocess to upload a part.
 
@@ -1051,7 +1063,7 @@ def _upload_part(
         end=end,
         part_number=part_number,
         checksum=checksum,
-        headers=headers
+        headers=headers,
     )
     part.upload(client._http)
     return (part_number, part.etag)

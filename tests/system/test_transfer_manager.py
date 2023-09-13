@@ -221,13 +221,17 @@ def test_upload_chunks_concurrently(shared_bucket, file_data, blobs_to_delete):
             temp_contents = tmp.read()
             assert source_contents == temp_contents
 
-def test_upload_chunks_concurrently_with_metadata(shared_bucket, file_data, blobs_to_delete):
+
+def test_upload_chunks_concurrently_with_metadata(
+    shared_bucket, file_data, blobs_to_delete
+):
     import datetime
     from google.cloud._helpers import UTC
-#    from google.cloud._helpers import _RFC3339_MICROS
+
+    #    from google.cloud._helpers import _RFC3339_MICROS
 
     now = datetime.datetime.utcnow().replace(tzinfo=UTC)
-#    NOW = now.strftime(_RFC3339_MICROS)
+    #    NOW = now.strftime(_RFC3339_MICROS)
 
     custom_metadata = {"key_a": "value_a", "key_b": "value_b"}
 
