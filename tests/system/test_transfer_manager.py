@@ -173,13 +173,15 @@ def test_download_chunks_concurrently(shared_bucket, file_data):
             assert _base64_md5hash(file_obj) == source_file["hash"]
 
 
-def test_upload_chunks_concurrently(shared_bucket, file_data):
+def test_upload_chunks_concurrently(shared_bucket, file_data, blobs_to_delete):
     source_file = file_data["big"]
     filename = source_file["path"]
     blob_name = "mpu_file"
     upload_blob = shared_bucket.blob(blob_name)
     chunk_size = 5 * 1024 * 1024  # Minimum supported by XML MPU API
     assert os.path.getsize(filename) > chunk_size  # Won't make a good test otherwise
+
+    blobs_to_delete.append(upload_blob)
 
     transfer_manager.upload_chunks_concurrently(
         filename, upload_blob, chunk_size=chunk_size, deadline=DEADLINE
@@ -211,6 +213,56 @@ def test_upload_chunks_concurrently(shared_bucket, file_data):
 
     with tempfile.NamedTemporaryFile() as tmp:
         download_blob = shared_bucket.blob(blob_name)
+        download_blob.download_to_file(tmp)
+        tmp.seek(0)
+
+        with open(source_file["path"], "rb") as sf:
+            source_contents = sf.read()
+            temp_contents = tmp.read()
+            assert source_contents == temp_contents
+
+def test_upload_chunks_concurrently_with_metadata(shared_bucket, file_data, blobs_to_delete):
+    import datetime
+    from google.cloud._helpers import UTC
+#    from google.cloud._helpers import _RFC3339_MICROS
+
+    now = datetime.datetime.utcnow().replace(tzinfo=UTC)
+#    NOW = now.strftime(_RFC3339_MICROS)
+
+    custom_metadata = {"key_a": "value_a", "key_b": "value_b"}
+
+    METADATA = {
+        "cache_control": "private",
+        "content_disposition": "inline",
+        "content_language": "en-US",
+        "custom_time": now,
+        "metadata": custom_metadata,
+        "storage_class": "NEARLINE",
+    }
+
+    source_file = file_data["big"]
+    filename = source_file["path"]
+    blob_name = "mpu_file_with_metadata"
+    upload_blob = shared_bucket.blob(blob_name)
+
+    blobs_to_delete.append(upload_blob)
+
+    for key, value in METADATA.items():
+        setattr(upload_blob, key, value)
+
+    chunk_size = 5 * 1024 * 1024  # Minimum supported by XML MPU API
+    assert os.path.getsize(filename) > chunk_size  # Won't make a good test otherwise
+
+    transfer_manager.upload_chunks_concurrently(
+        filename, upload_blob, chunk_size=chunk_size, deadline=DEADLINE
+    )
+
+    with tempfile.NamedTemporaryFile() as tmp:
+        download_blob = shared_bucket.get_blob(blob_name)
+
+        for key, value in METADATA.items():
+            assert getattr(download_blob, key) == value
+
         download_blob.download_to_file(tmp)
         tmp.seek(0)
 

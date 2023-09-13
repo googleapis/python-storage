@@ -41,7 +41,14 @@ warnings.warn(
 
 TM_DEFAULT_CHUNK_SIZE = 32 * 1024 * 1024
 DEFAULT_MAX_WORKERS = 8
-
+METADATA_HEADER_TRANSLATION = {
+    "cacheControl": "Cache-Control",
+    "contentDisposition": "Content-Disposition",
+    "contentEncoding": "Content-Encoding",
+    "contentLanguage": "Content-Language",
+    "customTime": "x-goog-custom-time",
+    "storageClass": "x-goog-storage-class",
+}
 
 # Constants to be passed in as `worker_type`.
 PROCESS = "process"
@@ -876,25 +883,20 @@ def upload_chunks_concurrently(
     the documentation at https://cloud.google.com/storage/docs/multipart-uploads
     before using this feature.
 
-    Downloads that fail due to an exception will be proactively canceled by the
-    library. If the download fails due to reason that precludes cancellation,
-    such as a hardware failure, process termination or power outage, then the
-    incomplete upload may persist indefinitely. To mitigate this, set
-    the `AbortIncompleteMultipartUpload` with a nonzero `Age` in bucket
-    lifecycle rules, or refer to the XML API documentation linked above to learn
-    more about how to list and delete individual downloads.
-
-    Blob metadata beyond the name is not currently transmitted with this
-    feature. Please set blob metadata separately after uploading. This includes
-    storage class and custom time options.
-
-    Encryption is also not supported at present. Please do not use customer-
-    supplied encryption keys or customer-managed encryption keys with this
-    feature.
+    The library will attempt to cancel uploads that fail due to an exception.
+    If the upload fails in a way that precludes cancellation, such as a
+    hardware failure, process termination, or power outage, then the incomplete
+    upload may persist indefinitely. To mitigate this, set the
+    `AbortIncompleteMultipartUpload` with a nonzero `Age` in bucket lifecycle
+    rules, or refer to the XML API documentation linked above to learn more
+    about how to list and delete individual downloads.
 
     Using this feature with multiple threads is unlikely to improve upload
     performance under normal circumstances due to Python interpreter threading
     behavior. The default is therefore to use processes instead of threads.
+
+    ACL information cannot be sent with this function and should be set
+    separately with :class:`ObjectACL` methods.
 
     :type filename: str
     :param filename:
@@ -973,10 +975,12 @@ def upload_chunks_concurrently(
     transport = blob._get_transport(client)
 
     hostname = _get_host_name(client._connection)
-    url = hostname + "/" + bucket.name + "/" + blob.name  # FIXME: make this nicer
-    content_type = blob._get_content_type(content_type, filename=filename)
+    url = "{hostname}/{bucket}/{blob}".format(hostname=hostname, bucket=bucket.name, blob=blob.name)
 
-    container = XMLMPUContainer(url, filename)
+    base_headers, object_metadata, content_type = blob._get_upload_arguments(client, content_type, filename=filename)
+    headers = {**base_headers, **_headers_from_metadata(object_metadata)}
+
+    container = XMLMPUContainer(url, filename, headers=headers)
     container.initiate(transport=transport, content_type=content_type)
     upload_id = container.upload_id
 
@@ -1006,6 +1010,7 @@ def upload_chunks_concurrently(
                     end=end,
                     part_number=part_number,
                     checksum=checksum,
+                    headers=headers
                 )
             )
 
@@ -1026,7 +1031,7 @@ def upload_chunks_concurrently(
 
 
 def _upload_part(
-    maybe_pickled_client, url, upload_id, filename, start, end, part_number, checksum
+    maybe_pickled_client, url, upload_id, filename, start, end, part_number, checksum, headers
 ):
     """Helper function that runs inside a thread or subprocess to upload a part.
 
@@ -1046,9 +1051,25 @@ def _upload_part(
         end=end,
         part_number=part_number,
         checksum=checksum,
+        headers=headers
     )
     part.upload(client._http)
     return (part_number, part.etag)
+
+
+def _headers_from_metadata(metadata):
+    """Helper function to translate object metadata into a header dictionary."""
+
+    headers = {}
+    # Handle standard writable metadata
+    for key, value in metadata.items():
+        if key in METADATA_HEADER_TRANSLATION:
+            headers[METADATA_HEADER_TRANSLATION[key]] = value
+    # Handle custom metadata
+    if "metadata" in metadata:
+        for key, value in metadata["metadata"].items():
+            headers["x-goog-meta-" + key] = value
+    return headers
 
 
 def _download_and_write_chunk_in_place(
