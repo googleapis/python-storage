@@ -913,7 +913,8 @@ def upload_chunks_concurrently(
     :param chunk_size:
         The size in bytes of each chunk to send. The optimal chunk size for
         maximum throughput may vary depending on the exact network environment
-        and size of the blob.
+        and size of the blob. The remote API has restrictions on the minimum
+        and maximum size allowable, see: https://cloud.google.com/storage/quotas#requests
 
     :type deadline: int
     :param deadline:
