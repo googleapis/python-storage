@@ -980,6 +980,21 @@ def upload_chunks_concurrently(
     base_headers, object_metadata, content_type = blob._get_upload_arguments(client, content_type, filename=filename)
     headers = {**base_headers, **_headers_from_metadata(object_metadata)}
 
+    if blob.user_project is not None:
+        headers["x-goog-user-project"] = blob.user_project
+
+    # When a Customer Managed Encryption Key is used to encrypt Cloud Storage object
+    # at rest, object resource metadata will store the version of the Key Management
+    # Service cryptographic material. If a Blob instance with KMS Key metadata set is
+    # used to upload a new version of the object then the existing kmsKeyName version
+    # value can't be used in the upload request and the client instead ignores it.
+    if (
+        blob.kms_key_name is not None
+        and "cryptoKeyVersions" not in blob.kms_key_name
+    ):
+        headers["x-goog-encryption-kms-key-name"] = blob.kms_key_name
+
+
     container = XMLMPUContainer(url, filename, headers=headers)
     container.initiate(transport=transport, content_type=content_type)
     upload_id = container.upload_id
