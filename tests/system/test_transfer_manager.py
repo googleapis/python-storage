@@ -233,7 +233,10 @@ def test_upload_chunks_concurrently(shared_bucket, file_data, blobs_to_delete):
             temp_contents = tmp.read()
             assert source_contents == temp_contents
 
-def test_upload_chunks_concurrently_with_metadata(shared_bucket, file_data, blobs_to_delete):
+
+def test_upload_chunks_concurrently_with_metadata(
+    shared_bucket, file_data, blobs_to_delete
+):
     import datetime
     from google.cloud._helpers import UTC
 
@@ -280,7 +283,9 @@ def test_upload_chunks_concurrently_with_metadata(shared_bucket, file_data, blob
             assert source_contents == temp_contents
 
 
-def test_upload_chunks_concurrently_with_content_encoding(shared_bucket, file_data, blobs_to_delete):
+def test_upload_chunks_concurrently_with_content_encoding(
+    shared_bucket, file_data, blobs_to_delete
+):
     import gzip
 
     METADATA = {
@@ -298,7 +303,7 @@ def test_upload_chunks_concurrently_with_content_encoding(shared_bucket, file_da
     chunk_size = 5 * 1024 * 1024  # Minimum supported by XML MPU API
 
     with tempfile.NamedTemporaryFile() as tmp_gzip:
-        with open(filename, 'rb') as f:
+        with open(filename, "rb") as f:
             compressed_bytes = gzip.compress(f.read())
 
         tmp_gzip.write(compressed_bytes)
@@ -322,7 +327,10 @@ def test_upload_chunks_concurrently_with_content_encoding(shared_bucket, file_da
             temp_contents = tmp.read()
             assert source_contents == temp_contents
 
-def test_upload_chunks_concurrently_with_encryption_key(shared_bucket, file_data, blobs_to_delete):
+
+def test_upload_chunks_concurrently_with_encryption_key(
+    shared_bucket, file_data, blobs_to_delete
+):
     source_file = file_data["big"]
     filename = source_file["path"]
     blob_name = "mpu_file_encrypted"
@@ -354,7 +362,9 @@ def test_upload_chunks_concurrently_with_encryption_key(shared_bucket, file_data
             keyless_blob.download_to_file(tmp)
 
 
-def test_upload_chunks_concurrently_with_kms(kms_bucket, file_data, blobs_to_delete, kms_key_name):
+def test_upload_chunks_concurrently_with_kms(
+    kms_bucket, file_data, blobs_to_delete, kms_key_name
+):
     source_file = file_data["big"]
     filename = source_file["path"]
     blob_name = "mpu_file_kms"

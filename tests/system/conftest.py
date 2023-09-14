@@ -52,6 +52,7 @@ keyring_name = "gcs-test"
 default_key_name = "gcs-test"
 alt_key_name = "gcs-test-alternate"
 
+
 def _kms_key_name(client, bucket, key_name):
     return _key_name_format.format(
         client.project,
@@ -59,6 +60,7 @@ def _kms_key_name(client, bucket, key_name):
         keyring_name,
         key_name,
     )
+
 
 @pytest.fixture(scope="session")
 def storage_client():
@@ -231,6 +233,7 @@ def file_data():
             file_data["hash"] = _base64_md5hash(file_obj)
 
     return _file_data
+
 
 @pytest.fixture(scope="session")
 def kms_bucket_name():
