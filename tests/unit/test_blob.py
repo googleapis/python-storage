@@ -2246,8 +2246,10 @@ class Test_Blob(unittest.TestCase):
     def test__get_upload_arguments(self):
         name = "blob-name"
         key = b"[pXw@,p@@AfBfrR3x-2b2SCHR,.?YwRO"
+        custom_headers = {"x-goog-custom-audit-foo": "bar", "x-goog-custom-audit-user": "baz"}
         client = mock.Mock(_connection=_Connection)
         client._connection.user_agent = "testing 1.2.3"
+        client._extra_headers = custom_headers
         blob = self._make_one(name, bucket=None, encryption_key=key)
         blob.content_disposition = "inline"
 
@@ -2271,6 +2273,7 @@ class Test_Blob(unittest.TestCase):
                 "X-Goog-Encryption-Algorithm": "AES256",
                 "X-Goog-Encryption-Key": header_key_value,
                 "X-Goog-Encryption-Key-Sha256": header_key_hash_value,
+                **custom_headers,
             }
         self.assertEqual(
             headers["X-Goog-API-Client"],
@@ -2325,6 +2328,7 @@ class Test_Blob(unittest.TestCase):
 
             client = mock.Mock(_http=transport, _connection=_Connection, spec=["_http"])
             client._connection.API_BASE_URL = "https://storage.googleapis.com"
+            client._extra_headers = {}
 
         # Mock get_api_base_url_for_mtls function.
         mtls_url = "https://foo.mtls"
@@ -2424,11 +2428,14 @@ class Test_Blob(unittest.TestCase):
         with patch.object(
             _helpers, "_get_invocation_id", return_value=GCCL_INVOCATION_TEST_CONST
         ):
-            headers = _get_default_headers(
-                client._connection.user_agent,
-                b'multipart/related; boundary="==0=="',
-                "application/xml",
-            )
+            headers = {
+                **_get_default_headers(
+                    client._connection.user_agent,
+                    b'multipart/related; boundary="==0=="',
+                    "application/xml",
+                ),
+                **client._extra_headers,
+            }
         client._http.request.assert_called_once_with(
             "POST", upload_url, data=payload, headers=headers, timeout=expected_timeout
         )
@@ -2520,6 +2527,16 @@ class Test_Blob(unittest.TestCase):
         transport = self._mock_transport(http.client.OK, {})
         client = mock.Mock(_http=transport, _connection=_Connection, spec=["_http"])
         client._connection.API_BASE_URL = "https://storage.googleapis.com"
+        client._extra_headers = {}
+        self._do_multipart_success(mock_get_boundary, client=client)
+
+    @mock.patch("google.resumable_media._upload.get_boundary", return_value=b"==0==")
+    def test__do_multipart_upload_with_client_custom_headers(self, mock_get_boundary):
+        custom_headers = {"x-goog-custom-audit-foo": "bar", "x-goog-custom-audit-user": "baz"}
+        transport = self._mock_transport(http.client.OK, {})
+        client = mock.Mock(_http=transport, _connection=_Connection, spec=["_http"])
+        client._connection.API_BASE_URL = "https://storage.googleapis.com"
+        client._extra_headers = custom_headers
         self._do_multipart_success(mock_get_boundary, client=client)
 
     @mock.patch("google.resumable_media._upload.get_boundary", return_value=b"==0==")
@@ -2597,6 +2614,7 @@ class Test_Blob(unittest.TestCase):
             # Create some mock arguments and call the method under test.
             client = mock.Mock(_http=transport, _connection=_Connection, spec=["_http"])
             client._connection.API_BASE_URL = "https://storage.googleapis.com"
+            client._extra_headers = {}
 
         # Mock get_api_base_url_for_mtls function.
         mtls_url = "https://foo.mtls"
@@ -2677,13 +2695,18 @@ class Test_Blob(unittest.TestCase):
             _helpers, "_get_invocation_id", return_value=GCCL_INVOCATION_TEST_CONST
         ):
             if extra_headers is None:
+                expected_headers = {
+                    **_get_default_headers(client._connection.user_agent, content_type),
+                    **client._extra_headers,
+                }
                 self.assertEqual(
                     upload._headers,
-                    _get_default_headers(client._connection.user_agent, content_type),
+                    expected_headers
                 )
             else:
                 expected_headers = {
                     **_get_default_headers(client._connection.user_agent, content_type),
+                    **client._extra_headers,
                     **extra_headers,
                 }
                 self.assertEqual(upload._headers, expected_headers)
@@ -2730,9 +2753,12 @@ class Test_Blob(unittest.TestCase):
         with patch.object(
             _helpers, "_get_invocation_id", return_value=GCCL_INVOCATION_TEST_CONST
         ):
-            expected_headers = _get_default_headers(
-                client._connection.user_agent, x_upload_content_type=content_type
-            )
+            expected_headers = {
+                **_get_default_headers(
+                    client._connection.user_agent, x_upload_content_type=content_type
+                ),
+                **client._extra_headers
+            }
         if size is not None:
             expected_headers["x-upload-content-length"] = str(size)
         if extra_headers is not None:
@@ -2824,6 +2850,18 @@ class Test_Blob(unittest.TestCase):
 
         client = mock.Mock(_http=transport, _connection=_Connection, spec=["_http"])
         client._connection.API_BASE_URL = "https://storage.googleapis.com"
+        client._extra_headers = {}
+        self._initiate_resumable_helper(client=client)
+
+    def test__initiate_resumable_upload_with_client_custom_headers(self):
+        custom_headers = {"x-goog-custom-audit-foo": "bar", "x-goog-custom-audit-user": "baz"}
+        resumable_url = "http://test.invalid?upload_id=hey-you"
+        response_headers = {"location": resumable_url}
+        transport = self._mock_transport(http.client.OK, response_headers)
+
+        client = mock.Mock(_http=transport, _connection=_Connection, spec=["_http"])
+        client._connection.API_BASE_URL = "https://storage.googleapis.com"
+        client._extra_headers = custom_headers
         self._initiate_resumable_helper(client=client)
 
     def _make_resumable_transport(
@@ -3000,6 +3038,7 @@ class Test_Blob(unittest.TestCase):
         client = mock.Mock(_http=transport, _connection=_Connection, spec=["_http"])
         client._connection.API_BASE_URL = "https://storage.googleapis.com"
         client._connection.user_agent = USER_AGENT
+        client._extra_headers = {}
         stream = io.BytesIO(data)
 
         bucket = _Bucket(name="yesterday")
@@ -3613,26 +3652,32 @@ class Test_Blob(unittest.TestCase):
         if_metageneration_match=None,
         if_metageneration_not_match=None,
         retry=None,
+        client=None,
     ):
         bucket = _Bucket(name="alex-trebek")
         blob = self._make_one("blob-name", bucket=bucket)
         chunk_size = 99 * blob._CHUNK_SIZE_MULTIPLE
         blob.chunk_size = chunk_size
-
-        # Create mocks to be checked for doing transport.
         resumable_url = "http://test.invalid?upload_id=clean-up-everybody"
-        response_headers = {"location": resumable_url}
-        transport = self._mock_transport(http.client.OK, response_headers)
-        if side_effect is not None:
-            transport.request.side_effect = side_effect
-
-        # Create some mock arguments and call the method under test.
         content_type = "text/plain"
         size = 10000
-        client = mock.Mock(_http=transport, _connection=_Connection, spec=["_http"])
-        client._connection.API_BASE_URL = "https://storage.googleapis.com"
-        client._connection.user_agent = "testing 1.2.3"
+        transport = None
 
+        if not client:
+            # Create mocks to be checked for doing transport.
+            response_headers = {"location": resumable_url}
+            transport = self._mock_transport(http.client.OK, response_headers)
+
+            # Create some mock arguments and call the method under test.
+            client = mock.Mock(_http=transport, _connection=_Connection, spec=["_http"])
+            client._connection.API_BASE_URL = "https://storage.googleapis.com"
+            client._connection.user_agent = "testing 1.2.3"
+            client._extra_headers = {}
+
+        if transport is None:
+            transport = client._http
+        if side_effect is not None:
+            transport.request.side_effect = side_effect
         if timeout is None:
             expected_timeout = self._get_default_timeout()
             timeout_kwarg = {}
@@ -3690,6 +3735,7 @@ class Test_Blob(unittest.TestCase):
                 **_get_default_headers(
                     client._connection.user_agent, x_upload_content_type=content_type
                 ),
+                **client._extra_headers,
                 "x-upload-content-length": str(size),
                 "x-upload-content-type": content_type,
             }
@@ -3750,6 +3796,25 @@ class Test_Blob(unittest.TestCase):
 
         self.assertIn(message, exc_info.exception.message)
         self.assertEqual(exc_info.exception.errors, [])
+
+    def test_create_resumable_upload_session_with_client(self):
+        resumable_url = "http://test.invalid?upload_id=clean-up-everybody"
+        response_headers = {"location": resumable_url}
+        transport = self._mock_transport(http.client.OK, response_headers)
+        client = mock.Mock(_http=transport, _connection=_Connection, spec=["_http"])
+        client._connection.API_BASE_URL = "https://storage.googleapis.com"
+        client._extra_headers = {}
+        self._create_resumable_upload_session_helper(client=client)
+
+    def test_create_resumable_upload_session_with_client_custom_headers(self):
+        custom_headers = {"x-goog-custom-audit-foo": "bar", "x-goog-custom-audit-user": "baz"}
+        resumable_url = "http://test.invalid?upload_id=clean-up-everybody"
+        response_headers = {"location": resumable_url}
+        transport = self._mock_transport(http.client.OK, response_headers)
+        client = mock.Mock(_http=transport, _connection=_Connection, spec=["_http"])
+        client._connection.API_BASE_URL = "https://storage.googleapis.com"
+        client._extra_headers = custom_headers
+        self._create_resumable_upload_session_helper(client=client)
 
     def test_get_iam_policy_defaults(self):
         from google.cloud.storage.iam import STORAGE_OWNER_ROLE
