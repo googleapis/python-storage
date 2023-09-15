@@ -4267,6 +4267,7 @@ class Blob(_PropertyMixin):
         headers = {
             **_get_default_headers(client._connection.user_agent, command=command),
             **headers,
+            **client._extra_headers,
         }
 
         transport = client._http

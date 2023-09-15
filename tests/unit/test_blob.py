@@ -5816,6 +5816,26 @@ class Test_Blob(unittest.TestCase):
         with self.assertRaises(ValueError):
             blob.open("w", ignore_flush=False)
 
+    def test_downloads_w_client_custom_headers(self):
+        import google.auth.credentials
+        from google.cloud.storage import Client
+
+        custom_headers = {"x-goog-custom-audit-foo": "bar", "x-goog-custom-audit-user": "baz"}
+        credentials = mock.Mock(spec=google.auth.credentials.Credentials)
+        client = Client(
+            project="project", credentials=credentials, extra_headers=custom_headers
+        )
+        blob = self._make_one("blob-name", bucket=_Bucket(client))
+        file_obj = io.BytesIO()
+
+        downloads = {client.download_blob_to_file: (blob, file_obj), blob.download_to_file: (file_obj,), blob.download_as_bytes: ()}
+        for method, args in downloads.items():
+            with mock.patch.object(blob, "_do_download"):
+                method(*args)
+                blob._do_download.assert_called()
+                called_headers = blob._do_download.call_args.args[-4]
+                self.assertIsInstance(called_headers, dict)
+                self.assertDictContainsSubset(custom_headers, called_headers)
 
 class Test__quote(unittest.TestCase):
     @staticmethod
