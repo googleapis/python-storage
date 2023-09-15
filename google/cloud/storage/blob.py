@@ -1142,6 +1142,33 @@ class Blob(_PropertyMixin):
             retry=retry,
         )
 
+    def _handle_filename_and_download(self, filename, *args, **kwargs):
+        """Download the contents of this blob into a named file.
+
+        :type filename: str
+        :param filename: A filename to be passed to ``open``.
+
+        For *args and **kwargs, refer to the documentation for download_to_filename() for more information.
+        """
+
+        try:
+            with open(filename, "wb") as file_obj:
+                self._prep_and_do_download(
+                    file_obj,
+                    *args,
+                    **kwargs,
+                )
+
+        except resumable_media.DataCorruption:
+            # Delete the corrupt downloaded file.
+            os.remove(filename)
+            raise
+
+        updated = self.updated
+        if updated is not None:
+            mtime = updated.timestamp()
+            os.utime(file_obj.name, (mtime, mtime))
+
     def download_to_filename(
         self,
         filename,
@@ -1250,33 +1277,22 @@ class Blob(_PropertyMixin):
         :raises: :class:`google.cloud.exceptions.NotFound`
         """
 
-        try:
-            with open(filename, "wb") as file_obj:
-                self._prep_and_do_download(
-                    file_obj,
-                    client=client,
-                    start=start,
-                    end=end,
-                    raw_download=raw_download,
-                    if_etag_match=if_etag_match,
-                    if_etag_not_match=if_etag_not_match,
-                    if_generation_match=if_generation_match,
-                    if_generation_not_match=if_generation_not_match,
-                    if_metageneration_match=if_metageneration_match,
-                    if_metageneration_not_match=if_metageneration_not_match,
-                    timeout=timeout,
-                    checksum=checksum,
-                    retry=retry,
-                )
-        except resumable_media.DataCorruption:
-            # Delete the corrupt downloaded file.
-            os.remove(filename)
-            raise
-
-        updated = self.updated
-        if updated is not None:
-            mtime = updated.timestamp()
-            os.utime(file_obj.name, (mtime, mtime))
+        self._handle_filename_and_download(
+            filename,
+            client=client,
+            start=start,
+            end=end,
+            raw_download=raw_download,
+            if_etag_match=if_etag_match,
+            if_etag_not_match=if_etag_not_match,
+            if_generation_match=if_generation_match,
+            if_generation_not_match=if_generation_not_match,
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
+            timeout=timeout,
+            checksum=checksum,
+            retry=retry,
+        )
 
     def download_as_bytes(
         self,
@@ -2747,6 +2763,30 @@ class Blob(_PropertyMixin):
             retry=retry,
         )
 
+    def _handle_filename_and_upload(self, filename, content_type=None, *args, **kwargs):
+        """Upload this blob's contents from the content of a named file.
+
+        :type filename: str
+        :param filename: The path to the file.
+
+        :type content_type: str
+        :param content_type: (Optional) Type of content being uploaded.
+
+        For *args and **kwargs, refer to the documentation for upload_from_filename() for more information.
+        """
+
+        content_type = self._get_content_type(content_type, filename=filename)
+
+        with open(filename, "rb") as file_obj:
+            total_bytes = os.fstat(file_obj.fileno()).st_size
+            self._prep_and_do_upload(
+                file_obj,
+                content_type=content_type,
+                size=total_bytes,
+                *args,
+                **kwargs,
+            )
+
     def upload_from_filename(
         self,
         filename,
@@ -2868,25 +2908,21 @@ class Blob(_PropertyMixin):
             configuration changes for Retry objects such as delays and deadlines
             are respected.
         """
-        content_type = self._get_content_type(content_type, filename=filename)
 
-        with open(filename, "rb") as file_obj:
-            total_bytes = os.fstat(file_obj.fileno()).st_size
-            self._prep_and_do_upload(
-                file_obj,
-                content_type=content_type,
-                num_retries=num_retries,
-                client=client,
-                size=total_bytes,
-                predefined_acl=predefined_acl,
-                if_generation_match=if_generation_match,
-                if_generation_not_match=if_generation_not_match,
-                if_metageneration_match=if_metageneration_match,
-                if_metageneration_not_match=if_metageneration_not_match,
-                timeout=timeout,
-                checksum=checksum,
-                retry=retry,
-            )
+        self._handle_filename_and_upload(
+            filename,
+            content_type=content_type,
+            num_retries=num_retries,
+            client=client,
+            predefined_acl=predefined_acl,
+            if_generation_match=if_generation_match,
+            if_generation_not_match=if_generation_not_match,
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
+            timeout=timeout,
+            checksum=checksum,
+            retry=retry,
+        )
 
     def upload_from_string(
         self,
