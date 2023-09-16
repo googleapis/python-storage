@@ -2658,14 +2658,16 @@ class Test_Bucket(unittest.TestCase):
         self.assertIn("autoclass", bucket._changes)
         self.assertFalse(bucket.autoclass_enabled)
 
-    def test_autoclass_toggle_tsc_update_time_missing(self):
+    def test_autoclass_config_unset(self):
         bucket = self._make_one()
         self.assertIsNone(bucket.autoclass_toggle_time)
+        self.assertIsNone(bucket.autoclass_terminal_storage_class)
         self.assertIsNone(bucket.autoclass_terminal_storage_class_update_time)
 
         properties = {"autoclass": {}}
         bucket = self._make_one(properties=properties)
         self.assertIsNone(bucket.autoclass_toggle_time)
+        self.assertIsNone(bucket.autoclass_terminal_storage_class)
         self.assertIsNone(bucket.autoclass_terminal_storage_class_update_time)
 
     def test_autoclass_toggle_and_tsc_update_time(self):

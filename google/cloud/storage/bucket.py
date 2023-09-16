@@ -2718,8 +2718,7 @@ class Bucket(_PropertyMixin):
         :returns: The terminal storage class if Autoclass is enabled, else ``None``.
         """
         autoclass = self._properties.get("autoclass", {})
-        if autoclass is not None:
-            return autoclass.get("terminalStorageClass", None)
+        return autoclass.get("terminalStorageClass", None)
 
     @autoclass_terminal_storage_class.setter
     def autoclass_terminal_storage_class(self, value):
