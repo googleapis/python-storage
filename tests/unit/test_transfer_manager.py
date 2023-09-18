@@ -683,7 +683,7 @@ def test_upload_chunks_concurrently_passes_concurrency_options():
                 worker_type=transfer_manager.THREAD,
                 max_workers=MAX_WORKERS,
                 deadline=DEADLINE,
-                retry=None
+                retry=None,
             )
         except ValueError:
             pass  # The futures don't actually work, so we expect this to abort.
@@ -911,7 +911,16 @@ def test__upload_part():
         "google.cloud.storage.transfer_manager.XMLMPUPart", return_value=part
     ):
         result = transfer_manager._upload_part(
-            pickled_mock, URL, UPLOAD_ID, FILENAME, 0, 256, 1, None, {"key", "value"}, retry=DEFAULT_RETRY
+            pickled_mock,
+            URL,
+            UPLOAD_ID,
+            FILENAME,
+            0,
+            256,
+            1,
+            None,
+            {"key", "value"},
+            retry=DEFAULT_RETRY,
         )
         part.upload.assert_called_once()
         assert part._retry_strategy.max_sleep == 60.0
