@@ -212,7 +212,7 @@ def upload_many(
             futures.append(
                 executor.submit(
                     _call_method_on_maybe_pickled_blob,
-                    _pickle_blob(blob) if needs_pickling else blob,
+                    _pickle_client(blob) if needs_pickling else blob,
                     "_handle_filename_and_upload"
                     if isinstance(path_or_file, str)
                     else "_prep_and_do_upload",
@@ -354,7 +354,7 @@ def download_many(
             futures.append(
                 executor.submit(
                     _call_method_on_maybe_pickled_blob,
-                    _pickle_blob(blob) if needs_pickling else blob,
+                    _pickle_client(blob) if needs_pickling else blob,
                     "_handle_filename_and_download"
                     if isinstance(path_or_file, str)
                     else "_prep_and_do_download",
