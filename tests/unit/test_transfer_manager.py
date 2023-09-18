@@ -591,7 +591,9 @@ def test_download_chunks_concurrently_passes_concurrency_options():
 
     with mock.patch("concurrent.futures.ThreadPoolExecutor") as pool_patch, mock.patch(
         "concurrent.futures.wait"
-    ) as wait_patch, mock.patch("google.cloud.storage.transfer_manager.open", mock.mock_open()):
+    ) as wait_patch, mock.patch(
+        "google.cloud.storage.transfer_manager.open", mock.mock_open()
+    ):
         transfer_manager.download_chunks_concurrently(
             blob_mock,
             FILENAME,
