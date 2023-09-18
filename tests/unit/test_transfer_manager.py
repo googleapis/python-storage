@@ -561,7 +561,7 @@ def test_download_chunks_concurrently():
             mock.ANY,
             **expected_download_kwargs,
             start=x * CHUNK_SIZE,
-            end=((x + 1) * CHUNK_SIZE) - 1
+            end=((x + 1) * CHUNK_SIZE) - 1,
         )
     assert blob_mock._prep_and_do_download.call_count == 4
     assert result is None
@@ -769,7 +769,7 @@ def test_upload_chunks_concurrently_with_metadata_and_encryption():
             "Accept": "application/json",
             "Accept-Encoding": "gzip, deflate",
             "User-Agent": "agent",
-            "X-Goog-API-Client": "agent gccl-invocation-id/{}".format(invocation_id),
+            "X-Goog-API-Client": f"agent gccl-invocation-id/{invocation_id} gccl-gcs-cmd/tm.upload_sharded",
             "content-type": FAKE_CONTENT_TYPE,
             "x-upload-content-type": FAKE_CONTENT_TYPE,
             "X-Goog-Encryption-Algorithm": "AES256",

@@ -979,7 +979,7 @@ def upload_chunks_concurrently(
     )
 
     base_headers, object_metadata, content_type = blob._get_upload_arguments(
-        client, content_type, filename=filename
+        client, content_type, filename=filename, command="tm.upload_sharded"
     )
     headers = {**base_headers, **_headers_from_metadata(object_metadata)}
 
