@@ -533,7 +533,7 @@ def test_download_chunks_concurrently():
 
     blob_mock.download_to_filename.return_value = FAKE_RESULT
 
-    with mock.patch("__main__.open", mock.mock_open()):
+    with mock.patch("google.cloud.storage.transfer_manager.open", mock.mock_open()):
         result = transfer_manager.download_chunks_concurrently(
             blob_mock,
             FILENAME,
@@ -558,7 +558,7 @@ def test_download_chunks_concurrently_raises_on_start_and_end():
     MULTIPLE = 4
     blob_mock.size = CHUNK_SIZE * MULTIPLE
 
-    with mock.patch("__main__.open", mock.mock_open()):
+    with mock.patch("google.cloud.storage.transfer_manager.open", mock.mock_open()):
         with pytest.raises(ValueError):
             transfer_manager.download_chunks_concurrently(
                 blob_mock,
@@ -591,7 +591,7 @@ def test_download_chunks_concurrently_passes_concurrency_options():
 
     with mock.patch("concurrent.futures.ThreadPoolExecutor") as pool_patch, mock.patch(
         "concurrent.futures.wait"
-    ) as wait_patch, mock.patch("__main__.open", mock.mock_open()):
+    ) as wait_patch, mock.patch("google.cloud.storage.transfer_manager.open", mock.mock_open()):
         transfer_manager.download_chunks_concurrently(
             blob_mock,
             FILENAME,
@@ -844,7 +844,7 @@ def test_download_chunks_concurrently_with_processes():
     with mock.patch(
         "google.cloud.storage.transfer_manager._download_and_write_chunk_in_place",
         new=_validate_blob_token_in_subprocess_for_chunk,
-    ), mock.patch("__main__.open", mock.mock_open()):
+    ), mock.patch("google.cloud.storage.transfer_manager.open", mock.mock_open()):
         result = transfer_manager.download_chunks_concurrently(
             blob,
             FILENAME,
@@ -880,7 +880,7 @@ def test__pickle_client():
 def test__download_and_write_chunk_in_place():
     pickled_mock = pickle.dumps(_PickleableMockBlob())
     FILENAME = "file_a.txt"
-    with mock.patch("__main__.open", mock.mock_open()):
+    with mock.patch("google.cloud.storage.transfer_manager.open", mock.mock_open()):
         result = transfer_manager._download_and_write_chunk_in_place(
             pickled_mock, FILENAME, 0, 8, {}
         )
