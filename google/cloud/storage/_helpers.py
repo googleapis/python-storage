@@ -607,8 +607,10 @@ def _get_default_headers(
     :param user_agent: The user-agent for requests.
 
     :type command: str
-    :param user_agent:
-        (Optional) Information about which interface for upload/download was used, to be included in the X-Goog-API-Client header for traffic analysis purposes. Please leave as None unless otherwise directed.
+    :param command:
+        (Optional) Information about which interface for the operation was
+        used, to be included in the X-Goog-API-Client header. Please leave
+        as None unless otherwise directed.
 
     :rtype: dict
     :returns: The headers to be used for the request.
