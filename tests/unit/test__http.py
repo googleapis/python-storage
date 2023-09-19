@@ -78,7 +78,10 @@ class TestConnection(unittest.TestCase):
         from google.cloud.storage import Client
         from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 
-        custom_headers = {"x-goog-custom-audit-foo": "bar", "x-goog-custom-audit-user": "baz"}
+        custom_headers = {
+            "x-goog-custom-audit-foo": "bar",
+            "x-goog-custom-audit-user": "baz",
+        }
         http = mock.create_autospec(requests.Session, instance=True)
         response = requests.Response()
         response.status_code = 200
@@ -88,7 +91,10 @@ class TestConnection(unittest.TestCase):
         http.request.return_value = response
         credentials = mock.Mock(spec=google.auth.credentials.Credentials)
         client = Client(
-            project="project", credentials=credentials, _http=http, extra_headers=custom_headers
+            project="project",
+            credentials=credentials,
+            _http=http,
+            extra_headers=custom_headers,
         )
         req_data = "hey-yoooouuuuu-guuuuuyyssss"
         with patch.object(

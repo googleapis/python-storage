@@ -116,7 +116,7 @@ class Client(ClientWithProject):
         client_info=None,
         client_options=None,
         use_auth_w_custom_endpoint=True,
-        extra_headers={}
+        extra_headers={},
     ):
         self._base_connection = None
 

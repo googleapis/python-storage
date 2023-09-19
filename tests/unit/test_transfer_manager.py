@@ -837,10 +837,11 @@ class _PickleableMockConnection:
 
 
 class _PickleableMockClient:
-    def __init__(self, identify_as_client=False):
+    def __init__(self, identify_as_client=False, extra_headers={}):
         self._http = "my_transport"  # used as an identifier for "called_with"
         self._connection = _PickleableMockConnection()
         self.identify_as_client = identify_as_client
+        self._extra_headers = extra_headers
 
     @property
     def __class__(self):

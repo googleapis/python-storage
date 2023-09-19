@@ -188,9 +188,7 @@ class TestClient(unittest.TestCase):
         self.assertEqual(
             client._connection.API_BASE_URL, client._connection.DEFAULT_API_ENDPOINT
         )
-        self.assertEqual(
-            client._connection.extra_headers, custom_headers
-        )
+        self.assertEqual(client._connection.extra_headers, custom_headers)
 
     def test_ctor_wo_project(self):
         PROJECT = "PROJECT"

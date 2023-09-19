@@ -2246,7 +2246,10 @@ class Test_Blob(unittest.TestCase):
     def test__get_upload_arguments(self):
         name = "blob-name"
         key = b"[pXw@,p@@AfBfrR3x-2b2SCHR,.?YwRO"
-        custom_headers = {"x-goog-custom-audit-foo": "bar", "x-goog-custom-audit-user": "baz"}
+        custom_headers = {
+            "x-goog-custom-audit-foo": "bar",
+            "x-goog-custom-audit-user": "baz",
+        }
         client = mock.Mock(_connection=_Connection)
         client._connection.user_agent = "testing 1.2.3"
         client._extra_headers = custom_headers
@@ -2532,7 +2535,10 @@ class Test_Blob(unittest.TestCase):
 
     @mock.patch("google.resumable_media._upload.get_boundary", return_value=b"==0==")
     def test__do_multipart_upload_with_client_custom_headers(self, mock_get_boundary):
-        custom_headers = {"x-goog-custom-audit-foo": "bar", "x-goog-custom-audit-user": "baz"}
+        custom_headers = {
+            "x-goog-custom-audit-foo": "bar",
+            "x-goog-custom-audit-user": "baz",
+        }
         transport = self._mock_transport(http.client.OK, {})
         client = mock.Mock(_http=transport, _connection=_Connection, spec=["_http"])
         client._connection.API_BASE_URL = "https://storage.googleapis.com"
@@ -2699,10 +2705,7 @@ class Test_Blob(unittest.TestCase):
                     **_get_default_headers(client._connection.user_agent, content_type),
                     **client._extra_headers,
                 }
-                self.assertEqual(
-                    upload._headers,
-                    expected_headers
-                )
+                self.assertEqual(upload._headers, expected_headers)
             else:
                 expected_headers = {
                     **_get_default_headers(client._connection.user_agent, content_type),
@@ -2757,7 +2760,7 @@ class Test_Blob(unittest.TestCase):
                 **_get_default_headers(
                     client._connection.user_agent, x_upload_content_type=content_type
                 ),
-                **client._extra_headers
+                **client._extra_headers,
             }
         if size is not None:
             expected_headers["x-upload-content-length"] = str(size)
@@ -2854,7 +2857,10 @@ class Test_Blob(unittest.TestCase):
         self._initiate_resumable_helper(client=client)
 
     def test__initiate_resumable_upload_with_client_custom_headers(self):
-        custom_headers = {"x-goog-custom-audit-foo": "bar", "x-goog-custom-audit-user": "baz"}
+        custom_headers = {
+            "x-goog-custom-audit-foo": "bar",
+            "x-goog-custom-audit-user": "baz",
+        }
         resumable_url = "http://test.invalid?upload_id=hey-you"
         response_headers = {"location": resumable_url}
         transport = self._mock_transport(http.client.OK, response_headers)
@@ -3807,7 +3813,10 @@ class Test_Blob(unittest.TestCase):
         self._create_resumable_upload_session_helper(client=client)
 
     def test_create_resumable_upload_session_with_client_custom_headers(self):
-        custom_headers = {"x-goog-custom-audit-foo": "bar", "x-goog-custom-audit-user": "baz"}
+        custom_headers = {
+            "x-goog-custom-audit-foo": "bar",
+            "x-goog-custom-audit-user": "baz",
+        }
         resumable_url = "http://test.invalid?upload_id=clean-up-everybody"
         response_headers = {"location": resumable_url}
         transport = self._mock_transport(http.client.OK, response_headers)
@@ -5885,7 +5894,10 @@ class Test_Blob(unittest.TestCase):
         import google.auth.credentials
         from google.cloud.storage import Client
 
-        custom_headers = {"x-goog-custom-audit-foo": "bar", "x-goog-custom-audit-user": "baz"}
+        custom_headers = {
+            "x-goog-custom-audit-foo": "bar",
+            "x-goog-custom-audit-user": "baz",
+        }
         credentials = mock.Mock(spec=google.auth.credentials.Credentials)
         client = Client(
             project="project", credentials=credentials, extra_headers=custom_headers
@@ -5893,7 +5905,11 @@ class Test_Blob(unittest.TestCase):
         blob = self._make_one("blob-name", bucket=_Bucket(client))
         file_obj = io.BytesIO()
 
-        downloads = {client.download_blob_to_file: (blob, file_obj), blob.download_to_file: (file_obj,), blob.download_as_bytes: ()}
+        downloads = {
+            client.download_blob_to_file: (blob, file_obj),
+            blob.download_to_file: (file_obj,),
+            blob.download_as_bytes: (),
+        }
         for method, args in downloads.items():
             with mock.patch.object(blob, "_do_download"):
                 method(*args)
@@ -5901,6 +5917,7 @@ class Test_Blob(unittest.TestCase):
                 called_headers = blob._do_download.call_args.args[-4]
                 self.assertIsInstance(called_headers, dict)
                 self.assertDictContainsSubset(custom_headers, called_headers)
+
 
 class Test__quote(unittest.TestCase):
     @staticmethod
