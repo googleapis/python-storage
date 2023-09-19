@@ -1739,6 +1739,7 @@ class Blob(_PropertyMixin):
                   * The ``content_type`` as a string (according to precedence)
         """
         content_type = self._get_content_type(content_type, filename=filename)
+        # Add any client attached custom headers to the upload headers.
         headers = {
             **_get_default_headers(
                 client._connection.user_agent, content_type, command=command
@@ -4315,6 +4316,7 @@ class Blob(_PropertyMixin):
             if_etag_match=if_etag_match,
             if_etag_not_match=if_etag_not_match,
         )
+        # Add any client attached custom headers to be sent with the request.
         headers = {
             **_get_default_headers(client._connection.user_agent, command=command),
             **headers,
