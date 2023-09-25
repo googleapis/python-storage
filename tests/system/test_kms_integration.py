@@ -35,12 +35,12 @@ def _kms_key_name(client, bucket, key_name):
     )
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def kms_bucket_name():
     return _helpers.unique_name("gcp-systest-kms")
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def kms_bucket(storage_client, kms_bucket_name, no_mtls):
     bucket = _helpers.retry_429_503(storage_client.create_bucket)(kms_bucket_name)
 
@@ -99,12 +99,12 @@ def keyring(storage_client, kms_bucket, kms_client):
             kms_client.create_crypto_key(keyring_path, key_name, key)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def kms_key_name(storage_client, kms_bucket):
     return _kms_key_name(storage_client, kms_bucket, default_key_name)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def alt_kms_key_name(storage_client, kms_bucket):
     return _kms_key_name(storage_client, kms_bucket, alt_key_name)
 
