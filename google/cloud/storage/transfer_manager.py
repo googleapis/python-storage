@@ -47,6 +47,7 @@ warnings.warn(
 
 TM_DEFAULT_CHUNK_SIZE = 32 * 1024 * 1024
 DEFAULT_MAX_WORKERS = 8
+MAX_CRC32C_ZERO_ARRAY_SIZE = 4 * 1024 * 1024
 METADATA_HEADER_TRANSLATION = {
     "cacheControl": "Cache-Control",
     "contentDisposition": "Content-Disposition",
@@ -787,9 +788,9 @@ def download_chunks_concurrently(
         passed into the download methods and is not validated by this function.
 
         Keyword arguments "start" and "end" which are not supported and will
-        cause a ValueError if present. The argument "checksum" is also not
-        supported in download_kwargs, but see "crc32c_checksum" (which does not
-        go in download_kwargs) below.
+        cause a ValueError if present. The key "checksum" is also not supported
+        in download_kwargs, but see the argument "crc32c_checksum" (which does
+        not go in download_kwargs) below.
 
     :type deadline: int
     :param deadline:
@@ -832,8 +833,8 @@ def download_chunks_concurrently(
     :type crc32c_checksum: bool
     :param crc32c_checksum:
         Whether to compute a checksum for the resulting object, using the crc32c
-        algorithm. The checksums for each chunk must be combined using a feature
-        of crc32c that is not available for md5, so md5 is not supported.
+        algorithm. As the checksums for each chunk must be combined using a
+        feature of crc32c that is not available for md5, md5 is not supported.
 
     :raises:
         :exc:`concurrent.futures.TimeoutError` if deadline is exceeded.
@@ -853,7 +854,7 @@ def download_chunks_concurrently(
         )
     if "checksum" in download_kwargs:
         raise ValueError(
-            "'checksum' is in download_kwargs, but is not supported because sliced downloads have a different checksum mechanism from regular downloads. Use the 'crc32c' argument on download_chunks_concurrently instead."
+            "'checksum' is in download_kwargs, but is not supported because sliced downloads have a different checksum mechanism from regular downloads. Use the 'crc32c_checksum' argument on download_chunks_concurrently instead."
         )
 
     download_kwargs["command"] = "tm.download_sharded"
@@ -886,7 +887,7 @@ def download_chunks_concurrently(
                     start=start,
                     end=cursor - 1,
                     download_kwargs=download_kwargs,
-                    crc32c_checksum=crc32c_checksum
+                    crc32c_checksum=crc32c_checksum,
                 )
             )
 
@@ -895,35 +896,33 @@ def download_chunks_concurrently(
         )
 
     # Raise any exceptions; combine checksums.
-    crc1 = None
-    zeroes = bytes(0)
+    results = []
     for future in futures:
-        crc2, crc2_size = future.result()
-        if crc2 and not crc1:
-            crc1 = crc2
-        elif crc1 and crc2:
-            crc1 ^= 0xffffffff  # precondition
-            if len(zeroes) != crc2_size:
-                zeroes = bytes(crc2_size)
-            crc1 = google_crc32c.extend(crc1, zeroes)
-            crc1 ^= 0xffffffff  # postcondition
-            crc1 ^= crc2
+        results.append(future.result())
+
     if crc32c_checksum:
-        crc_digest = struct.pack(">L", crc1)  # https://cloud.google.com/storage/docs/json_api/v1/objects#crc32c
+        crc_digest = _digest_ordered_checksum_and_size_pairs(results)
         actual_checksum = base64.b64encode(crc_digest).decode("utf-8")
         expected_checksum = blob.crc32c
         if actual_checksum != expected_checksum:
             # For consistency with other download methods we will use
-            # "google.resumable_media.common.DataCorruption" despite the error not
-            # originating inside google.resumable_media.
+            # "google.resumable_media.common.DataCorruption" despite the error
+            # not originating inside google.resumable_media.
             download_url = blob._get_download_url(
                 client,
                 if_generation_match=download_kwargs.get("if_generation_match"),
                 if_generation_not_match=download_kwargs.get("if_generation_not_match"),
                 if_metageneration_match=download_kwargs.get("if_metageneration_match"),
-                if_metageneration_not_match=download_kwargs.get("if_metageneration_not_match"),
+                if_metageneration_not_match=download_kwargs.get(
+                    "if_metageneration_not_match"
+                ),
             )
-            raise DataCorruption(None, DOWNLOAD_CRC32C_MISMATCH_TEMPLATE.format(download_url, expected_checksum, actual_checksum))
+            raise DataCorruption(
+                None,
+                DOWNLOAD_CRC32C_MISMATCH_TEMPLATE.format(
+                    download_url, expected_checksum, actual_checksum
+                ),
+            )
     return None
 
 
@@ -1200,18 +1199,19 @@ def _download_and_write_chunk_in_place(
 
     with _ChecksummingSparseFileWrapper(filename, start, crc32c_checksum) as f:
         blob._prep_and_do_download(f, start=start, end=end, **download_kwargs)
-        return (f.crc, (end-start)+1)
+        return (f.crc, (end - start) + 1)
 
 
-class _ChecksummingSparseFileWrapper():
+class _ChecksummingSparseFileWrapper:
     """A file wrapper that writes to a sparse file and optionally checksums.
 
     This wrapper only implements write() and does not inherit from `io` module
     base classes.
     """
+
     def __init__(self, filename, start_position, crc32c_enabled):
         # Open in mixed read/write mode to avoid truncating or appending
-        self.f = open(filename, 'rb+')
+        self.f = open(filename, "rb+")
         self.f.seek(start_position)
         self._crc = None
         self._crc32c_enabled = crc32c_enabled
@@ -1233,7 +1233,6 @@ class _ChecksummingSparseFileWrapper():
 
     def __exit__(self, exc_type, exc_value, tb):
         self.f.close()
-
 
 
 def _call_method_on_maybe_pickled_blob(
@@ -1302,6 +1301,38 @@ def _get_pool_class_and_requirements(worker_type):
         raise ValueError(
             "The worker_type must be google.cloud.storage.transfer_manager.PROCESS or google.cloud.storage.transfer_manager.THREAD"
         )
+
+
+def _digest_ordered_checksum_and_size_pairs(checksum_and_size_pairs):
+    base_crc = None
+    zeroes = bytes(0)
+    for part_crc, size in checksum_and_size_pairs:
+        if not base_crc:
+            base_crc = part_crc
+        else:
+            base_crc ^= 0xFFFFFFFF  # precondition
+
+            # Zero pad base_crc32c. To conserve memory, do so with only
+            # MAX_CRC32C_ZERO_ARRAY_SIZE at a time. Reuse the zeroes array where
+            # possible.
+            padded = 0
+            while padded < size:
+                desired_zeroes_size = min((size - padded), MAX_CRC32C_ZERO_ARRAY_SIZE)
+                # resize zeroes array, unless we already have the correct size.
+                zeroes = (
+                    bytes(desired_zeroes_size)
+                    if len(zeroes) != desired_zeroes_size
+                    else zeroes
+                )
+                base_crc = google_crc32c.extend(base_crc, zeroes)
+                padded += desired_zeroes_size
+
+            base_crc ^= 0xFFFFFFFF  # postcondition
+            base_crc ^= part_crc
+    crc_digest = struct.pack(
+        ">L", base_crc
+    )  # https://cloud.google.com/storage/docs/json_api/v1/objects#crc32c
+    return crc_digest
 
 
 class _LazyClient:

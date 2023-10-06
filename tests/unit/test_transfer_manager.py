@@ -546,8 +546,6 @@ def test_download_chunks_concurrently():
     expected_download_kwargs = EXPECTED_DOWNLOAD_KWARGS.copy()
     expected_download_kwargs["command"] = "tm.download_sharded"
 
-    blob_mock._handle_filename_and_download.return_value = FAKE_RESULT
-
     with mock.patch("google.cloud.storage.transfer_manager.open", mock.mock_open()):
         result = transfer_manager.download_chunks_concurrently(
             blob_mock,
@@ -555,6 +553,7 @@ def test_download_chunks_concurrently():
             chunk_size=CHUNK_SIZE,
             download_kwargs=DOWNLOAD_KWARGS,
             worker_type=transfer_manager.THREAD,
+            crc32c_checksum=False,
         )
     for x in range(MULTIPLE):
         blob_mock._prep_and_do_download.assert_any_call(
@@ -565,6 +564,34 @@ def test_download_chunks_concurrently():
         )
     assert blob_mock._prep_and_do_download.call_count == 4
     assert result is None
+
+
+def test_download_chunks_concurrently_with_crc32c():
+    blob_mock = mock.Mock(spec=Blob)
+    FILENAME = "file_a.txt"
+    MULTIPLE = 4
+    BLOB_CHUNK = b"abcdefgh"
+    BLOB_CONTENTS = BLOB_CHUNK * MULTIPLE
+    blob_mock.size = len(BLOB_CONTENTS)
+    blob_mock.crc32c = "eOVVVw=="
+
+    expected_download_kwargs = EXPECTED_DOWNLOAD_KWARGS.copy()
+    expected_download_kwargs["command"] = "tm.download_sharded"
+
+    def write_to_file(f, *args, **kwargs):
+        f.write(BLOB_CHUNK)
+
+    blob_mock._prep_and_do_download.side_effect = write_to_file
+
+    with mock.patch("google.cloud.storage.transfer_manager.open", mock.mock_open()):
+        transfer_manager.download_chunks_concurrently(
+            blob_mock,
+            FILENAME,
+            chunk_size=CHUNK_SIZE,
+            download_kwargs=DOWNLOAD_KWARGS,
+            worker_type=transfer_manager.THREAD,
+            crc32c_checksum=True,
+        )
 
 
 def test_download_chunks_concurrently_raises_on_start_and_end():
@@ -616,6 +643,7 @@ def test_download_chunks_concurrently_passes_concurrency_options():
             deadline=DEADLINE,
             worker_type=transfer_manager.THREAD,
             max_workers=MAX_WORKERS,
+            crc32c_checksum=False,
         )
         pool_patch.assert_called_with(max_workers=MAX_WORKERS)
         wait_patch.assert_called_with(mock.ANY, timeout=DEADLINE, return_when=mock.ANY)
@@ -819,6 +847,7 @@ class _PickleableMockBlob:
         self.generation = generation
         self._size_after_reload = size_after_reload
         self._generation_after_reload = generation_after_reload
+        self.client = _PickleableMockClient()
 
     def reload(self):
         self.size = self._size_after_reload
@@ -876,6 +905,7 @@ def test_download_chunks_concurrently_with_processes():
             chunk_size=CHUNK_SIZE,
             download_kwargs=DOWNLOAD_KWARGS,
             worker_type=transfer_manager.PROCESS,
+            crc32c_checksum=False,
         )
     assert result is None
 
@@ -907,9 +937,9 @@ def test__download_and_write_chunk_in_place():
     FILENAME = "file_a.txt"
     with mock.patch("google.cloud.storage.transfer_manager.open", mock.mock_open()):
         result = transfer_manager._download_and_write_chunk_in_place(
-            pickled_mock, FILENAME, 0, 8, {}
+            pickled_mock, FILENAME, 0, 8, {}, False
         )
-    assert result == "SUCCESS"
+    assert result is not None
 
 
 def test__upload_part():
@@ -973,3 +1003,31 @@ def test__call_method_on_maybe_pickled_blob():
         pickled_blob, "_prep_and_do_download"
     )
     assert result == "SUCCESS"
+
+
+def test__ChecksummingSparseFileWrapper():
+    FILENAME = "file_a.txt"
+    import google_crc32c
+
+    with mock.patch(
+        "google.cloud.storage.transfer_manager.open", mock.mock_open()
+    ) as open_mock:
+        # test no checksumming
+        wrapper = transfer_manager._ChecksummingSparseFileWrapper(FILENAME, 0, False)
+        wrapper.write(b"abcdefgh")
+        handle = open_mock()
+        handle.write.assert_called_with(b"abcdefgh")
+        wrapper.write(b"ijklmnop")
+        assert wrapper.crc is None
+        handle.write.assert_called_with(b"ijklmnop")
+
+    with mock.patch(
+        "google.cloud.storage.transfer_manager.open", mock.mock_open()
+    ) as open_mock:
+        wrapper = transfer_manager._ChecksummingSparseFileWrapper(FILENAME, 0, True)
+        wrapper.write(b"abcdefgh")
+        handle = open_mock()
+        handle.write.assert_called_with(b"abcdefgh")
+        wrapper.write(b"ijklmnop")
+        assert wrapper.crc == google_crc32c.value(b"abcdefghijklmnop")
+        handle.write.assert_called_with(b"ijklmnop")
