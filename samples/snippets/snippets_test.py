@@ -711,7 +711,7 @@ def test_transfer_manager_snippets(test_bucket, capsys):
             test_bucket.name,
             BLOB_NAMES,
             source_directory="{}/".format(uploads),
-            processes=8,
+            workers=8,
         )
         out, _ = capsys.readouterr()
 
@@ -723,7 +723,7 @@ def test_transfer_manager_snippets(test_bucket, capsys):
         storage_transfer_manager_download_bucket.download_bucket_with_transfer_manager(
             test_bucket.name,
             destination_directory=os.path.join(downloads, ""),
-            processes=8,
+            workers=8,
             max_results=10000,
         )
         out, _ = capsys.readouterr()
@@ -737,7 +737,7 @@ def test_transfer_manager_snippets(test_bucket, capsys):
             test_bucket.name,
             blob_names=BLOB_NAMES,
             destination_directory=os.path.join(downloads, ""),
-            processes=8,
+            workers=8,
         )
         out, _ = capsys.readouterr()
 
@@ -788,7 +788,7 @@ def test_transfer_manager_download_chunks_concurrently(test_bucket, capsys):
             test_bucket.name,
             BLOB_NAME,
             os.path.join(downloads, BLOB_NAME),
-            processes=8,
+            workers=8,
         )
         out, _ = capsys.readouterr()
 
