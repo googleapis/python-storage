@@ -18,7 +18,7 @@ def upload_chunks_concurrently(
     source_filename,
     destination_blob_name,
     chunk_size=32 * 1024 * 1024,
-    processes=8,
+    workers=8,
 ):
     """Upload a single file, in chunks, concurrently in a process pool."""
     # The ID of your GCS bucket
@@ -37,8 +37,9 @@ def upload_chunks_concurrently(
 
     # The maximum number of processes to use for the operation. The performance
     # impact of this value depends on the use case. Each additional process
-    # occupies some CPU and memory resources until finished.
-    # processes=8
+    # occupies some CPU and memory resources until finished. Threads can be used
+    # instead of processes by passing `worker_type=transfer_manager.THREAD`.
+    # workers=8
 
     from google.cloud.storage import Client, transfer_manager
 
@@ -47,7 +48,7 @@ def upload_chunks_concurrently(
     blob = bucket.blob(destination_blob_name)
 
     transfer_manager.upload_chunks_concurrently(
-        source_filename, blob, chunk_size=chunk_size, max_workers=processes
+        source_filename, blob, chunk_size=chunk_size, max_workers=workers
     )
 
     print(f"File {source_filename} uploaded to {destination_blob_name}.")

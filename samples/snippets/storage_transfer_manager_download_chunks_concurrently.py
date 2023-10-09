@@ -14,7 +14,7 @@
 
 # [START storage_transfer_manager_download_chunks_concurrently]
 def download_chunks_concurrently(
-    bucket_name, blob_name, filename, chunk_size=32 * 1024 * 1024, processes=8
+    bucket_name, blob_name, filename, chunk_size=32 * 1024 * 1024, workers=8
 ):
     """Download a single file in chunks, concurrently in a process pool."""
 
@@ -35,8 +35,9 @@ def download_chunks_concurrently(
     # The maximum number of processes to use for the operation. The performance
     # impact of this value depends on the use case, but smaller files usually
     # benefit from a higher number of processes. Each additional process occupies
-    # some CPU and memory resources until finished.
-    # processes=8
+    # some CPU and memory resources until finished. Threads can be used instead
+    # of processes by passing `worker_type=transfer_manager.THREAD`.
+    # workers=8
 
     from google.cloud.storage import Client, transfer_manager
 
@@ -45,7 +46,7 @@ def download_chunks_concurrently(
     blob = bucket.blob(blob_name)
 
     transfer_manager.download_chunks_concurrently(
-        blob, filename, chunk_size=chunk_size, max_workers=processes
+        blob, filename, chunk_size=chunk_size, max_workers=workers
     )
 
     print("Downloaded {} to {}.".format(blob_name, filename))
