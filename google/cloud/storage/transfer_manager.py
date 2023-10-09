@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Concurrent media operations. This is a PREVIEW FEATURE: API may change."""
+"""Concurrent media operations."""
 
 import concurrent.futures
 
@@ -34,12 +34,6 @@ from google.cloud.storage.retry import DEFAULT_RETRY
 
 from google.resumable_media.requests.upload import XMLMPUContainer
 from google.resumable_media.requests.upload import XMLMPUPart
-
-
-warnings.warn(
-    "The module `transfer_manager` is a preview feature. Functionality and API "
-    "may change. This warning will be removed in a future release."
-)
 
 
 TM_DEFAULT_CHUNK_SIZE = 32 * 1024 * 1024
@@ -100,8 +94,6 @@ def upload_many(
     max_workers=DEFAULT_MAX_WORKERS,
 ):
     """Upload many files concurrently via a worker pool.
-
-    This function is a PREVIEW FEATURE: the API may change in a future version.
 
     :type file_blob_pairs: List(Tuple(IOBase or str, 'google.cloud.storage.blob.Blob'))
     :param file_blob_pairs:
@@ -257,8 +249,6 @@ def download_many(
 ):
     """Download many blobs concurrently via a worker pool.
 
-    This function is a PREVIEW FEATURE: the API may change in a future version.
-
     :type blob_file_pairs: List(Tuple('google.cloud.storage.blob.Blob', IOBase or str))
     :param blob_file_pairs:
         A list of tuples of blob and a file or filename. Each blob will be downloaded to the corresponding blob by using APIs identical to blob.download_to_file() or blob.download_to_filename() as appropriate.
@@ -399,8 +389,6 @@ def upload_many_from_filenames(
     max_workers=DEFAULT_MAX_WORKERS,
 ):
     """Upload many files concurrently by their filenames.
-
-    This function is a PREVIEW FEATURE: the API may change in a future version.
 
     The destination blobs are automatically created, with blob names based on
     the source filenames and the blob_name_prefix.
@@ -573,8 +561,6 @@ def download_many_to_path(
 ):
     """Download many files concurrently by their blob names.
 
-    This function is a PREVIEW FEATURE: the API may change in a future version.
-
     The destination files are automatically created, with paths based on the
     source blob_names and the destination_directory.
 
@@ -734,8 +720,6 @@ def download_chunks_concurrently(
     max_workers=DEFAULT_MAX_WORKERS,
 ):
     """Download a single file in chunks, concurrently.
-
-    This function is a PREVIEW FEATURE: the API may change in a future version.
 
     In some environments, using this feature with mutiple processes will result
     in faster downloads of large files.
