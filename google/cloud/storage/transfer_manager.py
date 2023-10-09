@@ -24,6 +24,7 @@ import pickle
 import copyreg
 import struct
 import base64
+import functools
 
 from google.api_core import exceptions
 from google.cloud.storage import Client
@@ -80,6 +81,7 @@ _cached_clients = {}
 
 
 def _deprecate_threads_param(func):
+    @functools.wraps(func)
     def convert_threads_or_raise(*args, **kwargs):
         binding = inspect.signature(func).bind(*args, **kwargs)
         threads = binding.arguments.get("threads")
