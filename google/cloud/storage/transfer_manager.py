@@ -839,12 +839,13 @@ def download_chunks_concurrently(
         feature of crc32c that is not available for md5, md5 is not supported.
 
     :raises:
-        :exc:`concurrent.futures.TimeoutError` if deadline is exceeded.
-        :exc:`google.resumable_media.common.DataCorruption` If the download's
-                checksum doesn't agree with server-computed checksum. The
-                `google.resumable_media` exception is used here for consistency
-                with other download methods despite the exception originating
-                elsewhere.
+        :exc:`concurrent.futures.TimeoutError`
+            if deadline is exceeded.
+        :exc:`google.resumable_media.common.DataCorruption` if the download's
+            checksum doesn't agree with server-computed checksum. The
+            `google.resumable_media` exception is used here for consistency
+            with other download methods despite the exception originating
+            elsewhere.
     """
     client = blob.client
 
