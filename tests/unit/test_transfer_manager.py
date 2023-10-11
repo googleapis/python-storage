@@ -16,6 +16,7 @@ import pytest
 
 from google.cloud.storage import Blob
 from google.cloud.storage import Client
+from google.cloud.storage import transfer_manager
 
 from google.api_core import exceptions
 
