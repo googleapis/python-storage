@@ -758,7 +758,7 @@ def download_many_to_path(
         raise_exception=raise_exception,
         worker_type=worker_type,
         max_workers=max_workers,
-        skip_if_exists=skip_if_exists
+        skip_if_exists=skip_if_exists,
     )
 
 
