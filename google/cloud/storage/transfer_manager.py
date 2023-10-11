@@ -1306,7 +1306,7 @@ def _get_pool_class_and_requirements(worker_type):
 
 def _digest_ordered_checksum_and_size_pairs(checksum_and_size_pairs):
     base_crc = None
-    zeroes = bytes(0)
+    zeroes = bytes(MAX_CRC32C_ZERO_ARRAY_SIZE)
     for part_crc, size in checksum_and_size_pairs:
         if not base_crc:
             base_crc = part_crc
@@ -1319,13 +1319,7 @@ def _digest_ordered_checksum_and_size_pairs(checksum_and_size_pairs):
             padded = 0
             while padded < size:
                 desired_zeroes_size = min((size - padded), MAX_CRC32C_ZERO_ARRAY_SIZE)
-                # resize zeroes array, unless we already have the correct size.
-                zeroes = (
-                    bytes(desired_zeroes_size)
-                    if len(zeroes) != desired_zeroes_size
-                    else zeroes
-                )
-                base_crc = google_crc32c.extend(base_crc, zeroes)
+                base_crc = google_crc32c.extend(base_crc, zeroes[:desired_zeroes_size])
                 padded += desired_zeroes_size
 
             base_crc ^= 0xFFFFFFFF  # postcondition
