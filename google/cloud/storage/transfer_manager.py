@@ -22,6 +22,7 @@ import os
 import warnings
 import pickle
 import copyreg
+import functools
 
 from google.api_core import exceptions
 from google.cloud.storage import Client
@@ -61,6 +62,7 @@ _cached_clients = {}
 
 
 def _deprecate_threads_param(func):
+    @functools.wraps(func)
     def convert_threads_or_raise(*args, **kwargs):
         binding = inspect.signature(func).bind(*args, **kwargs)
         threads = binding.arguments.get("threads")
@@ -1027,7 +1029,6 @@ def upload_chunks_concurrently(
     futures = []
 
     with pool_class(max_workers=max_workers) as executor:
-
         for part_number in range(1, num_of_parts + 1):
             start = (part_number - 1) * chunk_size
             end = min(part_number * chunk_size, size)
@@ -1153,11 +1154,14 @@ def _call_method_on_maybe_pickled_blob(
 
 
 def _reduce_client(cl):
-    """Replicate a Client by constructing a new one with the same params."""
+    """Replicate a Client by constructing a new one with the same params.
+
+    LazyClient performs transparent caching for when the same client is needed
+    on the same process multiple times."""
 
     client_object_id = id(cl)
     project = cl.project
-    credentials = cl._initial_credentials
+    credentials = cl._credentials
     _http = None  # Can't carry this over
     client_info = cl._initial_client_info
     client_options = cl._initial_client_options
