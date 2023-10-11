@@ -902,7 +902,7 @@ def download_chunks_concurrently(
     for future in futures:
         results.append(future.result())
 
-    if crc32c_checksum:
+    if crc32c_checksum and results:
         crc_digest = _digest_ordered_checksum_and_size_pairs(results)
         actual_checksum = base64.b64encode(crc_digest).decode("utf-8")
         expected_checksum = blob.crc32c

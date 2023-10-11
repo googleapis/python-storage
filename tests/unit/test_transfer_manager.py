@@ -22,6 +22,8 @@ from google.cloud.storage import Client
 
 from google.api_core import exceptions
 
+from google.resumable_media.common import DataCorruption
+
 import os
 import tempfile
 import mock
@@ -594,7 +596,36 @@ def test_download_chunks_concurrently_with_crc32c():
         )
 
 
-def test_download_chunks_concurrently_raises_on_start_and_end():
+def test_download_chunks_concurrently_with_crc32c_failure():
+    blob_mock = mock.Mock(spec=Blob)
+    FILENAME = "file_a.txt"
+    MULTIPLE = 4
+    BLOB_CHUNK = b"abcdefgh"
+    BLOB_CONTENTS = BLOB_CHUNK * MULTIPLE
+    blob_mock.size = len(BLOB_CONTENTS)
+    blob_mock.crc32c = "invalid"
+
+    expected_download_kwargs = EXPECTED_DOWNLOAD_KWARGS.copy()
+    expected_download_kwargs["command"] = "tm.download_sharded"
+
+    def write_to_file(f, *args, **kwargs):
+        f.write(BLOB_CHUNK)
+
+    blob_mock._prep_and_do_download.side_effect = write_to_file
+
+    with mock.patch("google.cloud.storage.transfer_manager.open", mock.mock_open()):
+        with pytest.raises(DataCorruption):
+            transfer_manager.download_chunks_concurrently(
+                blob_mock,
+                FILENAME,
+                chunk_size=CHUNK_SIZE,
+                download_kwargs=DOWNLOAD_KWARGS,
+                worker_type=transfer_manager.THREAD,
+                crc32c_checksum=True,
+            )
+
+
+def test_download_chunks_concurrently_raises_on_invalid_kwargs():
     blob_mock = mock.Mock(spec=Blob)
     FILENAME = "file_a.txt"
     MULTIPLE = 4
@@ -619,6 +650,16 @@ def test_download_chunks_concurrently_raises_on_start_and_end():
                 worker_type=transfer_manager.THREAD,
                 download_kwargs={
                     "end": (CHUNK_SIZE * (MULTIPLE - 1)) - 1,
+                },
+            )
+        with pytest.raises(ValueError):
+            transfer_manager.download_chunks_concurrently(
+                blob_mock,
+                FILENAME,
+                chunk_size=CHUNK_SIZE,
+                worker_type=transfer_manager.THREAD,
+                download_kwargs={
+                    "checksum": "crc32c",
                 },
             )
 
