@@ -353,7 +353,7 @@ def download_many(
     :type skip_if_exists: bool
     :param skip_if_exists:
         Before downloading each blob, check if the file for the filename exists;
-        if it does, skip that blob. This only works for filenames.
+        if it does, skip that blob.
 
     :raises: :exc:`concurrent.futures.TimeoutError` if deadline is exceeded.
 
