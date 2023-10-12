@@ -497,9 +497,7 @@ def test_upload_many_from_filenames_additional_properties():
         "google.cloud.storage.transfer_manager.upload_many"
     ) as mock_upload_many:
         transfer_manager.upload_many_from_filenames(
-            bucket,
-            [FILENAME],
-            additional_blob_attributes=ADDITIONAL_BLOB_ATTRIBUTES
+            bucket, [FILENAME], additional_blob_attributes=ADDITIONAL_BLOB_ATTRIBUTES
         )
 
     mock_upload_many.assert_called_once_with(
@@ -514,6 +512,7 @@ def test_upload_many_from_filenames_additional_properties():
 
     for attrib, value in ADDITIONAL_BLOB_ATTRIBUTES.items():
         assert getattr(blob, attrib) == value
+
 
 def test_download_many_to_path():
     bucket = mock.Mock()
