@@ -792,10 +792,6 @@ def download_chunks_concurrently(
     performance under normal circumstances due to Python interpreter threading
     behavior. The default is therefore to use processes instead of threads.
 
-    :type bucket: :class:`google.cloud.storage.bucket.Bucket`
-    :param bucket:
-        The bucket which contains the blobs to be downloaded
-
     :type blob: :class:`google.cloud.storage.blob.Blob`
     :param blob:
         The blob to be downloaded.
