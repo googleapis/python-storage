@@ -445,8 +445,8 @@ def test_get_set_autoclass(new_bucket_obj, test_bucket, capsys):
     assert bucket.autoclass_enabled is True
     assert bucket.autoclass_terminal_storage_class == "NEARLINE"
 
-    # Test disabling Autoclass
-    bucket = storage_set_autoclass.set_autoclass(bucket.name, True, "ARCHIVE")
+    # Test set terminal_storage_class to ARCHIVE
+    bucket = storage_set_autoclass.set_autoclass(bucket.name)
     out, _ = capsys.readouterr()
     assert "Autoclass enabled is set to True" in out
     assert bucket.autoclass_enabled is True
