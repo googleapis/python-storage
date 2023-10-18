@@ -1090,11 +1090,17 @@ def test__get_pool_class_and_requirements_error():
 def test__reduce_client():
     fake_cache = {}
     client = mock.Mock()
+    custom_headers = {
+        "x-goog-custom-audit-foo": "bar",
+    }
+    client._extra_headers = custom_headers
 
     with mock.patch(
         "google.cloud.storage.transfer_manager._cached_clients", new=fake_cache
     ), mock.patch("google.cloud.storage.transfer_manager.Client"):
-        transfer_manager._reduce_client(client)
+        replicated_client, kwargs = transfer_manager._reduce_client(client)
+        assert replicated_client is not None
+        assert custom_headers in kwargs
 
 
 def test__call_method_on_maybe_pickled_blob():
