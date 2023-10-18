@@ -3062,7 +3062,6 @@ class Test_Blob(unittest.TestCase):
         with patch.object(
             _helpers, "_get_invocation_id", return_value=GCCL_INVOCATION_TEST_CONST
         ):
-
             response = blob._do_resumable_upload(
                 client,
                 stream,
@@ -6054,7 +6053,6 @@ class Test__add_query_parameters(unittest.TestCase):
 
 
 class _Connection(object):
-
     API_BASE_URL = "http://example.com"
     USER_AGENT = "testing 1.2.3"
     user_agent = "testing 1.2.3"
