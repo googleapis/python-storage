@@ -865,8 +865,9 @@ def test_upload_chunks_concurrently_with_metadata_and_encryption():
 
     bucket = mock.Mock()
     bucket.name = "bucket"
-    bucket.client = _PickleableMockClient(identify_as_client=True)
-    bucket.client._extra_headers = custom_headers
+    bucket.client = _PickleableMockClient(
+        identify_as_client=True, extra_headers=custom_headers
+    )
     transport = bucket.client._http
     user_project = "my_project"
     bucket.user_project = user_project
