@@ -1141,4 +1141,3 @@ def test_config_autoclass_w_existing_bucket(
     assert (
         bucket.autoclass_terminal_storage_class_update_time != previous_tsc_update_time
     )
-
