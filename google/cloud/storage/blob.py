@@ -578,7 +578,11 @@ class Blob(_PropertyMixin):
             resource = f"/{self.bucket.name}/{quoted_name}"
 
         if virtual_hosted_style or bucket_bound_hostname:
-            resource = f"/{quoted_name}"
+            if version == "v4":
+                resource = f"/{quoted_name}"
+            else:
+                # v2 signing requires the resource path to include the bucket name
+                resource = f"/{self.bucket.name}/{quoted_name}"
 
         if credentials is None:
             client = self._require_client(client)
@@ -600,7 +604,7 @@ class Blob(_PropertyMixin):
             else:
                 headers.update(encryption_headers)
 
-        return helper(
+        signed_url = helper(
             credentials,
             resource=resource,
             expiration=expiration,
@@ -616,6 +620,13 @@ class Blob(_PropertyMixin):
             service_account_email=service_account_email,
             access_token=access_token,
         )
+        if version == "v2" and (virtual_hosted_style or bucket_bound_hostname):
+            # v2 signing does not sign the host, so the host can be updated without breaking
+            # the signature. Update resource in host to accomodate non path-styled endpoints.
+            unsigned_host = f"{api_access_endpoint}{resource}"
+            special_style_host = f"{api_access_endpoint}/{quoted_name}"
+            signed_url = signed_url.replace(unsigned_host, special_style_host)
+        return signed_url
 
     def exists(
         self,
