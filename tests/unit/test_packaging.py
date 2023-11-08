@@ -17,6 +17,7 @@ import subprocess
 import sys
 import tempfile
 
+
 def test_namespace_package_compat():
     """
     The ``google`` namespace package should not be masked
@@ -26,7 +27,7 @@ def test_namespace_package_compat():
         google = tmp_path + "/google"
         os.mkdir(google)
         path = os.path.join(google, "othermod.py")
-        with open(path, 'w') as f:
+        with open(path, "w") as f:
             f.write("pass")
         env = dict(os.environ, PYTHONPATH=tmp_path)
         cmd = [sys.executable, "-m", "google.othermod"]
