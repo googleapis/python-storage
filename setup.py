@@ -90,7 +90,6 @@ setuptools.setup(
     ],
     platforms="Posix; MacOS X; Windows",
     packages=packages,
-    namespace_packages=namespaces,
     install_requires=dependencies,
     extras_require=extras,
     python_requires=">=3.7",
