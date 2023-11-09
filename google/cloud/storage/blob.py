@@ -135,7 +135,7 @@ _DOWNLOAD_AS_STRING_DEPRECATED = (
     "Use Blob.download_as_bytes() instead."
 )
 _GS_URL_REGEX_PATTERN = re.compile(
-    r"(?P<scheme>gs)://(?P<bucket_name>[a-z0-9_.-]+)/(?P<object_name>.+)"
+    r"(?P<scheme>gs)://(?P<bucket_name>[a-z0-9_.-]+)(?P<trailing_slash>:/)?(?P<object_name>.+)"
 )
 
 _DEFAULT_CHUNKSIZE = 104857600  # 1024 * 1024 B * 100 = 100 MB
@@ -407,7 +407,7 @@ class Blob(_PropertyMixin):
 
         match = _GS_URL_REGEX_PATTERN.match(uri)
         if not match:
-            raise ValueError("URI scheme must be gs")
+            raise ValueError(f"URI scheme should match regex '{_GS_URL_REGEX_PATTERN}'")
         bucket = Bucket(client, name=match.group("bucket_name"))
         return cls(match.group("object_name"), bucket)
 
