@@ -290,6 +290,7 @@ class _PropertyMixin(object):
         if_metageneration_not_match=None,
         timeout=_DEFAULT_TIMEOUT,
         retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
+        override_unlocked_retention=False,
     ):
         """Sends all changed properties in a PATCH request.
 
@@ -332,6 +333,8 @@ class _PropertyMixin(object):
         # Pass '?projection=full' here because 'PATCH' documented not
         # to work properly w/ 'noAcl'.
         query_params["projection"] = "full"
+        if override_unlocked_retention:
+            query_params["overrideUnlockedRetention"] = override_unlocked_retention
         _add_generation_match_parameters(
             query_params,
             if_generation_match=if_generation_match,

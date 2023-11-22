@@ -1618,7 +1618,10 @@ class TestClient(unittest.TestCase):
 
         expected_path = "/b"
         expected_data = api_response
-        expected_query_params = {"project": project, "enableObjectRetention": True,}
+        expected_query_params = {
+            "project": project,
+            "enableObjectRetention": True,
+        }
         client._post_resource.assert_called_once_with(
             expected_path,
             expected_data,
