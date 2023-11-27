@@ -409,7 +409,7 @@ class BlobWriter(io.BufferedIOBase):
         # Attach timeout if specified in the keyword arguments.
         # Otherwise, the default timeout will be used from the media library.
         kwargs = {}
-        if self._upload_kwargs.get("timeout"):
+        if "timeout" in self._upload_kwargs:
             kwargs = {"timeout": self._upload_kwargs.get("timeout")}
 
         # Upload chunks. The SlidingBuffer class will manage seek position.
