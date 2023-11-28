@@ -5995,6 +5995,9 @@ class Test_Blob(unittest.TestCase):
         blob.retention.retain_until_time = expiration_time
         self.assertEqual(blob.retention, retention_config)
         self.assertIn("retention", blob._changes)
+        blob.retention.retain_until_time = None
+        self.assertIsNone(blob.retention.retain_until_time)
+        self.assertIn("retention", blob._changes)
 
 
 class Test__quote(unittest.TestCase):

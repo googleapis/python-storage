@@ -3070,6 +3070,8 @@ class Test_Bucket(unittest.TestCase):
         self.assertTrue(bucket.requester_pays)
 
     def test_object_retention_mode_getter(self):
+        bucket = self._make_one()
+        self.assertIsNone(bucket.object_retention_mode)
         mode = "Enabled"
         properties = {"objectRetention": {"mode": mode}}
         bucket = self._make_one(properties=properties)

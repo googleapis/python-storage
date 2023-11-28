@@ -102,6 +102,7 @@ _WRITABLE_FIELDS = (
     "md5Hash",
     "metadata",
     "name",
+    "retention",
     "storageClass",
 )
 _READ_LESS_THAN_SIZE = (
@@ -1700,6 +1701,7 @@ class Blob(_PropertyMixin):
         * ``md5Hash``
         * ``metadata``
         * ``name``
+        * ``retention``
         * ``storageClass``
 
         For now, we don't support ``acl``, access control lists should be
@@ -4842,11 +4844,11 @@ class Retention(dict):
         data = {"mode": mode}
         if retain_until_time is not None:
             retain_until_time = _datetime_to_rfc3339(retain_until_time)
-        data["retain_until_time"] = retain_until_time
+        data["retainUntilTime"] = retain_until_time
 
         if retention_expiration_time is not None:
             retention_expiration_time = _datetime_to_rfc3339(retention_expiration_time)
-        data["retention_expiration_time"] = retention_expiration_time
+        data["retentionExpirationTime"] = retention_expiration_time
 
         super(Retention, self).__init__(data)
         self._blob = blob
@@ -4901,7 +4903,7 @@ class Retention(dict):
                   ``None`` if the blob's resource has not been loaded from
                   the server (see :meth:`reload`).
         """
-        value = self.get("retain_until_time")
+        value = self.get("retainUntilTime")
         if value is not None:
             return _rfc3339_nanos_to_datetime(value)
 
@@ -4914,7 +4916,7 @@ class Retention(dict):
         """
         if value is not None:
             value = _datetime_to_rfc3339(value)
-        self["retain_until_time"] = value
+        self["retainUntilTime"] = value
         self.blob._patch_property("retention", self)
 
     @property
@@ -4927,6 +4929,6 @@ class Retention(dict):
         :returns:
             (readonly) The earliest time that the object can be deleted.
         """
-        retention_expiration_time = self.get("retention_expiration_time")
+        retention_expiration_time = self.get("retentionExpirationTime")
         if retention_expiration_time is not None:
             return _rfc3339_nanos_to_datetime(retention_expiration_time)
