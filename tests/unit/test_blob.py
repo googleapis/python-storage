@@ -5942,18 +5942,19 @@ class Test_Blob(unittest.TestCase):
 
     def test_object_lock_retention_configuration_w_entry(self):
         import datetime
+        from google.cloud._helpers import _RFC3339_MICROS
         from google.cloud._helpers import UTC
-        from google.cloud._helpers import _datetime_to_rfc3339
         from google.cloud.storage.blob import Retention
 
         now = datetime.datetime.utcnow().replace(tzinfo=UTC)
         expiration_time = now + datetime.timedelta(hours=1)
+        expiration = expiration_time.strftime(_RFC3339_MICROS)
         mode = "Locked"
         properties = {
             "retention": {
                 "mode": mode,
-                "retain_until_time": _datetime_to_rfc3339(expiration_time),
-                "retention_expiration_time": _datetime_to_rfc3339(expiration_time),
+                "retainUntilTime": expiration,
+                "retentionExpirationTime": expiration,
             }
         }
         BLOB_NAME = "blob-name"
