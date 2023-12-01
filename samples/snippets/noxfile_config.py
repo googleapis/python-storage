@@ -52,6 +52,10 @@ def get_service_account_email():
 # RUN_TESTS_SESSION.
 def get_cloud_kms_key():
     session = os.environ.get('RUN_TESTS_SESSION')
+    bucket = os.environ.get("CLOUD_STORAGE_BUCKET")
+    if bucket == 'python-docs-samples-tests':
+        return ('projects/python-docs-samples-tests/locations/us/'
+                'keyRings/gcs-kms-key-ring/cryptoKeys/gcs-kms-key')
     if session == 'py-3.6':
         return ('projects/python-docs-samples-tests-py36/locations/us/'
                 'keyRings/gcs-kms-key-ring/cryptoKeys/gcs-kms-key')
