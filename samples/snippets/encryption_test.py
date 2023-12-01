@@ -29,7 +29,7 @@ import storage_rotate_encryption_key
 import storage_upload_encrypted_file
 
 BUCKET = os.environ["CLOUD_STORAGE_BUCKET"]
-KMS_KEY = os.environ["CLOUD_KMS_KEY"]
+KMS_KEY = "projects/python-docs-samples-tests/locations/us/keyRings/gcs-kms-key-ring/cryptoKeys/gcs-kms-key"
 
 TEST_ENCRYPTION_KEY = "brtJUWneL92g5q0N2gyDSnlPSYAiIVZ/cWgjyZNeMy0="
 TEST_ENCRYPTION_KEY_DECODED = base64.b64decode(TEST_ENCRYPTION_KEY)
