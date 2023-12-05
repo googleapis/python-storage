@@ -394,7 +394,7 @@ class Blob(_PropertyMixin):
 
         :type uri: str
         :param uri: The blob uri following a gs://bucket/object pattern.
-        Both a bucket and object name is required to construct a blob object.
+          Both a bucket and object name is required to construct a blob object.
 
         :type client: :class:`~google.cloud.storage.client.Client`
         :param client:
