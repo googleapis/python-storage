@@ -4,7 +4,7 @@
 
 [1]: https://pypi.org/project/google-cloud-storage/#history
 
-## [2.14.0](https://github.com/googleapis/python-storage/compare/v2.13.0...v2.14.0) (2023-12-07)
+## [2.14.0rc1](https://github.com/googleapis/python-storage/compare/v2.13.0...v2.14.0rc1) (2023-12-07)
 
 
 ### Features
