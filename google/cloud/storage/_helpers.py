@@ -330,9 +330,9 @@ class _PropertyMixin(object):
 
         :type override_unlocked_retention: bool
         :param override_unlocked_retention:
-            (Optional) Applicable for objects that have an unlocked retention configuration.
-            Required to be set to True if the operation includes a retention property that
-            modifies the object retention configuration. See:
+            (Optional) override_unlocked_retention must be set to True if the operation includes
+            a retention property that changes the mode from Unlocked to Locked, reduces the
+            retainUntilTime, or removes the retention configuration from the object. See:
             https://cloud.google.com/storage/docs/json_api/v1/objects/patch
         """
         client = self._require_client(client)
@@ -411,9 +411,9 @@ class _PropertyMixin(object):
 
         :type override_unlocked_retention: bool
         :param override_unlocked_retention:
-            (Optional) Applicable for objects that have an unlocked retention configuration.
-            Required to be set to True if the operation includes a retention property that
-            modifies the object retention configuration. See:
+            (Optional) override_unlocked_retention must be set to True if the operation includes
+            a retention property that changes the mode from Unlocked to Locked, reduces the
+            retainUntilTime, or removes the retention configuration from the object. See:
             https://cloud.google.com/storage/docs/json_api/v1/objects/patch
         """
         client = self._require_client(client)
