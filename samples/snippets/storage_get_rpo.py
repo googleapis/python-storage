@@ -35,8 +35,6 @@ def get_rpo(bucket_name):
 
     storage_client = storage.Client()
     bucket = storage_client.bucket(bucket_name)
-
-    bucket.rpo = RPO_DEFAULT
     rpo = bucket.rpo
 
     print(f"RPO for {bucket.name} is {rpo}.")
