@@ -25,7 +25,6 @@ For more information, see README.md.
 # [START storage_get_rpo]
 
 from google.cloud import storage
-from google.cloud.storage.constants import RPO_DEFAULT
 
 
 def get_rpo(bucket_name):
