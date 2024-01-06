@@ -31,6 +31,7 @@ from google.oauth2.service_account import Credentials
 from google.cloud.storage import _helpers
 from google.cloud.storage._helpers import STORAGE_EMULATOR_ENV_VAR
 from google.cloud.storage._helpers import _get_default_headers
+from google.cloud.storage._helpers import _DEFAULT_UNIVERSE_DOMAIN
 from google.cloud.storage._http import Connection
 from google.cloud.storage.retry import DEFAULT_RETRY
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_GENERATION_SPECIFIED
@@ -49,9 +50,9 @@ def _make_credentials(project=None):
     import google.auth.credentials
 
     if project is not None:
-        return mock.Mock(spec=google.auth.credentials.Credentials, project_id=project)
+        return mock.Mock(spec=google.auth.credentials.Credentials, project_id=project, universe_domain=_DEFAULT_UNIVERSE_DOMAIN)
 
-    return mock.Mock(spec=google.auth.credentials.Credentials)
+    return mock.Mock(spec=google.auth.credentials.Credentials, universe_domain=_DEFAULT_UNIVERSE_DOMAIN)
 
 
 def _create_signing_credentials():
@@ -62,7 +63,7 @@ def _create_signing_credentials():
     ):
         pass
 
-    credentials = mock.Mock(spec=_SigningCredentials)
+    credentials = mock.Mock(spec=_SigningCredentials, universe_domain=_DEFAULT_UNIVERSE_DOMAIN)
     credentials.sign_bytes = mock.Mock(return_value=b"Signature_bytes")
     credentials.signer_email = "test@mail.com"
     return credentials

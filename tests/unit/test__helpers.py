@@ -22,30 +22,30 @@ from google.cloud.storage.retry import DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED
 GCCL_INVOCATION_TEST_CONST = "gccl-invocation-id/test-invocation-123"
 
 
-class Test__get_storage_host(unittest.TestCase):
-    @staticmethod
-    def _call_fut():
-        from google.cloud.storage._helpers import _get_storage_host
+# class Test__get_storage_host(unittest.TestCase):
+#     @staticmethod
+#     def _call_fut():
+#         from google.cloud.storage._helpers import _get_storage_host
 
-        return _get_storage_host()
+#         return _get_storage_host()
 
-    def test_wo_env_var(self):
-        from google.cloud.storage._helpers import _DEFAULT_STORAGE_HOST
+#     def test_wo_env_var(self):
+#         from google.cloud.storage._helpers import _DEFAULT_STORAGE_HOST
 
-        with mock.patch("os.environ", {}):
-            host = self._call_fut()
+#         with mock.patch("os.environ", {}):
+#             host = self._call_fut()
 
-        self.assertEqual(host, _DEFAULT_STORAGE_HOST)
+#         self.assertEqual(host, _DEFAULT_STORAGE_HOST)
 
-    def test_w_env_var(self):
-        from google.cloud.storage._helpers import STORAGE_EMULATOR_ENV_VAR
+#     def test_w_env_var(self):
+#         from google.cloud.storage._helpers import STORAGE_EMULATOR_ENV_VAR
 
-        HOST = "https://api.example.com"
+#         HOST = "https://api.example.com"
 
-        with mock.patch("os.environ", {STORAGE_EMULATOR_ENV_VAR: HOST}):
-            host = self._call_fut()
+#         with mock.patch("os.environ", {STORAGE_EMULATOR_ENV_VAR: HOST}):
+#             host = self._call_fut()
 
-        self.assertEqual(host, HOST)
+#         self.assertEqual(host, HOST)
 
 
 class Test__get_environ_project(unittest.TestCase):

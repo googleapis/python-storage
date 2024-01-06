@@ -57,10 +57,10 @@ from google.cloud.storage._helpers import _bucket_bound_hostname_url
 from google.cloud.storage._helpers import _raise_if_more_than_one_set
 from google.cloud.storage._helpers import _api_core_retry_to_resumable_media_retry
 from google.cloud.storage._helpers import _get_default_headers
+from google.cloud.storage._helpers import _get_default_storage_base_url
 from google.cloud.storage._signing import generate_signed_url_v2
 from google.cloud.storage._signing import generate_signed_url_v4
 from google.cloud.storage._helpers import _NUM_RETRIES_MESSAGE
-from google.cloud.storage._helpers import _DEFAULT_STORAGE_HOST
 from google.cloud.storage._helpers import _API_VERSION
 from google.cloud.storage.acl import ACL
 from google.cloud.storage.acl import ObjectACL
@@ -80,7 +80,7 @@ from google.cloud.storage.fileio import BlobReader
 from google.cloud.storage.fileio import BlobWriter
 
 
-_API_ACCESS_ENDPOINT = _DEFAULT_STORAGE_HOST
+_API_ACCESS_ENDPOINT = _get_default_storage_base_url()
 _DEFAULT_CONTENT_TYPE = "application/octet-stream"
 _DOWNLOAD_URL_TEMPLATE = "{hostname}/download/storage/{api_version}{path}?alt=media"
 _BASE_UPLOAD_TEMPLATE = (

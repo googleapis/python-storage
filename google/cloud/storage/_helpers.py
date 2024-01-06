@@ -30,19 +30,27 @@ from google.cloud.storage.retry import DEFAULT_RETRY
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED
 
 
-STORAGE_EMULATOR_ENV_VAR = "STORAGE_EMULATOR_HOST"
+STORAGE_EMULATOR_ENV_VAR = "STORAGE_EMULATOR_HOST"  # Despite name, includes scheme.
 """Environment variable defining host for Storage emulator."""
 
-_API_ENDPOINT_OVERRIDE_ENV_VAR = "API_ENDPOINT_OVERRIDE"
+_API_ENDPOINT_OVERRIDE_ENV_VAR = "API_ENDPOINT_OVERRIDE"  # Includes scheme
 """This is an experimental configuration variable. Use api_endpoint instead."""
 
 _API_VERSION_OVERRIDE_ENV_VAR = "API_VERSION_OVERRIDE"
 """This is an experimental configuration variable used for internal testing."""
 
+_DEFAULT_UNIVERSE_DOMAIN = "googleapis.com"
+
+_STORAGE_HOST_TEMPLATE = "storage.{universe_domain}"
+
+_TRUE_DEFAULT_STORAGE_HOST = _STORAGE_HOST_TEMPLATE.format(universe_domain=_DEFAULT_UNIVERSE_DOMAIN)
+
 _DEFAULT_STORAGE_HOST = os.getenv(
-    _API_ENDPOINT_OVERRIDE_ENV_VAR, "https://storage.googleapis.com"
+    _API_ENDPOINT_OVERRIDE_ENV_VAR, _TRUE_DEFAULT_STORAGE_HOST
 )
 """Default storage host for JSON API."""
+
+_DEFAULT_SCHEME = "https://"
 
 _API_VERSION = os.getenv(_API_VERSION_OVERRIDE_ENV_VAR, "v1")
 """API version of the default storage host"""
@@ -72,8 +80,23 @@ _NUM_RETRIES_MESSAGE = (
 )
 
 
-def _get_storage_host():
-    return os.environ.get(STORAGE_EMULATOR_ENV_VAR, _DEFAULT_STORAGE_HOST)
+def _get_storage_emulator_override():
+    return os.environ.get(STORAGE_EMULATOR_ENV_VAR, None)
+
+
+def _get_api_endpoint_override():
+    """This is an experimental configuration variable. Use api_endpoint instead."""
+    if _DEFAULT_STORAGE_HOST != _TRUE_DEFAULT_STORAGE_HOST:
+        return DEFAULT_SCHEME + _DEFAULT_STORAGE_HOST
+    return None
+
+
+def _get_default_storage_base_url():
+    return _DEFAULT_SCHEME + _DEFAULT_STORAGE_HOST
+
+
+def _use_client_cert():
+    return os.getenv("GOOGLE_API_USE_CLIENT_CERTIFICATE") == "true"
 
 
 def _get_environ_project():

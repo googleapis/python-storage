@@ -29,6 +29,7 @@ import pytest
 
 from google.cloud.storage import _helpers
 from google.cloud.storage._helpers import _get_default_headers
+from google.cloud.storage._helpers import _DEFAULT_UNIVERSE_DOMAIN
 from google.cloud.storage.retry import (
     DEFAULT_RETRY,
     DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
@@ -5905,7 +5906,7 @@ class Test_Blob(unittest.TestCase):
             "x-goog-custom-audit-foo": "bar",
             "x-goog-custom-audit-user": "baz",
         }
-        credentials = mock.Mock(spec=google.auth.credentials.Credentials)
+        credentials = mock.Mock(spec=google.auth.credentials.Credentials, universe_domain=_DEFAULT_UNIVERSE_DOMAIN)
         client = Client(
             project="project", credentials=credentials, extra_headers=custom_headers
         )
