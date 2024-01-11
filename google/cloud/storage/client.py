@@ -1747,7 +1747,7 @@ class Client(ClientWithProject):
         )
         # designate URL
         if virtual_hosted_style:
-            url = _virtual_hosted_style_base_url(self.api_endpoint, bucket_name)
+            url = _virtual_hosted_style_base_url(self.api_endpoint, bucket_name, trailing_slash=True)
         elif bucket_bound_hostname:
             url = f"{_bucket_bound_hostname_url(bucket_bound_hostname, scheme)}/"
         else:

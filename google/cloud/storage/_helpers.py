@@ -96,7 +96,7 @@ def _get_default_storage_base_url():
     return _DEFAULT_SCHEME + _DEFAULT_STORAGE_HOST
 
 
-def _virtual_hosted_style_base_url(url, bucket):
+def _virtual_hosted_style_base_url(url, bucket, trailing_slash=False):
     """Returns the scheme and netloc sections of the url, with the bucket
     prepended to the netloc.
 
@@ -104,7 +104,7 @@ def _virtual_hosted_style_base_url(url, bucket):
     """
     parsed_url = urlsplit(url)
     new_netloc = f"{bucket}.{parsed_url.netloc}"
-    base_url = urlunsplit((parsed_url.scheme, new_netloc, "", "", ""))
+    base_url = urlunsplit((parsed_url.scheme, new_netloc, "/" if trailing_slash else "", "", ""))
     return base_url
 
 
