@@ -27,6 +27,8 @@ from google.cloud.storage.constants import PUBLIC_ACCESS_PREVENTION_INHERITED
 from google.cloud.storage.constants import PUBLIC_ACCESS_PREVENTION_UNSPECIFIED
 from google.cloud.storage.constants import RPO_DEFAULT
 from google.cloud.storage.constants import RPO_ASYNC_TURBO
+from google.cloud.storage._helpers import _get_default_storage_base_url
+
 
 
 def _create_signing_credentials():
@@ -607,7 +609,8 @@ class Test_Bucket(unittest.TestCase):
     @staticmethod
     def _make_client(**kw):
         from google.cloud.storage.client import Client
-
+        if "api_endpoint" not in kw:
+            kw["api_endpoint"] = _get_default_storage_base_url()
         return mock.create_autospec(Client, instance=True, **kw)
 
     def _make_one(self, client=None, name=None, properties=None, user_project=None):
@@ -4058,9 +4061,7 @@ class Test_Bucket(unittest.TestCase):
         from urllib import parse
         from google.cloud._helpers import UTC
         from google.cloud.storage._helpers import _bucket_bound_hostname_url
-        from google.cloud.storage.blob import _API_ACCESS_ENDPOINT
-
-        api_access_endpoint = api_access_endpoint or _API_ACCESS_ENDPOINT
+        from google.cloud.storage._helpers import _get_default_storage_base_url
 
         delta = datetime.timedelta(hours=1)
 
@@ -4108,7 +4109,7 @@ class Test_Bucket(unittest.TestCase):
                 bucket_bound_hostname, scheme
             )
         else:
-            expected_api_access_endpoint = api_access_endpoint
+            expected_api_access_endpoint = api_access_endpoint or _get_default_storage_base_url()
             expected_resource = f"/{parse.quote(bucket_name)}"
 
         if virtual_hosted_style or bucket_bound_hostname:

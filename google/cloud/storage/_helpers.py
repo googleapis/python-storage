@@ -21,6 +21,7 @@ import base64
 from hashlib import md5
 import os
 from urllib.parse import urlsplit
+from urllib.parse import urlunsplit
 from uuid import uuid4
 
 from google import resumable_media
@@ -93,6 +94,18 @@ def _get_api_endpoint_override():
 
 def _get_default_storage_base_url():
     return _DEFAULT_SCHEME + _DEFAULT_STORAGE_HOST
+
+
+def _virtual_hosted_style_base_url(url, bucket):
+    """Returns the scheme and netloc sections of the url, with the bucket
+    prepended to the netloc.
+
+    Not intended for use with netlocs which include a username and password.
+    """
+    parsed_url = urlsplit(url)
+    new_netloc = f"{bucket}.{parsed_url.netloc}"
+    base_url = urlunsplit((parsed_url.scheme, new_netloc, "", "", ""))
+    return base_url
 
 
 def _use_client_cert():

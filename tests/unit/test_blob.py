@@ -30,6 +30,7 @@ import pytest
 from google.cloud.storage import _helpers
 from google.cloud.storage._helpers import _get_default_headers
 from google.cloud.storage._helpers import _DEFAULT_UNIVERSE_DOMAIN
+from google.cloud.storage._helpers import _get_default_storage_base_url
 from google.cloud.storage.retry import (
     DEFAULT_RETRY,
     DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
@@ -64,7 +65,8 @@ class Test_Blob(unittest.TestCase):
     @staticmethod
     def _make_client(*args, **kw):
         from google.cloud.storage.client import Client
-
+        if "api_endpoint" not in kw:
+            kw["api_endpoint"] = _get_default_storage_base_url()
         return mock.create_autospec(Client, instance=True, **kw)
 
     def test_ctor_wo_encryption_key(self):
@@ -462,10 +464,8 @@ class Test_Blob(unittest.TestCase):
         from urllib import parse
         from google.cloud._helpers import UTC
         from google.cloud.storage._helpers import _bucket_bound_hostname_url
-        from google.cloud.storage.blob import _API_ACCESS_ENDPOINT
+        from google.cloud.storage._helpers import _get_default_storage_base_url
         from google.cloud.storage.blob import _get_encryption_headers
-
-        api_access_endpoint = api_access_endpoint or _API_ACCESS_ENDPOINT
 
         delta = datetime.timedelta(hours=1)
 
@@ -523,7 +523,7 @@ class Test_Blob(unittest.TestCase):
                 bucket_bound_hostname, scheme
             )
         else:
-            expected_api_access_endpoint = api_access_endpoint
+            expected_api_access_endpoint = api_access_endpoint if api_access_endpoint else _get_default_storage_base_url()
             expected_resource = f"/{bucket.name}/{quoted_name}"
 
         if virtual_hosted_style or bucket_bound_hostname:

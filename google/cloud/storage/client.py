@@ -37,6 +37,7 @@ from google.cloud.storage._helpers import _STORAGE_HOST_TEMPLATE
 from google.cloud.storage._helpers import _bucket_bound_hostname_url
 from google.cloud.storage._helpers import _DEFAULT_UNIVERSE_DOMAIN
 from google.cloud.storage._helpers import _DEFAULT_SCHEME
+from google.cloud.storage._helpers import _virtual_hosted_style_base_url
 
 from google.cloud.storage._http import Connection
 from google.cloud.storage._signing import (
@@ -1640,13 +1641,16 @@ class Client(ClientWithProject):
                             key to sign text.
 
         :type virtual_hosted_style: bool
-        :param virtual_hosted_style: (Optional) If True, construct the URL relative to the bucket
-                                     virtual hostname, e.g., '<bucket-name>.storage.googleapis.com'.
+        :param virtual_hosted_style:
+            (Optional) If True, construct the URL relative to the bucket
+            virtual hostname, e.g., '<bucket-name>.storage.googleapis.com'.
+            Incompatible with bucket_bound_hostname.
 
         :type bucket_bound_hostname: str
         :param bucket_bound_hostname:
             (Optional) If passed, construct the URL relative to the bucket-bound hostname.
             Value can be bare or with a scheme, e.g., 'example.com' or 'http://example.com'.
+            Incompatible with virtual_hosted_style.
             See: https://cloud.google.com/storage/docs/request-endpoints#cname
 
         :type scheme: str
@@ -1661,9 +1665,17 @@ class Client(ClientWithProject):
         :type access_token: str
         :param access_token: (Optional) Access token for a service account.
 
+        :raises: :exc:`ValueError` when mutually exclusive arguments are used.
+
         :rtype: dict
         :returns: Signed POST policy.
         """
+        if virtual_hosted_style and bucket_bound_hostname:
+            raise ValueError(
+                "Only one of virtual_hosted_style and bucket_bound_hostname "
+                "can be specified."
+            )
+
         credentials = self._credentials if credentials is None else credentials
         ensure_signed_credentials(credentials)
 
@@ -1735,11 +1747,11 @@ class Client(ClientWithProject):
         )
         # designate URL
         if virtual_hosted_style:
-            url = f"https://{bucket_name}.storage.googleapis.com/"
+            url = _virtual_hosted_style_base_url(self.api_endpoint, bucket_name)
         elif bucket_bound_hostname:
             url = f"{_bucket_bound_hostname_url(bucket_bound_hostname, scheme)}/"
         else:
-            url = f"https://storage.googleapis.com/{bucket_name}/"
+            url = f"{self.api_endpoint}/{bucket_name}/"
 
         return {"url": url, "fields": policy_fields}
 
