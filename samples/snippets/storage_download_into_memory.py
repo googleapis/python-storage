@@ -37,7 +37,7 @@ def download_blob_into_memory(bucket_name, blob_name):
     # any content from Google Cloud Storage. As we don't need additional data,
     # using `Bucket.blob` is preferred here.
     blob = bucket.blob(blob_name)
-    contents = blob.download_as_string()
+    contents = blob.download_as_bytes()
 
     print(
         "Downloaded storage object {} from bucket {} as the following string: {}.".format(
