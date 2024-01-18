@@ -46,13 +46,13 @@ _POST_POLICY_TESTS = [test for test in _CONFORMANCE_TESTS if "policyInput" in te
 _FAKE_CREDENTIALS = Credentials.from_service_account_info(_SERVICE_ACCOUNT_JSON)
 
 
-def _make_credentials(project=None):
+def _make_credentials(project=None, universe_domain=_DEFAULT_UNIVERSE_DOMAIN):
     import google.auth.credentials
 
     if project is not None:
-        return mock.Mock(spec=google.auth.credentials.Credentials, project_id=project, universe_domain=_DEFAULT_UNIVERSE_DOMAIN)
+        return mock.Mock(spec=google.auth.credentials.Credentials, project_id=project, universe_domain=universe_domain)
 
-    return mock.Mock(spec=google.auth.credentials.Credentials, universe_domain=_DEFAULT_UNIVERSE_DOMAIN)
+    return mock.Mock(spec=google.auth.credentials.Credentials, universe_domain=universe_domain)
 
 
 def _create_signing_credentials():
@@ -163,21 +163,58 @@ class TestClient(unittest.TestCase):
         )
 
         self.assertEqual(client._connection.API_BASE_URL, api_endpoint)
+        self.assertEqual(client.api_endpoint, api_endpoint)
 
     def test_ctor_w_client_options_object(self):
         from google.api_core.client_options import ClientOptions
 
         PROJECT = "PROJECT"
         credentials = _make_credentials()
-        client_options = ClientOptions(api_endpoint="https://www.foo-googleapis.com")
+        api_endpoint = "https://www.foo-googleapis.com"
+        client_options = ClientOptions(api_endpoint=api_endpoint)
+
+        client = self._make_one(
+            project=PROJECT, credentials=credentials, client_options=client_options
+        )
+
+        self.assertEqual(client._connection.API_BASE_URL, api_endpoint)
+        self.assertEqual(client.api_endpoint, api_endpoint)
+
+    def test_ctor_w_universe_domain_and_matched_credentials(self):
+        PROJECT = "PROJECT"
+        universe_domain = "example.com"
+        expected_api_endpoint = f"https://storage.{universe_domain}"
+        credentials = _make_credentials(universe_domain=universe_domain)
+        client_options = {"universe_domain": universe_domain}
 
         client = self._make_one(
             project=PROJECT, credentials=credentials, client_options=client_options
         )
 
         self.assertEqual(
-            client._connection.API_BASE_URL, "https://www.foo-googleapis.com"
+            client._connection.API_BASE_URL, expected_api_endpoint
         )
+        self.assertEqual(client.api_endpoint, expected_api_endpoint)
+        self.assertEqual(client.universe_domain, universe_domain)
+
+    def test_ctor_w_universe_domain_and_mismatched_credentials(self):
+        PROJECT = "PROJECT"
+        universe_domain = "example.com"
+        credentials = _make_credentials()  # default universe domain
+        client_options = {"universe_domain": universe_domain}
+
+        with self.assertRaises(ValueError):
+            client = self._make_one(
+                project=PROJECT, credentials=credentials, client_options=client_options
+            )
+
+    def test_ctor_w_universe_domain_and_mtls(self):
+        PROJECT = "PROJECT"
+        universe_domain = "example.com"
+        credentials = _make_credentials(project=PROJECT, universe_domain=universe_domain)
+
+        with self.assertRaises(ValueError):
+            client = self._make_one(credentials=credentials)
 
     def test_ctor_w_custom_headers(self):
         PROJECT = "PROJECT"
@@ -2677,6 +2714,25 @@ class TestClient(unittest.TestCase):
                 credentials=_create_signing_credentials(),
             )
         self.assertEqual(policy["url"], "https://bucket.bound_hostname/")
+
+    def test_get_signed_policy_v4_with_conflicting_arguments(self):
+        import datetime
+
+        project = "PROJECT"
+        credentials = _make_credentials(project=project)
+        client = self._make_one(credentials=credentials)
+
+        dtstamps_patch, _, _ = _time_functions_patches()
+        with dtstamps_patch:
+            with self.assertRaises(ValueError):
+                policy = client.generate_signed_post_policy_v4(
+                    "bucket-name",
+                    "object-name",
+                    expiration=datetime.datetime(2020, 3, 12),
+                    bucket_bound_hostname="https://bucket.bound_hostname",
+                    virtual_hosted_style=True,
+                    credentials=_create_signing_credentials(),
+                )
 
     def test_get_signed_policy_v4_bucket_bound_hostname_with_scheme(self):
         import datetime

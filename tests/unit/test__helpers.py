@@ -22,30 +22,84 @@ from google.cloud.storage.retry import DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED
 GCCL_INVOCATION_TEST_CONST = "gccl-invocation-id/test-invocation-123"
 
 
-# class Test__get_storage_host(unittest.TestCase):
-#     @staticmethod
-#     def _call_fut():
-#         from google.cloud.storage._helpers import _get_storage_host
+class Test__get_storage_host(unittest.TestCase):
+    @staticmethod
+    def _call_fut():
+        from google.cloud.storage._helpers import _get_default_storage_host
 
-#         return _get_storage_host()
+        return _get_default_storage_host()
 
-#     def test_wo_env_var(self):
-#         from google.cloud.storage._helpers import _DEFAULT_STORAGE_HOST
+    def test_wo_env_var(self):
+        from google.cloud.storage._helpers import _TRUE_DEFAULT_STORAGE_HOST
 
-#         with mock.patch("os.environ", {}):
-#             host = self._call_fut()
+        with mock.patch("os.environ", {}):
+            host = self._call_fut()
 
-#         self.assertEqual(host, _DEFAULT_STORAGE_HOST)
+        self.assertEqual(host, _TRUE_DEFAULT_STORAGE_HOST)
 
-#     def test_w_env_var(self):
-#         from google.cloud.storage._helpers import STORAGE_EMULATOR_ENV_VAR
+    def test_w_env_var(self):
+        from google.cloud.storage._helpers import _API_ENDPOINT_OVERRIDE_ENV_VAR
+        from google.cloud.storage._helpers import _DEFAULT_SCHEME
 
-#         HOST = "https://api.example.com"
+        HOST = "api.example.com"
+        OVERRIDE = _DEFAULT_SCHEME + HOST
 
-#         with mock.patch("os.environ", {STORAGE_EMULATOR_ENV_VAR: HOST}):
-#             host = self._call_fut()
+        with mock.patch("os.environ", {_API_ENDPOINT_OVERRIDE_ENV_VAR: OVERRIDE}):
+            endpoint = self._call_fut()
 
-#         self.assertEqual(host, HOST)
+        self.assertEqual(endpoint, HOST)
+
+
+class Test__get_storage_emulator_override(unittest.TestCase):
+    @staticmethod
+    def _call_fut():
+        from google.cloud.storage._helpers import _get_storage_emulator_override
+
+        return _get_storage_emulator_override()
+
+    def test_wo_env_var(self):
+        with mock.patch("os.environ", {}):
+            override = self._call_fut()
+
+        self.assertIsNone(override)
+
+    def test_w_env_var(self):
+        from google.cloud.storage._helpers import STORAGE_EMULATOR_ENV_VAR
+
+        HOST = "https://api.example.com"
+
+        with mock.patch("os.environ", {STORAGE_EMULATOR_ENV_VAR: HOST}):
+            emu = self._call_fut()
+
+        self.assertEqual(emu, HOST)
+
+
+class Test__get_api_endpoint_override(unittest.TestCase):
+    @staticmethod
+    def _call_fut():
+        from google.cloud.storage._helpers import _get_api_endpoint_override
+
+        return _get_api_endpoint_override()
+
+    def test_wo_env_var(self):
+        from google.cloud.storage._helpers import _TRUE_DEFAULT_STORAGE_HOST
+        from google.cloud.storage._helpers import _DEFAULT_SCHEME
+
+        with mock.patch("os.environ", {}):
+            override = self._call_fut()
+
+        self.assertIsNone(override, _DEFAULT_SCHEME + _TRUE_DEFAULT_STORAGE_HOST)
+
+    def test_w_env_var(self):
+        from google.cloud.storage._helpers import _API_ENDPOINT_OVERRIDE_ENV_VAR
+        from google.cloud.storage._helpers import _DEFAULT_SCHEME
+
+        BASE_URL = "https://api.example.com"
+
+        with mock.patch("os.environ", {_API_ENDPOINT_OVERRIDE_ENV_VAR: BASE_URL}):
+            override = self._call_fut()
+
+        self.assertEqual(override, BASE_URL)
 
 
 class Test__get_environ_project(unittest.TestCase):

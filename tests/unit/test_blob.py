@@ -65,8 +65,7 @@ class Test_Blob(unittest.TestCase):
     @staticmethod
     def _make_client(*args, **kw):
         from google.cloud.storage.client import Client
-        if "api_endpoint" not in kw:
-            kw["api_endpoint"] = _get_default_storage_base_url()
+        kw["api_endpoint"] = kw.get("api_endpoint") or _get_default_storage_base_url()
         return mock.create_autospec(Client, instance=True, **kw)
 
     def test_ctor_wo_encryption_key(self):
@@ -428,6 +427,15 @@ class Test_Blob(unittest.TestCase):
         blob = self._make_one(blob_name, bucket=bucket)
         expected_url = "https://storage.googleapis.com/name/winter%20%E2%98%83"
         self.assertEqual(blob.public_url, expected_url)
+
+    def test_public_url_without_client(self):
+        BLOB_NAME = "blob-name"
+        bucket = _Bucket()
+        bucket.client = None
+        blob = self._make_one(BLOB_NAME, bucket=bucket)
+        self.assertEqual(
+            blob.public_url, f"https://storage.googleapis.com/name/{BLOB_NAME}"
+        )
 
     def test_generate_signed_url_w_invalid_version(self):
         BLOB_NAME = "blob-name"

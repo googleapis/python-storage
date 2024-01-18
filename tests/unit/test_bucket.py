@@ -609,8 +609,7 @@ class Test_Bucket(unittest.TestCase):
     @staticmethod
     def _make_client(**kw):
         from google.cloud.storage.client import Client
-        if "api_endpoint" not in kw:
-            kw["api_endpoint"] = _get_default_storage_base_url()
+        kw["api_endpoint"] = kw.get("api_endpoint") or _get_default_storage_base_url()
         return mock.create_autospec(Client, instance=True, **kw)
 
     def _make_one(self, client=None, name=None, properties=None, user_project=None):
