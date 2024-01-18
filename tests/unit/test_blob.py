@@ -457,6 +457,7 @@ class Test_Blob(unittest.TestCase):
         virtual_hosted_style=False,
         bucket_bound_hostname=None,
         scheme="http",
+        handle_v2_non_path_style=False,
     ):
         from urllib import parse
         from google.cloud._helpers import UTC
@@ -508,8 +509,6 @@ class Test_Blob(unittest.TestCase):
                 bucket_bound_hostname=bucket_bound_hostname,
             )
 
-        self.assertEqual(signed_uri, signer.return_value)
-
         encoded_name = blob_name.encode("utf-8")
         quoted_name = parse.quote(encoded_name, safe=b"/~")
 
@@ -526,7 +525,10 @@ class Test_Blob(unittest.TestCase):
             expected_resource = f"/{bucket.name}/{quoted_name}"
 
         if virtual_hosted_style or bucket_bound_hostname:
-            expected_resource = f"/{quoted_name}"
+            if version == "v4":
+                expected_resource = f"/{quoted_name}"
+            else:
+                expected_resource = f"/{bucket.name}/{quoted_name}"
 
         if encryption_key is not None:
             expected_headers = headers or {}
@@ -553,6 +555,13 @@ class Test_Blob(unittest.TestCase):
             "service_account_email": service_account_email,
         }
         signer.assert_called_once_with(expected_creds, **expected_kwargs)
+
+        return_value = signer.return_value
+        if handle_v2_non_path_style:
+            unsigned_host = f"{api_access_endpoint}{expected_resource}"
+            special_style_host = f"{api_access_endpoint}/{quoted_name}"
+            return_value = return_value.replace(unsigned_host, special_style_host)
+        self.assertEqual(signed_uri, return_value)
 
     def test_generate_signed_url_no_version_passed_warning(self):
         self._generate_signed_url_helper()
@@ -622,6 +631,22 @@ class Test_Blob(unittest.TestCase):
     def test_generate_signed_url_v2_w_credentials(self):
         credentials = object()
         self._generate_signed_url_v2_helper(credentials=credentials)
+
+    def test_generate_signed_url_v2_w_virtual_hostname(self):
+        self._generate_signed_url_v2_helper(
+            virtual_hosted_style=True, handle_v2_non_path_style=True
+        )
+
+    def test_generate_signed_url_v2_w_bucket_bound_hostname_w_scheme(self):
+        self._generate_signed_url_v2_helper(
+            bucket_bound_hostname="http://cdn.example.com",
+            handle_v2_non_path_style=True,
+        )
+
+    def test_generate_signed_url_v2_w_bucket_bound_hostname_w_bare_hostname(self):
+        self._generate_signed_url_v2_helper(
+            bucket_bound_hostname="cdn.example.com", handle_v2_non_path_style=True
+        )
 
     def _generate_signed_url_v4_helper(self, **kw):
         version = "v4"
