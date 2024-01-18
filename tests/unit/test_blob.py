@@ -65,6 +65,7 @@ class Test_Blob(unittest.TestCase):
     @staticmethod
     def _make_client(*args, **kw):
         from google.cloud.storage.client import Client
+
         kw["api_endpoint"] = kw.get("api_endpoint") or _get_default_storage_base_url()
         return mock.create_autospec(Client, instance=True, **kw)
 
@@ -531,7 +532,11 @@ class Test_Blob(unittest.TestCase):
                 bucket_bound_hostname, scheme
             )
         else:
-            expected_api_access_endpoint = api_access_endpoint if api_access_endpoint else _get_default_storage_base_url()
+            expected_api_access_endpoint = (
+                api_access_endpoint
+                if api_access_endpoint
+                else _get_default_storage_base_url()
+            )
             expected_resource = f"/{bucket.name}/{quoted_name}"
 
         if virtual_hosted_style or bucket_bound_hostname:
@@ -5914,7 +5919,10 @@ class Test_Blob(unittest.TestCase):
             "x-goog-custom-audit-foo": "bar",
             "x-goog-custom-audit-user": "baz",
         }
-        credentials = mock.Mock(spec=google.auth.credentials.Credentials, universe_domain=_DEFAULT_UNIVERSE_DOMAIN)
+        credentials = mock.Mock(
+            spec=google.auth.credentials.Credentials,
+            universe_domain=_DEFAULT_UNIVERSE_DOMAIN,
+        )
         client = Client(
             project="project", credentials=credentials, extra_headers=custom_headers
         )

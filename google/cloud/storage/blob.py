@@ -572,7 +572,9 @@ class Blob(_PropertyMixin):
         elif version not in ("v2", "v4"):
             raise ValueError("'version' must be either 'v2' or 'v4'")
 
-        if (api_access_endpoint is not None or virtual_hosted_style) and bucket_bound_hostname:
+        if (
+            api_access_endpoint is not None or virtual_hosted_style
+        ) and bucket_bound_hostname:
             raise ValueError(
                 "The bucket_bound_hostname argument is not compatible with "
                 "either api_access_endpoint or virtual_hosted_style."
@@ -588,7 +590,9 @@ class Blob(_PropertyMixin):
         # using GCE service account.
         # See https://github.com/googleapis/google-auth-library-python/issues/50
         if virtual_hosted_style:
-            api_access_endpoint = _virtual_hosted_style_base_url(api_access_endpoint, self.bucket.name)
+            api_access_endpoint = _virtual_hosted_style_base_url(
+                api_access_endpoint, self.bucket.name
+            )
             resource = f"/{quoted_name}"
         elif bucket_bound_hostname:
             api_access_endpoint = _bucket_bound_hostname_url(

@@ -50,9 +50,15 @@ def _make_credentials(project=None, universe_domain=_DEFAULT_UNIVERSE_DOMAIN):
     import google.auth.credentials
 
     if project is not None:
-        return mock.Mock(spec=google.auth.credentials.Credentials, project_id=project, universe_domain=universe_domain)
+        return mock.Mock(
+            spec=google.auth.credentials.Credentials,
+            project_id=project,
+            universe_domain=universe_domain,
+        )
 
-    return mock.Mock(spec=google.auth.credentials.Credentials, universe_domain=universe_domain)
+    return mock.Mock(
+        spec=google.auth.credentials.Credentials, universe_domain=universe_domain
+    )
 
 
 def _create_signing_credentials():
@@ -63,7 +69,9 @@ def _create_signing_credentials():
     ):
         pass
 
-    credentials = mock.Mock(spec=_SigningCredentials, universe_domain=_DEFAULT_UNIVERSE_DOMAIN)
+    credentials = mock.Mock(
+        spec=_SigningCredentials, universe_domain=_DEFAULT_UNIVERSE_DOMAIN
+    )
     credentials.sign_bytes = mock.Mock(return_value=b"Signature_bytes")
     credentials.signer_email = "test@mail.com"
     return credentials
@@ -191,9 +199,7 @@ class TestClient(unittest.TestCase):
             project=PROJECT, credentials=credentials, client_options=client_options
         )
 
-        self.assertEqual(
-            client._connection.API_BASE_URL, expected_api_endpoint
-        )
+        self.assertEqual(client._connection.API_BASE_URL, expected_api_endpoint)
         self.assertEqual(client.api_endpoint, expected_api_endpoint)
         self.assertEqual(client.universe_domain, universe_domain)
 
@@ -211,7 +217,9 @@ class TestClient(unittest.TestCase):
     def test_ctor_w_universe_domain_and_mtls(self):
         PROJECT = "PROJECT"
         universe_domain = "example.com"
-        credentials = _make_credentials(project=PROJECT, universe_domain=universe_domain)
+        credentials = _make_credentials(
+            project=PROJECT, universe_domain=universe_domain
+        )
 
         with self.assertRaises(ValueError):
             client = self._make_one(credentials=credentials)

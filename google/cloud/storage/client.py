@@ -187,10 +187,11 @@ class Client(ClientWithProject):
             # here only to issue an exception in case of a conflict.
             if _use_client_cert():
                 raise ValueError(
-                    "The \"GOOGLE_API_USE_CLIENT_CERTIFICATE\" env variable is "
-                    "set to \"true\" and a non-default universe domain is "
+                    'The "GOOGLE_API_USE_CLIENT_CERTIFICATE" env variable is '
+                    'set to "true" and a non-default universe domain is '
                     "configured. mTLS is not supported in any universe other than"
-                    "googleapis.com.")
+                    "googleapis.com."
+                )
             api_endpoint = _DEFAULT_SCHEME + _STORAGE_HOST_TEMPLATE.format(
                 universe_domain=self._universe_domain
             )
@@ -236,7 +237,9 @@ class Client(ClientWithProject):
                 "you haven't configured the universe domain explicitly, "
                 "`googleapis.com` is the default.".format(
                     client_ud=self.universe_domain,
-                    cred_ud=self._credentials.universe_domain))
+                    cred_ud=self._credentials.universe_domain,
+                )
+            )
 
         if no_project:
             self.project = None
@@ -1748,7 +1751,9 @@ class Client(ClientWithProject):
         )
         # designate URL
         if virtual_hosted_style:
-            url = _virtual_hosted_style_base_url(self.api_endpoint, bucket_name, trailing_slash=True)
+            url = _virtual_hosted_style_base_url(
+                self.api_endpoint, bucket_name, trailing_slash=True
+            )
         elif bucket_bound_hostname:
             url = f"{_bucket_bound_hostname_url(bucket_bound_hostname, scheme)}/"
         else:

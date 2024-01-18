@@ -44,7 +44,9 @@ _DEFAULT_UNIVERSE_DOMAIN = "googleapis.com"
 
 _STORAGE_HOST_TEMPLATE = "storage.{universe_domain}"
 
-_TRUE_DEFAULT_STORAGE_HOST = _STORAGE_HOST_TEMPLATE.format(universe_domain=_DEFAULT_UNIVERSE_DOMAIN)
+_TRUE_DEFAULT_STORAGE_HOST = _STORAGE_HOST_TEMPLATE.format(
+    universe_domain=_DEFAULT_UNIVERSE_DOMAIN
+)
 
 _DEFAULT_SCHEME = "https://"
 
@@ -82,9 +84,7 @@ def _get_storage_emulator_override():
 
 def _get_default_storage_host():
     """Default storage host for JSON API (without scheme)."""
-    override = os.getenv(
-        _API_ENDPOINT_OVERRIDE_ENV_VAR
-    )
+    override = os.getenv(_API_ENDPOINT_OVERRIDE_ENV_VAR)
     if override:
         return urlsplit(override).netloc
     else:
@@ -93,9 +93,8 @@ def _get_default_storage_host():
 
 def _get_default_storage_base_url():
     return os.getenv(
-            _API_ENDPOINT_OVERRIDE_ENV_VAR,
-            _DEFAULT_SCHEME + _get_default_storage_host()
-        )
+        _API_ENDPOINT_OVERRIDE_ENV_VAR, _DEFAULT_SCHEME + _get_default_storage_host()
+    )
 
 
 def _get_api_endpoint_override():
@@ -113,7 +112,9 @@ def _virtual_hosted_style_base_url(url, bucket, trailing_slash=False):
     """
     parsed_url = urlsplit(url)
     new_netloc = f"{bucket}.{parsed_url.netloc}"
-    base_url = urlunsplit((parsed_url.scheme, new_netloc, "/" if trailing_slash else "", "", ""))
+    base_url = urlunsplit(
+        (parsed_url.scheme, new_netloc, "/" if trailing_slash else "", "", "")
+    )
     return base_url
 
 
