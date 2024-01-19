@@ -84,9 +84,8 @@ def _get_storage_emulator_override():
 
 def _get_default_storage_base_url():
     return os.getenv(
-            _API_ENDPOINT_OVERRIDE_ENV_VAR,
-            _DEFAULT_SCHEME + _TRUE_DEFAULT_STORAGE_HOST
-        )
+        _API_ENDPOINT_OVERRIDE_ENV_VAR, _DEFAULT_SCHEME + _TRUE_DEFAULT_STORAGE_HOST
+    )
 
 
 def _get_api_endpoint_override():
