@@ -22,34 +22,6 @@ from google.cloud.storage.retry import DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED
 GCCL_INVOCATION_TEST_CONST = "gccl-invocation-id/test-invocation-123"
 
 
-class Test__get_storage_host(unittest.TestCase):
-    @staticmethod
-    def _call_fut():
-        from google.cloud.storage._helpers import _get_default_storage_host
-
-        return _get_default_storage_host()
-
-    def test_wo_env_var(self):
-        from google.cloud.storage._helpers import _TRUE_DEFAULT_STORAGE_HOST
-
-        with mock.patch("os.environ", {}):
-            host = self._call_fut()
-
-        self.assertEqual(host, _TRUE_DEFAULT_STORAGE_HOST)
-
-    def test_w_env_var(self):
-        from google.cloud.storage._helpers import _API_ENDPOINT_OVERRIDE_ENV_VAR
-        from google.cloud.storage._helpers import _DEFAULT_SCHEME
-
-        HOST = "api.example.com"
-        OVERRIDE = _DEFAULT_SCHEME + HOST
-
-        with mock.patch("os.environ", {_API_ENDPOINT_OVERRIDE_ENV_VAR: OVERRIDE}):
-            endpoint = self._call_fut()
-
-        self.assertEqual(endpoint, HOST)
-
-
 class Test__get_storage_emulator_override(unittest.TestCase):
     @staticmethod
     def _call_fut():

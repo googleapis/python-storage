@@ -82,19 +82,11 @@ def _get_storage_emulator_override():
     return os.environ.get(STORAGE_EMULATOR_ENV_VAR, None)
 
 
-def _get_default_storage_host():
-    """Default storage host for JSON API (without scheme)."""
-    override = os.getenv(_API_ENDPOINT_OVERRIDE_ENV_VAR)
-    if override:
-        return urlsplit(override).netloc
-    else:
-        return _TRUE_DEFAULT_STORAGE_HOST
-
-
 def _get_default_storage_base_url():
     return os.getenv(
-        _API_ENDPOINT_OVERRIDE_ENV_VAR, _DEFAULT_SCHEME + _get_default_storage_host()
-    )
+            _API_ENDPOINT_OVERRIDE_ENV_VAR,
+            _DEFAULT_SCHEME + _TRUE_DEFAULT_STORAGE_HOST
+        )
 
 
 def _get_api_endpoint_override():
