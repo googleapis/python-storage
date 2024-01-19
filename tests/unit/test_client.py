@@ -210,7 +210,7 @@ class TestClient(unittest.TestCase):
         client_options = {"universe_domain": universe_domain}
 
         with self.assertRaises(ValueError):
-            client = self._make_one(
+            self._make_one(
                 project=PROJECT, credentials=credentials, client_options=client_options
             )
 
@@ -222,7 +222,7 @@ class TestClient(unittest.TestCase):
         )
 
         with self.assertRaises(ValueError):
-            client = self._make_one(credentials=credentials)
+            self._make_one(credentials=credentials)
 
     def test_ctor_w_custom_headers(self):
         PROJECT = "PROJECT"
@@ -2733,7 +2733,7 @@ class TestClient(unittest.TestCase):
         dtstamps_patch, _, _ = _time_functions_patches()
         with dtstamps_patch:
             with self.assertRaises(ValueError):
-                policy = client.generate_signed_post_policy_v4(
+                client.generate_signed_post_policy_v4(
                     "bucket-name",
                     "object-name",
                     expiration=datetime.datetime(2020, 3, 12),

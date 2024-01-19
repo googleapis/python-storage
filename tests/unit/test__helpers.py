@@ -64,7 +64,6 @@ class Test__get_api_endpoint_override(unittest.TestCase):
 
     def test_w_env_var(self):
         from google.cloud.storage._helpers import _API_ENDPOINT_OVERRIDE_ENV_VAR
-        from google.cloud.storage._helpers import _DEFAULT_SCHEME
 
         BASE_URL = "https://api.example.com"
 
