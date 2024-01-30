@@ -37,8 +37,7 @@ class Connection(_http.JSONConnection):
     :param client_info: (Optional) instance used to generate user agent.
 
     :type api_endpoint: str
-    :param api_endpoint: (Optional) api endpoint to use. This may be a universe
-        domain if one was specified.
+    :param api_endpoint: (Optional) api endpoint to use.
     """
 
     DEFAULT_API_ENDPOINT = _helpers._get_default_storage_base_url()
