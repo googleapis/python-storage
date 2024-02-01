@@ -29,7 +29,9 @@ from google.api_core.iam import Policy
 from google.cloud.storage import _signing
 from google.cloud.storage._helpers import _add_etag_match_headers
 from google.cloud.storage._helpers import _add_generation_match_parameters
+from google.cloud.storage._helpers import _NOW
 from google.cloud.storage._helpers import _PropertyMixin
+from google.cloud.storage._helpers import _UTC
 from google.cloud.storage._helpers import _scalar_property
 from google.cloud.storage._helpers import _validate_name
 from google.cloud.storage._signing import generate_signed_url_v2
@@ -82,7 +84,6 @@ _LOCATION_SETTER_MESSAGE = (
     "to `Bucket.create`."
 )
 _API_ACCESS_ENDPOINT = "https://storage.googleapis.com"
-_NOW = datetime.datetime.now
 
 
 def _blobs_page_start(iterator, page, response):
@@ -3186,7 +3187,7 @@ class Bucket(_PropertyMixin):
         _signing.ensure_signed_credentials(credentials)
 
         if expiration is None:
-            expiration = _NOW(datetime.timezone.utc) + datetime.timedelta(hours=1)
+            expiration = _NOW(_UTC) + datetime.timedelta(hours=1)
 
         conditions = conditions + [{"bucket": self.name}]
 

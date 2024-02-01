@@ -28,11 +28,13 @@ import google.auth.credentials
 from google.auth import exceptions
 from google.auth.transport import requests
 from google.cloud import _helpers
+from google.cloud.storage._helpers import _NOW
+from google.cloud.storage._helpers import _UTC
 
 
-NOW = datetime.datetime.utcnow  # `google.cloud.storage._signing.NOW` is deprecated
-_NOW = datetime.datetime.now
-_UTC = datetime.timezone.utc
+# `google.cloud.storage._signing.NOW` is deprecated.
+# Use `_NOW(_UTC)` instead.
+NOW = datetime.datetime.utcnow
 
 SERVICE_ACCOUNT_URL = (
     "https://googleapis.dev/python/google-api-core/latest/"

@@ -404,6 +404,9 @@ def test_generate_signed_post_policy_v4(
     with open(blob_name, "r") as f:
         files = {"file": (blob_name, f)}
         response = requests.post(policy["url"], data=policy["fields"], files=files)
+        import pdb
+
+        pdb.set_trace()
 
     os.remove(blob_name)
     assert response.status_code == 204

@@ -26,7 +26,7 @@ import urllib.parse
 import mock
 import pytest
 
-from google.cloud.storage._signing import _UTC
+from google.cloud.storage._helpers import _UTC
 from . import _read_local_json
 
 
