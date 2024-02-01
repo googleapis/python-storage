@@ -641,7 +641,7 @@ def get_v4_now_dtstamps():
     :rtype: str, str
     :returns: Current timestamp, datestamp.
     """
-    now = _NOW(_UTC)
+    now = _NOW(_UTC).replace(tzinfo=None)
     timestamp = now.strftime("%Y%m%dT%H%M%SZ")
     datestamp = now.date().strftime("%Y%m%d")
     return timestamp, datestamp

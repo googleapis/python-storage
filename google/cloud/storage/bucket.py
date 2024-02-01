@@ -3187,7 +3187,7 @@ class Bucket(_PropertyMixin):
         _signing.ensure_signed_credentials(credentials)
 
         if expiration is None:
-            expiration = _NOW(_UTC) + datetime.timedelta(hours=1)
+            expiration = _NOW(_UTC).replace(tzinfo=None) + datetime.timedelta(hours=1)
 
         conditions = conditions + [{"bucket": self.name}]
 

@@ -1634,6 +1634,7 @@ class Client(ClientWithProject):
         policy_expires = now + datetime.timedelta(
             seconds=get_expiration_seconds_v4(expiration)
         )
+
         # encode policy for signing
         policy = json.dumps(
             collections.OrderedDict(
