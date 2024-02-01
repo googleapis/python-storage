@@ -1627,7 +1627,7 @@ class Client(ClientWithProject):
         conditions += required_conditions
 
         # calculate policy expiration time
-        now = _NOW(_UTC)
+        now = _NOW(_UTC).replace(tzinfo=None)
         if expiration is None:
             expiration = now + datetime.timedelta(hours=1)
 
