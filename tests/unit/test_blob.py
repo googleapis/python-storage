@@ -708,6 +708,12 @@ class Test_Blob(unittest.TestCase):
         credentials = object()
         self._generate_signed_url_v4_helper(credentials=credentials)
 
+    def test_generate_signed_url_v4_w_incompatible_params(self):
+        with self.assertRaises(ValueError):
+            self._generate_signed_url_v4_helper(api_access_endpoint="example.com", bucket_bound_hostname="cdn.example.com")
+        with self.assertRaises(ValueError):
+            self._generate_signed_url_v4_helper(virtual_hosted_style=True, bucket_bound_hostname="cdn.example.com")
+
     def test_exists_miss_w_defaults(self):
         from google.cloud.exceptions import NotFound
 

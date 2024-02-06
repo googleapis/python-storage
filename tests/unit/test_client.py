@@ -30,6 +30,7 @@ from google.oauth2.service_account import Credentials
 
 from google.cloud.storage import _helpers
 from google.cloud.storage._helpers import STORAGE_EMULATOR_ENV_VAR
+from google.cloud.storage._helpers import _API_ENDPOINT_OVERRIDE_ENV_VAR
 from google.cloud.storage._helpers import _get_default_headers
 from google.cloud.storage._helpers import _DEFAULT_UNIVERSE_DOMAIN
 from google.cloud.storage._http import Connection
@@ -217,12 +218,16 @@ class TestClient(unittest.TestCase):
     def test_ctor_w_universe_domain_and_mtls(self):
         PROJECT = "PROJECT"
         universe_domain = "example.com"
+        client_options = {"universe_domain": universe_domain}
+
         credentials = _make_credentials(
             project=PROJECT, universe_domain=universe_domain
         )
 
-        with self.assertRaises(ValueError):
-            self._make_one(credentials=credentials)
+        environ = {"GOOGLE_API_USE_CLIENT_CERTIFICATE": "true"}
+        with mock.patch("os.environ", environ):
+            with self.assertRaises(ValueError):
+                self._make_one(credentials=credentials, client_options=client_options)
 
     def test_ctor_w_custom_headers(self):
         PROJECT = "PROJECT"
@@ -375,6 +380,16 @@ class TestClient(unittest.TestCase):
 
         self.assertEqual(client._connection.API_BASE_URL, host)
         self.assertIs(client._connection.credentials, credentials)
+
+    def test_ctor_w_api_endpoint_override(self):
+        host = "http://localhost:8080"
+        environ = {_API_ENDPOINT_OVERRIDE_ENV_VAR: host}
+        project = "my-test-project"
+        with mock.patch("os.environ", environ):
+            client = self._make_one(project=project)
+
+        self.assertEqual(client.project, project)
+        self.assertEqual(client._connection.API_BASE_URL, host)
 
     def test_create_anonymous_client(self):
         klass = self._get_target_class()

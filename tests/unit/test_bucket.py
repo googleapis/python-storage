@@ -4260,6 +4260,12 @@ class Test_Bucket(unittest.TestCase):
     def test_generate_signed_url_v4_w_bucket_bound_hostname_w_bare_hostname(self):
         self._generate_signed_url_v4_helper(bucket_bound_hostname="cdn.example.com")
 
+    def test_generate_signed_url_v4_w_incompatible_params(self):
+        with self.assertRaises(ValueError):
+            self._generate_signed_url_v4_helper(api_access_endpoint="example.com", bucket_bound_hostname="cdn.example.com")
+        with self.assertRaises(ValueError):
+            self._generate_signed_url_v4_helper(virtual_hosted_style=True, bucket_bound_hostname="cdn.example.com")
+
 
 class Test__item_to_notification(unittest.TestCase):
     def _call_fut(self, iterator, item):
