@@ -549,7 +549,7 @@ class Blob(_PropertyMixin):
         :param bucket_bound_hostname:
             (Optional) If passed, then construct the URL relative to the bucket-bound hostname.
             Value can be a bare or with scheme, e.g., 'example.com' or 'http://example.com'.
-            Incompatble with api_access_endpoint and virtual_hosted_style.
+            Incompatible with api_access_endpoint and virtual_hosted_style.
             See: https://cloud.google.com/storage/docs/request-endpoints#cname
 
         :type scheme: str
