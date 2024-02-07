@@ -2961,9 +2961,8 @@ class Test_Bucket(unittest.TestCase):
 
     def test_updated(self):
         from google.cloud._helpers import _RFC3339_MICROS
-        from google.cloud._helpers import UTC
 
-        TIMESTAMP = datetime.datetime(2023, 11, 5, 20, 34, 37, tzinfo=UTC)
+        TIMESTAMP = datetime.datetime(2023, 11, 5, 20, 34, 37, tzinfo=_UTC)
         UPDATED = TIMESTAMP.strftime(_RFC3339_MICROS)
         properties = {"updated": UPDATED}
         bucket = self._make_one(properties=properties)
