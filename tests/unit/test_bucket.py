@@ -1143,6 +1143,7 @@ class Test_Bucket(unittest.TestCase):
         expected_versions = None
         expected_projection = "noAcl"
         expected_fields = None
+        expected_include_folders_as_prefixes = None
         client.list_blobs.assert_called_once_with(
             bucket,
             max_results=expected_max_results,
@@ -1158,6 +1159,7 @@ class Test_Bucket(unittest.TestCase):
             timeout=self._get_default_timeout(),
             retry=DEFAULT_RETRY,
             match_glob=expected_match_glob,
+            include_folders_as_prefixes=expected_include_folders_as_prefixes,
         )
 
     def test_list_blobs_w_explicit(self):
@@ -1170,6 +1172,7 @@ class Test_Bucket(unittest.TestCase):
         start_offset = "c"
         end_offset = "g"
         include_trailing_delimiter = True
+        include_folders_as_prefixes = True
         versions = True
         projection = "full"
         fields = "items/contentLanguage,nextPageToken"
@@ -1194,6 +1197,7 @@ class Test_Bucket(unittest.TestCase):
             timeout=timeout,
             retry=retry,
             match_glob=match_glob,
+            include_folders_as_prefixes=include_folders_as_prefixes,
         )
 
         self.assertIs(iterator, other_client.list_blobs.return_value)
@@ -1209,6 +1213,7 @@ class Test_Bucket(unittest.TestCase):
         expected_versions = versions
         expected_projection = projection
         expected_fields = fields
+        expected_include_folders_as_prefixes = include_folders_as_prefixes
         other_client.list_blobs.assert_called_once_with(
             bucket,
             max_results=expected_max_results,
@@ -1224,6 +1229,7 @@ class Test_Bucket(unittest.TestCase):
             timeout=timeout,
             retry=retry,
             match_glob=expected_match_glob,
+            include_folders_as_prefixes=expected_include_folders_as_prefixes,
         )
 
     def test_list_notifications_w_defaults(self):

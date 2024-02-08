@@ -1297,6 +1297,7 @@ class Bucket(_PropertyMixin):
         timeout=_DEFAULT_TIMEOUT,
         retry=DEFAULT_RETRY,
         match_glob=None,
+        include_folders_as_prefixes=None,
     ):
         """Return an iterator used to find blobs in the bucket.
 
@@ -1378,6 +1379,11 @@ class Bucket(_PropertyMixin):
             The string value must be UTF-8 encoded. See:
             https://cloud.google.com/storage/docs/json_api/v1/objects/list#list-object-glob
 
+        :type include_folders_as_prefixes: bool
+            (Optional) If true, includes Folders and Managed Folders in the set of
+            ``prefixes`` returned by the query. Only applicable if ``delimiter`` is set to /.
+            See: https://cloud.google.com/storage/docs/managed-folders
+
         :rtype: :class:`~google.api_core.page_iterator.Iterator`
         :returns: Iterator of all :class:`~google.cloud.storage.blob.Blob`
                   in this bucket matching the arguments.
@@ -1398,6 +1404,7 @@ class Bucket(_PropertyMixin):
             timeout=timeout,
             retry=retry,
             match_glob=match_glob,
+            include_folders_as_prefixes=include_folders_as_prefixes,
         )
 
     def list_notifications(

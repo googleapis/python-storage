@@ -2015,6 +2015,7 @@ class TestClient(unittest.TestCase):
         start_offset = "c"
         end_offset = "g"
         include_trailing_delimiter = True
+        include_folders_as_prefixes = True
         versions = True
         projection = "full"
         page_size = 2
@@ -2047,6 +2048,7 @@ class TestClient(unittest.TestCase):
             timeout=timeout,
             retry=retry,
             match_glob=match_glob,
+            include_folders_as_prefixes=include_folders_as_prefixes,
         )
 
         self.assertIs(iterator, client._list_resource.return_value)
@@ -2068,6 +2070,7 @@ class TestClient(unittest.TestCase):
             "versions": versions,
             "fields": fields,
             "userProject": user_project,
+            "includeFoldersAsPrefixes": include_folders_as_prefixes,
         }
         expected_page_start = _blobs_page_start
         expected_page_size = 2
