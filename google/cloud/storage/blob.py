@@ -4700,6 +4700,32 @@ class Blob(_PropertyMixin):
         info = self._properties.get("retention", {})
         return Retention.from_api_repr(info, self)
 
+    @property
+    def soft_delete_time(self):
+        """If this object has been soft-deleted, returns the time at which it became soft-deleted.
+
+        :rtype: :class:`datetime.datetime` or ``NoneType``
+        :returns:
+            (readonly) The time that the object became soft-deleted.
+             Note this property is only set for soft-deleted objects.
+        """
+        soft_delete_time = self._properties.get("softDeleteTime")
+        if soft_delete_time is not None:
+            return _rfc3339_nanos_to_datetime(soft_delete_time)
+
+    @property
+    def hard_delete_time(self):
+        """If this object has been soft-deleted, returns the time at which it will be permanently deleted.
+
+        :rtype: :class:`datetime.datetime` or ``NoneType``
+        :returns:
+            (readonly) The time that the object will be permanently deleted.
+            Note this property is only set for soft-deleted objects.
+        """
+        hard_delete_time = self._properties.get("hardDeleteTime")
+        if hard_delete_time is not None:
+            return _rfc3339_nanos_to_datetime(hard_delete_time)
+
 
 def _get_host_name(connection):
     """Returns the host name from the given connection.

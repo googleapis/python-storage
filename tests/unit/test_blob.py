@@ -5827,6 +5827,29 @@ class Test_Blob(unittest.TestCase):
         blob = self._make_one("blob-name", bucket=BUCKET)
         self.assertIsNone(blob.custom_time)
 
+    def test_soft_hard_delete_time_getter(self):
+        from google.cloud._helpers import _RFC3339_MICROS
+
+        BLOB_NAME = "blob-name"
+        bucket = _Bucket()
+        soft_timstamp = datetime.datetime(2024, 1, 5, 20, 34, 37, tzinfo=_UTC)
+        soft_delete = soft_timstamp.strftime(_RFC3339_MICROS)
+        hard_timstamp = datetime.datetime(2024, 1, 15, 20, 34, 37, tzinfo=_UTC)
+        hard_delete = hard_timstamp.strftime(_RFC3339_MICROS)
+        properties = {
+            "softDeleteTime": soft_delete,
+            "hardDeleteTime": hard_delete,
+        }
+        blob = self._make_one(BLOB_NAME, bucket=bucket, properties=properties)
+        self.assertEqual(blob.soft_delete_time, soft_timstamp)
+        self.assertEqual(blob.hard_delete_time, hard_timstamp)
+
+    def test_soft_hard_delte_time_unset(self):
+        BUCKET = object()
+        blob = self._make_one("blob-name", bucket=BUCKET)
+        self.assertIsNone(blob.soft_delete_time)
+        self.assertIsNone(blob.hard_delete_time)
+
     def test_from_string_w_valid_uri(self):
         from google.cloud.storage.blob import Blob
 

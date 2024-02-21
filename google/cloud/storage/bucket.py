@@ -2785,6 +2785,49 @@ class Bucket(_PropertyMixin):
         if object_retention is not None:
             return object_retention.get("mode")
 
+    @property
+    def soft_delete_retention_duration_seconds(self):
+        """Retrieve the retention duration of the bucket's soft delete policy.
+
+        :rtype: int or ``NoneType``
+        :returns: The period of time in seconds that soft-deleted objects in the bucket
+                  will be retained and cannot be permanently deleted; Or ``None`` if the
+                  property is not set.
+        """
+        policy = self._properties.get("softDeletePolicy")
+        if policy is not None:
+            duration = policy.get("retentionDurationSeconds")
+            if duration is not None:
+                return int(duration)
+
+    @soft_delete_retention_duration_seconds.setter
+    def soft_delete_retention_duration_seconds(self, value):
+        """Set the retention duration of the bucket's soft delete policy.
+
+        :type value: int
+        :param value:
+            The period of time in seconds that soft-deleted objects in the bucket
+            will be retained and cannot be permanently deleted.
+        """
+        policy = self._properties.setdefault("softDeletePolicy", {})
+        if value is not None:
+            policy["retentionDurationSeconds"] = str(value)
+        self._patch_property("softDeletePolicy", policy)
+
+    @property
+    def soft_delete_effective_time(self):
+        """Retrieve the effective time of the bucket's soft delete policy.
+
+        :rtype: datetime.datetime or ``NoneType``
+        :returns: point-in time at which the bucket's soft delte policy is
+                  effective, or ``None`` if the property is not set.
+        """
+        policy = self._properties.get("softDeletePolicy")
+        if policy is not None:
+            timestamp = policy.get("effectiveTime")
+            if timestamp is not None:
+                return _rfc3339_nanos_to_datetime(timestamp)
+
     def configure_website(self, main_page_suffix=None, not_found_page=None):
         """Configure website-related properties.
 
