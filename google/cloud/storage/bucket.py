@@ -1188,6 +1188,7 @@ class Bucket(_PropertyMixin):
         if_metageneration_not_match=None,
         timeout=_DEFAULT_TIMEOUT,
         retry=DEFAULT_RETRY,
+        soft_deleted=None,
         **kwargs,
     ):
         """Get a blob object by name.
@@ -1248,6 +1249,11 @@ class Bucket(_PropertyMixin):
         :param retry:
             (Optional) How to retry the RPC. See: :ref:`configuring_retries`
 
+        :type soft_deleted: bool
+        :param soft_deleted:
+            (Optional) If true, returns the soft-deleted object.
+            Object ``generation`` is required if ``soft_deleted`` is set to True.
+
         :param kwargs: Keyword arguments to pass to the
                        :class:`~google.cloud.storage.blob.Blob` constructor.
 
@@ -1275,6 +1281,7 @@ class Bucket(_PropertyMixin):
                 if_metageneration_match=if_metageneration_match,
                 if_metageneration_not_match=if_metageneration_not_match,
                 retry=retry,
+                soft_deleted=soft_deleted,
             )
         except NotFound:
             return None
@@ -1297,6 +1304,7 @@ class Bucket(_PropertyMixin):
         timeout=_DEFAULT_TIMEOUT,
         retry=DEFAULT_RETRY,
         match_glob=None,
+        soft_deleted=None,
     ):
         """Return an iterator used to find blobs in the bucket.
 
@@ -1378,6 +1386,11 @@ class Bucket(_PropertyMixin):
             The string value must be UTF-8 encoded. See:
             https://cloud.google.com/storage/docs/json_api/v1/objects/list#list-object-glob
 
+        :type soft_deleted: bool
+        :param soft_deleted:
+            (Optional) If true, only soft-deleted object versions will be listed as distinct results in order
+            of generation number. Note ``soft_deleted`` and ``versions`` cannot be set to True simultaneously.
+
         :rtype: :class:`~google.api_core.page_iterator.Iterator`
         :returns: Iterator of all :class:`~google.cloud.storage.blob.Blob`
                   in this bucket matching the arguments.
@@ -1398,6 +1411,7 @@ class Bucket(_PropertyMixin):
             timeout=timeout,
             retry=retry,
             match_glob=match_glob,
+            soft_deleted=soft_deleted,
         )
 
     def list_notifications(

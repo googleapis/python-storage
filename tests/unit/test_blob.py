@@ -784,6 +784,32 @@ class Test_Blob(unittest.TestCase):
             _target_object=None,
         )
 
+    def test_exists_hit_w_generation_w_soft_deleted(self):
+        blob_name = "blob-name"
+        generation = 123456
+        api_response = {"name": blob_name}
+        client = mock.Mock(spec=["_get_resource"])
+        client._get_resource.return_value = api_response
+        bucket = _Bucket(client)
+        blob = self._make_one(blob_name, bucket=bucket, generation=generation)
+
+        self.assertTrue(blob.exists(retry=None, soft_deleted=True))
+
+        expected_query_params = {
+            "fields": "name",
+            "generation": generation,
+            "softDeleted": True,
+        }
+        expected_headers = {}
+        client._get_resource.assert_called_once_with(
+            blob.path,
+            query_params=expected_query_params,
+            headers=expected_headers,
+            timeout=self._get_default_timeout(),
+            retry=None,
+            _target_object=None,
+        )
+
     def test_exists_w_etag_match(self):
         blob_name = "blob-name"
         etag = "kittens"
@@ -5368,6 +5394,109 @@ class Test_Blob(unittest.TestCase):
             if_source_generation_not_match=None,
             if_source_metageneration_match=None,
             if_source_metageneration_not_match=None,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+        )
+
+    def test_restore_w_defaults(self):
+        bucket_name = "restore_bucket"
+        blob_name = "restore"
+        generation = 123456
+        api_response = {"name": blob_name, "generation": generation}
+        client = mock.Mock(spec=["_post_resource"])
+        client._post_resource.return_value = api_response
+        bucket = _Bucket(client=client, name=bucket_name)
+        blob = self._make_one(blob_name, bucket=bucket)
+
+        restored_blob = blob.restore()
+
+        self.assertEqual(restored_blob.name, blob_name)
+        self.assertEqual(restored_blob.bucket, bucket)
+
+        expected_path = f"/b/{bucket_name}/o/{blob_name}/restore"
+        expected_data = None
+        expected_query_params = {}
+        client._post_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+        )
+
+    def test_restore_w_explicit(self):
+        bucket_name = "restore_bucket"
+        blob_name = "restore"
+        generation = 123456
+        api_response = {"name": blob_name, "generation": generation}
+        client = mock.Mock(spec=["_post_resource"])
+        client._post_resource.return_value = api_response
+        bucket = _Bucket(client=client, name=bucket_name)
+        blob = self._make_one(blob_name, bucket=bucket)
+        if_generation_match = 123456
+        if_generation_not_match = 654321
+        if_metageneration_match = 1
+        if_metageneration_not_match = 2
+        projection = "noAcl"
+
+        restored_blob = blob.restore(
+            client=client,
+            if_generation_match=if_generation_match,
+            if_generation_not_match=if_generation_not_match,
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
+            projection=projection,
+        )
+
+        self.assertEqual(restored_blob.name, blob_name)
+        self.assertEqual(restored_blob.bucket, bucket)
+
+        expected_path = f"/b/{bucket_name}/o/{blob_name}/restore"
+        expected_data = None
+        expected_query_params = {
+            "projection": projection,
+            "ifGenerationMatch": if_generation_match,
+            "ifGenerationNotMatch": if_generation_not_match,
+            "ifMetagenerationMatch": if_metageneration_match,
+            "ifMetagenerationNotMatch": if_metageneration_not_match,
+        }
+        client._post_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+        )
+
+    def test_restore_w_explicit_copy_source_acl(self):
+        bucket_name = "restore_bucket"
+        blob_name = "restore"
+        generation = 123456
+        api_response = {"name": blob_name, "generation": generation}
+        client = mock.Mock(spec=["_post_resource"])
+        client._post_resource.return_value = api_response
+        bucket = _Bucket(client=client, name=bucket_name)
+        blob = self._make_one(blob_name, bucket=bucket)
+        copy_source_acl = False
+
+        restored_blob = blob.restore(
+            copy_source_acl=copy_source_acl,
+            generation=generation,
+        )
+
+        self.assertEqual(restored_blob.name, blob_name)
+        self.assertEqual(restored_blob.bucket, bucket)
+
+        expected_path = f"/b/{bucket_name}/o/{blob_name}/restore"
+        expected_data = None
+        expected_query_params = {
+            "copySourceAcl": False,
+            "generation": generation,
+        }
+        client._post_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
             timeout=self._get_default_timeout(),
             retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
         )

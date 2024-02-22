@@ -225,6 +225,7 @@ class _PropertyMixin(object):
         if_metageneration_not_match=None,
         timeout=_DEFAULT_TIMEOUT,
         retry=DEFAULT_RETRY,
+        **kwargs,
     ):
         """Reload properties from Cloud Storage.
 
@@ -283,6 +284,8 @@ class _PropertyMixin(object):
             if_metageneration_match=if_metageneration_match,
             if_metageneration_not_match=if_metageneration_not_match,
         )
+        if kwargs.get("soft_deleted") is not None:
+            query_params["softDeleted"] = kwargs["soft_deleted"]
         headers = self._encryption_headers()
         _add_etag_match_headers(
             headers, if_etag_match=if_etag_match, if_etag_not_match=if_etag_not_match

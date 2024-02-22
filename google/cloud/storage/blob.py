@@ -650,6 +650,7 @@ class Blob(_PropertyMixin):
         if_metageneration_not_match=None,
         timeout=_DEFAULT_TIMEOUT,
         retry=DEFAULT_RETRY,
+        soft_deleted=None,
     ):
         """Determines whether or not this blob exists.
 
@@ -694,6 +695,11 @@ class Blob(_PropertyMixin):
         :param retry:
             (Optional) How to retry the RPC. See: :ref:`configuring_retries`
 
+        :type soft_deleted: bool
+        :param soft_deleted:
+            (Optional) If true, determines whether or not this soft-deleted object exists.
+            :attr:`generation` is required to be set on the blob if ``soft_deleted`` is set to True.
+
         :rtype: bool
         :returns: True if the blob exists in Cloud Storage.
         """
@@ -702,6 +708,8 @@ class Blob(_PropertyMixin):
         # minimize the returned payload.
         query_params = self._query_params
         query_params["fields"] = "name"
+        if soft_deleted is not None:
+            query_params["softDeleted"] = soft_deleted
 
         _add_generation_match_parameters(
             query_params,
@@ -4139,6 +4147,96 @@ class Blob(_PropertyMixin):
             raise NotImplementedError(
                 "Supported modes strings are 'r', 'rb', 'rt', 'w', 'wb', and 'wt' only."
             )
+
+    def restore(
+        self,
+        client=None,
+        generation=None,
+        copy_source_acl=None,
+        projection=None,
+        if_generation_match=None,
+        if_generation_not_match=None,
+        if_metageneration_match=None,
+        if_metageneration_not_match=None,
+        timeout=_DEFAULT_TIMEOUT,
+        retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+    ):
+        """Restores a soft-deleted object.
+
+        If :attr:`user_project` is set on the bucket, bills the API request
+        to that project.
+
+        :type client: :class:`~google.cloud.storage.client.Client`
+        :param client:
+            (Optional) The client to use. If not passed, falls back to the
+            ``client`` stored on the blob's bucket.
+
+        :type generation: long
+        :param generation:
+            (Optional) If present, selects a specific revision of this object.
+
+        :type copy_source_acl: bool
+        :param copy_source_acl:
+            (Optional) If true, copy the soft-deleted object's access controls.
+
+        :type projection: str
+        :param projection:
+            (Optional) Specifies the set of properties to return.
+            If used, must be 'full' or 'noAcl'.
+
+        :type if_generation_match: long
+        :param if_generation_match:
+            (Optional) See :ref:`using-if-generation-match`
+
+        :type if_generation_not_match: long
+        :param if_generation_not_match:
+            (Optional) See :ref:`using-if-generation-not-match`
+
+        :type if_metageneration_match: long
+        :param if_metageneration_match:
+            (Optional) See :ref:`using-if-metageneration-match`
+
+        :type if_metageneration_not_match: long
+        :param if_metageneration_not_match:
+            (Optional) See :ref:`using-if-metageneration-not-match`
+
+        :type timeout: float or tuple
+        :param timeout:
+            (Optional) The amount of time, in seconds, to wait
+            for the server response.  See: :ref:`configuring_timeouts`
+
+        :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
+        :param retry:
+            (Optional) How to retry the RPC. See: :ref:`configuring_retries`
+        """
+
+        client = self._require_client(client)
+        query_params = self._query_params
+        if generation is not None:
+            query_params["generation"] = generation
+        if copy_source_acl is not None:
+            query_params["copySourceAcl"] = copy_source_acl
+        if projection is not None:
+            query_params["projection"] = projection
+
+        _add_generation_match_parameters(
+            query_params,
+            if_generation_match=if_generation_match,
+            if_generation_not_match=if_generation_not_match,
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
+        )
+
+        restored_blob = Blob(bucket=self.bucket, name=self.name)
+        api_response = client._post_resource(
+            f"{self.path}/restore",
+            None,
+            query_params=query_params,
+            timeout=timeout,
+            retry=retry,
+        )
+        restored_blob._set_properties(api_response)
+        return restored_blob
 
     cache_control = _scalar_property("cacheControl")
     """HTTP 'Cache-Control' header for this object.

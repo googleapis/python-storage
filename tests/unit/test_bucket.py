@@ -982,6 +982,40 @@ class Test_Bucket(unittest.TestCase):
             _target_object=blob,
         )
 
+    def test_get_blob_hit_w_generation_w_soft_deleted(self):
+        from google.cloud.storage.blob import Blob
+
+        name = "name"
+        blob_name = "blob-name"
+        generation = 1512565576797178
+        api_response = {"name": blob_name, "generation": generation}
+        client = mock.Mock(spec=["_get_resource"])
+        client._get_resource.return_value = api_response
+        bucket = self._make_one(client, name=name)
+
+        blob = bucket.get_blob(blob_name, generation=generation, soft_deleted=True)
+
+        self.assertIsInstance(blob, Blob)
+        self.assertIs(blob.bucket, bucket)
+        self.assertEqual(blob.name, blob_name)
+        self.assertEqual(blob.generation, generation)
+
+        expected_path = f"/b/{name}/o/{blob_name}"
+        expected_query_params = {
+            "generation": generation,
+            "projection": "noAcl",
+            "softDeleted": True,
+        }
+        expected_headers = {}
+        client._get_resource.assert_called_once_with(
+            expected_path,
+            query_params=expected_query_params,
+            headers=expected_headers,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
+            _target_object=blob,
+        )
+
     def test_get_blob_hit_w_generation_w_timeout(self):
         from google.cloud.storage.blob import Blob
 
@@ -1143,6 +1177,7 @@ class Test_Bucket(unittest.TestCase):
         expected_versions = None
         expected_projection = "noAcl"
         expected_fields = None
+        soft_deleted = None
         client.list_blobs.assert_called_once_with(
             bucket,
             max_results=expected_max_results,
@@ -1158,6 +1193,7 @@ class Test_Bucket(unittest.TestCase):
             timeout=self._get_default_timeout(),
             retry=DEFAULT_RETRY,
             match_glob=expected_match_glob,
+            soft_deleted=soft_deleted,
         )
 
     def test_list_blobs_w_explicit(self):
@@ -1171,6 +1207,7 @@ class Test_Bucket(unittest.TestCase):
         end_offset = "g"
         include_trailing_delimiter = True
         versions = True
+        soft_deleted = True
         projection = "full"
         fields = "items/contentLanguage,nextPageToken"
         bucket = self._make_one(client=None, name=name)
@@ -1194,6 +1231,7 @@ class Test_Bucket(unittest.TestCase):
             timeout=timeout,
             retry=retry,
             match_glob=match_glob,
+            soft_deleted=soft_deleted,
         )
 
         self.assertIs(iterator, other_client.list_blobs.return_value)
@@ -1209,6 +1247,7 @@ class Test_Bucket(unittest.TestCase):
         expected_versions = versions
         expected_projection = projection
         expected_fields = fields
+        expected_soft_deleted = soft_deleted
         other_client.list_blobs.assert_called_once_with(
             bucket,
             max_results=expected_max_results,
@@ -1224,6 +1263,7 @@ class Test_Bucket(unittest.TestCase):
             timeout=timeout,
             retry=retry,
             match_glob=expected_match_glob,
+            soft_deleted=expected_soft_deleted,
         )
 
     def test_list_notifications_w_defaults(self):
@@ -3096,9 +3136,10 @@ class Test_Bucket(unittest.TestCase):
     def test_soft_delete_duration_setter(self):
         seconds = 86400 * 10  # 100 days
         bucket = self._make_one()
+        bucket.soft_delete_retention_duration_seconds = None
+        self.assertEqual(bucket._properties["softDeletePolicy"], {})
 
         bucket.soft_delete_retention_duration_seconds = seconds
-
         self.assertEqual(
             bucket._properties["softDeletePolicy"]["retentionDurationSeconds"],
             str(seconds),
