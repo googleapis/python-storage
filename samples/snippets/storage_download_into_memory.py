@@ -40,8 +40,8 @@ def download_blob_into_memory(bucket_name, blob_name):
     contents = blob.download_as_bytes()
 
     print(
-        "Downloaded storage object {} from bucket {} as the following string: {}.".format(
-            blob_name, bucket_name, contents
+        "Downloaded storage object {} from bucket {} as the following bytes object: {}.".format(
+            blob_name, bucket_name, contents.decode("utf-8")
         )
     )
 
