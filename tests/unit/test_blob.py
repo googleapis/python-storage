@@ -29,6 +29,10 @@ import pytest
 
 from google.cloud.storage import _helpers
 from google.cloud.storage._helpers import _get_default_headers
+from google.cloud.storage._helpers import _get_default_storage_base_url
+from google.cloud.storage._helpers import _DEFAULT_UNIVERSE_DOMAIN
+from google.cloud.storage._helpers import _NOW
+from google.cloud.storage._helpers import _UTC
 from google.cloud.storage.retry import (
     DEFAULT_RETRY,
     DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
@@ -64,6 +68,7 @@ class Test_Blob(unittest.TestCase):
     def _make_client(*args, **kw):
         from google.cloud.storage.client import Client
 
+        kw["api_endpoint"] = kw.get("api_endpoint") or _get_default_storage_base_url()
         return mock.create_autospec(Client, instance=True, **kw)
 
     def test_ctor_wo_encryption_key(self):
@@ -132,11 +137,9 @@ class Test_Blob(unittest.TestCase):
         self.assertEqual(blob.generation, GENERATION)
 
     def _set_properties_helper(self, kms_key_name=None):
-        import datetime
-        from google.cloud._helpers import UTC
         from google.cloud._helpers import _RFC3339_MICROS
 
-        now = datetime.datetime.utcnow().replace(tzinfo=UTC)
+        now = _NOW(_UTC)
         NOW = now.strftime(_RFC3339_MICROS)
         BLOB_NAME = "blob-name"
         GENERATION = 12345
@@ -426,6 +429,15 @@ class Test_Blob(unittest.TestCase):
         expected_url = "https://storage.googleapis.com/name/winter%20%E2%98%83"
         self.assertEqual(blob.public_url, expected_url)
 
+    def test_public_url_without_client(self):
+        BLOB_NAME = "blob-name"
+        bucket = _Bucket()
+        bucket.client = None
+        blob = self._make_one(BLOB_NAME, bucket=bucket)
+        self.assertEqual(
+            blob.public_url, f"https://storage.googleapis.com/name/{BLOB_NAME}"
+        )
+
     def test_generate_signed_url_w_invalid_version(self):
         BLOB_NAME = "blob-name"
         EXPIRATION = "2014-10-16T20:34:37.000Z"
@@ -459,17 +471,14 @@ class Test_Blob(unittest.TestCase):
         scheme="http",
     ):
         from urllib import parse
-        from google.cloud._helpers import UTC
         from google.cloud.storage._helpers import _bucket_bound_hostname_url
-        from google.cloud.storage.blob import _API_ACCESS_ENDPOINT
+        from google.cloud.storage._helpers import _get_default_storage_base_url
         from google.cloud.storage.blob import _get_encryption_headers
-
-        api_access_endpoint = api_access_endpoint or _API_ACCESS_ENDPOINT
 
         delta = datetime.timedelta(hours=1)
 
         if expiration is None:
-            expiration = datetime.datetime.utcnow().replace(tzinfo=UTC) + delta
+            expiration = _NOW(_UTC) + delta
 
         if credentials is None:
             expected_creds = _make_credentials()
@@ -522,7 +531,11 @@ class Test_Blob(unittest.TestCase):
                 bucket_bound_hostname, scheme
             )
         else:
-            expected_api_access_endpoint = api_access_endpoint
+            expected_api_access_endpoint = (
+                api_access_endpoint
+                if api_access_endpoint
+                else _get_default_storage_base_url()
+            )
             expected_resource = f"/{bucket.name}/{quoted_name}"
 
         if virtual_hosted_style or bucket_bound_hostname:
@@ -565,9 +578,7 @@ class Test_Blob(unittest.TestCase):
         self._generate_signed_url_v2_helper()
 
     def test_generate_signed_url_v2_w_expiration(self):
-        from google.cloud._helpers import UTC
-
-        expiration = datetime.datetime.utcnow().replace(tzinfo=UTC)
+        expiration = _NOW(_UTC)
         self._generate_signed_url_v2_helper(expiration=expiration)
 
     def test_generate_signed_url_v2_w_non_ascii_name(self):
@@ -693,6 +704,17 @@ class Test_Blob(unittest.TestCase):
     def test_generate_signed_url_v4_w_credentials(self):
         credentials = object()
         self._generate_signed_url_v4_helper(credentials=credentials)
+
+    def test_generate_signed_url_v4_w_incompatible_params(self):
+        with self.assertRaises(ValueError):
+            self._generate_signed_url_v4_helper(
+                api_access_endpoint="example.com",
+                bucket_bound_hostname="cdn.example.com",
+            )
+        with self.assertRaises(ValueError):
+            self._generate_signed_url_v4_helper(
+                virtual_hosted_style=True, bucket_bound_hostname="cdn.example.com"
+            )
 
     def test_exists_miss_w_defaults(self):
         from google.cloud.exceptions import NotFound
@@ -3296,8 +3318,6 @@ class Test_Blob(unittest.TestCase):
         self._do_upload_helper(retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED)
 
     def _upload_from_file_helper(self, side_effect=None, **kwargs):
-        from google.cloud._helpers import UTC
-
         blob = self._make_one("blob-name", bucket=None)
         # Mock low-level upload helper on blob (it is tested elsewhere).
         created_json = {"updated": "2017-01-01T09:09:09.081Z"}
@@ -3328,7 +3348,7 @@ class Test_Blob(unittest.TestCase):
 
         # Check the response and side-effects.
         self.assertIsNone(ret_val)
-        new_updated = datetime.datetime(2017, 1, 1, 9, 9, 9, 81000, tzinfo=UTC)
+        new_updated = datetime.datetime(2017, 1, 1, 9, 9, 9, 81000, tzinfo=_UTC)
         self.assertEqual(blob.updated, new_updated)
 
         expected_timeout = kwargs.get("timeout", self._get_default_timeout())
@@ -5632,11 +5652,10 @@ class Test_Blob(unittest.TestCase):
 
     def test_retention_expiration_time(self):
         from google.cloud._helpers import _RFC3339_MICROS
-        from google.cloud._helpers import UTC
 
         BLOB_NAME = "blob-name"
         bucket = _Bucket()
-        TIMESTAMP = datetime.datetime(2014, 11, 5, 20, 34, 37, tzinfo=UTC)
+        TIMESTAMP = datetime.datetime(2014, 11, 5, 20, 34, 37, tzinfo=_UTC)
         TIME_CREATED = TIMESTAMP.strftime(_RFC3339_MICROS)
         properties = {"retentionExpirationTime": TIME_CREATED}
         blob = self._make_one(BLOB_NAME, bucket=bucket, properties=properties)
@@ -5723,11 +5742,10 @@ class Test_Blob(unittest.TestCase):
 
     def test_time_deleted(self):
         from google.cloud._helpers import _RFC3339_MICROS
-        from google.cloud._helpers import UTC
 
         BLOB_NAME = "blob-name"
         bucket = _Bucket()
-        TIMESTAMP = datetime.datetime(2014, 11, 5, 20, 34, 37, tzinfo=UTC)
+        TIMESTAMP = datetime.datetime(2014, 11, 5, 20, 34, 37, tzinfo=_UTC)
         TIME_DELETED = TIMESTAMP.strftime(_RFC3339_MICROS)
         properties = {"timeDeleted": TIME_DELETED}
         blob = self._make_one(BLOB_NAME, bucket=bucket, properties=properties)
@@ -5740,11 +5758,10 @@ class Test_Blob(unittest.TestCase):
 
     def test_time_created(self):
         from google.cloud._helpers import _RFC3339_MICROS
-        from google.cloud._helpers import UTC
 
         BLOB_NAME = "blob-name"
         bucket = _Bucket()
-        TIMESTAMP = datetime.datetime(2014, 11, 5, 20, 34, 37, tzinfo=UTC)
+        TIMESTAMP = datetime.datetime(2014, 11, 5, 20, 34, 37, tzinfo=_UTC)
         TIME_CREATED = TIMESTAMP.strftime(_RFC3339_MICROS)
         properties = {"timeCreated": TIME_CREATED}
         blob = self._make_one(BLOB_NAME, bucket=bucket, properties=properties)
@@ -5757,11 +5774,10 @@ class Test_Blob(unittest.TestCase):
 
     def test_updated(self):
         from google.cloud._helpers import _RFC3339_MICROS
-        from google.cloud._helpers import UTC
 
         BLOB_NAME = "blob-name"
         bucket = _Bucket()
-        TIMESTAMP = datetime.datetime(2014, 11, 5, 20, 34, 37, tzinfo=UTC)
+        TIMESTAMP = datetime.datetime(2014, 11, 5, 20, 34, 37, tzinfo=_UTC)
         UPDATED = TIMESTAMP.strftime(_RFC3339_MICROS)
         properties = {"updated": UPDATED}
         blob = self._make_one(BLOB_NAME, bucket=bucket, properties=properties)
@@ -5774,22 +5790,19 @@ class Test_Blob(unittest.TestCase):
 
     def test_custom_time_getter(self):
         from google.cloud._helpers import _RFC3339_MICROS
-        from google.cloud._helpers import UTC
 
         BLOB_NAME = "blob-name"
         bucket = _Bucket()
-        TIMESTAMP = datetime.datetime(2014, 11, 5, 20, 34, 37, tzinfo=UTC)
+        TIMESTAMP = datetime.datetime(2014, 11, 5, 20, 34, 37, tzinfo=_UTC)
         TIME_CREATED = TIMESTAMP.strftime(_RFC3339_MICROS)
         properties = {"customTime": TIME_CREATED}
         blob = self._make_one(BLOB_NAME, bucket=bucket, properties=properties)
         self.assertEqual(blob.custom_time, TIMESTAMP)
 
     def test_custom_time_setter(self):
-        from google.cloud._helpers import UTC
-
         BLOB_NAME = "blob-name"
         bucket = _Bucket()
-        TIMESTAMP = datetime.datetime(2014, 11, 5, 20, 34, 37, tzinfo=UTC)
+        TIMESTAMP = datetime.datetime(2014, 11, 5, 20, 34, 37, tzinfo=_UTC)
         blob = self._make_one(BLOB_NAME, bucket=bucket)
         self.assertIsNone(blob.custom_time)
         blob.custom_time = TIMESTAMP
@@ -5798,11 +5811,10 @@ class Test_Blob(unittest.TestCase):
 
     def test_custom_time_setter_none_value(self):
         from google.cloud._helpers import _RFC3339_MICROS
-        from google.cloud._helpers import UTC
 
         BLOB_NAME = "blob-name"
         bucket = _Bucket()
-        TIMESTAMP = datetime.datetime(2014, 11, 5, 20, 34, 37, tzinfo=UTC)
+        TIMESTAMP = datetime.datetime(2014, 11, 5, 20, 34, 37, tzinfo=_UTC)
         TIME_CREATED = TIMESTAMP.strftime(_RFC3339_MICROS)
         properties = {"customTime": TIME_CREATED}
         blob = self._make_one(BLOB_NAME, bucket=bucket, properties=properties)
@@ -5905,7 +5917,10 @@ class Test_Blob(unittest.TestCase):
             "x-goog-custom-audit-foo": "bar",
             "x-goog-custom-audit-user": "baz",
         }
-        credentials = mock.Mock(spec=google.auth.credentials.Credentials)
+        credentials = mock.Mock(
+            spec=google.auth.credentials.Credentials,
+            universe_domain=_DEFAULT_UNIVERSE_DOMAIN,
+        )
         client = Client(
             project="project", credentials=credentials, extra_headers=custom_headers
         )
@@ -5941,12 +5956,10 @@ class Test_Blob(unittest.TestCase):
         self.assertIsNone(retention.retention_expiration_time)
 
     def test_object_lock_retention_configuration_w_entry(self):
-        import datetime
         from google.cloud._helpers import _RFC3339_MICROS
-        from google.cloud._helpers import UTC
         from google.cloud.storage.blob import Retention
 
-        now = datetime.datetime.utcnow().replace(tzinfo=UTC)
+        now = _NOW(_UTC)
         expiration_time = now + datetime.timedelta(hours=1)
         expiration = expiration_time.strftime(_RFC3339_MICROS)
         mode = "Locked"
@@ -5977,8 +5990,6 @@ class Test_Blob(unittest.TestCase):
         self.assertEqual(retention.retention_expiration_time, expiration_time)
 
     def test_object_lock_retention_configuration_setter(self):
-        import datetime
-        from google.cloud._helpers import UTC
         from google.cloud.storage.blob import Retention
 
         BLOB_NAME = "blob-name"
@@ -5987,7 +5998,7 @@ class Test_Blob(unittest.TestCase):
         self.assertIsInstance(blob.retention, Retention)
 
         mode = "Locked"
-        now = datetime.datetime.utcnow().replace(tzinfo=UTC)
+        now = _NOW(_UTC)
         expiration_time = now + datetime.timedelta(hours=1)
         retention_config = Retention(
             blob=blob, mode=mode, retain_until_time=expiration_time
