@@ -4108,6 +4108,109 @@ class Test_Bucket(unittest.TestCase):
             _target_object=bucket,
         )
 
+    def test_restore_blob_w_defaults(self):
+        bucket_name = "restore_bucket"
+        blob_name = "restore_blob"
+        generation = 123456
+        api_response = {"name": blob_name, "generation": generation}
+        client = mock.Mock(spec=["_post_resource"])
+        client._post_resource.return_value = api_response
+        bucket = self._make_one(client=client, name=bucket_name)
+
+        restored_blob = bucket.restore_blob(blob_name)
+
+        self.assertIs(restored_blob.bucket, bucket)
+        self.assertEqual(restored_blob.name, blob_name)
+        expected_path = f"/b/{bucket_name}/o/{blob_name}/restore"
+        expected_data = None
+        expected_query_params = {}
+        client._post_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+        )
+
+    def test_restore_blob_w_explicit(self):
+        user_project = "user-project-123"
+        bucket_name = "restore_bucket"
+        blob_name = "restore_blob"
+        generation = 123456
+        api_response = {"name": blob_name, "generation": generation}
+        client = mock.Mock(spec=["_post_resource"])
+        client._post_resource.return_value = api_response
+        bucket = self._make_one(
+            client=client, name=bucket_name, user_project=user_project
+        )
+        if_generation_match = 123456
+        if_generation_not_match = 654321
+        if_metageneration_match = 1
+        if_metageneration_not_match = 2
+        projection = "noAcl"
+
+        restored_blob = bucket.restore_blob(
+            blob_name,
+            client=client,
+            if_generation_match=if_generation_match,
+            if_generation_not_match=if_generation_not_match,
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
+            projection=projection,
+        )
+
+        self.assertEqual(restored_blob.name, blob_name)
+        self.assertEqual(restored_blob.bucket, bucket)
+        expected_path = f"/b/{bucket_name}/o/{blob_name}/restore"
+        expected_data = None
+        expected_query_params = {
+            "userProject": user_project,
+            "projection": projection,
+            "ifGenerationMatch": if_generation_match,
+            "ifGenerationNotMatch": if_generation_not_match,
+            "ifMetagenerationMatch": if_metageneration_match,
+            "ifMetagenerationNotMatch": if_metageneration_not_match,
+        }
+        client._post_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+        )
+
+    def test_restore_blob_explicit_copy_source_acl(self):
+        bucket_name = "restore_bucket"
+        blob_name = "restore"
+        generation = 123456
+        api_response = {"name": blob_name, "generation": generation}
+        client = mock.Mock(spec=["_post_resource"])
+        client._post_resource.return_value = api_response
+        bucket = self._make_one(client=client, name=bucket_name)
+        copy_source_acl = False
+
+        restored_blob = bucket.restore_blob(
+            blob_name,
+            copy_source_acl=copy_source_acl,
+            generation=generation,
+        )
+
+        self.assertEqual(restored_blob.name, blob_name)
+        self.assertEqual(restored_blob.bucket, bucket)
+        expected_path = f"/b/{bucket_name}/o/{blob_name}/restore"
+        expected_data = None
+        expected_query_params = {
+            "copySourceAcl": False,
+            "generation": generation,
+        }
+        client._post_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+        )
+
     def test_generate_signed_url_w_invalid_version(self):
         expiration = "2014-10-16T20:34:37.000Z"
         client = self._make_client()

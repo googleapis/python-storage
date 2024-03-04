@@ -2074,6 +2074,108 @@ class Bucket(_PropertyMixin):
             )
         return new_blob
 
+    def restore_blob(
+        self,
+        blob_name,
+        client=None,
+        generation=None,
+        copy_source_acl=None,
+        projection=None,
+        if_generation_match=None,
+        if_generation_not_match=None,
+        if_metageneration_match=None,
+        if_metageneration_not_match=None,
+        timeout=_DEFAULT_TIMEOUT,
+        retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+    ):
+        """Restores a soft-deleted object.
+
+        If :attr:`user_project` is set on the bucket, bills the API request to that project.
+
+        :type blob_name: str
+        :param blob_name: The name of the blob to be restored.
+
+        :type client: :class:`~google.cloud.storage.client.Client`
+        :param client: (Optional) The client to use. If not passed, falls back
+                       to the ``client`` stored on the current bucket.
+
+        :type generation: long
+        :param generation: (Optional) If present, selects a specific revision of this object.
+
+        :type copy_source_acl: bool
+        :param copy_source_acl: (Optional) If true, copy the soft-deleted object's access controls.
+
+        :type projection: str
+        :param projection: (Optional) Specifies the set of properties to return.
+                           If used, must be 'full' or 'noAcl'.
+
+        :type if_generation_match: long
+        :param if_generation_match:
+            (Optional) See :ref:`using-if-generation-match`
+
+        :type if_generation_not_match: long
+        :param if_generation_not_match:
+            (Optional) See :ref:`using-if-generation-not-match`
+
+        :type if_metageneration_match: long
+        :param if_metageneration_match:
+            (Optional) See :ref:`using-if-metageneration-match`
+
+        :type if_metageneration_not_match: long
+        :param if_metageneration_not_match:
+            (Optional) See :ref:`using-if-metageneration-not-match`
+
+        :type timeout: float or tuple
+        :param timeout:
+            (Optional) The amount of time, in seconds, to wait
+            for the server response.  See: :ref:`configuring_timeouts`
+
+        :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
+        :param retry:
+            (Optional) How to retry the RPC.
+            The default value is ``DEFAULT_RETRY_IF_GENERATION_SPECIFIED``, which
+            only restore operations with ``if_generation_match`` or ``generation`` set
+            will be retried.
+
+            Users can configure non-default retry behavior. A ``None`` value will
+            disable retries. A ``DEFAULT_RETRY`` value will enable retries
+            even if restore operations are not guaranteed to be idempotent.
+            See [Configuring Retries](https://cloud.google.com/python/docs/reference/storage/latest/retry_timeout).
+
+        :rtype: :class:`google.cloud.storage.blob.Blob`
+        :returns: The restored Blob.
+        """
+        client = self._require_client(client)
+        query_params = {}
+
+        if self.user_project is not None:
+            query_params["userProject"] = self.user_project
+        if generation is not None:
+            query_params["generation"] = generation
+        if copy_source_acl is not None:
+            query_params["copySourceAcl"] = copy_source_acl
+        if projection is not None:
+            query_params["projection"] = projection
+
+        _add_generation_match_parameters(
+            query_params,
+            if_generation_match=if_generation_match,
+            if_generation_not_match=if_generation_not_match,
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
+        )
+
+        blob = Blob(bucket=self, name=blob_name)
+        api_response = client._post_resource(
+            f"{blob.path}/restore",
+            None,
+            query_params=query_params,
+            timeout=timeout,
+            retry=retry,
+        )
+        blob._set_properties(api_response)
+        return blob
+
     @property
     def cors(self):
         """Retrieve or set CORS policies configured for this bucket.

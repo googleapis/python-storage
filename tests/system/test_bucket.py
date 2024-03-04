@@ -1182,7 +1182,7 @@ def test_soft_delete_policy(
     assert soft_deleted_blob.hard_delete_time is not None
 
     # Restore the soft-deleted object.
-    restored_blob = soft_deleted_blob.restore()
+    restored_blob = bucket.restore_blob(blob_name, generation=gen)
     assert restored_blob.generation != gen
 
     # Patch the soft delete policy on an existing bucket.
