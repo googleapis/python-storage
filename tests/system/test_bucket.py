@@ -1147,15 +1147,19 @@ def test_soft_delete_policy(
     storage_client,
     buckets_to_delete,
 ):
+    from google.cloud.storage.bucket import SoftDeletePolicy
+
     # Create a bucket with soft delete policy.
     duration_secs = 7 * 86400
     bucket = storage_client.bucket(_helpers.unique_name("w-soft-delete"))
-    bucket.soft_delete_retention_duration_seconds = duration_secs
+    bucket.soft_delete_policy.retention_duration_seconds = duration_secs
     bucket = _helpers.retry_429_503(storage_client.create_bucket)(bucket)
     buckets_to_delete.append(bucket)
 
-    assert bucket.soft_delete_retention_duration_seconds == duration_secs
-    assert isinstance(bucket.soft_delete_effective_time, datetime.datetime)
+    policy = bucket.soft_delete_policy
+    assert isinstance(policy, SoftDeletePolicy)
+    assert policy.retention_duration_seconds == duration_secs
+    assert isinstance(policy.effective_time, datetime.datetime)
 
     # Insert an object and get object metadata prior soft-deleted.
     payload = b"DEADBEEF"
@@ -1187,6 +1191,6 @@ def test_soft_delete_policy(
 
     # Patch the soft delete policy on an existing bucket.
     new_duration_secs = 10 * 86400
-    bucket.soft_delete_retention_duration_seconds = new_duration_secs
+    bucket.soft_delete_policy.retention_duration_seconds = new_duration_secs
     bucket.patch()
-    assert bucket.soft_delete_retention_duration_seconds == new_duration_secs
+    assert bucket.soft_delete_policy.retention_duration_seconds == new_duration_secs

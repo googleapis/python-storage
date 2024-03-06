@@ -3116,45 +3116,40 @@ class Test_Bucket(unittest.TestCase):
         bucket = self._make_one(properties=properties)
         self.assertEqual(bucket.object_retention_mode, mode)
 
-    def test_soft_delete_getter_policy_missing(self):
-        bucket = self._make_one()
-        self.assertIsNone(bucket.soft_delete_retention_duration_seconds)
-        self.assertIsNone(bucket.soft_delete_effective_time)
-
-    def test_soft_delete_getter_pr_missing(self):
-        properties = {"softDeletePolicy": {}}
-        bucket = self._make_one(properties=properties)
-        self.assertIsNone(bucket.soft_delete_retention_duration_seconds)
-        self.assertIsNone(bucket.soft_delete_effective_time)
-
-    def test_soft_delete_duration_getter(self):
-        seconds = 86400 * 10  # 10 days
-        properties = {"softDeletePolicy": {"retentionDurationSeconds": str(seconds)}}
-        bucket = self._make_one(properties=properties)
-        self.assertEqual(bucket.soft_delete_retention_duration_seconds, seconds)
-
-    def test_soft_delete_duration_setter(self):
-        seconds = 86400 * 10  # 100 days
-        bucket = self._make_one()
-        bucket.soft_delete_retention_duration_seconds = None
-        self.assertEqual(bucket._properties["softDeletePolicy"], {})
-
-        bucket.soft_delete_retention_duration_seconds = seconds
-        self.assertEqual(
-            bucket._properties["softDeletePolicy"]["retentionDurationSeconds"],
-            str(seconds),
-        )
-
-    def test_soft_delete_effective_time_getter(self):
+    def test_soft_delete_policy_getter_w_entry(self):
+        from google.cloud.storage.bucket import SoftDeletePolicy
         from google.cloud._helpers import _datetime_to_rfc3339
 
+        seconds = 86400 * 10  # 10 days
         effective_time = _NOW(_UTC)
         properties = {
-            "softDeletePolicy": {"effectiveTime": _datetime_to_rfc3339(effective_time)}
+            "softDeletePolicy": {
+                "retentionDurationSeconds": seconds,
+                "effectiveTime": _datetime_to_rfc3339(effective_time),
+            }
         }
         bucket = self._make_one(properties=properties)
 
-        self.assertEqual(bucket.soft_delete_effective_time, effective_time)
+        policy = SoftDeletePolicy(
+            bucket=bucket,
+            retention_duration_seconds=seconds,
+            effective_time=effective_time,
+        )
+        self.assertIsInstance(bucket.soft_delete_policy, SoftDeletePolicy)
+        self.assertEqual(bucket.soft_delete_policy, policy)
+        self.assertEqual(bucket.soft_delete_policy.retention_duration_seconds, seconds)
+        self.assertEqual(bucket.soft_delete_policy.effective_time, effective_time)
+
+    def test_soft_delete_policy_setter(self):
+        bucket = self._make_one()
+        policy = bucket.soft_delete_policy
+        self.assertIsNone(policy.retention_duration_seconds)
+        self.assertIsNone(policy.effective_time)
+
+        seconds = 86400 * 10  # 10 days
+        bucket.soft_delete_policy.retention_duration_seconds = seconds
+        self.assertTrue("softDeletePolicy" in bucket._changes)
+        self.assertEqual(bucket.soft_delete_policy.retention_duration_seconds, seconds)
 
     def test_configure_website_defaults(self):
         NAME = "name"

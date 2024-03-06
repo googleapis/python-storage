@@ -2344,6 +2344,16 @@ class Bucket(_PropertyMixin):
         return IAMConfiguration.from_api_repr(info, self)
 
     @property
+    def soft_delete_policy(self):
+        """Retrieve the soft delete policy for this bucket.
+
+        :rtype: :class:`SoftDeletePolicy`
+        :returns: an instance for managing the bucket's soft delete policy.
+        """
+        policy = self._properties.get("softDeletePolicy", {})
+        return SoftDeletePolicy.from_api_repr(policy, self)
+
+    @property
     def lifecycle_rules(self):
         """Retrieve or set lifecycle rules configured for this bucket.
 
@@ -2900,49 +2910,6 @@ class Bucket(_PropertyMixin):
         object_retention = self._properties.get("objectRetention")
         if object_retention is not None:
             return object_retention.get("mode")
-
-    @property
-    def soft_delete_retention_duration_seconds(self):
-        """Retrieve the retention duration of the bucket's soft delete policy.
-
-        :rtype: int or ``NoneType``
-        :returns: The period of time in seconds that soft-deleted objects in the bucket
-                  will be retained and cannot be permanently deleted; Or ``None`` if the
-                  property is not set.
-        """
-        policy = self._properties.get("softDeletePolicy")
-        if policy is not None:
-            duration = policy.get("retentionDurationSeconds")
-            if duration is not None:
-                return int(duration)
-
-    @soft_delete_retention_duration_seconds.setter
-    def soft_delete_retention_duration_seconds(self, value):
-        """Set the retention duration of the bucket's soft delete policy.
-
-        :type value: int
-        :param value:
-            The period of time in seconds that soft-deleted objects in the bucket
-            will be retained and cannot be permanently deleted.
-        """
-        policy = self._properties.setdefault("softDeletePolicy", {})
-        if value is not None:
-            policy["retentionDurationSeconds"] = str(value)
-        self._patch_property("softDeletePolicy", policy)
-
-    @property
-    def soft_delete_effective_time(self):
-        """Retrieve the effective time of the bucket's soft delete policy.
-
-        :rtype: datetime.datetime or ``NoneType``
-        :returns: point-in time at which the bucket's soft delte policy is
-                  effective, or ``None`` if the property is not set.
-        """
-        policy = self._properties.get("softDeletePolicy")
-        if policy is not None:
-            timestamp = policy.get("effectiveTime")
-            if timestamp is not None:
-                return _rfc3339_nanos_to_datetime(timestamp)
 
     def configure_website(self, main_page_suffix=None, not_found_page=None):
         """Configure website-related properties.
@@ -3589,6 +3556,100 @@ class Bucket(_PropertyMixin):
             headers=headers,
             query_parameters=query_parameters,
         )
+
+
+class SoftDeletePolicy(dict):
+    """Map a bucket's soft delete policy.
+
+    :type bucket: :class:`Bucket`
+    :param bucket: Bucket for which this instance is the policy.
+
+    :type retention_duration_seconds: int
+    :param retention_duration_seconds:
+        (Optional) The period of time in seconds that soft-deleted objects in the bucket
+        will be retained and cannot be permanently deleted.
+
+    :type effective_time: :class:`datetime.datetime`
+    :param effective_time:
+        (Optional) When the bucket's soft delete policy is effective.
+        This value should normally only be set by the back-end API.
+    """
+
+    def __init__(self, bucket, **kw):
+        data = {}
+        retention_duration_seconds = kw.get("retention_duration_seconds")
+        data["retentionDurationSeconds"] = retention_duration_seconds
+
+        effective_time = kw.get("effective_time")
+        if effective_time is not None:
+            effective_time = _datetime_to_rfc3339(effective_time)
+        data["effectiveTime"] = effective_time
+
+        super().__init__(data)
+        self._bucket = bucket
+
+    @classmethod
+    def from_api_repr(cls, resource, bucket):
+        """Factory:  construct instance from resource.
+
+        :type resource: dict
+        :param resource: mapping as returned from API call.
+
+        :type bucket: :class:`Bucket`
+        :params bucket: Bucket for which this instance is the policy.
+
+        :rtype: :class:`SoftDeletePolicy`
+        :returns: Instance created from resource.
+        """
+        instance = cls(bucket)
+        instance.update(resource)
+        return instance
+
+    @property
+    def bucket(self):
+        """Bucket for which this instance is the policy.
+
+        :rtype: :class:`Bucket`
+        :returns: the instance's bucket.
+        """
+        return self._bucket
+
+    @property
+    def retention_duration_seconds(self):
+        """Get the retention duration of the bucket's soft delete policy.
+
+        :rtype: int or ``NoneType``
+        :returns: The period of time in seconds that soft-deleted objects in the bucket
+                  will be retained and cannot be permanently deleted; Or ``None`` if the
+                  property is not set.
+        """
+        duration = self.get("retentionDurationSeconds")
+        if duration is not None:
+            return int(duration)
+
+    @retention_duration_seconds.setter
+    def retention_duration_seconds(self, value):
+        """Set the retention duration of the bucket's soft delete policy.
+
+        :type value: int
+        :param value:
+            The period of time in seconds that soft-deleted objects in the bucket
+            will be retained and cannot be permanently deleted.
+        """
+        self["retentionDurationSeconds"] = value
+        self.bucket._patch_property("softDeletePolicy", self)
+
+    @property
+    def effective_time(self):
+        """Get the effective time of the bucket's soft delete policy.
+
+        :rtype: datetime.datetime or ``NoneType``
+        :returns: point-in time at which the bucket's soft delte policy is
+                  effective, or ``None`` if the property is not set.
+        """
+        timestamp = self.get("effectiveTime")
+        if timestamp is not None:
+            return _rfc3339_nanos_to_datetime(timestamp)
 
 
 def _raise_if_len_differs(expected_len, **generation_match_args):
