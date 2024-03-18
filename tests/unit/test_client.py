@@ -2016,6 +2016,7 @@ class TestClient(unittest.TestCase):
         end_offset = "g"
         include_trailing_delimiter = True
         include_folders_as_prefixes = True
+        soft_deleted = False
         versions = True
         projection = "full"
         page_size = 2
@@ -2049,6 +2050,7 @@ class TestClient(unittest.TestCase):
             retry=retry,
             match_glob=match_glob,
             include_folders_as_prefixes=include_folders_as_prefixes,
+            soft_deleted=soft_deleted,
         )
 
         self.assertIs(iterator, client._list_resource.return_value)
@@ -2071,6 +2073,7 @@ class TestClient(unittest.TestCase):
             "fields": fields,
             "userProject": user_project,
             "includeFoldersAsPrefixes": include_folders_as_prefixes,
+            "softDeleted": soft_deleted,
         }
         expected_page_start = _blobs_page_start
         expected_page_size = 2
