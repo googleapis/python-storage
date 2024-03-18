@@ -697,8 +697,10 @@ class Blob(_PropertyMixin):
 
         :type soft_deleted: bool
         :param soft_deleted:
-            (Optional) If true, determines whether or not this soft-deleted object exists.
+            (Optional) If True, looks for a soft-deleted object. Will only return True
+            if the object exists and is in a soft-deleted state.
             :attr:`generation` is required to be set on the blob if ``soft_deleted`` is set to True.
+            See: https://cloud.google.com/storage/docs/soft-delete
 
         :rtype: bool
         :returns: True if the blob exists in Cloud Storage.

@@ -1251,8 +1251,10 @@ class Bucket(_PropertyMixin):
 
         :type soft_deleted: bool
         :param soft_deleted:
-            (Optional) If true, returns the soft-deleted object.
+            (Optional) If True, looks for a soft-deleted object. Will only return
+            the object metadata if the object exists and is in a soft-deleted state.
             Object ``generation`` is required if ``soft_deleted`` is set to True.
+            See: https://cloud.google.com/storage/docs/soft-delete
 
         :param kwargs: Keyword arguments to pass to the
                        :class:`~google.cloud.storage.blob.Blob` constructor.
@@ -1388,8 +1390,10 @@ class Bucket(_PropertyMixin):
 
         :type soft_deleted: bool
         :param soft_deleted:
-            (Optional) If true, only soft-deleted object versions will be listed as distinct results in order
-            of generation number. Note ``soft_deleted`` and ``versions`` cannot be set to True simultaneously.
+            (Optional) If true, only soft-deleted objects will be listed as distinct results in order of increasing
+            generation number. This parameter can only be used successfully if the bucket has a soft delete policy.
+            Note ``soft_deleted`` and ``versions`` cannot be set to True simultaneously. See:
+            https://cloud.google.com/storage/docs/soft-delete
 
         :rtype: :class:`~google.api_core.page_iterator.Iterator`
         :returns: Iterator of all :class:`~google.cloud.storage.blob.Blob`
@@ -2092,6 +2096,8 @@ class Bucket(_PropertyMixin):
 
         If :attr:`user_project` is set on the bucket, bills the API request to that project.
 
+        See [API reference docs](https://cloud.google.com/storage/docs/json_api/v1/objects/restore)
+
         :type blob_name: str
         :param blob_name: The name of the blob to be restored.
 
@@ -2346,6 +2352,8 @@ class Bucket(_PropertyMixin):
     @property
     def soft_delete_policy(self):
         """Retrieve the soft delete policy for this bucket.
+
+        See https://cloud.google.com/storage/docs/soft-delete
 
         :rtype: :class:`SoftDeletePolicy`
         :returns: an instance for managing the bucket's soft delete policy.
@@ -3560,6 +3568,8 @@ class Bucket(_PropertyMixin):
 
 class SoftDeletePolicy(dict):
     """Map a bucket's soft delete policy.
+
+    See https://cloud.google.com/storage/docs/soft-delete
 
     :type bucket: :class:`Bucket`
     :param bucket: Bucket for which this instance is the policy.

@@ -225,7 +225,7 @@ class _PropertyMixin(object):
         if_metageneration_not_match=None,
         timeout=_DEFAULT_TIMEOUT,
         retry=DEFAULT_RETRY,
-        **kwargs,
+        soft_deleted=None,
     ):
         """Reload properties from Cloud Storage.
 
@@ -271,6 +271,13 @@ class _PropertyMixin(object):
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
         :param retry:
             (Optional) How to retry the RPC. See: :ref:`configuring_retries`
+
+        :type soft_deleted: bool
+        :param soft_deleted:
+            (Optional) If True, looks for a soft-deleted object. Will only return
+            the object metadata if the object exists and is in a soft-deleted state.
+            :attr:`generation` is required to be set on the blob if ``soft_deleted`` is set to True.
+            See: https://cloud.google.com/storage/docs/soft-delete
         """
         client = self._require_client(client)
         query_params = self._query_params
@@ -284,8 +291,8 @@ class _PropertyMixin(object):
             if_metageneration_match=if_metageneration_match,
             if_metageneration_not_match=if_metageneration_not_match,
         )
-        if kwargs.get("soft_deleted") is not None:
-            query_params["softDeleted"] = kwargs["soft_deleted"]
+        if soft_deleted is not None:
+            query_params["softDeleted"] = soft_deleted
         headers = self._encryption_headers()
         _add_etag_match_headers(
             headers, if_etag_match=if_etag_match, if_etag_not_match=if_etag_not_match

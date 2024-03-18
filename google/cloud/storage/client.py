@@ -1284,9 +1284,10 @@ class Client(ClientWithProject):
                 https://cloud.google.com/storage/docs/json_api/v1/objects/list#list-object-glob
 
             soft_deleted (bool):
-                (Optional) If true, only soft-deleted object versions will be listed as distinct results in order
-                of generation number. Note ``soft_deleted`` and ``versions`` cannot be set to True simultaneously.
-                https://cloud.google.com/storage/docs/json_api/v1/objects/list#list-object-glob
+                (Optional) If true, only soft-deleted objects will be listed as distinct results in order of increasing
+                generation number. This parameter can only be used successfully if the bucket has a soft delete policy.
+                Note ``soft_deleted`` and ``versions`` cannot be set to True simultaneously. See:
+                https://cloud.google.com/storage/docs/soft-delete
 
         Returns:
             Iterator of all :class:`~google.cloud.storage.blob.Blob`
