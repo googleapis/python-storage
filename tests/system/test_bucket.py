@@ -653,6 +653,47 @@ def test_bucket_list_blobs_w_match_glob(
         assert [blob.name for blob in blobs] == expected_names
 
 
+def test_bucket_list_blobs_include_managed_folders(
+    storage_client,
+    buckets_to_delete,
+    blobs_to_delete,
+    hierarchy_filenames,
+):
+    bucket_name = _helpers.unique_name("ubla-mf")
+    bucket = storage_client.bucket(bucket_name)
+    bucket.iam_configuration.uniform_bucket_level_access_enabled = True
+    _helpers.retry_429_503(bucket.create)()
+    buckets_to_delete.append(bucket)
+
+    payload = b"helloworld"
+    for filename in hierarchy_filenames:
+        blob = bucket.blob(filename)
+        blob.upload_from_string(payload)
+        blobs_to_delete.append(blob)
+
+    # Make API call to create a managed folder.
+    # TODO: change to use storage control client once available.
+    path = f"/b/{bucket_name}/managedFolders"
+    properties = {"name": "managedfolder1"}
+    storage_client._post_resource(path, properties)
+
+    expected_prefixes = set(["parent/"])
+    blob_iter = bucket.list_blobs(delimiter="/")
+    list(blob_iter)
+    assert blob_iter.prefixes == expected_prefixes
+
+    # Test that managed folders are only included when IncludeFoldersAsPrefixes is set.
+    expected_prefixes = set(["parent/", "managedfolder1/"])
+    blob_iter = bucket.list_blobs(delimiter="/", include_folders_as_prefixes=True)
+    list(blob_iter)
+    assert blob_iter.prefixes == expected_prefixes
+
+    # Cleanup: API call to delete a managed folder.
+    # TODO: change to use storage control client once available.
+    path = f"/b/{bucket_name}/managedFolders/managedfolder1"
+    storage_client._delete_resource(path)
+
+
 def test_bucket_update_retention_period(
     storage_client,
     buckets_to_delete,
@@ -1141,3 +1182,57 @@ def test_config_autoclass_w_existing_bucket(
     assert (
         bucket.autoclass_terminal_storage_class_update_time != previous_tsc_update_time
     )
+
+
+def test_soft_delete_policy(
+    storage_client,
+    buckets_to_delete,
+):
+    from google.cloud.storage.bucket import SoftDeletePolicy
+
+    # Create a bucket with soft delete policy.
+    duration_secs = 7 * 86400
+    bucket = storage_client.bucket(_helpers.unique_name("w-soft-delete"))
+    bucket.soft_delete_policy.retention_duration_seconds = duration_secs
+    bucket = _helpers.retry_429_503(storage_client.create_bucket)(bucket)
+    buckets_to_delete.append(bucket)
+
+    policy = bucket.soft_delete_policy
+    assert isinstance(policy, SoftDeletePolicy)
+    assert policy.retention_duration_seconds == duration_secs
+    assert isinstance(policy.effective_time, datetime.datetime)
+
+    # Insert an object and get object metadata prior soft-deleted.
+    payload = b"DEADBEEF"
+    blob_name = _helpers.unique_name("soft-delete")
+    blob = bucket.blob(blob_name)
+    blob.upload_from_string(payload)
+
+    blob = bucket.get_blob(blob_name)
+    gen = blob.generation
+    assert blob.soft_delete_time is None
+    assert blob.hard_delete_time is None
+
+    # Delete the object to enter soft-deleted state.
+    blob.delete()
+
+    iter_default = bucket.list_blobs()
+    assert len(list(iter_default)) == 0
+    iter_w_soft_delete = bucket.list_blobs(soft_deleted=True)
+    assert len(list(iter_w_soft_delete)) > 0
+
+    # Get the soft-deleted object.
+    soft_deleted_blob = bucket.get_blob(blob_name, generation=gen, soft_deleted=True)
+    assert soft_deleted_blob.soft_delete_time is not None
+    assert soft_deleted_blob.hard_delete_time is not None
+
+    # Restore the soft-deleted object.
+    restored_blob = bucket.restore_blob(blob_name, generation=gen)
+    assert restored_blob.exists() is True
+    assert restored_blob.generation != gen
+
+    # Patch the soft delete policy on an existing bucket.
+    new_duration_secs = 10 * 86400
+    bucket.soft_delete_policy.retention_duration_seconds = new_duration_secs
+    bucket.patch()
+    assert bucket.soft_delete_policy.retention_duration_seconds == new_duration_secs
