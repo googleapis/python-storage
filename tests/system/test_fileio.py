@@ -76,3 +76,48 @@ def test_blobwriter_and_blobreader_text_mode(
         assert text_data[:100] == reader.read(100)
         assert 0 == reader.seek(0)
         assert reader.read() == text_data
+
+
+
+def test_blobwriter_exit(
+    shared_bucket,
+    blobs_to_delete,
+    service_account,
+):
+    blob = shared_bucket.blob("NeverUploaded")
+
+    # no-op when nothing was uploaded yet
+    try:
+        with blob.open("wt") as writer:
+            writer.write(b'first chunk')  # not yet uploaded
+            raise ValueError('SIGTERM received')  # no upload to cancel in __exit__
+    except ValueError:
+        pass
+
+    # blob should not exist
+    assert not blob.exists()
+
+    # unhandled exceptions should cancel the upload
+    try:
+        with blob.open("wt") as writer:
+            writer.write(b'first chunk')  # not yet uploaded
+            writer.write(b'big chunk' * 1024 ** 8)  # uploaded
+            raise ValueError('SIGTERM received')  # upload is cancelled in __exit__
+    except ValueError:
+        pass
+
+    # blob should not exist
+    assert not blob.exists()
+
+    # handled exceptions should not cancel the upload
+    with blob.open("wt") as writer:
+        writer.write(b'first chunk')  # not yet uploaded
+        writer.write(b'big chunk' * 1024 ** 8)  # uploaded
+        try:
+            raise ValueError('This is fine')
+        except ValueError:
+            pass  # no exception context passed to __exit__
+    blobs_to_delete.append(blob)
+
+    # blob should have been uploaded
+    assert blob.exists()
