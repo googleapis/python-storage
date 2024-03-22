@@ -1184,6 +1184,8 @@ class Client(ClientWithProject):
         timeout=_DEFAULT_TIMEOUT,
         retry=DEFAULT_RETRY,
         match_glob=None,
+        include_folders_as_prefixes=None,
+        soft_deleted=None,
     ):
         """Return an iterator used to find blobs in the bucket.
 
@@ -1282,6 +1284,17 @@ class Client(ClientWithProject):
                 The string value must be UTF-8 encoded. See:
                 https://cloud.google.com/storage/docs/json_api/v1/objects/list#list-object-glob
 
+            include_folders_as_prefixes (bool):
+                (Optional) If true, includes Folders and Managed Folders in the set of
+                ``prefixes`` returned by the query. Only applicable if ``delimiter`` is set to /.
+                See: https://cloud.google.com/storage/docs/managed-folders
+
+            soft_deleted (bool):
+                (Optional) If true, only soft-deleted objects will be listed as distinct results in order of increasing
+                generation number. This parameter can only be used successfully if the bucket has a soft delete policy.
+                Note ``soft_deleted`` and ``versions`` cannot be set to True simultaneously. See:
+                https://cloud.google.com/storage/docs/soft-delete
+
         Returns:
             Iterator of all :class:`~google.cloud.storage.blob.Blob`
             in this bucket matching the arguments. The RPC call
@@ -1317,6 +1330,12 @@ class Client(ClientWithProject):
 
         if fields is not None:
             extra_params["fields"] = fields
+
+        if include_folders_as_prefixes is not None:
+            extra_params["includeFoldersAsPrefixes"] = include_folders_as_prefixes
+
+        if soft_deleted is not None:
+            extra_params["softDeleted"] = soft_deleted
 
         if bucket.user_project is not None:
             extra_params["userProject"] = bucket.user_project
