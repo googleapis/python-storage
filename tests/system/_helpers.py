@@ -20,7 +20,7 @@ from google.api_core import exceptions
 from test_utils.retry import RetryErrors
 from test_utils.retry import RetryInstanceState
 from test_utils.system import unique_resource_id
-from google.cloud.storage._helpers import _DEFAULT_STORAGE_HOST
+from google.cloud.storage._helpers import _get_default_storage_base_url
 
 retry_429 = RetryErrors(exceptions.TooManyRequests)
 retry_429_harder = RetryErrors(exceptions.TooManyRequests, max_tries=10)
@@ -32,7 +32,9 @@ retry_failures = RetryErrors(AssertionError)
 user_project = os.environ.get("GOOGLE_CLOUD_TESTS_USER_PROJECT")
 testing_mtls = os.getenv("GOOGLE_API_USE_CLIENT_CERTIFICATE") == "true"
 signing_blob_content = b"This time for sure, Rocky!"
-is_api_endpoint_override = _DEFAULT_STORAGE_HOST != "https://storage.googleapis.com"
+is_api_endpoint_override = (
+    _get_default_storage_base_url() != "https://storage.googleapis.com"
+)
 
 
 def _bad_copy(bad_request):
@@ -91,7 +93,11 @@ def empty_bucket(bucket):
 
 
 def delete_blob(blob):
-    errors = (exceptions.Conflict, exceptions.TooManyRequests)
+    errors = (
+        exceptions.Conflict,
+        exceptions.TooManyRequests,
+        exceptions.ServiceUnavailable,
+    )
     retry = RetryErrors(errors)
     try:
         retry(blob.delete)(timeout=120)  # seconds
@@ -105,14 +111,22 @@ def delete_blob(blob):
 
 
 def delete_bucket(bucket):
-    errors = (exceptions.Conflict, exceptions.TooManyRequests)
+    errors = (
+        exceptions.Conflict,
+        exceptions.TooManyRequests,
+        exceptions.ServiceUnavailable,
+    )
     retry = RetryErrors(errors, max_tries=15)
     retry(empty_bucket)(bucket)
     retry(bucket.delete)(force=True)
 
 
-def await_config_changes_propagate(sec=3):
+def await_config_changes_propagate(sec=12):
     # Changes to the bucket will be readable immediately after writing,
     # but configuration changes may take time to propagate.
     # See https://cloud.google.com/storage/docs/json_api/v1/buckets/patch
+    #
+    # The default was changed from 3 to 12 in May 2023 due to changes in bucket
+    # metadata handling. Note that the documentation recommends waiting "30
+    # seconds".
     time.sleep(sec)

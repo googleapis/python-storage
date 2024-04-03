@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
+# [START storage_transfer_manager_upload_many]
 def upload_many_blobs_with_transfer_manager(
-    bucket_name, filenames, source_directory="", processes=8
+    bucket_name, filenames, source_directory="", workers=8
 ):
-    """Upload every file in a list to a bucket, concurrently in a thread pool.
+    """Upload every file in a list to a bucket, concurrently in a process pool.
 
     Each blob name is derived from the filename, not including the
     `source_directory` parameter. For complete control of the blob name for each
@@ -43,8 +43,9 @@ def upload_many_blobs_with_transfer_manager(
     # The maximum number of processes to use for the operation. The performance
     # impact of this value depends on the use case, but smaller files usually
     # benefit from a higher number of processes. Each additional process occupies
-    # some CPU and memory resources until finished.
-    # processes=8
+    # some CPU and memory resources until finished. Threads can be used instead
+    # of processes by passing `worker_type=transfer_manager.THREAD`.
+    # workers=8
 
     from google.cloud.storage import Client, transfer_manager
 
@@ -52,7 +53,7 @@ def upload_many_blobs_with_transfer_manager(
     bucket = storage_client.bucket(bucket_name)
 
     results = transfer_manager.upload_many_from_filenames(
-        bucket, filenames, source_directory=source_directory, max_workers=processes
+        bucket, filenames, source_directory=source_directory, max_workers=workers
     )
 
     for name, result in zip(filenames, results):
@@ -63,3 +64,4 @@ def upload_many_blobs_with_transfer_manager(
             print("Failed to upload {} due to exception: {}".format(name, result))
         else:
             print("Uploaded {} to {}.".format(name, bucket.name))
+# [END storage_transfer_manager_upload_many]

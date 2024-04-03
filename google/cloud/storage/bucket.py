@@ -23,19 +23,21 @@ import warnings
 
 from google.api_core import datetime_helpers
 from google.cloud._helpers import _datetime_to_rfc3339
-from google.cloud._helpers import _NOW
 from google.cloud._helpers import _rfc3339_nanos_to_datetime
 from google.cloud.exceptions import NotFound
 from google.api_core.iam import Policy
 from google.cloud.storage import _signing
 from google.cloud.storage._helpers import _add_etag_match_headers
 from google.cloud.storage._helpers import _add_generation_match_parameters
+from google.cloud.storage._helpers import _NOW
 from google.cloud.storage._helpers import _PropertyMixin
+from google.cloud.storage._helpers import _UTC
 from google.cloud.storage._helpers import _scalar_property
 from google.cloud.storage._helpers import _validate_name
 from google.cloud.storage._signing import generate_signed_url_v2
 from google.cloud.storage._signing import generate_signed_url_v4
 from google.cloud.storage._helpers import _bucket_bound_hostname_url
+from google.cloud.storage._helpers import _virtual_hosted_style_base_url
 from google.cloud.storage.acl import BucketACL
 from google.cloud.storage.acl import DefaultObjectACL
 from google.cloud.storage.blob import Blob
@@ -82,7 +84,6 @@ _LOCATION_SETTER_MESSAGE = (
     "valid before the bucket is created. Instead, pass the location "
     "to `Bucket.create`."
 )
-_API_ACCESS_ENDPOINT = "https://storage.googleapis.com"
 
 
 def _blobs_page_start(iterator, page, response):
@@ -474,7 +475,6 @@ class IAMConfiguration(dict):
         bucket_policy_only_locked_time=_default,
     ):
         if bucket_policy_only_enabled is not _default:
-
             if uniform_bucket_level_access_enabled is not _default:
                 raise ValueError(_UBLA_BPO_ENABLED_MESSAGE)
 
@@ -482,7 +482,6 @@ class IAMConfiguration(dict):
             uniform_bucket_level_access_enabled = bucket_policy_only_enabled
 
         if bucket_policy_only_locked_time is not _default:
-
             if uniform_bucket_level_access_locked_time is not _default:
                 raise ValueError(_UBLA_BPO_LOCK_TIME_MESSAGE)
 
@@ -919,6 +918,7 @@ class Bucket(_PropertyMixin):
         location=None,
         predefined_acl=None,
         predefined_default_object_acl=None,
+        enable_object_retention=False,
         timeout=_DEFAULT_TIMEOUT,
         retry=DEFAULT_RETRY,
     ):
@@ -958,6 +958,11 @@ class Bucket(_PropertyMixin):
             (Optional) Name of predefined ACL to apply to bucket's objects. See:
             https://cloud.google.com/storage/docs/access-control/lists#predefined-acl
 
+        :type enable_object_retention: bool
+        :param enable_object_retention:
+            (Optional) Whether object retention should be enabled on this bucket. See:
+            https://cloud.google.com/storage/docs/object-lock
+
         :type timeout: float or tuple
         :param timeout:
             (Optional) The amount of time, in seconds, to wait
@@ -976,6 +981,7 @@ class Bucket(_PropertyMixin):
             location=location,
             predefined_acl=predefined_acl,
             predefined_default_object_acl=predefined_default_object_acl,
+            enable_object_retention=enable_object_retention,
             timeout=timeout,
             retry=retry,
         )
@@ -1182,6 +1188,7 @@ class Bucket(_PropertyMixin):
         if_metageneration_not_match=None,
         timeout=_DEFAULT_TIMEOUT,
         retry=DEFAULT_RETRY,
+        soft_deleted=None,
         **kwargs,
     ):
         """Get a blob object by name.
@@ -1242,6 +1249,13 @@ class Bucket(_PropertyMixin):
         :param retry:
             (Optional) How to retry the RPC. See: :ref:`configuring_retries`
 
+        :type soft_deleted: bool
+        :param soft_deleted:
+            (Optional) If True, looks for a soft-deleted object. Will only return
+            the object metadata if the object exists and is in a soft-deleted state.
+            Object ``generation`` is required if ``soft_deleted`` is set to True.
+            See: https://cloud.google.com/storage/docs/soft-delete
+
         :param kwargs: Keyword arguments to pass to the
                        :class:`~google.cloud.storage.blob.Blob` constructor.
 
@@ -1269,6 +1283,7 @@ class Bucket(_PropertyMixin):
                 if_metageneration_match=if_metageneration_match,
                 if_metageneration_not_match=if_metageneration_not_match,
                 retry=retry,
+                soft_deleted=soft_deleted,
             )
         except NotFound:
             return None
@@ -1290,6 +1305,9 @@ class Bucket(_PropertyMixin):
         client=None,
         timeout=_DEFAULT_TIMEOUT,
         retry=DEFAULT_RETRY,
+        match_glob=None,
+        include_folders_as_prefixes=None,
+        soft_deleted=None,
     ):
         """Return an iterator used to find blobs in the bucket.
 
@@ -1365,6 +1383,24 @@ class Bucket(_PropertyMixin):
         :param retry:
             (Optional) How to retry the RPC. See: :ref:`configuring_retries`
 
+        :type match_glob: str
+        :param match_glob:
+            (Optional) A glob pattern used to filter results (for example, foo*bar).
+            The string value must be UTF-8 encoded. See:
+            https://cloud.google.com/storage/docs/json_api/v1/objects/list#list-object-glob
+
+        :type include_folders_as_prefixes: bool
+            (Optional) If true, includes Folders and Managed Folders in the set of
+            ``prefixes`` returned by the query. Only applicable if ``delimiter`` is set to /.
+            See: https://cloud.google.com/storage/docs/managed-folders
+
+        :type soft_deleted: bool
+        :param soft_deleted:
+            (Optional) If true, only soft-deleted objects will be listed as distinct results in order of increasing
+            generation number. This parameter can only be used successfully if the bucket has a soft delete policy.
+            Note ``soft_deleted`` and ``versions`` cannot be set to True simultaneously. See:
+            https://cloud.google.com/storage/docs/soft-delete
+
         :rtype: :class:`~google.api_core.page_iterator.Iterator`
         :returns: Iterator of all :class:`~google.cloud.storage.blob.Blob`
                   in this bucket matching the arguments.
@@ -1384,6 +1420,9 @@ class Bucket(_PropertyMixin):
             fields=fields,
             timeout=timeout,
             retry=retry,
+            match_glob=match_glob,
+            include_folders_as_prefixes=include_folders_as_prefixes,
+            soft_deleted=soft_deleted,
         )
 
     def list_notifications(
@@ -1482,7 +1521,8 @@ class Bucket(_PropertyMixin):
         If ``force=True`` and the bucket contains more than 256 objects / blobs
         this will cowardly refuse to delete the objects (or the bucket). This
         is to prevent accidental bucket deletion and to prevent extremely long
-        runtime of this method.
+        runtime of this method. Also note that ``force=True`` is not supported
+        in a ``Batch`` context.
 
         If :attr:`user_project` is set, bills the API request to that project.
 
@@ -1532,6 +1572,7 @@ class Bucket(_PropertyMixin):
                     client=client,
                     timeout=timeout,
                     retry=retry,
+                    versions=True,
                 )
             )
             if len(blobs) > self._MAX_OBJECTS_FOR_ITERATION:
@@ -1550,6 +1591,7 @@ class Bucket(_PropertyMixin):
                 client=client,
                 timeout=timeout,
                 retry=retry,
+                preserve_generation=True,
             )
 
         # We intentionally pass `_target_object=None` since a DELETE
@@ -1675,6 +1717,7 @@ class Bucket(_PropertyMixin):
                          Called once for each blob raising
                          :class:`~google.cloud.exceptions.NotFound`;
                          otherwise, the exception is propagated.
+                         Note that ``on_error`` is not supported in a ``Batch`` context.
 
         :type client: :class:`~google.cloud.storage.client.Client`
         :param client: (Optional) The client to use.  If not passed, falls back
@@ -1801,6 +1844,8 @@ class Bucket(_PropertyMixin):
         :param preserve_acl: DEPRECATED. This argument is not functional!
                              (Optional) Copies ACL from old blob to new blob.
                              Default: True.
+                             Note that ``preserve_acl`` is not supported in a
+                             ``Batch`` context.
 
         :type source_generation: long
         :param source_generation: (Optional) The generation of the blob to be
@@ -1932,8 +1977,11 @@ class Bucket(_PropertyMixin):
           old blob.  This means that with very large objects renaming
           could be a very (temporarily) costly or a very slow operation.
           If you need more control over the copy and deletion, instead
-          use `google.cloud.storage.blob.Blob.copy_to` and
-          `google.cloud.storage.blob.Blob.delete` directly.
+          use ``google.cloud.storage.blob.Blob.copy_to`` and
+          ``google.cloud.storage.blob.Blob.delete`` directly.
+
+          Also note that this method is not fully supported in a
+          ``Batch`` context.
 
         :type blob: :class:`google.cloud.storage.blob.Blob`
         :param blob: The blob to be renamed.
@@ -2036,6 +2084,110 @@ class Bucket(_PropertyMixin):
                 retry=retry,
             )
         return new_blob
+
+    def restore_blob(
+        self,
+        blob_name,
+        client=None,
+        generation=None,
+        copy_source_acl=None,
+        projection=None,
+        if_generation_match=None,
+        if_generation_not_match=None,
+        if_metageneration_match=None,
+        if_metageneration_not_match=None,
+        timeout=_DEFAULT_TIMEOUT,
+        retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+    ):
+        """Restores a soft-deleted object.
+
+        If :attr:`user_project` is set on the bucket, bills the API request to that project.
+
+        See [API reference docs](https://cloud.google.com/storage/docs/json_api/v1/objects/restore)
+
+        :type blob_name: str
+        :param blob_name: The name of the blob to be restored.
+
+        :type client: :class:`~google.cloud.storage.client.Client`
+        :param client: (Optional) The client to use. If not passed, falls back
+                       to the ``client`` stored on the current bucket.
+
+        :type generation: long
+        :param generation: (Optional) If present, selects a specific revision of this object.
+
+        :type copy_source_acl: bool
+        :param copy_source_acl: (Optional) If true, copy the soft-deleted object's access controls.
+
+        :type projection: str
+        :param projection: (Optional) Specifies the set of properties to return.
+                           If used, must be 'full' or 'noAcl'.
+
+        :type if_generation_match: long
+        :param if_generation_match:
+            (Optional) See :ref:`using-if-generation-match`
+
+        :type if_generation_not_match: long
+        :param if_generation_not_match:
+            (Optional) See :ref:`using-if-generation-not-match`
+
+        :type if_metageneration_match: long
+        :param if_metageneration_match:
+            (Optional) See :ref:`using-if-metageneration-match`
+
+        :type if_metageneration_not_match: long
+        :param if_metageneration_not_match:
+            (Optional) See :ref:`using-if-metageneration-not-match`
+
+        :type timeout: float or tuple
+        :param timeout:
+            (Optional) The amount of time, in seconds, to wait
+            for the server response.  See: :ref:`configuring_timeouts`
+
+        :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
+        :param retry:
+            (Optional) How to retry the RPC.
+            The default value is ``DEFAULT_RETRY_IF_GENERATION_SPECIFIED``, which
+            only restore operations with ``if_generation_match`` or ``generation`` set
+            will be retried.
+
+            Users can configure non-default retry behavior. A ``None`` value will
+            disable retries. A ``DEFAULT_RETRY`` value will enable retries
+            even if restore operations are not guaranteed to be idempotent.
+            See [Configuring Retries](https://cloud.google.com/python/docs/reference/storage/latest/retry_timeout).
+
+        :rtype: :class:`google.cloud.storage.blob.Blob`
+        :returns: The restored Blob.
+        """
+        client = self._require_client(client)
+        query_params = {}
+
+        if self.user_project is not None:
+            query_params["userProject"] = self.user_project
+        if generation is not None:
+            query_params["generation"] = generation
+        if copy_source_acl is not None:
+            query_params["copySourceAcl"] = copy_source_acl
+        if projection is not None:
+            query_params["projection"] = projection
+
+        _add_generation_match_parameters(
+            query_params,
+            if_generation_match=if_generation_match,
+            if_generation_not_match=if_generation_not_match,
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
+        )
+
+        blob = Blob(bucket=self, name=blob_name)
+        api_response = client._post_resource(
+            f"{blob.path}/restore",
+            None,
+            query_params=query_params,
+            timeout=timeout,
+            retry=retry,
+        )
+        blob._set_properties(api_response)
+        return blob
 
     @property
     def cors(self):
@@ -2205,6 +2357,18 @@ class Bucket(_PropertyMixin):
         return IAMConfiguration.from_api_repr(info, self)
 
     @property
+    def soft_delete_policy(self):
+        """Retrieve the soft delete policy for this bucket.
+
+        See https://cloud.google.com/storage/docs/soft-delete
+
+        :rtype: :class:`SoftDeletePolicy`
+        :returns: an instance for managing the bucket's soft delete policy.
+        """
+        policy = self._properties.get("softDeletePolicy", {})
+        return SoftDeletePolicy.from_api_repr(policy, self)
+
+    @property
     def lifecycle_rules(self):
         """Retrieve or set lifecycle rules configured for this bucket.
 
@@ -2262,13 +2426,17 @@ class Bucket(_PropertyMixin):
         rules = [dict(rule) for rule in rules]  # Convert helpers if needed
         self._patch_property("lifecycle", {"rule": rules})
 
-    def clear_lifecyle_rules(self):
+    def clear_lifecycle_rules(self):
         """Clear lifecycle rules configured for this bucket.
 
         See https://cloud.google.com/storage/docs/lifecycle and
              https://cloud.google.com/storage/docs/json_api/v1/buckets
         """
         self.lifecycle_rules = []
+
+    def clear_lifecyle_rules(self):
+        """Deprecated alias for clear_lifecycle_rules."""
+        return self.clear_lifecycle_rules()
 
     def add_lifecycle_delete_rule(self, **kw):
         """Add a "delete" rule to lifecycle rules configured for this bucket.
@@ -2592,6 +2760,21 @@ class Bucket(_PropertyMixin):
             return _rfc3339_nanos_to_datetime(value)
 
     @property
+    def updated(self):
+        """Retrieve the timestamp at which the bucket was last updated.
+
+        See https://cloud.google.com/storage/docs/json_api/v1/buckets
+
+        :rtype: :class:`datetime.datetime` or ``NoneType``
+        :returns: Datetime object parsed from RFC3339 valid timestamp, or
+                  ``None`` if the bucket's resource has not been loaded
+                  from the server.
+        """
+        value = self._properties.get("updated")
+        if value is not None:
+            return _rfc3339_nanos_to_datetime(value)
+
+    @property
     def versioning_enabled(self):
         """Is versioning enabled for this bucket?
 
@@ -2672,13 +2855,10 @@ class Bucket(_PropertyMixin):
         :type value: convertible to boolean
         :param value: If true, enable Autoclass for this bucket.
                       If false, disable Autoclass for this bucket.
-
-        .. note::
-          To enable autoclass, you must set it at bucket creation time.
-          Currently, only patch requests that disable autoclass are supported.
-
         """
-        self._patch_property("autoclass", {"enabled": bool(value)})
+        autoclass = self._properties.get("autoclass", {})
+        autoclass["enabled"] = bool(value)
+        self._patch_property("autoclass", autoclass)
 
     @property
     def autoclass_toggle_time(self):
@@ -2691,6 +2871,60 @@ class Bucket(_PropertyMixin):
             timestamp = autoclass.get("toggleTime")
             if timestamp is not None:
                 return _rfc3339_nanos_to_datetime(timestamp)
+
+    @property
+    def autoclass_terminal_storage_class(self):
+        """The storage class that objects in an Autoclass bucket eventually transition to if
+        they are not read for a certain length of time. Valid values are NEARLINE and ARCHIVE.
+
+        See https://cloud.google.com/storage/docs/using-autoclass for details.
+
+        :setter: Set the terminal storage class for Autoclass configuration.
+        :getter: Get the terminal storage class for Autoclass configuration.
+
+        :rtype: str
+        :returns: The terminal storage class if Autoclass is enabled, else ``None``.
+        """
+        autoclass = self._properties.get("autoclass", {})
+        return autoclass.get("terminalStorageClass", None)
+
+    @autoclass_terminal_storage_class.setter
+    def autoclass_terminal_storage_class(self, value):
+        """The storage class that objects in an Autoclass bucket eventually transition to if
+        they are not read for a certain length of time. Valid values are NEARLINE and ARCHIVE.
+
+        See https://cloud.google.com/storage/docs/using-autoclass for details.
+
+        :type value: str
+        :param value: The only valid values are `"NEARLINE"` and `"ARCHIVE"`.
+        """
+        autoclass = self._properties.get("autoclass", {})
+        autoclass["terminalStorageClass"] = value
+        self._patch_property("autoclass", autoclass)
+
+    @property
+    def autoclass_terminal_storage_class_update_time(self):
+        """The time at which the Autoclass terminal_storage_class field was last updated for this bucket
+        :rtype: datetime.datetime or ``NoneType``
+        :returns: point-in time at which the bucket's terminal_storage_class is last updated, or ``None`` if the property is not set locally.
+        """
+        autoclass = self._properties.get("autoclass")
+        if autoclass is not None:
+            timestamp = autoclass.get("terminalStorageClassUpdateTime")
+            if timestamp is not None:
+                return _rfc3339_nanos_to_datetime(timestamp)
+
+    @property
+    def object_retention_mode(self):
+        """Retrieve the object retention mode set on the bucket.
+
+        :rtype: str
+        :returns: When set to Enabled, retention configurations can be
+                  set on objects in the bucket.
+        """
+        object_retention = self._properties.get("objectRetention")
+        if object_retention is not None:
+            return object_retention.get("mode")
 
     def configure_website(self, main_page_suffix=None, not_found_page=None):
         """Configure website-related properties.
@@ -3109,7 +3343,7 @@ class Bucket(_PropertyMixin):
         _signing.ensure_signed_credentials(credentials)
 
         if expiration is None:
-            expiration = _NOW() + datetime.timedelta(hours=1)
+            expiration = _NOW(_UTC).replace(tzinfo=None) + datetime.timedelta(hours=1)
 
         conditions = conditions + [{"bucket": self.name}]
 
@@ -3188,7 +3422,7 @@ class Bucket(_PropertyMixin):
     def generate_signed_url(
         self,
         expiration=None,
-        api_access_endpoint=_API_ACCESS_ENDPOINT,
+        api_access_endpoint=None,
         method="GET",
         headers=None,
         query_parameters=None,
@@ -3221,7 +3455,9 @@ class Bucket(_PropertyMixin):
                            ``tzinfo`` set,  it will be assumed to be ``UTC``.
 
         :type api_access_endpoint: str
-        :param api_access_endpoint: (Optional) URI base.
+        :param api_access_endpoint: (Optional) URI base, for instance
+            "https://storage.googleapis.com". If not specified, the client's
+            api_endpoint will be used. Incompatible with bucket_bound_hostname.
 
         :type method: str
         :param method: The HTTP verb that will be used when requesting the URL.
@@ -3245,7 +3481,6 @@ class Bucket(_PropertyMixin):
         :param client: (Optional) The client to use.  If not passed, falls back
                        to the ``client`` stored on the blob's bucket.
 
-
         :type credentials: :class:`google.auth.credentials.Credentials` or
                            :class:`NoneType`
         :param credentials: The authorization credentials to attach to requests.
@@ -3261,11 +3496,13 @@ class Bucket(_PropertyMixin):
         :param virtual_hosted_style:
             (Optional) If true, then construct the URL relative the bucket's
             virtual hostname, e.g., '<bucket-name>.storage.googleapis.com'.
+            Incompatible with bucket_bound_hostname.
 
         :type bucket_bound_hostname: str
         :param bucket_bound_hostname:
-            (Optional) If pass, then construct the URL relative to the bucket-bound hostname.
-            Value cane be a bare or with scheme, e.g., 'example.com' or 'http://example.com'.
+            (Optional) If passed, then construct the URL relative to the bucket-bound hostname.
+            Value can be a bare or with scheme, e.g., 'example.com' or 'http://example.com'.
+            Incompatible with api_access_endpoint and virtual_hosted_style.
             See: https://cloud.google.com/storage/docs/request-endpoints#cname
 
         :type scheme: str
@@ -3274,7 +3511,7 @@ class Bucket(_PropertyMixin):
             this value as the scheme.  ``https`` will work only when using a CDN.
             Defaults to ``"http"``.
 
-        :raises: :exc:`ValueError` when version is invalid.
+        :raises: :exc:`ValueError` when version is invalid or mutually exclusive arguments are used.
         :raises: :exc:`TypeError` when expiration is not a valid type.
         :raises: :exc:`AttributeError` if credentials is not an instance
                 of :class:`google.auth.credentials.Signing`.
@@ -3288,23 +3525,36 @@ class Bucket(_PropertyMixin):
         elif version not in ("v2", "v4"):
             raise ValueError("'version' must be either 'v2' or 'v4'")
 
+        if (
+            api_access_endpoint is not None or virtual_hosted_style
+        ) and bucket_bound_hostname:
+            raise ValueError(
+                "The bucket_bound_hostname argument is not compatible with "
+                "either api_access_endpoint or virtual_hosted_style."
+            )
+
+        if api_access_endpoint is None:
+            client = self._require_client(client)
+            api_access_endpoint = client.api_endpoint
+
         # If you are on Google Compute Engine, you can't generate a signed URL
         # using GCE service account.
         # See https://github.com/googleapis/google-auth-library-python/issues/50
         if virtual_hosted_style:
-            api_access_endpoint = f"https://{self.name}.storage.googleapis.com"
+            api_access_endpoint = _virtual_hosted_style_base_url(
+                api_access_endpoint, self.name
+            )
+            resource = "/"
         elif bucket_bound_hostname:
             api_access_endpoint = _bucket_bound_hostname_url(
                 bucket_bound_hostname, scheme
             )
+            resource = "/"
         else:
             resource = f"/{self.name}"
 
-        if virtual_hosted_style or bucket_bound_hostname:
-            resource = "/"
-
         if credentials is None:
-            client = self._require_client(client)
+            client = self._require_client(client)  # May be redundant, but that's ok.
             credentials = client._credentials
 
         if version == "v2":
@@ -3321,6 +3571,102 @@ class Bucket(_PropertyMixin):
             headers=headers,
             query_parameters=query_parameters,
         )
+
+
+class SoftDeletePolicy(dict):
+    """Map a bucket's soft delete policy.
+
+    See https://cloud.google.com/storage/docs/soft-delete
+
+    :type bucket: :class:`Bucket`
+    :param bucket: Bucket for which this instance is the policy.
+
+    :type retention_duration_seconds: int
+    :param retention_duration_seconds:
+        (Optional) The period of time in seconds that soft-deleted objects in the bucket
+        will be retained and cannot be permanently deleted.
+
+    :type effective_time: :class:`datetime.datetime`
+    :param effective_time:
+        (Optional) When the bucket's soft delete policy is effective.
+        This value should normally only be set by the back-end API.
+    """
+
+    def __init__(self, bucket, **kw):
+        data = {}
+        retention_duration_seconds = kw.get("retention_duration_seconds")
+        data["retentionDurationSeconds"] = retention_duration_seconds
+
+        effective_time = kw.get("effective_time")
+        if effective_time is not None:
+            effective_time = _datetime_to_rfc3339(effective_time)
+        data["effectiveTime"] = effective_time
+
+        super().__init__(data)
+        self._bucket = bucket
+
+    @classmethod
+    def from_api_repr(cls, resource, bucket):
+        """Factory:  construct instance from resource.
+
+        :type resource: dict
+        :param resource: mapping as returned from API call.
+
+        :type bucket: :class:`Bucket`
+        :params bucket: Bucket for which this instance is the policy.
+
+        :rtype: :class:`SoftDeletePolicy`
+        :returns: Instance created from resource.
+        """
+        instance = cls(bucket)
+        instance.update(resource)
+        return instance
+
+    @property
+    def bucket(self):
+        """Bucket for which this instance is the policy.
+
+        :rtype: :class:`Bucket`
+        :returns: the instance's bucket.
+        """
+        return self._bucket
+
+    @property
+    def retention_duration_seconds(self):
+        """Get the retention duration of the bucket's soft delete policy.
+
+        :rtype: int or ``NoneType``
+        :returns: The period of time in seconds that soft-deleted objects in the bucket
+                  will be retained and cannot be permanently deleted; Or ``None`` if the
+                  property is not set.
+        """
+        duration = self.get("retentionDurationSeconds")
+        if duration is not None:
+            return int(duration)
+
+    @retention_duration_seconds.setter
+    def retention_duration_seconds(self, value):
+        """Set the retention duration of the bucket's soft delete policy.
+
+        :type value: int
+        :param value:
+            The period of time in seconds that soft-deleted objects in the bucket
+            will be retained and cannot be permanently deleted.
+        """
+        self["retentionDurationSeconds"] = value
+        self.bucket._patch_property("softDeletePolicy", self)
+
+    @property
+    def effective_time(self):
+        """Get the effective time of the bucket's soft delete policy.
+
+        :rtype: datetime.datetime or ``NoneType``
+        :returns: point-in time at which the bucket's soft delte policy is
+                  effective, or ``None`` if the property is not set.
+        """
+        timestamp = self.get("effectiveTime")
+        if timestamp is not None:
+            return _rfc3339_nanos_to_datetime(timestamp)
 
 
 def _raise_if_len_differs(expected_len, **generation_match_args):

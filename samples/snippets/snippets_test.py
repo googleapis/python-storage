@@ -72,10 +72,12 @@ import storage_set_autoclass
 import storage_set_bucket_default_kms_key
 import storage_set_client_endpoint
 import storage_set_metadata
-import storage_transfer_manager_download_all_blobs
+import storage_transfer_manager_download_bucket
 import storage_transfer_manager_download_chunks_concurrently
+import storage_transfer_manager_download_many
+import storage_transfer_manager_upload_chunks_concurrently
 import storage_transfer_manager_upload_directory
-import storage_transfer_manager_upload_many_blobs
+import storage_transfer_manager_upload_many
 import storage_upload_file
 import storage_upload_from_memory
 import storage_upload_from_stream
@@ -211,6 +213,7 @@ def test_list_blobs_with_prefix(test_blob, capsys):
 def test_upload_blob(test_bucket):
     with tempfile.NamedTemporaryFile() as source_file:
         source_file.write(b"test")
+        source_file.flush()
 
         storage_upload_file.upload_blob(
             test_bucket.name, source_file.name, "test_upload_blob"
@@ -241,8 +244,12 @@ def test_upload_blob_with_kms(test_bucket):
     blob_name = f"test_upload_with_kms_{uuid.uuid4().hex}"
     with tempfile.NamedTemporaryFile() as source_file:
         source_file.write(b"test")
+        source_file.flush()
         storage_upload_with_kms_key.upload_blob_with_kms(
-            test_bucket.name, source_file.name, blob_name, KMS_KEY,
+            test_bucket.name,
+            source_file.name,
+            blob_name,
+            KMS_KEY,
         )
         bucket = storage.Client().bucket(test_bucket.name)
         kms_blob = bucket.get_blob(blob_name)
@@ -354,7 +361,7 @@ def test_generate_upload_signed_url_v4(test_bucket, capsys):
 
     bucket = storage.Client().bucket(test_bucket.name)
     blob = bucket.blob(blob_name)
-    assert blob.download_as_string() == content
+    assert blob.download_as_bytes() == content
 
 
 def test_generate_signed_policy_v4(test_bucket, capsys):
@@ -395,7 +402,10 @@ def test_move_blob(test_bucket_create, test_blob):
         print(f"test_move_blob not found in bucket {test_bucket_create.name}")
 
     storage_move_file.move_blob(
-        bucket.name, test_blob.name, test_bucket_create.name, "test_move_blob",
+        bucket.name,
+        test_blob.name,
+        test_bucket_create.name,
+        "test_move_blob",
     )
 
     assert test_bucket_create.get_blob("test_move_blob") is not None
@@ -411,7 +421,10 @@ def test_copy_blob(test_blob):
         pass
 
     storage_copy_file.copy_blob(
-        bucket.name, test_blob.name, bucket.name, "test_copy_blob",
+        bucket.name,
+        test_blob.name,
+        bucket.name,
+        "test_copy_blob",
     )
 
     assert bucket.get_blob("test_copy_blob") is not None
@@ -436,23 +449,27 @@ def test_get_set_autoclass(new_bucket_obj, test_bucket, capsys):
     out, _ = capsys.readouterr()
     assert "Autoclass enabled is set to False" in out
     assert bucket.autoclass_toggle_time is None
+    assert bucket.autoclass_terminal_storage_class_update_time is None
 
     # Test enabling Autoclass at bucket creation
     new_bucket_obj.autoclass_enabled = True
     bucket = storage.Client().create_bucket(new_bucket_obj)
     assert bucket.autoclass_enabled is True
+    assert bucket.autoclass_terminal_storage_class == "NEARLINE"
 
-    # Test disabling Autoclass
-    bucket = storage_set_autoclass.set_autoclass(bucket.name, False)
+    # Test set terminal_storage_class to ARCHIVE
+    bucket = storage_set_autoclass.set_autoclass(bucket.name)
     out, _ = capsys.readouterr()
-    assert "Autoclass enabled is set to False" in out
-    assert bucket.autoclass_enabled is False
+    assert "Autoclass enabled is set to True" in out
+    assert bucket.autoclass_enabled is True
+    assert bucket.autoclass_terminal_storage_class == "ARCHIVE"
 
     # Test get Autoclass
     bucket = storage_get_autoclass.get_autoclass(bucket.name)
     out, _ = capsys.readouterr()
-    assert "Autoclass enabled is set to False" in out
+    assert "Autoclass enabled is set to True" in out
     assert bucket.autoclass_toggle_time is not None
+    assert bucket.autoclass_terminal_storage_class_update_time is not None
 
 
 def test_bucket_lifecycle_management(test_bucket, capsys):
@@ -550,7 +567,10 @@ def test_define_bucket_website_configuration(test_bucket):
 def test_object_get_kms_key(test_bucket):
     with tempfile.NamedTemporaryFile() as source_file:
         storage_upload_with_kms_key.upload_blob_with_kms(
-            test_bucket.name, source_file.name, "test_upload_blob_encrypted", KMS_KEY,
+            test_bucket.name,
+            source_file.name,
+            "test_upload_blob_encrypted",
+            KMS_KEY,
         )
     kms_key = storage_object_get_kms_key.object_get_kms_key(
         test_bucket.name, "test_upload_blob_encrypted"
@@ -567,9 +587,12 @@ def test_storage_compose_file(test_bucket):
 
     with tempfile.NamedTemporaryFile() as dest_file:
         destination = storage_compose_file.compose_file(
-            test_bucket.name, source_files[0], source_files[1], dest_file.name,
+            test_bucket.name,
+            source_files[0],
+            source_files[1],
+            dest_file.name,
         )
-        composed = destination.download_as_string()
+        composed = destination.download_as_bytes()
 
         assert composed.decode("utf-8") == source_files[0] + source_files[1]
 
@@ -607,7 +630,8 @@ def test_change_default_storage_class(test_bucket, capsys):
 
 def test_change_file_storage_class(test_blob, capsys):
     blob = storage_change_file_storage_class.change_file_storage_class(
-        test_blob.bucket.name, test_blob.name,
+        test_blob.bucket.name,
+        test_blob.name,
     )
     out, _ = capsys.readouterr()
     assert f"Blob {blob.name} in bucket {blob.bucket.name}" in out
@@ -689,11 +713,11 @@ def test_transfer_manager_snippets(test_bucket, capsys):
             with open(os.path.join(uploads, name), "w") as f:
                 f.write(name)
 
-        storage_transfer_manager_upload_many_blobs.upload_many_blobs_with_transfer_manager(
+        storage_transfer_manager_upload_many.upload_many_blobs_with_transfer_manager(
             test_bucket.name,
             BLOB_NAMES,
             source_directory="{}/".format(uploads),
-            processes=8,
+            workers=8,
         )
         out, _ = capsys.readouterr()
 
@@ -702,10 +726,24 @@ def test_transfer_manager_snippets(test_bucket, capsys):
 
     with tempfile.TemporaryDirectory() as downloads:
         # Download the files.
-        storage_transfer_manager_download_all_blobs.download_all_blobs_with_transfer_manager(
+        storage_transfer_manager_download_bucket.download_bucket_with_transfer_manager(
             test_bucket.name,
             destination_directory=os.path.join(downloads, ""),
-            processes=8,
+            workers=8,
+            max_results=10000,
+        )
+        out, _ = capsys.readouterr()
+
+        for name in BLOB_NAMES:
+            assert "Downloaded {}".format(name) in out
+
+    with tempfile.TemporaryDirectory() as downloads:
+        # Download the files.
+        storage_transfer_manager_download_many.download_many_blobs_with_transfer_manager(
+            test_bucket.name,
+            blob_names=BLOB_NAMES,
+            destination_directory=os.path.join(downloads, ""),
+            workers=8,
         )
         out, _ = capsys.readouterr()
 
@@ -747,10 +785,9 @@ def test_transfer_manager_download_chunks_concurrently(test_bucket, capsys):
 
     with tempfile.NamedTemporaryFile() as file:
         file.write(b"test")
+        file.flush()
 
-        storage_upload_file.upload_blob(
-            test_bucket.name, file.name, BLOB_NAME
-        )
+        storage_upload_file.upload_blob(test_bucket.name, file.name, BLOB_NAME)
 
     with tempfile.TemporaryDirectory() as downloads:
         # Download the file.
@@ -758,8 +795,26 @@ def test_transfer_manager_download_chunks_concurrently(test_bucket, capsys):
             test_bucket.name,
             BLOB_NAME,
             os.path.join(downloads, BLOB_NAME),
-            processes=8,
+            workers=8,
         )
         out, _ = capsys.readouterr()
 
-        assert "Downloaded {} to {}".format(BLOB_NAME, os.path.join(downloads, BLOB_NAME)) in out
+        assert (
+            "Downloaded {} to {}".format(BLOB_NAME, os.path.join(downloads, BLOB_NAME))
+            in out
+        )
+
+
+def test_transfer_manager_upload_chunks_concurrently(test_bucket, capsys):
+    BLOB_NAME = "test_file.txt"
+
+    with tempfile.NamedTemporaryFile() as file:
+        file.write(b"test")
+        file.flush()
+
+        storage_transfer_manager_upload_chunks_concurrently.upload_chunks_concurrently(
+            test_bucket.name, file.name, BLOB_NAME
+        )
+
+        out, _ = capsys.readouterr()
+        assert "File {} uploaded to {}".format(file.name, BLOB_NAME) in out

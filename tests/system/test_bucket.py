@@ -621,10 +621,82 @@ def test_bucket_list_blobs_hierarchy_w_include_trailing_delimiter(
     assert iterator.prefixes == expected_prefixes
 
 
-def test_bucket_w_retention_period(
+@_helpers.retry_failures
+def test_bucket_list_blobs_w_match_glob(
     storage_client,
     buckets_to_delete,
     blobs_to_delete,
+):
+    bucket_name = _helpers.unique_name("w-matchglob")
+    bucket = _helpers.retry_429_503(storage_client.create_bucket)(bucket_name)
+    buckets_to_delete.append(bucket)
+
+    payload = b"helloworld"
+    blob_names = ["foo/bar", "foo/baz", "foo/foobar", "foobar"]
+    for name in blob_names:
+        blob = bucket.blob(name)
+        blob.upload_from_string(payload)
+        blobs_to_delete.append(blob)
+
+    match_glob_results = {
+        "foo*bar": ["foobar"],
+        "foo**bar": ["foo/bar", "foo/foobar", "foobar"],
+        "**/foobar": ["foo/foobar", "foobar"],
+        "*/ba[rz]": ["foo/bar", "foo/baz"],
+        "*/ba[!a-y]": ["foo/baz"],
+        "**/{foobar,baz}": ["foo/baz", "foo/foobar", "foobar"],
+        "foo/{foo*,*baz}": ["foo/baz", "foo/foobar"],
+    }
+    for match_glob, expected_names in match_glob_results.items():
+        blob_iter = bucket.list_blobs(match_glob=match_glob)
+        blobs = list(blob_iter)
+        assert [blob.name for blob in blobs] == expected_names
+
+
+def test_bucket_list_blobs_include_managed_folders(
+    storage_client,
+    buckets_to_delete,
+    blobs_to_delete,
+    hierarchy_filenames,
+):
+    bucket_name = _helpers.unique_name("ubla-mf")
+    bucket = storage_client.bucket(bucket_name)
+    bucket.iam_configuration.uniform_bucket_level_access_enabled = True
+    _helpers.retry_429_503(bucket.create)()
+    buckets_to_delete.append(bucket)
+
+    payload = b"helloworld"
+    for filename in hierarchy_filenames:
+        blob = bucket.blob(filename)
+        blob.upload_from_string(payload)
+        blobs_to_delete.append(blob)
+
+    # Make API call to create a managed folder.
+    # TODO: change to use storage control client once available.
+    path = f"/b/{bucket_name}/managedFolders"
+    properties = {"name": "managedfolder1"}
+    storage_client._post_resource(path, properties)
+
+    expected_prefixes = set(["parent/"])
+    blob_iter = bucket.list_blobs(delimiter="/")
+    list(blob_iter)
+    assert blob_iter.prefixes == expected_prefixes
+
+    # Test that managed folders are only included when IncludeFoldersAsPrefixes is set.
+    expected_prefixes = set(["parent/", "managedfolder1/"])
+    blob_iter = bucket.list_blobs(delimiter="/", include_folders_as_prefixes=True)
+    list(blob_iter)
+    assert blob_iter.prefixes == expected_prefixes
+
+    # Cleanup: API call to delete a managed folder.
+    # TODO: change to use storage control client once available.
+    path = f"/b/{bucket_name}/managedFolders/managedfolder1"
+    storage_client._delete_resource(path)
+
+
+def test_bucket_update_retention_period(
+    storage_client,
+    buckets_to_delete,
 ):
     period_secs = 3
     bucket_name = _helpers.unique_name("w-retention-period")
@@ -644,23 +716,6 @@ def test_bucket_w_retention_period(
     assert not bucket.default_event_based_hold
     assert not bucket.retention_policy_locked
 
-    blob_name = "test-blob"
-    payload = b"DEADBEEF"
-    blob = bucket.blob(blob_name)
-    blob.upload_from_string(payload)
-
-    blobs_to_delete.append(blob)
-
-    other = bucket.get_blob(blob_name)
-    _helpers.retry_has_retention_expiration(other.reload)()
-
-    assert not other.event_based_hold
-    assert not other.temporary_hold
-    assert isinstance(other.retention_expiration_time, datetime.datetime)
-
-    with pytest.raises(exceptions.Forbidden):
-        other.delete()
-
     bucket.retention_period = None
     bucket.patch()
 
@@ -673,15 +728,41 @@ def test_bucket_w_retention_period(
     assert not bucket.default_event_based_hold
     assert not bucket.retention_policy_locked
 
-    _helpers.retry_no_retention_expiration(other.reload)()
 
-    assert not other.event_based_hold
-    assert not other.temporary_hold
-    assert other.retention_expiration_time is None
+def test_delete_object_bucket_w_retention_period(
+    storage_client,
+    buckets_to_delete,
+    blobs_to_delete,
+):
+    # Create a bucket with retention period.
+    period_secs = 12
+    bucket = storage_client.bucket(_helpers.unique_name("w-retention-period"))
+    bucket.retention_period = period_secs
+    bucket.default_event_based_hold = False
+    bucket = _helpers.retry_429_503(storage_client.create_bucket)(bucket)
+    buckets_to_delete.append(bucket)
+
+    _helpers.retry_has_retention_period(bucket.reload)()
+    assert bucket.retention_period == period_secs
+    assert isinstance(bucket.retention_policy_effective_time, datetime.datetime)
+
+    payload = b"DEADBEEF"
+    blob = bucket.blob(_helpers.unique_name("w-retention"))
+    blob.upload_from_string(payload)
+    blobs_to_delete.append(blob)
+
+    _helpers.retry_has_retention_expiration(blob.reload)()
+    assert isinstance(blob.retention_expiration_time, datetime.datetime)
+    assert not blob.event_based_hold
+    assert not blob.temporary_hold
+
+    # Attempts to delete objects whose age is less than the retention period should fail.
+    with pytest.raises(exceptions.Forbidden):
+        blob.delete()
 
     # Object can be deleted once it reaches the age defined in the retention policy.
     _helpers.await_config_changes_propagate(sec=period_secs)
-    other.delete()
+    blob.delete()
     blobs_to_delete.pop()
 
 
@@ -920,6 +1001,9 @@ def test_new_bucket_created_w_inherited_pap(
 
     bucket.iam_configuration.uniform_bucket_level_access_enabled = False
     bucket.patch()
+
+    _helpers.await_config_changes_propagate()
+
     assert (
         bucket.iam_configuration.public_access_prevention
         == constants.PUBLIC_ACCESS_PREVENTION_ENFORCED
@@ -1004,7 +1088,9 @@ def test_new_bucket_with_autoclass(
     storage_client,
     buckets_to_delete,
 ):
-    # Autoclass can be enabled/disabled via bucket create
+    from google.cloud.storage import constants
+
+    # Autoclass can be enabled via bucket create
     bucket_name = _helpers.unique_name("new-w-autoclass")
     bucket_obj = storage_client.bucket(bucket_name)
     bucket_obj.autoclass_enabled = True
@@ -1012,11 +1098,141 @@ def test_new_bucket_with_autoclass(
     previous_toggle_time = bucket.autoclass_toggle_time
     buckets_to_delete.append(bucket)
 
+    # Autoclass terminal_storage_class is defaulted to NEARLINE if not specified
     assert bucket.autoclass_enabled is True
+    assert bucket.autoclass_terminal_storage_class == constants.NEARLINE_STORAGE_CLASS
 
     # Autoclass can be enabled/disabled via bucket patch
     bucket.autoclass_enabled = False
-    bucket.patch()
+    bucket.patch(if_metageneration_match=bucket.metageneration)
 
     assert bucket.autoclass_enabled is False
     assert bucket.autoclass_toggle_time != previous_toggle_time
+
+
+def test_bucket_delete_force(storage_client):
+    bucket_name = _helpers.unique_name("version-disabled")
+    bucket_obj = storage_client.bucket(bucket_name)
+    bucket = storage_client.create_bucket(bucket_obj)
+
+    BLOB_NAME = "my_object"
+    blob = bucket.blob(BLOB_NAME)
+    blob.upload_from_string("abcd")
+    blob.upload_from_string("efgh")
+
+    blobs = bucket.list_blobs(versions=True)
+    counter = 0
+    for blob in blobs:
+        counter += 1
+        assert blob.name == BLOB_NAME
+    assert counter == 1
+
+    bucket.delete(force=True)  # Will fail with 409 if blobs aren't deleted
+
+
+def test_bucket_delete_force_works_with_versions(storage_client):
+    bucket_name = _helpers.unique_name("version-enabled")
+    bucket_obj = storage_client.bucket(bucket_name)
+    bucket_obj.versioning_enabled = True
+    bucket = storage_client.create_bucket(bucket_obj)
+    assert bucket.versioning_enabled
+
+    BLOB_NAME = "my_versioned_object"
+    blob = bucket.blob(BLOB_NAME)
+    blob.upload_from_string("abcd")
+    blob.upload_from_string("efgh")
+
+    blobs = bucket.list_blobs(versions=True)
+    counter = 0
+    for blob in blobs:
+        counter += 1
+        assert blob.name == BLOB_NAME
+    assert counter == 2
+
+    bucket.delete(force=True)  # Will fail with 409 if versions aren't deleted
+
+
+def test_config_autoclass_w_existing_bucket(
+    storage_client,
+    buckets_to_delete,
+):
+    from google.cloud.storage import constants
+
+    bucket_name = _helpers.unique_name("for-autoclass")
+    bucket = storage_client.create_bucket(bucket_name)
+    buckets_to_delete.append(bucket)
+    assert bucket.autoclass_enabled is False
+    assert bucket.autoclass_toggle_time is None
+    assert bucket.autoclass_terminal_storage_class is None
+    assert bucket.autoclass_terminal_storage_class_update_time is None
+
+    # Enable Autoclass on existing buckets with terminal_storage_class set to ARCHIVE
+    bucket.autoclass_enabled = True
+    bucket.autoclass_terminal_storage_class = constants.ARCHIVE_STORAGE_CLASS
+    bucket.patch(if_metageneration_match=bucket.metageneration)
+    previous_tsc_update_time = bucket.autoclass_terminal_storage_class_update_time
+    assert bucket.autoclass_enabled is True
+    assert bucket.autoclass_terminal_storage_class == constants.ARCHIVE_STORAGE_CLASS
+
+    # Configure Autoclass terminal_storage_class to NEARLINE
+    bucket.autoclass_terminal_storage_class = constants.NEARLINE_STORAGE_CLASS
+    bucket.patch(if_metageneration_match=bucket.metageneration)
+    assert bucket.autoclass_enabled is True
+    assert bucket.autoclass_terminal_storage_class == constants.NEARLINE_STORAGE_CLASS
+    assert (
+        bucket.autoclass_terminal_storage_class_update_time != previous_tsc_update_time
+    )
+
+
+def test_soft_delete_policy(
+    storage_client,
+    buckets_to_delete,
+):
+    from google.cloud.storage.bucket import SoftDeletePolicy
+
+    # Create a bucket with soft delete policy.
+    duration_secs = 7 * 86400
+    bucket = storage_client.bucket(_helpers.unique_name("w-soft-delete"))
+    bucket.soft_delete_policy.retention_duration_seconds = duration_secs
+    bucket = _helpers.retry_429_503(storage_client.create_bucket)(bucket)
+    buckets_to_delete.append(bucket)
+
+    policy = bucket.soft_delete_policy
+    assert isinstance(policy, SoftDeletePolicy)
+    assert policy.retention_duration_seconds == duration_secs
+    assert isinstance(policy.effective_time, datetime.datetime)
+
+    # Insert an object and get object metadata prior soft-deleted.
+    payload = b"DEADBEEF"
+    blob_name = _helpers.unique_name("soft-delete")
+    blob = bucket.blob(blob_name)
+    blob.upload_from_string(payload)
+
+    blob = bucket.get_blob(blob_name)
+    gen = blob.generation
+    assert blob.soft_delete_time is None
+    assert blob.hard_delete_time is None
+
+    # Delete the object to enter soft-deleted state.
+    blob.delete()
+
+    iter_default = bucket.list_blobs()
+    assert len(list(iter_default)) == 0
+    iter_w_soft_delete = bucket.list_blobs(soft_deleted=True)
+    assert len(list(iter_w_soft_delete)) > 0
+
+    # Get the soft-deleted object.
+    soft_deleted_blob = bucket.get_blob(blob_name, generation=gen, soft_deleted=True)
+    assert soft_deleted_blob.soft_delete_time is not None
+    assert soft_deleted_blob.hard_delete_time is not None
+
+    # Restore the soft-deleted object.
+    restored_blob = bucket.restore_blob(blob_name, generation=gen)
+    assert restored_blob.exists() is True
+    assert restored_blob.generation != gen
+
+    # Patch the soft delete policy on an existing bucket.
+    new_duration_secs = 10 * 86400
+    bucket.soft_delete_policy.retention_duration_seconds = new_duration_secs
+    bucket.patch()
+    assert bucket.soft_delete_policy.retention_duration_seconds == new_duration_secs

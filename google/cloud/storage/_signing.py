@@ -28,9 +28,13 @@ import google.auth.credentials
 from google.auth import exceptions
 from google.auth.transport import requests
 from google.cloud import _helpers
+from google.cloud.storage._helpers import _NOW
+from google.cloud.storage._helpers import _UTC
 
 
-NOW = datetime.datetime.utcnow  # To be replaced by tests.
+# `google.cloud.storage._signing.NOW` is deprecated.
+# Use `_NOW(_UTC)` instead.
+NOW = datetime.datetime.utcnow
 
 SERVICE_ACCOUNT_URL = (
     "https://googleapis.dev/python/google-api-core/latest/"
@@ -103,7 +107,7 @@ def get_expiration_seconds_v2(expiration):
     """
     # If it's a timedelta, add it to `now` in UTC.
     if isinstance(expiration, datetime.timedelta):
-        now = NOW().replace(tzinfo=_helpers.UTC)
+        now = _NOW(_UTC)
         expiration = now + expiration
 
     # If it's a datetime, convert to a timestamp.
@@ -141,16 +145,14 @@ def get_expiration_seconds_v4(expiration):
             "timedelta. Got %s" % type(expiration)
         )
 
-    now = NOW().replace(tzinfo=_helpers.UTC)
+    now = _NOW(_UTC)
 
     if isinstance(expiration, int):
         seconds = expiration
 
     if isinstance(expiration, datetime.datetime):
-
         if expiration.tzinfo is None:
             expiration = expiration.replace(tzinfo=_helpers.UTC)
-
         expiration = expiration - now
 
     if isinstance(expiration, datetime.timedelta):
@@ -467,7 +469,7 @@ def generate_signed_url_v4(
                        ``tzinfo`` set,  it will be assumed to be ``UTC``.
 
     :type api_access_endpoint: str
-    :param api_access_endpoint: (Optional) URI base. Defaults to
+    :param api_access_endpoint: URI base. Defaults to
                                 "https://storage.googleapis.com/"
 
     :type method: str
@@ -639,14 +641,13 @@ def get_v4_now_dtstamps():
     :rtype: str, str
     :returns: Current timestamp, datestamp.
     """
-    now = NOW()
+    now = _NOW(_UTC).replace(tzinfo=None)
     timestamp = now.strftime("%Y%m%dT%H%M%SZ")
     datestamp = now.date().strftime("%Y%m%d")
     return timestamp, datestamp
 
 
 def _sign_message(message, access_token, service_account_email):
-
     """Signs a message.
 
     :type message: str

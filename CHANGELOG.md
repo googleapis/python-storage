@@ -4,6 +4,121 @@
 
 [1]: https://pypi.org/project/google-cloud-storage/#history
 
+## [2.16.0](https://github.com/googleapis/python-storage/compare/v2.15.0...v2.16.0) (2024-03-18)
+
+
+### Features
+
+* Add support for soft delete ([#1229](https://github.com/googleapis/python-storage/issues/1229)) ([3928aa0](https://github.com/googleapis/python-storage/commit/3928aa0680ec03addae1f792c73abb5c9dc8586f))
+* Support includeFoldersAsPrefixes ([#1223](https://github.com/googleapis/python-storage/issues/1223)) ([7bb8065](https://github.com/googleapis/python-storage/commit/7bb806538cf3d7a5e16390db1983620933d5e51a))
+
+## [2.15.0](https://github.com/googleapis/python-storage/compare/v2.14.0...v2.15.0) (2024-02-28)
+
+
+### Features
+
+* Support custom universe domains/TPC ([#1212](https://github.com/googleapis/python-storage/issues/1212)) ([f4cf041](https://github.com/googleapis/python-storage/commit/f4cf041a5f2075cecf5f4993f8b7afda0476a52b))
+
+
+### Bug Fixes
+
+* Add "updated" as property for Bucket ([#1220](https://github.com/googleapis/python-storage/issues/1220)) ([ae9a53b](https://github.com/googleapis/python-storage/commit/ae9a53b464e7d82c79a019a4111c49a4cdcc3ae0))
+* Remove utcnow usage ([#1215](https://github.com/googleapis/python-storage/issues/1215)) ([8d8a53a](https://github.com/googleapis/python-storage/commit/8d8a53a1368392ad7a1c4352f559c12932c5a9c9))
+
+## [2.14.0](https://github.com/googleapis/python-storage/compare/v2.13.0...v2.14.0) (2023-12-10)
+
+
+### Features
+
+* Add support for Python 3.12 ([#1187](https://github.com/googleapis/python-storage/issues/1187)) ([ecf4150](https://github.com/googleapis/python-storage/commit/ecf41504ba7f2a2c2db2e3c7e267686283d2cab3))
+* Support object retention lock ([#1188](https://github.com/googleapis/python-storage/issues/1188)) ([a179337](https://github.com/googleapis/python-storage/commit/a1793375cf038ce79d4d4b7077f6b4dcc4b4aeec))
+
+
+### Bug Fixes
+
+* Clarify error message and docstrings in Blob class method ([#1196](https://github.com/googleapis/python-storage/issues/1196)) ([92c20d3](https://github.com/googleapis/python-storage/commit/92c20d3f7520c6b94308ebb156202fdfd1dcd482))
+* Propagate timeout in BlobWriter ([#1186](https://github.com/googleapis/python-storage/issues/1186)) ([22f36da](https://github.com/googleapis/python-storage/commit/22f36da1ce5b04408653ddbdbf35f25ed1072af8)), closes [#1184](https://github.com/googleapis/python-storage/issues/1184)
+* Use native namespace to avoid pkg_resources warnings ([#1176](https://github.com/googleapis/python-storage/issues/1176)) ([2ed915e](https://github.com/googleapis/python-storage/commit/2ed915ec4b35df6fad04f42df25e48667148fcf5))
+
+## [2.13.0](https://github.com/googleapis/python-storage/compare/v2.12.0...v2.13.0) (2023-10-31)
+
+
+### Features
+
+* Add Autoclass v2.1 support ([#1117](https://github.com/googleapis/python-storage/issues/1117)) ([d38adb6](https://github.com/googleapis/python-storage/commit/d38adb6a3136152ad68ad8a9c4583d06509307b2))
+* Add support for custom headers ([#1121](https://github.com/googleapis/python-storage/issues/1121)) ([2f92c3a](https://github.com/googleapis/python-storage/commit/2f92c3a2a3a1585d0f77be8fe3c2c5324140b71a))
+
+
+### Bug Fixes
+
+* Blob.from_string parse storage uri with regex ([#1170](https://github.com/googleapis/python-storage/issues/1170)) ([0a243fa](https://github.com/googleapis/python-storage/commit/0a243faf5d6ca89b977ea1cf543356e0dd04df95))
+* Bucket.delete(force=True) now works with version-enabled buckets ([#1172](https://github.com/googleapis/python-storage/issues/1172)) ([0de09d3](https://github.com/googleapis/python-storage/commit/0de09d30ea6083d962be1c1f5341ea14a2456dc7))
+* Fix typo in Bucket.clear_lifecycle_rules() ([#1169](https://github.com/googleapis/python-storage/issues/1169)) ([eae9ebe](https://github.com/googleapis/python-storage/commit/eae9ebed12d26832405c2f29fbdb14b4babf080d))
+
+
+### Documentation
+
+* Fix exception field in tm reference docs ([#1164](https://github.com/googleapis/python-storage/issues/1164)) ([eac91cb](https://github.com/googleapis/python-storage/commit/eac91cb6ffb0066248f824fc1f307140dd7c85da))
+
+## [2.12.0](https://github.com/googleapis/python-storage/compare/v2.11.0...v2.12.0) (2023-10-12)
+
+
+### Features
+
+* Add additional_blob_attributes to upload_many_from_filenames ([#1162](https://github.com/googleapis/python-storage/issues/1162)) ([c7229f2](https://github.com/googleapis/python-storage/commit/c7229f2e53151fc2f2eb1268afc67dad87ebbb0a))
+* Add crc32c_checksum argument to download_chunks_concurrently ([#1138](https://github.com/googleapis/python-storage/issues/1138)) ([fc92ad1](https://github.com/googleapis/python-storage/commit/fc92ad19ff0f9704456452e8c7c47a5f90c29eab))
+* Add skip_if_exists to download_many ([#1161](https://github.com/googleapis/python-storage/issues/1161)) ([c5a983d](https://github.com/googleapis/python-storage/commit/c5a983d5a0b0632811af86fb64664b4382b05512))
+* Launch transfer manager to GA ([#1159](https://github.com/googleapis/python-storage/issues/1159)) ([5c90563](https://github.com/googleapis/python-storage/commit/5c905637947c45e39ed8ee84911a12e254bde571))
+
+
+### Bug Fixes
+
+* Bump python-auth version to fix issue and remove workaround ([#1158](https://github.com/googleapis/python-storage/issues/1158)) ([28c02dd](https://github.com/googleapis/python-storage/commit/28c02dd41010e6d818a77f51c539457b2dbfa233))
+* Mark _deprecate_threads_param as a wrapper to unblock introspection and docs ([#1122](https://github.com/googleapis/python-storage/issues/1122)) ([69bd4a9](https://github.com/googleapis/python-storage/commit/69bd4a935a995f8f261a589ee2978f58b90224ab))
+
+
+### Documentation
+
+* Add snippets for upload_chunks_concurrently and add chunk_size ([#1135](https://github.com/googleapis/python-storage/issues/1135)) ([3a0f551](https://github.com/googleapis/python-storage/commit/3a0f551436b659afb2208fd558ddb846f4d62d98))
+* Update formatting and wording in transfer_manager docstrings ([#1163](https://github.com/googleapis/python-storage/issues/1163)) ([9e460d8](https://github.com/googleapis/python-storage/commit/9e460d8106cbfb76caf35df4f6beed159fa2c22d))
+
+## [2.11.0](https://github.com/googleapis/python-storage/compare/v2.10.0...v2.11.0) (2023-09-19)
+
+
+### Features
+
+* Add gccl-gcs-cmd field to X-Goog-API-Client header for Transfer Manager calls ([#1119](https://github.com/googleapis/python-storage/issues/1119)) ([14a1909](https://github.com/googleapis/python-storage/commit/14a1909963cfa41208f4e25b82b7c84c5e02452f))
+* Add transfer_manager.upload_chunks_concurrently using the XML MPU API ([#1115](https://github.com/googleapis/python-storage/issues/1115)) ([56aeb87](https://github.com/googleapis/python-storage/commit/56aeb8778d25fe245ac2e1e96ef71f0dad1fec0f))
+* Support configurable retries in upload_chunks_concurrently ([#1120](https://github.com/googleapis/python-storage/issues/1120)) ([1271686](https://github.com/googleapis/python-storage/commit/1271686428c0faffd3dd1b4fd57bfe467d2817d4))
+
+
+### Bug Fixes
+
+* Split retention period tests due to caching change ([#1068](https://github.com/googleapis/python-storage/issues/1068)) ([cc191b0](https://github.com/googleapis/python-storage/commit/cc191b070c520e85030cd4cef6d7d9a7b1dd0bf4))
+
+
+### Documentation
+
+* Add Transfer Manager documentation in c.g.c ([#1109](https://github.com/googleapis/python-storage/issues/1109)) ([c1f8724](https://github.com/googleapis/python-storage/commit/c1f8724dc1c5dc180f36424324def74a5daec620))
+
+## [2.10.0](https://github.com/googleapis/python-storage/compare/v2.9.0...v2.10.0) (2023-06-14)
+
+
+### Features
+
+* Add matchGlob parameter to list_blobs ([#1055](https://github.com/googleapis/python-storage/issues/1055)) ([d02098e](https://github.com/googleapis/python-storage/commit/d02098e6d5f656f9802cf0a494b507d77b065be7))
+* Allow exceptions to be included in batch responses ([#1043](https://github.com/googleapis/python-storage/issues/1043)) ([94a35ba](https://github.com/googleapis/python-storage/commit/94a35ba7416804881973f6a5296b430bdcf2832d))
+
+
+### Bug Fixes
+
+* Extend wait for bucket metadata consistency in system tests ([#1053](https://github.com/googleapis/python-storage/issues/1053)) ([d78586c](https://github.com/googleapis/python-storage/commit/d78586c388a683b8678f280df0c9456c6e109af7))
+
+
+### Documentation
+
+* Add clarification to batch module ([#1045](https://github.com/googleapis/python-storage/issues/1045)) ([11f6024](https://github.com/googleapis/python-storage/commit/11f6024a4fd0a66e8cdcc6c89c3d33534892386d))
+
 ## [2.9.0](https://github.com/googleapis/python-storage/compare/v2.8.0...v2.9.0) (2023-05-04)
 
 

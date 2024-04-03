@@ -28,11 +28,12 @@ description = "Google Cloud Storage API client library"
 # 'Development Status :: 5 - Production/Stable'
 release_status = "Development Status :: 5 - Production/Stable"
 dependencies = [
-    "google-auth >= 1.25.0, < 3.0dev",
-    "google-api-core >= 1.31.5, <3.0.0dev,!=2.0.*,!=2.1.*,!=2.2.*,!=2.3.0",
+    "google-auth >= 2.26.1, < 3.0dev",
+    "google-api-core >= 2.15.0, <3.0.0dev",
     "google-cloud-core >= 2.3.0, < 3.0dev",
-    "google-resumable-media >= 2.3.2",
+    "google-resumable-media >= 2.6.0",
     "requests >= 2.18.0, < 3.0.0dev",
+    "google-crc32c >= 1.0, < 2.0dev",
 ]
 extras = {"protobuf": ["protobuf<5.0.0dev"]}
 
@@ -53,13 +54,10 @@ with io.open(readme_filename, encoding="utf-8") as readme_file:
 # Only include packages under the 'google' namespace. Do not include tests,
 # benchmarks, etc.
 packages = [
-    package for package in setuptools.find_packages() if package.startswith("google")
+    package
+    for package in setuptools.find_namespace_packages()
+    if package.startswith("google")
 ]
-
-# Determine which namespaces are needed.
-namespaces = ["google"]
-if "google.cloud" in packages:
-    namespaces.append("google.cloud")
 
 
 setuptools.setup(
@@ -82,12 +80,12 @@ setuptools.setup(
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
         "Operating System :: OS Independent",
         "Topic :: Internet",
     ],
     platforms="Posix; MacOS X; Windows",
     packages=packages,
-    namespace_packages=namespaces,
     install_requires=dependencies,
     extras_require=extras,
     python_requires=">=3.7",

@@ -29,8 +29,12 @@ from google.auth.credentials import AnonymousCredentials
 from google.oauth2.service_account import Credentials
 
 from google.cloud.storage import _helpers
+from google.cloud.storage._helpers import _NOW
+from google.cloud.storage._helpers import _UTC
 from google.cloud.storage._helpers import STORAGE_EMULATOR_ENV_VAR
+from google.cloud.storage._helpers import _API_ENDPOINT_OVERRIDE_ENV_VAR
 from google.cloud.storage._helpers import _get_default_headers
+from google.cloud.storage._helpers import _DEFAULT_UNIVERSE_DOMAIN
 from google.cloud.storage._http import Connection
 from google.cloud.storage.retry import DEFAULT_RETRY
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_GENERATION_SPECIFIED
@@ -45,13 +49,19 @@ _POST_POLICY_TESTS = [test for test in _CONFORMANCE_TESTS if "policyInput" in te
 _FAKE_CREDENTIALS = Credentials.from_service_account_info(_SERVICE_ACCOUNT_JSON)
 
 
-def _make_credentials(project=None):
+def _make_credentials(project=None, universe_domain=_DEFAULT_UNIVERSE_DOMAIN):
     import google.auth.credentials
 
     if project is not None:
-        return mock.Mock(spec=google.auth.credentials.Credentials, project_id=project)
+        return mock.Mock(
+            spec=google.auth.credentials.Credentials,
+            project_id=project,
+            universe_domain=universe_domain,
+        )
 
-    return mock.Mock(spec=google.auth.credentials.Credentials)
+    return mock.Mock(
+        spec=google.auth.credentials.Credentials, universe_domain=universe_domain
+    )
 
 
 def _create_signing_credentials():
@@ -62,7 +72,9 @@ def _create_signing_credentials():
     ):
         pass
 
-    credentials = mock.Mock(spec=_SigningCredentials)
+    credentials = mock.Mock(
+        spec=_SigningCredentials, universe_domain=_DEFAULT_UNIVERSE_DOMAIN
+    )
     credentials.sign_bytes = mock.Mock(return_value=b"Signature_bytes")
     credentials.signer_email = "test@mail.com"
     return credentials
@@ -162,21 +174,74 @@ class TestClient(unittest.TestCase):
         )
 
         self.assertEqual(client._connection.API_BASE_URL, api_endpoint)
+        self.assertEqual(client.api_endpoint, api_endpoint)
 
     def test_ctor_w_client_options_object(self):
         from google.api_core.client_options import ClientOptions
 
         PROJECT = "PROJECT"
         credentials = _make_credentials()
-        client_options = ClientOptions(api_endpoint="https://www.foo-googleapis.com")
+        api_endpoint = "https://www.foo-googleapis.com"
+        client_options = ClientOptions(api_endpoint=api_endpoint)
 
         client = self._make_one(
             project=PROJECT, credentials=credentials, client_options=client_options
         )
 
-        self.assertEqual(
-            client._connection.API_BASE_URL, "https://www.foo-googleapis.com"
+        self.assertEqual(client._connection.API_BASE_URL, api_endpoint)
+        self.assertEqual(client.api_endpoint, api_endpoint)
+
+    def test_ctor_w_universe_domain_and_matched_credentials(self):
+        PROJECT = "PROJECT"
+        universe_domain = "example.com"
+        expected_api_endpoint = f"https://storage.{universe_domain}"
+        credentials = _make_credentials(universe_domain=universe_domain)
+        client_options = {"universe_domain": universe_domain}
+
+        client = self._make_one(
+            project=PROJECT, credentials=credentials, client_options=client_options
         )
+
+        self.assertEqual(client._connection.API_BASE_URL, expected_api_endpoint)
+        self.assertEqual(client.api_endpoint, expected_api_endpoint)
+        self.assertEqual(client.universe_domain, universe_domain)
+
+    def test_ctor_w_universe_domain_and_mismatched_credentials(self):
+        PROJECT = "PROJECT"
+        universe_domain = "example.com"
+        credentials = _make_credentials()  # default universe domain
+        client_options = {"universe_domain": universe_domain}
+
+        with self.assertRaises(ValueError):
+            self._make_one(
+                project=PROJECT, credentials=credentials, client_options=client_options
+            )
+
+    def test_ctor_w_universe_domain_and_mtls(self):
+        PROJECT = "PROJECT"
+        universe_domain = "example.com"
+        client_options = {"universe_domain": universe_domain}
+
+        credentials = _make_credentials(
+            project=PROJECT, universe_domain=universe_domain
+        )
+
+        environ = {"GOOGLE_API_USE_CLIENT_CERTIFICATE": "true"}
+        with mock.patch("os.environ", environ):
+            with self.assertRaises(ValueError):
+                self._make_one(credentials=credentials, client_options=client_options)
+
+    def test_ctor_w_custom_headers(self):
+        PROJECT = "PROJECT"
+        credentials = _make_credentials()
+        custom_headers = {"x-goog-custom-audit-foo": "bar"}
+        client = self._make_one(
+            project=PROJECT, credentials=credentials, extra_headers=custom_headers
+        )
+        self.assertEqual(
+            client._connection.API_BASE_URL, client._connection.DEFAULT_API_ENDPOINT
+        )
+        self.assertEqual(client._connection.extra_headers, custom_headers)
 
     def test_ctor_wo_project(self):
         PROJECT = "PROJECT"
@@ -317,6 +382,16 @@ class TestClient(unittest.TestCase):
 
         self.assertEqual(client._connection.API_BASE_URL, host)
         self.assertIs(client._connection.credentials, credentials)
+
+    def test_ctor_w_api_endpoint_override(self):
+        host = "http://localhost:8080"
+        environ = {_API_ENDPOINT_OVERRIDE_ENV_VAR: host}
+        project = "my-test-project"
+        with mock.patch("os.environ", environ):
+            client = self._make_one(project=project)
+
+        self.assertEqual(client.project, project)
+        self.assertEqual(client._connection.API_BASE_URL, host)
 
     def test_create_anonymous_client(self):
         klass = self._get_target_class()
@@ -1602,11 +1677,14 @@ class TestClient(unittest.TestCase):
         bucket.requester_pays = True
         bucket.labels = labels
 
-        client.create_bucket(bucket, location=location)
+        client.create_bucket(bucket, location=location, enable_object_retention=True)
 
         expected_path = "/b"
         expected_data = api_response
-        expected_query_params = {"project": project}
+        expected_query_params = {
+            "project": project,
+            "enableObjectRetention": True,
+        }
         client._post_resource.assert_called_once_with(
             expected_path,
             expected_data,
@@ -1639,9 +1717,16 @@ class TestClient(unittest.TestCase):
             _target_object=bucket,
         )
 
+    @staticmethod
+    def _make_blob(*args, **kw):
+        from google.cloud.storage.blob import Blob
+
+        blob = Blob(*args, **kw)
+
+        return blob
+
     def test_download_blob_to_file_with_failure(self):
         from google.resumable_media import InvalidResponse
-        from google.cloud.storage.blob import Blob
         from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 
         project = "PROJECT"
@@ -1652,7 +1737,7 @@ class TestClient(unittest.TestCase):
         grmp_response = InvalidResponse(raw_response)
         credentials = _make_credentials(project=project)
         client = self._make_one(credentials=credentials)
-        blob = mock.create_autospec(Blob)
+        blob = self._make_blob(name="blob_name", bucket=None)
         blob._encryption_key = None
         blob._get_download_url = mock.Mock()
         blob._do_download = mock.Mock()
@@ -1689,7 +1774,7 @@ class TestClient(unittest.TestCase):
         project = "PROJECT"
         credentials = _make_credentials(project=project)
         client = self._make_one(project=project, credentials=credentials)
-        blob = mock.Mock()
+        blob = self._make_blob(name="blob_name", bucket=None)
         file_obj = io.BytesIO()
         blob._encryption_key = None
         blob._get_download_url = mock.Mock()
@@ -1728,7 +1813,7 @@ class TestClient(unittest.TestCase):
         client = self._make_one(project=project, credentials=credentials)
         file_obj = io.BytesIO()
 
-        with pytest.raises(ValueError, match="URI scheme must be gs"):
+        with pytest.raises(ValueError):
             client.download_blob_to_file("http://bucket_name/path/to/object", file_obj)
 
     def test_download_blob_to_file_w_no_retry(self):
@@ -1787,13 +1872,12 @@ class TestClient(unittest.TestCase):
     def _download_blob_to_file_helper(
         self, use_chunks, raw_download, expect_condition_fail=False, **extra_kwargs
     ):
-        from google.cloud.storage.blob import Blob
         from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 
         project = "PROJECT"
         credentials = _make_credentials(project=project)
         client = self._make_one(credentials=credentials)
-        blob = mock.create_autospec(Blob)
+        blob = self._make_blob(name="blob_name", bucket=None)
         blob._encryption_key = None
         blob._get_download_url = mock.Mock()
         if use_chunks:
@@ -1863,14 +1947,13 @@ class TestClient(unittest.TestCase):
         self._download_blob_to_file_helper(use_chunks=True, raw_download=True)
 
     def test_download_blob_have_different_uuid(self):
-        from google.cloud.storage.blob import Blob
-
         project = "PROJECT"
         credentials = _make_credentials(project=project)
         client = self._make_one(credentials=credentials)
-        blob = mock.create_autospec(Blob)
+        blob = self._make_blob(name="blob_name", bucket=None)
         blob._encryption_key = None
         blob._do_download = mock.Mock()
+        blob._get_download_url = mock.Mock()
         file_obj = io.BytesIO()
         client.download_blob_to_file(blob, file_obj)
         client.download_blob_to_file(blob, file_obj)
@@ -1928,9 +2011,12 @@ class TestClient(unittest.TestCase):
         page_token = "ABCD"
         prefix = "subfolder"
         delimiter = "/"
+        match_glob = "**txt"
         start_offset = "c"
         end_offset = "g"
         include_trailing_delimiter = True
+        include_folders_as_prefixes = True
+        soft_deleted = False
         versions = True
         projection = "full"
         page_size = 2
@@ -1962,6 +2048,9 @@ class TestClient(unittest.TestCase):
             page_size=page_size,
             timeout=timeout,
             retry=retry,
+            match_glob=match_glob,
+            include_folders_as_prefixes=include_folders_as_prefixes,
+            soft_deleted=soft_deleted,
         )
 
         self.assertIs(iterator, client._list_resource.return_value)
@@ -1976,12 +2065,15 @@ class TestClient(unittest.TestCase):
             "projection": projection,
             "prefix": prefix,
             "delimiter": delimiter,
+            "matchGlob": match_glob,
             "startOffset": start_offset,
             "endOffset": end_offset,
             "includeTrailingDelimiter": include_trailing_delimiter,
             "versions": versions,
             "fields": fields,
             "userProject": user_project,
+            "includeFoldersAsPrefixes": include_folders_as_prefixes,
+            "softDeleted": soft_deleted,
         }
         expected_page_start = _blobs_page_start
         expected_page_size = 2
@@ -2227,8 +2319,6 @@ class TestClient(unittest.TestCase):
         timeout=None,
         retry=None,
     ):
-        import datetime
-        from google.cloud._helpers import UTC
         from google.cloud.storage.hmac_key import HMACKeyMetadata
 
         project = "PROJECT"
@@ -2236,7 +2326,7 @@ class TestClient(unittest.TestCase):
         credentials = _make_credentials()
         email = "storage-user-123@example.com"
         secret = "a" * 40
-        now = datetime.datetime.utcnow().replace(tzinfo=UTC)
+        now = _NOW(_UTC)
         now_stamp = f"{now.isoformat()}Z"
 
         if explicit_project is not None:
@@ -2654,6 +2744,25 @@ class TestClient(unittest.TestCase):
             )
         self.assertEqual(policy["url"], "https://bucket.bound_hostname/")
 
+    def test_get_signed_policy_v4_with_conflicting_arguments(self):
+        import datetime
+
+        project = "PROJECT"
+        credentials = _make_credentials(project=project)
+        client = self._make_one(credentials=credentials)
+
+        dtstamps_patch, _, _ = _time_functions_patches()
+        with dtstamps_patch:
+            with self.assertRaises(ValueError):
+                client.generate_signed_post_policy_v4(
+                    "bucket-name",
+                    "object-name",
+                    expiration=datetime.datetime(2020, 3, 12),
+                    bucket_bound_hostname="https://bucket.bound_hostname",
+                    virtual_hosted_style=True,
+                    credentials=_create_signing_credentials(),
+                )
+
     def test_get_signed_policy_v4_bucket_bound_hostname_with_scheme(self):
         import datetime
 
@@ -2804,13 +2913,12 @@ def test_conformance_post_policy(test_data):
     client = Client(credentials=_FAKE_CREDENTIALS, project="PROJECT")
 
     # mocking time functions
-    with mock.patch("google.cloud.storage._signing.NOW", return_value=timestamp):
+    with mock.patch("google.cloud.storage._signing._NOW", return_value=timestamp):
         with mock.patch(
             "google.cloud.storage.client.get_expiration_seconds_v4",
             return_value=in_data["expiration"],
         ):
             with mock.patch("google.cloud.storage.client._NOW", return_value=timestamp):
-
                 policy = client.generate_signed_post_policy_v4(
                     bucket_name=in_data["bucket"],
                     blob_name=in_data["object"],

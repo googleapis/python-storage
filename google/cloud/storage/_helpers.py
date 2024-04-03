@@ -18,9 +18,11 @@ These are *not* part of the API.
 """
 
 import base64
+import datetime
 from hashlib import md5
 import os
 from urllib.parse import urlsplit
+from urllib.parse import urlunsplit
 from uuid import uuid4
 
 from google import resumable_media
@@ -30,19 +32,24 @@ from google.cloud.storage.retry import DEFAULT_RETRY
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED
 
 
-STORAGE_EMULATOR_ENV_VAR = "STORAGE_EMULATOR_HOST"
+STORAGE_EMULATOR_ENV_VAR = "STORAGE_EMULATOR_HOST"  # Despite name, includes scheme.
 """Environment variable defining host for Storage emulator."""
 
-_API_ENDPOINT_OVERRIDE_ENV_VAR = "API_ENDPOINT_OVERRIDE"
+_API_ENDPOINT_OVERRIDE_ENV_VAR = "API_ENDPOINT_OVERRIDE"  # Includes scheme.
 """This is an experimental configuration variable. Use api_endpoint instead."""
 
 _API_VERSION_OVERRIDE_ENV_VAR = "API_VERSION_OVERRIDE"
 """This is an experimental configuration variable used for internal testing."""
 
-_DEFAULT_STORAGE_HOST = os.getenv(
-    _API_ENDPOINT_OVERRIDE_ENV_VAR, "https://storage.googleapis.com"
+_DEFAULT_UNIVERSE_DOMAIN = "googleapis.com"
+
+_STORAGE_HOST_TEMPLATE = "storage.{universe_domain}"
+
+_TRUE_DEFAULT_STORAGE_HOST = _STORAGE_HOST_TEMPLATE.format(
+    universe_domain=_DEFAULT_UNIVERSE_DOMAIN
 )
-"""Default storage host for JSON API."""
+
+_DEFAULT_SCHEME = "https://"
 
 _API_VERSION = os.getenv(_API_VERSION_OVERRIDE_ENV_VAR, "v1")
 """API version of the default storage host"""
@@ -71,9 +78,46 @@ _NUM_RETRIES_MESSAGE = (
     "object, or None, instead."
 )
 
+# _NOW() returns the current local date and time.
+# It is preferred to use timezone-aware datetimes _NOW(_UTC),
+# which returns the current UTC date and time.
+_NOW = datetime.datetime.now
+_UTC = datetime.timezone.utc
 
-def _get_storage_host():
-    return os.environ.get(STORAGE_EMULATOR_ENV_VAR, _DEFAULT_STORAGE_HOST)
+
+def _get_storage_emulator_override():
+    return os.environ.get(STORAGE_EMULATOR_ENV_VAR, None)
+
+
+def _get_default_storage_base_url():
+    return os.getenv(
+        _API_ENDPOINT_OVERRIDE_ENV_VAR, _DEFAULT_SCHEME + _TRUE_DEFAULT_STORAGE_HOST
+    )
+
+
+def _get_api_endpoint_override():
+    """This is an experimental configuration variable. Use api_endpoint instead."""
+    if _get_default_storage_base_url() != _DEFAULT_SCHEME + _TRUE_DEFAULT_STORAGE_HOST:
+        return _get_default_storage_base_url()
+    return None
+
+
+def _virtual_hosted_style_base_url(url, bucket, trailing_slash=False):
+    """Returns the scheme and netloc sections of the url, with the bucket
+    prepended to the netloc.
+
+    Not intended for use with netlocs which include a username and password.
+    """
+    parsed_url = urlsplit(url)
+    new_netloc = f"{bucket}.{parsed_url.netloc}"
+    base_url = urlunsplit(
+        (parsed_url.scheme, new_netloc, "/" if trailing_slash else "", "", "")
+    )
+    return base_url
+
+
+def _use_client_cert():
+    return os.getenv("GOOGLE_API_USE_CLIENT_CERTIFICATE") == "true"
 
 
 def _get_environ_project():
@@ -181,6 +225,7 @@ class _PropertyMixin(object):
         if_metageneration_not_match=None,
         timeout=_DEFAULT_TIMEOUT,
         retry=DEFAULT_RETRY,
+        soft_deleted=None,
     ):
         """Reload properties from Cloud Storage.
 
@@ -226,6 +271,13 @@ class _PropertyMixin(object):
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
         :param retry:
             (Optional) How to retry the RPC. See: :ref:`configuring_retries`
+
+        :type soft_deleted: bool
+        :param soft_deleted:
+            (Optional) If True, looks for a soft-deleted object. Will only return
+            the object metadata if the object exists and is in a soft-deleted state.
+            :attr:`generation` is required to be set on the blob if ``soft_deleted`` is set to True.
+            See: https://cloud.google.com/storage/docs/soft-delete
         """
         client = self._require_client(client)
         query_params = self._query_params
@@ -239,6 +291,8 @@ class _PropertyMixin(object):
             if_metageneration_match=if_metageneration_match,
             if_metageneration_not_match=if_metageneration_not_match,
         )
+        if soft_deleted is not None:
+            query_params["softDeleted"] = soft_deleted
         headers = self._encryption_headers()
         _add_etag_match_headers(
             headers, if_etag_match=if_etag_match, if_etag_not_match=if_etag_not_match
@@ -290,6 +344,7 @@ class _PropertyMixin(object):
         if_metageneration_not_match=None,
         timeout=_DEFAULT_TIMEOUT,
         retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
+        override_unlocked_retention=False,
     ):
         """Sends all changed properties in a PATCH request.
 
@@ -326,12 +381,21 @@ class _PropertyMixin(object):
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
         :param retry:
             (Optional) How to retry the RPC. See: :ref:`configuring_retries`
+
+        :type override_unlocked_retention: bool
+        :param override_unlocked_retention:
+            (Optional) override_unlocked_retention must be set to True if the operation includes
+            a retention property that changes the mode from Unlocked to Locked, reduces the
+            retainUntilTime, or removes the retention configuration from the object. See:
+            https://cloud.google.com/storage/docs/json_api/v1/objects/patch
         """
         client = self._require_client(client)
         query_params = self._query_params
         # Pass '?projection=full' here because 'PATCH' documented not
         # to work properly w/ 'noAcl'.
         query_params["projection"] = "full"
+        if override_unlocked_retention:
+            query_params["overrideUnlockedRetention"] = override_unlocked_retention
         _add_generation_match_parameters(
             query_params,
             if_generation_match=if_generation_match,
@@ -361,6 +425,7 @@ class _PropertyMixin(object):
         if_metageneration_not_match=None,
         timeout=_DEFAULT_TIMEOUT,
         retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
+        override_unlocked_retention=False,
     ):
         """Sends all properties in a PUT request.
 
@@ -397,11 +462,20 @@ class _PropertyMixin(object):
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
         :param retry:
             (Optional) How to retry the RPC. See: :ref:`configuring_retries`
+
+        :type override_unlocked_retention: bool
+        :param override_unlocked_retention:
+            (Optional) override_unlocked_retention must be set to True if the operation includes
+            a retention property that changes the mode from Unlocked to Locked, reduces the
+            retainUntilTime, or removes the retention configuration from the object. See:
+            https://cloud.google.com/storage/docs/json_api/v1/objects/patch
         """
         client = self._require_client(client)
 
         query_params = self._query_params
         query_params["projection"] = "full"
+        if override_unlocked_retention:
+            query_params["overrideUnlockedRetention"] = override_unlocked_retention
         _add_generation_match_parameters(
             query_params,
             if_generation_match=if_generation_match,
@@ -599,19 +673,32 @@ def _get_default_headers(
     user_agent,
     content_type="application/json; charset=UTF-8",
     x_upload_content_type=None,
+    command=None,
 ):
     """Get the headers for a request.
 
-    Args:
-        user_agent (str): The user-agent for requests.
-    Returns:
-        Dict: The headers to be used for the request.
+    :type user_agent: str
+    :param user_agent: The user-agent for requests.
+
+    :type command: str
+    :param command:
+        (Optional) Information about which interface for the operation was
+        used, to be included in the X-Goog-API-Client header. Please leave
+        as None unless otherwise directed.
+
+    :rtype: dict
+    :returns: The headers to be used for the request.
     """
+    x_goog_api_client = f"{user_agent} {_get_invocation_id()}"
+
+    if command:
+        x_goog_api_client += f" gccl-gcs-cmd/{command}"
+
     return {
         "Accept": "application/json",
         "Accept-Encoding": "gzip, deflate",
         "User-Agent": user_agent,
-        "X-Goog-API-Client": f"{user_agent} {_get_invocation_id()}",
+        "X-Goog-API-Client": x_goog_api_client,
         "content-type": content_type,
         "x-upload-content-type": x_upload_content_type or content_type,
     }

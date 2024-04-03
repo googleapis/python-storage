@@ -86,7 +86,6 @@ def test_large_file_write_from_stream_w_failed_checksum(
     # The # remote API is still exercised.
     info = file_data["big"]
     with open(info["path"], "rb") as file_obj:
-
         with mock.patch(
             "google.resumable_media._helpers.prepare_checksum_digest",
             return_value="FFFFFF==",
@@ -527,7 +526,6 @@ def test_blob_direct_write_and_read_into_file(
     same_blob.reload()  # Initialize properties.
 
     with tempfile.NamedTemporaryFile() as temp_f:
-
         with open(temp_f.name, "wb") as file_obj:
             same_blob.download_to_file(file_obj)
 
@@ -553,7 +551,6 @@ def test_blob_download_w_generation_match(
     same_blob.reload()  # Initialize properties.
 
     with tempfile.NamedTemporaryFile() as temp_f:
-
         with open(temp_f.name, "wb") as file_obj:
             with pytest.raises(exceptions.PreconditionFailed):
                 same_blob.download_to_file(
@@ -1120,3 +1117,35 @@ def test_blob_update_storage_class_large_file(
     blob.update_storage_class(constants.COLDLINE_STORAGE_CLASS)
     blob.reload()
     assert blob.storage_class == constants.COLDLINE_STORAGE_CLASS
+
+
+def test_object_retention_lock(storage_client, buckets_to_delete, blobs_to_delete):
+    from google.cloud.storage._helpers import _NOW
+    from google.cloud.storage._helpers import _UTC
+
+    # Test bucket created with object retention enabled
+    new_bucket_name = _helpers.unique_name("object-retention")
+    created_bucket = _helpers.retry_429_503(storage_client.create_bucket)(
+        new_bucket_name, enable_object_retention=True
+    )
+    buckets_to_delete.append(created_bucket)
+    assert created_bucket.object_retention_mode == "Enabled"
+
+    # Test create object with object retention enabled
+    payload = b"Hello World"
+    mode = "Unlocked"
+    current_time = _NOW(_UTC).replace(tzinfo=None)
+    expiration_time = current_time + datetime.timedelta(seconds=10)
+    blob = created_bucket.blob("object-retention-lock")
+    blob.retention.mode = mode
+    blob.retention.retain_until_time = expiration_time
+    blob.upload_from_string(payload)
+    blobs_to_delete.append(blob)
+    blob.reload()
+    assert blob.retention.mode == mode
+
+    # Test patch object to disable object retention
+    blob.retention.mode = None
+    blob.retention.retain_until_time = None
+    blob.patch(override_unlocked_retention=True)
+    assert blob.retention.mode is None

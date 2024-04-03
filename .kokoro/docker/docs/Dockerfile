@@ -1,4 +1,4 @@
-# Copyright 2020 Google LLC
+# Copyright 2023 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -79,5 +79,9 @@ RUN wget -O /tmp/get-pip.py 'https://bootstrap.pypa.io/get-pip.py' \
 
 # Test pip
 RUN python3 -m pip
+
+# Install build requirements
+COPY requirements.txt /requirements.txt
+RUN python3 -m pip install --require-hashes -r requirements.txt
 
 CMD ["python3.8"]

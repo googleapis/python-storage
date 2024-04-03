@@ -25,18 +25,23 @@ import google.api_core.client_options
 
 from google.auth.credentials import AnonymousCredentials
 
-from google import resumable_media
-
 from google.api_core import page_iterator
-from google.cloud._helpers import _LocalStack, _NOW
+from google.cloud._helpers import _LocalStack
 from google.cloud.client import ClientWithProject
 from google.cloud.exceptions import NotFound
-from google.cloud.storage._helpers import _get_default_headers
-from google.cloud.storage._helpers import _get_environ_project
-from google.cloud.storage._helpers import _get_storage_host
-from google.cloud.storage._helpers import _DEFAULT_STORAGE_HOST
+
 from google.cloud.storage._helpers import _bucket_bound_hostname_url
-from google.cloud.storage._helpers import _add_etag_match_headers
+from google.cloud.storage._helpers import _get_api_endpoint_override
+from google.cloud.storage._helpers import _get_environ_project
+from google.cloud.storage._helpers import _get_storage_emulator_override
+from google.cloud.storage._helpers import _use_client_cert
+from google.cloud.storage._helpers import _virtual_hosted_style_base_url
+from google.cloud.storage._helpers import _DEFAULT_UNIVERSE_DOMAIN
+from google.cloud.storage._helpers import _DEFAULT_SCHEME
+from google.cloud.storage._helpers import _STORAGE_HOST_TEMPLATE
+from google.cloud.storage._helpers import _NOW
+from google.cloud.storage._helpers import _UTC
+
 from google.cloud.storage._http import Connection
 from google.cloud.storage._signing import (
     get_expiration_seconds_v4,
@@ -46,17 +51,12 @@ from google.cloud.storage._signing import (
 )
 from google.cloud.storage.batch import Batch
 from google.cloud.storage.bucket import Bucket, _item_to_blob, _blobs_page_start
-from google.cloud.storage.blob import (
-    Blob,
-    _get_encryption_headers,
-    _raise_from_invalid_response,
-)
+from google.cloud.storage.blob import Blob
 from google.cloud.storage.hmac_key import HMACKeyMetadata
 from google.cloud.storage.acl import BucketACL
 from google.cloud.storage.acl import DefaultObjectACL
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 from google.cloud.storage.retry import DEFAULT_RETRY
-from google.cloud.storage.retry import ConditionalRetryPolicy
 
 
 _marker = object()
@@ -94,13 +94,18 @@ class Client(ClientWithProject):
 
     :type client_options: :class:`~google.api_core.client_options.ClientOptions` or :class:`dict`
     :param client_options: (Optional) Client options used to set user options on the client.
-        API Endpoint should be set through client_options.
+        A non-default universe domain or api endpoint should be set through client_options.
 
     :type use_auth_w_custom_endpoint: bool
     :param use_auth_w_custom_endpoint:
         (Optional) Whether authentication is required under custom endpoints.
         If false, uses AnonymousCredentials and bypasses authentication.
         Defaults to True. Note this is only used when a custom endpoint is set in conjunction.
+
+    :type extra_headers: dict
+    :param extra_headers:
+        (Optional) Custom headers to be sent with the requests attached to the client.
+        For example, you can add custom audit logging headers.
     """
 
     SCOPE = (
@@ -118,6 +123,7 @@ class Client(ClientWithProject):
         client_info=None,
         client_options=None,
         use_auth_w_custom_endpoint=True,
+        extra_headers={},
     ):
         self._base_connection = None
 
@@ -134,34 +140,81 @@ class Client(ClientWithProject):
         # are passed along, for use in __reduce__ defined elsewhere.
         self._initial_client_info = client_info
         self._initial_client_options = client_options
-        self._initial_credentials = credentials
+        self._extra_headers = extra_headers
 
-        kw_args = {"client_info": client_info}
-
-        # `api_endpoint` should be only set by the user via `client_options`,
-        # or if the _get_storage_host() returns a non-default value (_is_emulator_set).
-        # `api_endpoint` plays an important role for mTLS, if it is not set,
-        # then mTLS logic will be applied to decide which endpoint will be used.
-        storage_host = _get_storage_host()
-        _is_emulator_set = storage_host != _DEFAULT_STORAGE_HOST
-        kw_args["api_endpoint"] = storage_host if _is_emulator_set else None
+        connection_kw_args = {"client_info": client_info}
 
         if client_options:
-            if type(client_options) == dict:
+            if isinstance(client_options, dict):
                 client_options = google.api_core.client_options.from_dict(
                     client_options
                 )
-            if client_options.api_endpoint:
-                api_endpoint = client_options.api_endpoint
-                kw_args["api_endpoint"] = api_endpoint
+
+        if client_options and client_options.universe_domain:
+            self._universe_domain = client_options.universe_domain
+        else:
+            self._universe_domain = None
+
+        storage_emulator_override = _get_storage_emulator_override()
+        api_endpoint_override = _get_api_endpoint_override()
+
+        # Determine the api endpoint. The rules are as follows:
+
+        # 1. If the `api_endpoint` is set in `client_options`, use that as the
+        #    endpoint.
+        if client_options and client_options.api_endpoint:
+            api_endpoint = client_options.api_endpoint
+
+        # 2. Elif the "STORAGE_EMULATOR_HOST" env var is set, then use that as the
+        #    endpoint.
+        elif storage_emulator_override:
+            api_endpoint = storage_emulator_override
+
+        # 3. Elif the "API_ENDPOINT_OVERRIDE" env var is set, then use that as the
+        #    endpoint.
+        elif api_endpoint_override:
+            api_endpoint = api_endpoint_override
+
+        # 4. Elif the `universe_domain` is set in `client_options`,
+        #    create the endpoint using that as the default.
+        #
+        #    Mutual TLS is not compatible with a non-default universe domain
+        #    at this time. If such settings are enabled along with the
+        #    "GOOGLE_API_USE_CLIENT_CERTIFICATE" env variable, a ValueError will
+        #    be raised.
+
+        elif self._universe_domain:
+            # The final decision of whether to use mTLS takes place in
+            # google-auth-library-python. We peek at the environment variable
+            # here only to issue an exception in case of a conflict.
+            if _use_client_cert():
+                raise ValueError(
+                    'The "GOOGLE_API_USE_CLIENT_CERTIFICATE" env variable is '
+                    'set to "true" and a non-default universe domain is '
+                    "configured. mTLS is not supported in any universe other than"
+                    "googleapis.com."
+                )
+            api_endpoint = _DEFAULT_SCHEME + _STORAGE_HOST_TEMPLATE.format(
+                universe_domain=self._universe_domain
+            )
+
+        # 5. Else, use the default, which is to use the default
+        #    universe domain of "googleapis.com" and create the endpoint
+        #    "storage.googleapis.com" from that.
+        else:
+            api_endpoint = None
+
+        connection_kw_args["api_endpoint"] = api_endpoint
+
+        self._is_emulator_set = True if storage_emulator_override else False
 
         # If a custom endpoint is set, the client checks for credentials
         # or finds the default credentials based on the current environment.
         # Authentication may be bypassed under certain conditions:
         # (1) STORAGE_EMULATOR_HOST is set (for backwards compatibility), OR
         # (2) use_auth_w_custom_endpoint is set to False.
-        if kw_args["api_endpoint"] is not None:
-            if _is_emulator_set or not use_auth_w_custom_endpoint:
+        if connection_kw_args["api_endpoint"] is not None:
+            if self._is_emulator_set or not use_auth_w_custom_endpoint:
                 if credentials is None:
                     credentials = AnonymousCredentials()
                 if project is None:
@@ -177,10 +230,26 @@ class Client(ClientWithProject):
             _http=_http,
         )
 
+        # Validate that the universe domain of the credentials matches the
+        # universe domain of the client.
+        if self._credentials.universe_domain != self.universe_domain:
+            raise ValueError(
+                "The configured universe domain ({client_ud}) does not match "
+                "the universe domain found in the credentials ({cred_ud}). If "
+                "you haven't configured the universe domain explicitly, "
+                "`googleapis.com` is the default.".format(
+                    client_ud=self.universe_domain,
+                    cred_ud=self._credentials.universe_domain,
+                )
+            )
+
         if no_project:
             self.project = None
 
-        self._connection = Connection(self, **kw_args)
+        # Pass extra_headers to Connection
+        connection = Connection(self, **connection_kw_args)
+        connection.extra_headers = extra_headers
+        self._connection = connection
         self._batch_stack = _LocalStack()
 
     @classmethod
@@ -198,6 +267,14 @@ class Client(ClientWithProject):
         client = cls(project="<none>", credentials=AnonymousCredentials())
         client.project = None
         return client
+
+    @property
+    def universe_domain(self):
+        return self._universe_domain or _DEFAULT_UNIVERSE_DOMAIN
+
+    @property
+    def api_endpoint(self):
+        return self._connection.API_BASE_URL
 
     @property
     def _connection(self):
@@ -307,17 +384,24 @@ class Client(ClientWithProject):
         """
         return Bucket(client=self, name=bucket_name, user_project=user_project)
 
-    def batch(self):
+    def batch(self, raise_exception=True):
         """Factory constructor for batch object.
 
         .. note::
           This will not make an HTTP request; it simply instantiates
           a batch object owned by this client.
 
+        :type raise_exception: bool
+        :param raise_exception:
+            (Optional) Defaults to True. If True, instead of adding exceptions
+            to the list of return responses, the final exception will be raised.
+            Note that exceptions are unwrapped after all operations are complete
+            in success or failure, and only the last exception is raised.
+
         :rtype: :class:`google.cloud.storage.batch.Batch`
         :returns: The batch object created.
         """
-        return Batch(client=self)
+        return Batch(client=self, raise_exception=raise_exception)
 
     def _get_resource(
         self,
@@ -836,6 +920,7 @@ class Client(ClientWithProject):
         data_locations=None,
         predefined_acl=None,
         predefined_default_object_acl=None,
+        enable_object_retention=False,
         timeout=_DEFAULT_TIMEOUT,
         retry=DEFAULT_RETRY,
     ):
@@ -874,6 +959,9 @@ class Client(ClientWithProject):
             predefined_default_object_acl (str):
                 (Optional) Name of predefined ACL to apply to bucket's objects. See:
                 https://cloud.google.com/storage/docs/access-control/lists#predefined-acl
+            enable_object_retention (bool):
+                (Optional) Whether object retention should be enabled on this bucket. See:
+                https://cloud.google.com/storage/docs/object-lock
             timeout (Optional[Union[float, Tuple[float, float]]]):
                 The amount of time, in seconds, to wait for the server response.
 
@@ -909,8 +997,7 @@ class Client(ClientWithProject):
             project = self.project
 
         # Use no project if STORAGE_EMULATOR_HOST is set
-        _is_emulator_set = _get_storage_host() != _DEFAULT_STORAGE_HOST
-        if _is_emulator_set:
+        if self._is_emulator_set:
             if project is None:
                 project = _get_environ_project()
             if project is None:
@@ -941,6 +1028,9 @@ class Client(ClientWithProject):
 
         if user_project is not None:
             query_params["userProject"] = user_project
+
+        if enable_object_retention:
+            query_params["enableObjectRetention"] = enable_object_retention
 
         properties = {key: bucket._properties[key] for key in bucket._changes}
         properties["name"] = bucket.name
@@ -1057,52 +1147,25 @@ class Client(ClientWithProject):
                 are respected.
         """
 
-        # Handle ConditionalRetryPolicy.
-        if isinstance(retry, ConditionalRetryPolicy):
-            # Conditional retries are designed for non-media calls, which change
-            # arguments into query_params dictionaries. Media operations work
-            # differently, so here we make a "fake" query_params to feed to the
-            # ConditionalRetryPolicy.
-            query_params = {
-                "ifGenerationMatch": if_generation_match,
-                "ifMetagenerationMatch": if_metageneration_match,
-            }
-            retry = retry.get_retry_policy_if_conditions_met(query_params=query_params)
-
         if not isinstance(blob_or_uri, Blob):
             blob_or_uri = Blob.from_string(blob_or_uri)
-        download_url = blob_or_uri._get_download_url(
-            self,
+
+        blob_or_uri._prep_and_do_download(
+            file_obj,
+            client=self,
+            start=start,
+            end=end,
+            raw_download=raw_download,
+            if_etag_match=if_etag_match,
+            if_etag_not_match=if_etag_not_match,
             if_generation_match=if_generation_match,
             if_generation_not_match=if_generation_not_match,
             if_metageneration_match=if_metageneration_match,
             if_metageneration_not_match=if_metageneration_not_match,
+            timeout=timeout,
+            checksum=checksum,
+            retry=retry,
         )
-        headers = _get_encryption_headers(blob_or_uri._encryption_key)
-        headers["accept-encoding"] = "gzip"
-        _add_etag_match_headers(
-            headers,
-            if_etag_match=if_etag_match,
-            if_etag_not_match=if_etag_not_match,
-        )
-        headers = {**_get_default_headers(self._connection.user_agent), **headers}
-
-        transport = self._http
-        try:
-            blob_or_uri._do_download(
-                transport,
-                file_obj,
-                download_url,
-                headers,
-                start,
-                end,
-                raw_download,
-                timeout=timeout,
-                checksum=checksum,
-                retry=retry,
-            )
-        except resumable_media.InvalidResponse as exc:
-            _raise_from_invalid_response(exc)
 
     def list_blobs(
         self,
@@ -1120,6 +1183,9 @@ class Client(ClientWithProject):
         page_size=None,
         timeout=_DEFAULT_TIMEOUT,
         retry=DEFAULT_RETRY,
+        match_glob=None,
+        include_folders_as_prefixes=None,
+        soft_deleted=None,
     ):
         """Return an iterator used to find blobs in the bucket.
 
@@ -1213,6 +1279,22 @@ class Client(ClientWithProject):
                 See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
                 information on retry types and how to configure them.
 
+            match_glob (str):
+                (Optional) A glob pattern used to filter results (for example, foo*bar).
+                The string value must be UTF-8 encoded. See:
+                https://cloud.google.com/storage/docs/json_api/v1/objects/list#list-object-glob
+
+            include_folders_as_prefixes (bool):
+                (Optional) If true, includes Folders and Managed Folders in the set of
+                ``prefixes`` returned by the query. Only applicable if ``delimiter`` is set to /.
+                See: https://cloud.google.com/storage/docs/managed-folders
+
+            soft_deleted (bool):
+                (Optional) If true, only soft-deleted objects will be listed as distinct results in order of increasing
+                generation number. This parameter can only be used successfully if the bucket has a soft delete policy.
+                Note ``soft_deleted`` and ``versions`` cannot be set to True simultaneously. See:
+                https://cloud.google.com/storage/docs/soft-delete
+
         Returns:
             Iterator of all :class:`~google.cloud.storage.blob.Blob`
             in this bucket matching the arguments. The RPC call
@@ -1231,6 +1313,9 @@ class Client(ClientWithProject):
         if delimiter is not None:
             extra_params["delimiter"] = delimiter
 
+        if match_glob is not None:
+            extra_params["matchGlob"] = match_glob
+
         if start_offset is not None:
             extra_params["startOffset"] = start_offset
 
@@ -1245,6 +1330,12 @@ class Client(ClientWithProject):
 
         if fields is not None:
             extra_params["fields"] = fields
+
+        if include_folders_as_prefixes is not None:
+            extra_params["includeFoldersAsPrefixes"] = include_folders_as_prefixes
+
+        if soft_deleted is not None:
+            extra_params["softDeleted"] = soft_deleted
 
         if bucket.user_project is not None:
             extra_params["userProject"] = bucket.user_project
@@ -1340,8 +1431,7 @@ class Client(ClientWithProject):
             project = self.project
 
         # Use no project if STORAGE_EMULATOR_HOST is set
-        _is_emulator_set = _get_storage_host() != _DEFAULT_STORAGE_HOST
-        if _is_emulator_set:
+        if self._is_emulator_set:
             if project is None:
                 project = _get_environ_project()
             if project is None:
@@ -1576,13 +1666,16 @@ class Client(ClientWithProject):
                             key to sign text.
 
         :type virtual_hosted_style: bool
-        :param virtual_hosted_style: (Optional) If True, construct the URL relative to the bucket
-                                     virtual hostname, e.g., '<bucket-name>.storage.googleapis.com'.
+        :param virtual_hosted_style:
+            (Optional) If True, construct the URL relative to the bucket
+            virtual hostname, e.g., '<bucket-name>.storage.googleapis.com'.
+            Incompatible with bucket_bound_hostname.
 
         :type bucket_bound_hostname: str
         :param bucket_bound_hostname:
             (Optional) If passed, construct the URL relative to the bucket-bound hostname.
             Value can be bare or with a scheme, e.g., 'example.com' or 'http://example.com'.
+            Incompatible with virtual_hosted_style.
             See: https://cloud.google.com/storage/docs/request-endpoints#cname
 
         :type scheme: str
@@ -1597,9 +1690,17 @@ class Client(ClientWithProject):
         :type access_token: str
         :param access_token: (Optional) Access token for a service account.
 
+        :raises: :exc:`ValueError` when mutually exclusive arguments are used.
+
         :rtype: dict
         :returns: Signed POST policy.
         """
+        if virtual_hosted_style and bucket_bound_hostname:
+            raise ValueError(
+                "Only one of virtual_hosted_style and bucket_bound_hostname "
+                "can be specified."
+            )
+
         credentials = self._credentials if credentials is None else credentials
         ensure_signed_credentials(credentials)
 
@@ -1627,7 +1728,7 @@ class Client(ClientWithProject):
         conditions += required_conditions
 
         # calculate policy expiration time
-        now = _NOW()
+        now = _NOW(_UTC).replace(tzinfo=None)
         if expiration is None:
             expiration = now + datetime.timedelta(hours=1)
 
@@ -1671,11 +1772,13 @@ class Client(ClientWithProject):
         )
         # designate URL
         if virtual_hosted_style:
-            url = f"https://{bucket_name}.storage.googleapis.com/"
+            url = _virtual_hosted_style_base_url(
+                self.api_endpoint, bucket_name, trailing_slash=True
+            )
         elif bucket_bound_hostname:
             url = f"{_bucket_bound_hostname_url(bucket_bound_hostname, scheme)}/"
         else:
-            url = f"https://storage.googleapis.com/{bucket_name}/"
+            url = f"{self.api_endpoint}/{bucket_name}/"
 
         return {"url": url, "fields": policy_fields}
 

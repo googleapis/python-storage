@@ -57,11 +57,12 @@ from google.cloud.storage._helpers import _bucket_bound_hostname_url
 from google.cloud.storage._helpers import _raise_if_more_than_one_set
 from google.cloud.storage._helpers import _api_core_retry_to_resumable_media_retry
 from google.cloud.storage._helpers import _get_default_headers
+from google.cloud.storage._helpers import _get_default_storage_base_url
 from google.cloud.storage._signing import generate_signed_url_v2
 from google.cloud.storage._signing import generate_signed_url_v4
 from google.cloud.storage._helpers import _NUM_RETRIES_MESSAGE
-from google.cloud.storage._helpers import _DEFAULT_STORAGE_HOST
 from google.cloud.storage._helpers import _API_VERSION
+from google.cloud.storage._helpers import _virtual_hosted_style_base_url
 from google.cloud.storage.acl import ACL
 from google.cloud.storage.acl import ObjectACL
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
@@ -80,7 +81,6 @@ from google.cloud.storage.fileio import BlobReader
 from google.cloud.storage.fileio import BlobWriter
 
 
-_API_ACCESS_ENDPOINT = _DEFAULT_STORAGE_HOST
 _DEFAULT_CONTENT_TYPE = "application/octet-stream"
 _DOWNLOAD_URL_TEMPLATE = "{hostname}/download/storage/{api_version}{path}?alt=media"
 _BASE_UPLOAD_TEMPLATE = (
@@ -102,6 +102,7 @@ _WRITABLE_FIELDS = (
     "md5Hash",
     "metadata",
     "name",
+    "retention",
     "storageClass",
 )
 _READ_LESS_THAN_SIZE = (
@@ -134,7 +135,9 @@ _DOWNLOAD_AS_STRING_DEPRECATED = (
     "Blob.download_as_string() is deprecated and will be removed in future. "
     "Use Blob.download_as_bytes() instead."
 )
-
+_GS_URL_REGEX_PATTERN = re.compile(
+    r"(?P<scheme>gs)://(?P<bucket_name>[a-z0-9_.-]+)/(?P<object_name>.+)"
+)
 
 _DEFAULT_CHUNKSIZE = 104857600  # 1024 * 1024 B * 100 = 100 MB
 _MAX_MULTIPART_SIZE = 8388608  # 8 MB
@@ -385,8 +388,12 @@ class Blob(_PropertyMixin):
         :rtype: `string`
         :returns: The public URL for this blob.
         """
+        if self.client:
+            endpoint = self.client.api_endpoint
+        else:
+            endpoint = _get_default_storage_base_url()
         return "{storage_base_url}/{bucket_name}/{quoted_name}".format(
-            storage_base_url=_API_ACCESS_ENDPOINT,
+            storage_base_url=endpoint,
             bucket_name=self.bucket.name,
             quoted_name=_quote(self.name, safe=b"/~"),
         )
@@ -403,7 +410,8 @@ class Blob(_PropertyMixin):
             blob = Blob.from_string("gs://bucket/object", client=client)
 
         :type uri: str
-        :param uri: The blob uri pass to get blob object.
+        :param uri: The blob uri following a gs://bucket/object pattern.
+          Both a bucket and object name is required to construct a blob object.
 
         :type client: :class:`~google.cloud.storage.client.Client`
         :param client:
@@ -415,17 +423,16 @@ class Blob(_PropertyMixin):
         """
         from google.cloud.storage.bucket import Bucket
 
-        scheme, netloc, path, query, frag = urlsplit(uri)
-        if scheme != "gs":
-            raise ValueError("URI scheme must be gs")
-
-        bucket = Bucket(client, name=netloc)
-        return cls(path[1:], bucket)
+        match = _GS_URL_REGEX_PATTERN.match(uri)
+        if not match:
+            raise ValueError("URI pattern must be gs://bucket/object")
+        bucket = Bucket(client, name=match.group("bucket_name"))
+        return cls(match.group("object_name"), bucket)
 
     def generate_signed_url(
         self,
         expiration=None,
-        api_access_endpoint=_API_ACCESS_ENDPOINT,
+        api_access_endpoint=None,
         method="GET",
         content_md5=None,
         content_type=None,
@@ -473,7 +480,9 @@ class Blob(_PropertyMixin):
             assumed to be ``UTC``.
 
         :type api_access_endpoint: str
-        :param api_access_endpoint: (Optional) URI base.
+        :param api_access_endpoint: (Optional) URI base, for instance
+            "https://storage.googleapis.com". If not specified, the client's
+            api_endpoint will be used. Incompatible with bucket_bound_hostname.
 
         :type method: str
         :param method: The HTTP verb that will be used when requesting the URL.
@@ -546,13 +555,14 @@ class Blob(_PropertyMixin):
         :param virtual_hosted_style:
             (Optional) If true, then construct the URL relative the bucket's
             virtual hostname, e.g., '<bucket-name>.storage.googleapis.com'.
+            Incompatible with bucket_bound_hostname.
 
         :type bucket_bound_hostname: str
         :param bucket_bound_hostname:
-            (Optional) If passed, then construct the URL relative to the
-            bucket-bound hostname.  Value can be a bare or with scheme, e.g.,
-            'example.com' or 'http://example.com'.  See:
-            https://cloud.google.com/storage/docs/request-endpoints#cname
+            (Optional) If passed, then construct the URL relative to the bucket-bound hostname.
+            Value can be a bare or with scheme, e.g., 'example.com' or 'http://example.com'.
+            Incompatible with api_access_endpoint and virtual_hosted_style.
+            See: https://cloud.google.com/storage/docs/request-endpoints#cname
 
         :type scheme: str
         :param scheme:
@@ -560,7 +570,7 @@ class Blob(_PropertyMixin):
             hostname, use this value as the scheme.  ``https`` will work only
             when using a CDN.  Defaults to ``"http"``.
 
-        :raises: :exc:`ValueError` when version is invalid.
+        :raises: :exc:`ValueError` when version is invalid or mutually exclusive arguments are used.
         :raises: :exc:`TypeError` when expiration is not a valid type.
         :raises: :exc:`AttributeError` if credentials is not an instance
                 of :class:`google.auth.credentials.Signing`.
@@ -574,25 +584,38 @@ class Blob(_PropertyMixin):
         elif version not in ("v2", "v4"):
             raise ValueError("'version' must be either 'v2' or 'v4'")
 
+        if (
+            api_access_endpoint is not None or virtual_hosted_style
+        ) and bucket_bound_hostname:
+            raise ValueError(
+                "The bucket_bound_hostname argument is not compatible with "
+                "either api_access_endpoint or virtual_hosted_style."
+            )
+
+        if api_access_endpoint is None:
+            client = self._require_client(client)
+            api_access_endpoint = client.api_endpoint
+
         quoted_name = _quote(self.name, safe=b"/~")
 
         # If you are on Google Compute Engine, you can't generate a signed URL
         # using GCE service account.
         # See https://github.com/googleapis/google-auth-library-python/issues/50
         if virtual_hosted_style:
-            api_access_endpoint = f"https://{self.bucket.name}.storage.googleapis.com"
+            api_access_endpoint = _virtual_hosted_style_base_url(
+                api_access_endpoint, self.bucket.name
+            )
+            resource = f"/{quoted_name}"
         elif bucket_bound_hostname:
             api_access_endpoint = _bucket_bound_hostname_url(
                 bucket_bound_hostname, scheme
             )
+            resource = f"/{quoted_name}"
         else:
             resource = f"/{self.bucket.name}/{quoted_name}"
 
-        if virtual_hosted_style or bucket_bound_hostname:
-            resource = f"/{quoted_name}"
-
         if credentials is None:
-            client = self._require_client(client)
+            client = self._require_client(client)  # May be redundant, but that's ok.
             credentials = client._credentials
 
         if version == "v2":
@@ -639,6 +662,7 @@ class Blob(_PropertyMixin):
         if_metageneration_not_match=None,
         timeout=_DEFAULT_TIMEOUT,
         retry=DEFAULT_RETRY,
+        soft_deleted=None,
     ):
         """Determines whether or not this blob exists.
 
@@ -683,6 +707,13 @@ class Blob(_PropertyMixin):
         :param retry:
             (Optional) How to retry the RPC. See: :ref:`configuring_retries`
 
+        :type soft_deleted: bool
+        :param soft_deleted:
+            (Optional) If True, looks for a soft-deleted object. Will only return True
+            if the object exists and is in a soft-deleted state.
+            :attr:`generation` is required to be set on the blob if ``soft_deleted`` is set to True.
+            See: https://cloud.google.com/storage/docs/soft-delete
+
         :rtype: bool
         :returns: True if the blob exists in Cloud Storage.
         """
@@ -691,6 +722,8 @@ class Blob(_PropertyMixin):
         # minimize the returned payload.
         query_params = self._query_params
         query_params["fields"] = "name"
+        if soft_deleted is not None:
+            query_params["softDeleted"] = soft_deleted
 
         _add_generation_match_parameters(
             query_params,
@@ -916,7 +949,7 @@ class Blob(_PropertyMixin):
     ):
         """Perform a download without any error handling.
 
-        This is intended to be called by :meth:`download_to_file` so it can
+        This is intended to be called by :meth:`_prep_and_do_download` so it can
         be wrapped with error handling / remapping.
 
         :type transport:
@@ -969,7 +1002,7 @@ class Blob(_PropertyMixin):
 
             This private method does not accept ConditionalRetryPolicy values
             because the information necessary to evaluate the policy is instead
-            evaluated in client.download_blob_to_file().
+            evaluated in blob._prep_and_do_download().
 
             See the retry.py source code and docstrings in this package
             (google.cloud.storage.retry) for information on retry types and how
@@ -1135,11 +1168,10 @@ class Blob(_PropertyMixin):
 
         :raises: :class:`google.cloud.exceptions.NotFound`
         """
-        client = self._require_client(client)
 
-        client.download_blob_to_file(
-            self,
-            file_obj=file_obj,
+        self._prep_and_do_download(
+            file_obj,
+            client=client,
             start=start,
             end=end,
             raw_download=raw_download,
@@ -1153,6 +1185,33 @@ class Blob(_PropertyMixin):
             checksum=checksum,
             retry=retry,
         )
+
+    def _handle_filename_and_download(self, filename, *args, **kwargs):
+        """Download the contents of this blob into a named file.
+
+        :type filename: str
+        :param filename: A filename to be passed to ``open``.
+
+        For *args and **kwargs, refer to the documentation for download_to_filename() for more information.
+        """
+
+        try:
+            with open(filename, "wb") as file_obj:
+                self._prep_and_do_download(
+                    file_obj,
+                    *args,
+                    **kwargs,
+                )
+
+        except resumable_media.DataCorruption:
+            # Delete the corrupt downloaded file.
+            os.remove(filename)
+            raise
+
+        updated = self.updated
+        if updated is not None:
+            mtime = updated.timestamp()
+            os.utime(file_obj.name, (mtime, mtime))
 
     def download_to_filename(
         self,
@@ -1261,34 +1320,23 @@ class Blob(_PropertyMixin):
 
         :raises: :class:`google.cloud.exceptions.NotFound`
         """
-        client = self._require_client(client)
-        try:
-            with open(filename, "wb") as file_obj:
-                client.download_blob_to_file(
-                    self,
-                    file_obj,
-                    start=start,
-                    end=end,
-                    raw_download=raw_download,
-                    if_etag_match=if_etag_match,
-                    if_etag_not_match=if_etag_not_match,
-                    if_generation_match=if_generation_match,
-                    if_generation_not_match=if_generation_not_match,
-                    if_metageneration_match=if_metageneration_match,
-                    if_metageneration_not_match=if_metageneration_not_match,
-                    timeout=timeout,
-                    checksum=checksum,
-                    retry=retry,
-                )
-        except resumable_media.DataCorruption:
-            # Delete the corrupt downloaded file.
-            os.remove(filename)
-            raise
 
-        updated = self.updated
-        if updated is not None:
-            mtime = updated.timestamp()
-            os.utime(file_obj.name, (mtime, mtime))
+        self._handle_filename_and_download(
+            filename,
+            client=client,
+            start=start,
+            end=end,
+            raw_download=raw_download,
+            if_etag_match=if_etag_match,
+            if_etag_not_match=if_etag_not_match,
+            if_generation_match=if_generation_match,
+            if_generation_not_match=if_generation_not_match,
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
+            timeout=timeout,
+            checksum=checksum,
+            retry=retry,
+        )
 
     def download_as_bytes(
         self,
@@ -1393,11 +1441,12 @@ class Blob(_PropertyMixin):
 
         :raises: :class:`google.cloud.exceptions.NotFound`
         """
-        client = self._require_client(client)
+
         string_buffer = BytesIO()
-        client.download_blob_to_file(
-            self,
+
+        self._prep_and_do_download(
             string_buffer,
+            client=client,
             start=start,
             end=end,
             raw_download=raw_download,
@@ -1695,6 +1744,7 @@ class Blob(_PropertyMixin):
         * ``md5Hash``
         * ``metadata``
         * ``name``
+        * ``retention``
         * ``storageClass``
 
         For now, we don't support ``acl``, access control lists should be
@@ -1708,7 +1758,7 @@ class Blob(_PropertyMixin):
 
         return object_metadata
 
-    def _get_upload_arguments(self, client, content_type):
+    def _get_upload_arguments(self, client, content_type, filename=None, command=None):
         """Get required arguments for performing an upload.
 
         The content type returned will be determined in order of precedence:
@@ -1720,6 +1770,12 @@ class Blob(_PropertyMixin):
         :type content_type: str
         :param content_type: Type of content being uploaded (or :data:`None`).
 
+        :type command: str
+        :param command:
+            (Optional) Information about which interface for upload was used,
+            to be included in the X-Goog-API-Client header. Please leave as None
+            unless otherwise directed.
+
         :rtype: tuple
         :returns: A triple of
 
@@ -1727,10 +1783,14 @@ class Blob(_PropertyMixin):
                   * An object metadata dictionary
                   * The ``content_type`` as a string (according to precedence)
         """
-        content_type = self._get_content_type(content_type)
+        content_type = self._get_content_type(content_type, filename=filename)
+        # Add any client attached custom headers to the upload headers.
         headers = {
-            **_get_default_headers(client._connection.user_agent, content_type),
+            **_get_default_headers(
+                client._connection.user_agent, content_type, command=command
+            ),
             **_get_encryption_headers(self._encryption_key),
+            **client._extra_headers,
         }
         object_metadata = self._get_writable_metadata()
         return headers, object_metadata, content_type
@@ -1750,6 +1810,7 @@ class Blob(_PropertyMixin):
         timeout=_DEFAULT_TIMEOUT,
         checksum=None,
         retry=None,
+        command=None,
     ):
         """Perform a multipart upload.
 
@@ -1833,6 +1894,12 @@ class Blob(_PropertyMixin):
             (google.cloud.storage.retry) for information on retry types and how
             to configure them.
 
+        :type command: str
+        :param command:
+            (Optional) Information about which interface for upload was used,
+            to be included in the X-Goog-API-Client header. Please leave as None
+            unless otherwise directed.
+
         :rtype: :class:`~requests.Response`
         :returns: The "200 OK" response object returned after the multipart
                   upload request.
@@ -1851,7 +1918,7 @@ class Blob(_PropertyMixin):
         transport = self._get_transport(client)
         if "metadata" in self._properties and "metadata" not in self._changes:
             self._changes.add("metadata")
-        info = self._get_upload_arguments(client, content_type)
+        info = self._get_upload_arguments(client, content_type, command=command)
         headers, object_metadata, content_type = info
 
         hostname = _get_host_name(client._connection)
@@ -1921,6 +1988,7 @@ class Blob(_PropertyMixin):
         timeout=_DEFAULT_TIMEOUT,
         checksum=None,
         retry=None,
+        command=None,
     ):
         """Initiate a resumable upload.
 
@@ -2019,6 +2087,12 @@ class Blob(_PropertyMixin):
             (google.cloud.storage.retry) for information on retry types and how
             to configure them.
 
+        :type command: str
+        :param command:
+            (Optional) Information about which interface for upload was used,
+            to be included in the X-Goog-API-Client header. Please leave as None
+            unless otherwise directed.
+
         :rtype: tuple
         :returns:
             Pair of
@@ -2036,7 +2110,7 @@ class Blob(_PropertyMixin):
         transport = self._get_transport(client)
         if "metadata" in self._properties and "metadata" not in self._changes:
             self._changes.add("metadata")
-        info = self._get_upload_arguments(client, content_type)
+        info = self._get_upload_arguments(client, content_type, command=command)
         headers, object_metadata, content_type = info
         if extra_headers is not None:
             headers.update(extra_headers)
@@ -2114,6 +2188,7 @@ class Blob(_PropertyMixin):
         timeout=_DEFAULT_TIMEOUT,
         checksum=None,
         retry=None,
+        command=None,
     ):
         """Perform a resumable upload.
 
@@ -2202,6 +2277,12 @@ class Blob(_PropertyMixin):
             (google.cloud.storage.retry) for information on retry types and how
             to configure them.
 
+        :type command: str
+        :param command:
+            (Optional) Information about which interface for upload was used,
+            to be included in the X-Goog-API-Client header. Please leave as None
+            unless otherwise directed.
+
         :rtype: :class:`~requests.Response`
         :returns: The "200 OK" response object returned after the final chunk
                   is uploaded.
@@ -2220,6 +2301,7 @@ class Blob(_PropertyMixin):
             timeout=timeout,
             checksum=checksum,
             retry=retry,
+            command=command,
         )
         while not upload.finished:
             try:
@@ -2245,6 +2327,7 @@ class Blob(_PropertyMixin):
         timeout=_DEFAULT_TIMEOUT,
         checksum=None,
         retry=None,
+        command=None,
     ):
         """Determine an upload strategy and then perform the upload.
 
@@ -2344,6 +2427,12 @@ class Blob(_PropertyMixin):
             configuration changes for Retry objects such as delays and deadlines
             are respected.
 
+        :type command: str
+        :param command:
+            (Optional) Information about which interface for upload was used,
+            to be included in the X-Goog-API-Client header. Please leave as None
+            unless otherwise directed.
+
         :rtype: dict
         :returns: The parsed JSON from the "200 OK" response. This will be the
                   **only** response in the multipart case and it will be the
@@ -2377,6 +2466,7 @@ class Blob(_PropertyMixin):
                 timeout=timeout,
                 checksum=checksum,
                 retry=retry,
+                command=command,
             )
         else:
             response = self._do_resumable_upload(
@@ -2393,9 +2483,188 @@ class Blob(_PropertyMixin):
                 timeout=timeout,
                 checksum=checksum,
                 retry=retry,
+                command=command,
             )
 
         return response.json()
+
+    def _prep_and_do_upload(
+        self,
+        file_obj,
+        rewind=False,
+        size=None,
+        content_type=None,
+        num_retries=None,
+        client=None,
+        predefined_acl=None,
+        if_generation_match=None,
+        if_generation_not_match=None,
+        if_metageneration_match=None,
+        if_metageneration_not_match=None,
+        timeout=_DEFAULT_TIMEOUT,
+        checksum=None,
+        retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+        command=None,
+    ):
+        """Upload the contents of this blob from a file-like object.
+
+        The content type of the upload will be determined in order
+        of precedence:
+
+        - The value passed in to this method (if not :data:`None`)
+        - The value stored on the current blob
+        - The default value ('application/octet-stream')
+
+        .. note::
+           The effect of uploading to an existing blob depends on the
+           "versioning" and "lifecycle" policies defined on the blob's
+           bucket.  In the absence of those policies, upload will
+           overwrite any existing contents.
+
+           See the [`object versioning`](https://cloud.google.com/storage/docs/object-versioning)
+           and [`lifecycle`](https://cloud.google.com/storage/docs/lifecycle)
+           API documents for details.
+
+        If the size of the data to be uploaded exceeds 8 MB a resumable media
+        request will be used, otherwise the content and the metadata will be
+        uploaded in a single multipart upload request.
+
+        For more fine-grained over the upload process, check out
+        [`google-resumable-media`](https://googleapis.dev/python/google-resumable-media/latest/index.html).
+
+        If :attr:`user_project` is set on the bucket, bills the API request
+        to that project.
+
+        :type file_obj: file
+        :param file_obj: A file handle opened in binary mode for reading.
+
+        :type rewind: bool
+        :param rewind:
+            If True, seek to the beginning of the file handle before writing
+            the file to Cloud Storage.
+
+        :type size: int
+        :param size:
+            The number of bytes to be uploaded (which will be read from
+            ``file_obj``). If not provided, the upload will be concluded once
+            ``file_obj`` is exhausted.
+
+        :type content_type: str
+        :param content_type: (Optional) Type of content being uploaded.
+
+        :type num_retries: int
+        :param num_retries:
+            Number of upload retries. By default, only uploads with
+            if_generation_match set will be retried, as uploads without the
+            argument are not guaranteed to be idempotent. Setting num_retries
+            will override this default behavior and guarantee retries even when
+            if_generation_match is not set.  (Deprecated: This argument
+            will be removed in a future release.)
+
+        :type client: :class:`~google.cloud.storage.client.Client`
+        :param client:
+            (Optional) The client to use.  If not passed, falls back to the
+            ``client`` stored on the blob's bucket.
+
+        :type predefined_acl: str
+        :param predefined_acl: (Optional) Predefined access control list
+
+        :type if_generation_match: long
+        :param if_generation_match:
+            (Optional) See :ref:`using-if-generation-match`
+
+        :type if_generation_not_match: long
+        :param if_generation_not_match:
+            (Optional) See :ref:`using-if-generation-not-match`
+
+        :type if_metageneration_match: long
+        :param if_metageneration_match:
+            (Optional) See :ref:`using-if-metageneration-match`
+
+        :type if_metageneration_not_match: long
+        :param if_metageneration_not_match:
+            (Optional) See :ref:`using-if-metageneration-not-match`
+
+        :type timeout: float or tuple
+        :param timeout:
+            (Optional) The amount of time, in seconds, to wait
+            for the server response.  See: :ref:`configuring_timeouts`
+
+        :type checksum: str
+        :param checksum:
+            (Optional) The type of checksum to compute to verify
+            the integrity of the object. If the upload is completed in a single
+            request, the checksum will be entirely precomputed and the remote
+            server will handle verification and error handling. If the upload
+            is too large and must be transmitted in multiple requests, the
+            checksum will be incrementally computed and the client will handle
+            verification and error handling, raising
+            google.resumable_media.common.DataCorruption on a mismatch and
+            attempting to delete the corrupted file. Supported values are
+            "md5", "crc32c" and None. The default is None.
+
+        :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
+        :param retry: (Optional) How to retry the RPC. A None value will disable
+            retries. A google.api_core.retry.Retry value will enable retries,
+            and the object will define retriable response codes and errors and
+            configure backoff and timeout options.
+
+            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a
+            Retry object and activates it only if certain conditions are met.
+            This class exists to provide safe defaults for RPC calls that are
+            not technically safe to retry normally (due to potential data
+            duplication or other side-effects) but become safe to retry if a
+            condition such as if_generation_match is set.
+
+            See the retry.py source code and docstrings in this package
+            (google.cloud.storage.retry) for information on retry types and how
+            to configure them.
+
+            Media operations (downloads and uploads) do not support non-default
+            predicates in a Retry object. The default will always be used. Other
+            configuration changes for Retry objects such as delays and deadlines
+            are respected.
+
+        :type command: str
+        :param command:
+            (Optional) Information about which interface for upload was used,
+            to be included in the X-Goog-API-Client header. Please leave as None
+            unless otherwise directed.
+
+        :raises: :class:`~google.cloud.exceptions.GoogleCloudError`
+                 if the upload response returns an error status.
+        """
+        if num_retries is not None:
+            warnings.warn(_NUM_RETRIES_MESSAGE, DeprecationWarning, stacklevel=2)
+            # num_retries and retry are mutually exclusive. If num_retries is
+            # set and retry is exactly the default, then nullify retry for
+            # backwards compatibility.
+            if retry is DEFAULT_RETRY_IF_GENERATION_SPECIFIED:
+                retry = None
+
+        _maybe_rewind(file_obj, rewind=rewind)
+        predefined_acl = ACL.validate_predefined(predefined_acl)
+
+        try:
+            created_json = self._do_upload(
+                client,
+                file_obj,
+                content_type,
+                size,
+                num_retries,
+                predefined_acl,
+                if_generation_match,
+                if_generation_not_match,
+                if_metageneration_match,
+                if_metageneration_not_match,
+                timeout=timeout,
+                checksum=checksum,
+                retry=retry,
+                command=command,
+            )
+            self._set_properties(created_json)
+        except resumable_media.InvalidResponse as exc:
+            _raise_from_invalid_response(exc)
 
     def upload_from_file(
         self,
@@ -2536,36 +2805,46 @@ class Blob(_PropertyMixin):
         :raises: :class:`~google.cloud.exceptions.GoogleCloudError`
                  if the upload response returns an error status.
         """
-        if num_retries is not None:
-            warnings.warn(_NUM_RETRIES_MESSAGE, DeprecationWarning, stacklevel=2)
-            # num_retries and retry are mutually exclusive. If num_retries is
-            # set and retry is exactly the default, then nullify retry for
-            # backwards compatibility.
-            if retry is DEFAULT_RETRY_IF_GENERATION_SPECIFIED:
-                retry = None
+        self._prep_and_do_upload(
+            file_obj,
+            rewind=rewind,
+            size=size,
+            content_type=content_type,
+            num_retries=num_retries,
+            client=client,
+            predefined_acl=predefined_acl,
+            if_generation_match=if_generation_match,
+            if_generation_not_match=if_generation_not_match,
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
+            timeout=timeout,
+            checksum=checksum,
+            retry=retry,
+        )
 
-        _maybe_rewind(file_obj, rewind=rewind)
-        predefined_acl = ACL.validate_predefined(predefined_acl)
+    def _handle_filename_and_upload(self, filename, content_type=None, *args, **kwargs):
+        """Upload this blob's contents from the content of a named file.
 
-        try:
-            created_json = self._do_upload(
-                client,
+        :type filename: str
+        :param filename: The path to the file.
+
+        :type content_type: str
+        :param content_type: (Optional) Type of content being uploaded.
+
+        For *args and **kwargs, refer to the documentation for upload_from_filename() for more information.
+        """
+
+        content_type = self._get_content_type(content_type, filename=filename)
+
+        with open(filename, "rb") as file_obj:
+            total_bytes = os.fstat(file_obj.fileno()).st_size
+            self._prep_and_do_upload(
                 file_obj,
-                content_type,
-                size,
-                num_retries,
-                predefined_acl,
-                if_generation_match,
-                if_generation_not_match,
-                if_metageneration_match,
-                if_metageneration_not_match,
-                timeout=timeout,
-                checksum=checksum,
-                retry=retry,
+                content_type=content_type,
+                size=total_bytes,
+                *args,
+                **kwargs,
             )
-            self._set_properties(created_json)
-        except resumable_media.InvalidResponse as exc:
-            _raise_from_invalid_response(exc)
 
     def upload_from_filename(
         self,
@@ -2688,25 +2967,21 @@ class Blob(_PropertyMixin):
             configuration changes for Retry objects such as delays and deadlines
             are respected.
         """
-        content_type = self._get_content_type(content_type, filename=filename)
 
-        with open(filename, "rb") as file_obj:
-            total_bytes = os.fstat(file_obj.fileno()).st_size
-            self.upload_from_file(
-                file_obj,
-                content_type=content_type,
-                num_retries=num_retries,
-                client=client,
-                size=total_bytes,
-                predefined_acl=predefined_acl,
-                if_generation_match=if_generation_match,
-                if_generation_not_match=if_generation_not_match,
-                if_metageneration_match=if_metageneration_match,
-                if_metageneration_not_match=if_metageneration_not_match,
-                timeout=timeout,
-                checksum=checksum,
-                retry=retry,
-            )
+        self._handle_filename_and_upload(
+            filename,
+            content_type=content_type,
+            num_retries=num_retries,
+            client=client,
+            predefined_acl=predefined_acl,
+            if_generation_match=if_generation_match,
+            if_generation_not_match=if_generation_not_match,
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
+            timeout=timeout,
+            checksum=checksum,
+            retry=retry,
+        )
 
     def upload_from_string(
         self,
@@ -3461,6 +3736,10 @@ class Blob(_PropertyMixin):
         If :attr:`user_project` is set on the bucket, bills the API request
         to that project.
 
+        .. note::
+
+           ``rewrite`` is not supported in a ``Batch`` context.
+
         :type source: :class:`Blob`
         :param source: blob whose contents will be rewritten into this blob.
 
@@ -3943,6 +4222,170 @@ class Blob(_PropertyMixin):
     :rtype: str or ``NoneType``
     """
 
+    def _prep_and_do_download(
+        self,
+        file_obj,
+        client=None,
+        start=None,
+        end=None,
+        raw_download=False,
+        if_etag_match=None,
+        if_etag_not_match=None,
+        if_generation_match=None,
+        if_generation_not_match=None,
+        if_metageneration_match=None,
+        if_metageneration_not_match=None,
+        timeout=_DEFAULT_TIMEOUT,
+        checksum="md5",
+        retry=DEFAULT_RETRY,
+        command=None,
+    ):
+        """Download the contents of a blob object into a file-like object.
+
+        See https://cloud.google.com/storage/docs/downloading-objects
+
+        If :attr:`user_project` is set on the bucket, bills the API request
+        to that project.
+
+        :type file_obj: file
+        :param file_obj: A file handle to which to write the blob's data.
+
+        :type client: :class:`~google.cloud.storage.client.Client`
+        :param client:
+            (Optional) The client to use. If not passed, falls back to the
+            ``client`` stored on the blob's bucket.
+
+        :type start: int
+        :param start: (Optional) The first byte in a range to be downloaded.
+
+        :type end: int
+        :param end: (Optional) The last byte in a range to be downloaded.
+
+        :type raw_download: bool
+        :param raw_download:
+            (Optional) If true, download the object without any expansion.
+
+        :type if_etag_match: Union[str, Set[str]]
+        :param if_etag_match:
+            (Optional) See :ref:`using-if-etag-match`
+
+        :type if_etag_not_match: Union[str, Set[str]]
+        :param if_etag_not_match:
+            (Optional) See :ref:`using-if-etag-not-match`
+
+        :type if_generation_match: long
+        :param if_generation_match:
+            (Optional) See :ref:`using-if-generation-match`
+
+        :type if_generation_not_match: long
+        :param if_generation_not_match:
+            (Optional) See :ref:`using-if-generation-not-match`
+
+        :type if_metageneration_match: long
+        :param if_metageneration_match:
+            (Optional) See :ref:`using-if-metageneration-match`
+
+        :type if_metageneration_not_match: long
+        :param if_metageneration_not_match:
+            (Optional) See :ref:`using-if-metageneration-not-match`
+
+        :type timeout: float or tuple
+        :param timeout:
+            (Optional) The amount of time, in seconds, to wait
+            for the server response.  See: :ref:`configuring_timeouts`
+
+        :type checksum: str
+        :param checksum:
+            (Optional) The type of checksum to compute to verify the integrity
+            of the object. The response headers must contain a checksum of the
+            requested type. If the headers lack an appropriate checksum (for
+            instance in the case of transcoded or ranged downloads where the
+            remote service does not know the correct checksum, including
+            downloads where chunk_size is set) an INFO-level log will be
+            emitted. Supported values are "md5", "crc32c" and None. The default
+            is "md5".
+
+        :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
+        :param retry: (Optional) How to retry the RPC. A None value will disable
+            retries. A google.api_core.retry.Retry value will enable retries,
+            and the object will define retriable response codes and errors and
+            configure backoff and timeout options.
+
+            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a
+            Retry object and activates it only if certain conditions are met.
+            This class exists to provide safe defaults for RPC calls that are
+            not technically safe to retry normally (due to potential data
+            duplication or other side-effects) but become safe to retry if a
+            condition such as if_metageneration_match is set.
+
+            See the retry.py source code and docstrings in this package
+            (google.cloud.storage.retry) for information on retry types and how
+            to configure them.
+
+            Media operations (downloads and uploads) do not support non-default
+            predicates in a Retry object. The default will always be used. Other
+            configuration changes for Retry objects such as delays and deadlines
+            are respected.
+
+        :type command: str
+        :param command:
+            (Optional) Information about which interface for download was used,
+            to be included in the X-Goog-API-Client header. Please leave as None
+            unless otherwise directed.
+        """
+        # Handle ConditionalRetryPolicy.
+        if isinstance(retry, ConditionalRetryPolicy):
+            # Conditional retries are designed for non-media calls, which change
+            # arguments into query_params dictionaries. Media operations work
+            # differently, so here we make a "fake" query_params to feed to the
+            # ConditionalRetryPolicy.
+            query_params = {
+                "ifGenerationMatch": if_generation_match,
+                "ifMetagenerationMatch": if_metageneration_match,
+            }
+            retry = retry.get_retry_policy_if_conditions_met(query_params=query_params)
+
+        client = self._require_client(client)
+
+        download_url = self._get_download_url(
+            client,
+            if_generation_match=if_generation_match,
+            if_generation_not_match=if_generation_not_match,
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
+        )
+        headers = _get_encryption_headers(self._encryption_key)
+        headers["accept-encoding"] = "gzip"
+        _add_etag_match_headers(
+            headers,
+            if_etag_match=if_etag_match,
+            if_etag_not_match=if_etag_not_match,
+        )
+        # Add any client attached custom headers to be sent with the request.
+        headers = {
+            **_get_default_headers(client._connection.user_agent, command=command),
+            **headers,
+            **client._extra_headers,
+        }
+
+        transport = client._http
+
+        try:
+            self._do_download(
+                transport,
+                file_obj,
+                download_url,
+                headers,
+                start,
+                end,
+                raw_download,
+                timeout=timeout,
+                checksum=checksum,
+                retry=retry,
+            )
+        except resumable_media.InvalidResponse as exc:
+            _raise_from_invalid_response(exc)
+
     @property
     def component_count(self):
         """Number of underlying components that make up this object.
@@ -4269,6 +4712,42 @@ class Blob(_PropertyMixin):
 
         self._patch_property("customTime", value)
 
+    @property
+    def retention(self):
+        """Retrieve the retention configuration for this object.
+
+        :rtype: :class:`Retention`
+        :returns: an instance for managing the object's retention configuration.
+        """
+        info = self._properties.get("retention", {})
+        return Retention.from_api_repr(info, self)
+
+    @property
+    def soft_delete_time(self):
+        """If this object has been soft-deleted, returns the time at which it became soft-deleted.
+
+        :rtype: :class:`datetime.datetime` or ``NoneType``
+        :returns:
+            (readonly) The time that the object became soft-deleted.
+             Note this property is only set for soft-deleted objects.
+        """
+        soft_delete_time = self._properties.get("softDeleteTime")
+        if soft_delete_time is not None:
+            return _rfc3339_nanos_to_datetime(soft_delete_time)
+
+    @property
+    def hard_delete_time(self):
+        """If this object has been soft-deleted, returns the time at which it will be permanently deleted.
+
+        :rtype: :class:`datetime.datetime` or ``NoneType``
+        :returns:
+            (readonly) The time that the object will be permanently deleted.
+            Note this property is only set for soft-deleted objects.
+        """
+        hard_delete_time = self._properties.get("hardDeleteTime")
+        if hard_delete_time is not None:
+            return _rfc3339_nanos_to_datetime(hard_delete_time)
+
 
 def _get_host_name(connection):
     """Returns the host name from the given connection.
@@ -4399,3 +4878,126 @@ def _add_query_parameters(base_url, name_value_pairs):
     query = parse_qsl(query)
     query.extend(name_value_pairs)
     return urlunsplit((scheme, netloc, path, urlencode(query), frag))
+
+
+class Retention(dict):
+    """Map an object's retention configuration.
+
+    :type blob: :class:`Blob`
+    :params blob: blob for which this retention configuration applies to.
+
+    :type mode: str or ``NoneType``
+    :params mode:
+        (Optional) The mode of the retention configuration, which can be either Unlocked or Locked.
+        See: https://cloud.google.com/storage/docs/object-lock
+
+    :type retain_until_time: :class:`datetime.datetime` or ``NoneType``
+    :params retain_until_time:
+        (Optional) The earliest time that the object can be deleted or replaced, which is the
+        retention configuration set for this object.
+
+    :type retention_expiration_time: :class:`datetime.datetime` or ``NoneType``
+    :params retention_expiration_time:
+        (Optional) The earliest time that the object can be deleted, which depends on any
+        retention configuration set for the object and any retention policy set for the bucket
+        that contains the object. This value should normally only be set by the back-end API.
+    """
+
+    def __init__(
+        self,
+        blob,
+        mode=None,
+        retain_until_time=None,
+        retention_expiration_time=None,
+    ):
+        data = {"mode": mode}
+        if retain_until_time is not None:
+            retain_until_time = _datetime_to_rfc3339(retain_until_time)
+        data["retainUntilTime"] = retain_until_time
+
+        if retention_expiration_time is not None:
+            retention_expiration_time = _datetime_to_rfc3339(retention_expiration_time)
+        data["retentionExpirationTime"] = retention_expiration_time
+
+        super(Retention, self).__init__(data)
+        self._blob = blob
+
+    @classmethod
+    def from_api_repr(cls, resource, blob):
+        """Factory:  construct instance from resource.
+
+        :type blob: :class:`Blob`
+        :params blob: Blob for which this retention configuration applies to.
+
+        :type resource: dict
+        :param resource: mapping as returned from API call.
+
+        :rtype: :class:`Retention`
+        :returns: Retention configuration created from resource.
+        """
+        instance = cls(blob)
+        instance.update(resource)
+        return instance
+
+    @property
+    def blob(self):
+        """Blob for which this retention configuration applies to.
+
+        :rtype: :class:`Blob`
+        :returns: the instance's blob.
+        """
+        return self._blob
+
+    @property
+    def mode(self):
+        """The mode of the retention configuration. Options are 'Unlocked' or 'Locked'.
+
+        :rtype: string
+        :returns: The mode of the retention configuration, which can be either set to 'Unlocked' or 'Locked'.
+        """
+        return self.get("mode")
+
+    @mode.setter
+    def mode(self, value):
+        self["mode"] = value
+        self.blob._patch_property("retention", self)
+
+    @property
+    def retain_until_time(self):
+        """The earliest time that the object can be deleted or replaced, which is the
+        retention configuration set for this object.
+
+        :rtype: :class:`datetime.datetime` or ``NoneType``
+        :returns: Datetime object parsed from RFC3339 valid timestamp, or
+                  ``None`` if the blob's resource has not been loaded from
+                  the server (see :meth:`reload`).
+        """
+        value = self.get("retainUntilTime")
+        if value is not None:
+            return _rfc3339_nanos_to_datetime(value)
+
+    @retain_until_time.setter
+    def retain_until_time(self, value):
+        """Set the retain_until_time for the object retention configuration.
+
+        :type value: :class:`datetime.datetime`
+        :param value: The earliest time that the object can be deleted or replaced.
+        """
+        if value is not None:
+            value = _datetime_to_rfc3339(value)
+        self["retainUntilTime"] = value
+        self.blob._patch_property("retention", self)
+
+    @property
+    def retention_expiration_time(self):
+        """The earliest time that the object can be deleted, which depends on any
+        retention configuration set for the object and any retention policy set for
+        the bucket that contains the object.
+
+        :rtype: :class:`datetime.datetime` or ``NoneType``
+        :returns:
+            (readonly) The earliest time that the object can be deleted.
+        """
+        retention_expiration_time = self.get("retentionExpirationTime")
+        if retention_expiration_time is not None:
+            return _rfc3339_nanos_to_datetime(retention_expiration_time)

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright 2020 Google LLC
+# Copyright 2023 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@
 [run]
 branch = True
 omit =
+  .nox/*
   google/__init__.py
   google/cloud/__init__.py
 
@@ -32,6 +33,7 @@ exclude_lines =
     # Ignore abstract methods
     raise NotImplementedError
 omit =
+  .nox/*
   */gapic/*.py
   */proto/*.py
   */core/*.py
