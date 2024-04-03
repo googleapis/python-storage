@@ -1149,3 +1149,24 @@ def test_object_retention_lock(storage_client, buckets_to_delete, blobs_to_delet
     blob.retention.retain_until_time = None
     blob.patch(override_unlocked_retention=True)
     assert blob.retention.mode is None
+
+
+def test_blob_from_string(
+    shared_bucket,
+    blobs_to_delete,
+    file_data,
+    storage_client,
+):
+    from google.cloud.storage import Blob
+
+    filename = file_data["logo"]["path"]
+    blob_name = os.path.basename(filename)
+
+    blob = shared_bucket.blob(blob_name)
+    blob.upload_from_filename(filename)
+    blobs_to_delete.append(blob)
+
+    uri = f"gs://{shared_bucket.name}/{blob.name}"
+
+    blob2 = Blob.from_string(uri=uri, client=storage_client)
+    assert blob2.content_type == "image/png"
