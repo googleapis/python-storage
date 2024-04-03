@@ -416,7 +416,8 @@ class Blob(_PropertyMixin):
             raise ValueError("URI pattern must be gs://bucket/object")
         bucket = Bucket(client, name=match.group("bucket_name"))
         blob = cls(match.group("object_name"), bucket)
-        blob.reload(client=client)
+        if client:
+            blob.reload(client=client)
         return blob
 
     def generate_signed_url(
