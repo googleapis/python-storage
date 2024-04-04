@@ -5932,6 +5932,17 @@ class Test_Blob(unittest.TestCase):
         self.assertEqual(blob.bucket.name, "bucket_name")
         self.assertEqual(blob.content_type, "application/pdf")
 
+    def test_from_string_wout_client(self):
+        from google.cloud.storage.blob import Blob
+
+        basic_uri = "gs://bucket_name/b.pdf"
+        blob = Blob.from_string(basic_uri)
+
+        self.assertIsInstance(blob, Blob)
+        self.assertIs(blob.client, None)
+        self.assertEqual(blob.name, "b.pdf")
+        self.assertEqual(blob.bucket.name, "bucket_name")
+
     def test_open(self):
         from io import TextIOWrapper
         from google.cloud.storage.fileio import BlobReader
