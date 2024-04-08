@@ -1632,13 +1632,11 @@ class Bucket(_PropertyMixin):
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
         :param retry:
             (Optional) How to retry the RPC.
-            The default value is ``DEFAULT_RETRY_IF_GENERATION_SPECIFIED``, which
-            only deletes with ``if_generation_match`` or ``generation`` set will
-            be retried.
-
-            Users can configure non-default retry behavior. A ``None`` value will
-            disable retries. A ``DEFAULT_RETRY`` value will enable retries
-            even if deletes are not guaranteed to be idempotent.
+            The default value is ``DEFAULT_RETRY_IF_GENERATION_SPECIFIED``, a conditional retry
+            policy which will only enable retries if ``if_generation_match`` or ``generation``
+            is set, in order to ensure requests are idempotent before retrying them.
+            Change the value to ``DEFAULT_RETRY`` or another `google.api_core.retry.Retry` object
+            to enable retries regardless of generation precondition setting.
             See [Configuring Retries](https://cloud.google.com/python/docs/reference/storage/latest/retry_timeout).
 
         :raises: :class:`google.cloud.exceptions.NotFound` Raises a NotFound
@@ -1741,13 +1739,11 @@ class Bucket(_PropertyMixin):
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
         :param retry:
             (Optional) How to retry the RPC.
-            The default value is ``DEFAULT_RETRY_IF_GENERATION_SPECIFIED``, which
-            only delete operations with ``if_generation_match`` or ``generation`` set will
-            be retried.
-
-            Users can configure non-default retry behavior. A ``None`` value will
-            disable retries. A ``DEFAULT_RETRY`` value will enable retries
-            even if delete operations are not guaranteed to be idempotent.
+            The default value is ``DEFAULT_RETRY_IF_GENERATION_SPECIFIED``, a conditional retry
+            policy which will only enable retries if ``if_generation_match`` or ``generation``
+            is set, in order to ensure requests are idempotent before retrying them.
+            Change the value to ``DEFAULT_RETRY`` or another `google.api_core.retry.Retry` object
+            to enable retries regardless of generation precondition setting.
             See [Configuring Retries](https://cloud.google.com/python/docs/reference/storage/latest/retry_timeout).
 
         :raises: :class:`~google.cloud.exceptions.NotFound` (if
@@ -1894,13 +1890,11 @@ class Bucket(_PropertyMixin):
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
         :param retry:
             (Optional) How to retry the RPC.
-            The default value is ``DEFAULT_RETRY_IF_GENERATION_SPECIFIED``, which
-            only copy operations with ``if_generation_match`` or ``generation``
-            set will be retried.
-
-            Users can configure non-default retry behavior. A ``None`` value will
-            disable retries. A ``DEFAULT_RETRY`` value will enable retries
-            even if copy operations are not guaranteed to be idempotent.
+            The default value is ``DEFAULT_RETRY_IF_GENERATION_SPECIFIED``, a conditional retry
+            policy which will only enable retries if ``if_generation_match`` or ``generation``
+            is set, in order to ensure requests are idempotent before retrying them.
+            Change the value to ``DEFAULT_RETRY`` or another `google.api_core.retry.Retry` object
+            to enable retries regardless of generation precondition setting.
             See [Configuring Retries](https://cloud.google.com/python/docs/reference/storage/latest/retry_timeout).
 
         :rtype: :class:`google.cloud.storage.blob.Blob`
@@ -2049,13 +2043,11 @@ class Bucket(_PropertyMixin):
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
         :param retry:
             (Optional) How to retry the RPC.
-            The default value is ``DEFAULT_RETRY_IF_GENERATION_SPECIFIED``, which
-            only rename operations with ``if_generation_match`` or ``generation``
-            set will be retried.
-
-            Users can configure non-default retry behavior. A ``None`` value will
-            disable retries. A ``DEFAULT_RETRY`` value will enable retries
-            even if rename operations are not guaranteed to be idempotent.
+            The default value is ``DEFAULT_RETRY_IF_GENERATION_SPECIFIED``, a conditional retry
+            policy which will only enable retries if ``if_generation_match`` or ``generation``
+            is set, in order to ensure requests are idempotent before retrying them.
+            Change the value to ``DEFAULT_RETRY`` or another `google.api_core.retry.Retry` object
+            to enable retries regardless of generation precondition setting.
             See [Configuring Retries](https://cloud.google.com/python/docs/reference/storage/latest/retry_timeout).
 
         :rtype: :class:`Blob`
