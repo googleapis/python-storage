@@ -27,6 +27,9 @@ from google.cloud.storage.constants import PUBLIC_ACCESS_PREVENTION_INHERITED
 from google.cloud.storage.constants import PUBLIC_ACCESS_PREVENTION_UNSPECIFIED
 from google.cloud.storage.constants import RPO_DEFAULT
 from google.cloud.storage.constants import RPO_ASYNC_TURBO
+from google.cloud.storage._helpers import _NOW
+from google.cloud.storage._helpers import _UTC
+from google.cloud.storage._helpers import _get_default_storage_base_url
 
 
 def _create_signing_credentials():
@@ -429,11 +432,8 @@ class Test_IAMConfiguration(unittest.TestCase):
         self.assertIsNone(config.bucket_policy_only_locked_time)
 
     def test_ctor_explicit_ubla(self):
-        import datetime
-        from google.cloud._helpers import UTC
-
         bucket = self._make_bucket()
-        now = datetime.datetime.utcnow().replace(tzinfo=UTC)
+        now = _NOW(_UTC)
 
         config = self._make_one(
             bucket,
@@ -469,11 +469,8 @@ class Test_IAMConfiguration(unittest.TestCase):
         )
 
     def test_ctor_explicit_bpo(self):
-        import datetime
-        from google.cloud._helpers import UTC
-
         bucket = self._make_bucket()
-        now = datetime.datetime.utcnow().replace(tzinfo=UTC)
+        now = _NOW(_UTC)
 
         config = pytest.deprecated_call(
             self._make_one,
@@ -499,11 +496,8 @@ class Test_IAMConfiguration(unittest.TestCase):
             )
 
     def test_ctor_ubla_and_bpo_time(self):
-        import datetime
-        from google.cloud._helpers import UTC
-
         bucket = self._make_bucket()
-        now = datetime.datetime.utcnow().replace(tzinfo=UTC)
+        now = _NOW(_UTC)
 
         with self.assertRaises(ValueError):
             self._make_one(
@@ -547,13 +541,11 @@ class Test_IAMConfiguration(unittest.TestCase):
         self.assertIsNone(config.bucket_policy_only_locked_time)
 
     def test_from_api_repr_w_enabled(self):
-        import datetime
-        from google.cloud._helpers import UTC
         from google.cloud._helpers import _datetime_to_rfc3339
 
         klass = self._get_target_class()
         bucket = self._make_bucket()
-        now = datetime.datetime.utcnow().replace(tzinfo=UTC)
+        now = _NOW(_UTC)
         resource = {
             "uniformBucketLevelAccess": {
                 "enabled": True,
@@ -608,6 +600,7 @@ class Test_Bucket(unittest.TestCase):
     def _make_client(**kw):
         from google.cloud.storage.client import Client
 
+        kw["api_endpoint"] = kw.get("api_endpoint") or _get_default_storage_base_url()
         return mock.create_autospec(Client, instance=True, **kw)
 
     def _make_one(self, client=None, name=None, properties=None, user_project=None):
@@ -989,6 +982,40 @@ class Test_Bucket(unittest.TestCase):
             _target_object=blob,
         )
 
+    def test_get_blob_hit_w_generation_w_soft_deleted(self):
+        from google.cloud.storage.blob import Blob
+
+        name = "name"
+        blob_name = "blob-name"
+        generation = 1512565576797178
+        api_response = {"name": blob_name, "generation": generation}
+        client = mock.Mock(spec=["_get_resource"])
+        client._get_resource.return_value = api_response
+        bucket = self._make_one(client, name=name)
+
+        blob = bucket.get_blob(blob_name, generation=generation, soft_deleted=True)
+
+        self.assertIsInstance(blob, Blob)
+        self.assertIs(blob.bucket, bucket)
+        self.assertEqual(blob.name, blob_name)
+        self.assertEqual(blob.generation, generation)
+
+        expected_path = f"/b/{name}/o/{blob_name}"
+        expected_query_params = {
+            "generation": generation,
+            "projection": "noAcl",
+            "softDeleted": True,
+        }
+        expected_headers = {}
+        client._get_resource.assert_called_once_with(
+            expected_path,
+            query_params=expected_query_params,
+            headers=expected_headers,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
+            _target_object=blob,
+        )
+
     def test_get_blob_hit_w_generation_w_timeout(self):
         from google.cloud.storage.blob import Blob
 
@@ -1150,6 +1177,8 @@ class Test_Bucket(unittest.TestCase):
         expected_versions = None
         expected_projection = "noAcl"
         expected_fields = None
+        expected_include_folders_as_prefixes = None
+        soft_deleted = None
         client.list_blobs.assert_called_once_with(
             bucket,
             max_results=expected_max_results,
@@ -1165,6 +1194,8 @@ class Test_Bucket(unittest.TestCase):
             timeout=self._get_default_timeout(),
             retry=DEFAULT_RETRY,
             match_glob=expected_match_glob,
+            include_folders_as_prefixes=expected_include_folders_as_prefixes,
+            soft_deleted=soft_deleted,
         )
 
     def test_list_blobs_w_explicit(self):
@@ -1177,7 +1208,9 @@ class Test_Bucket(unittest.TestCase):
         start_offset = "c"
         end_offset = "g"
         include_trailing_delimiter = True
+        include_folders_as_prefixes = True
         versions = True
+        soft_deleted = True
         projection = "full"
         fields = "items/contentLanguage,nextPageToken"
         bucket = self._make_one(client=None, name=name)
@@ -1201,6 +1234,8 @@ class Test_Bucket(unittest.TestCase):
             timeout=timeout,
             retry=retry,
             match_glob=match_glob,
+            include_folders_as_prefixes=include_folders_as_prefixes,
+            soft_deleted=soft_deleted,
         )
 
         self.assertIs(iterator, other_client.list_blobs.return_value)
@@ -1216,6 +1251,8 @@ class Test_Bucket(unittest.TestCase):
         expected_versions = versions
         expected_projection = projection
         expected_fields = fields
+        expected_include_folders_as_prefixes = include_folders_as_prefixes
+        expected_soft_deleted = soft_deleted
         other_client.list_blobs.assert_called_once_with(
             bucket,
             max_results=expected_max_results,
@@ -1231,6 +1268,8 @@ class Test_Bucket(unittest.TestCase):
             timeout=timeout,
             retry=retry,
             match_glob=expected_match_glob,
+            include_folders_as_prefixes=expected_include_folders_as_prefixes,
+            soft_deleted=expected_soft_deleted,
         )
 
     def test_list_notifications_w_defaults(self):
@@ -2324,12 +2363,10 @@ class Test_Bucket(unittest.TestCase):
         self.assertIsNone(config.bucket_policy_only_locked_time)
 
     def test_iam_configuration_policy_w_entry(self):
-        import datetime
-        from google.cloud._helpers import UTC
         from google.cloud._helpers import _datetime_to_rfc3339
         from google.cloud.storage.bucket import IAMConfiguration
 
-        now = datetime.datetime.utcnow().replace(tzinfo=UTC)
+        now = _NOW(_UTC)
         NAME = "name"
         properties = {
             "iamConfiguration": {
@@ -2678,11 +2715,9 @@ class Test_Bucket(unittest.TestCase):
         self.assertIsNone(bucket.autoclass_terminal_storage_class_update_time)
 
     def test_autoclass_toggle_and_tsc_update_time(self):
-        import datetime
         from google.cloud._helpers import _datetime_to_rfc3339
-        from google.cloud._helpers import UTC
 
-        effective_time = datetime.datetime.utcnow().replace(tzinfo=UTC)
+        effective_time = _NOW(_UTC)
         properties = {
             "autoclass": {
                 "enabled": True,
@@ -2805,11 +2840,9 @@ class Test_Bucket(unittest.TestCase):
         self.assertIsNone(bucket.retention_policy_effective_time)
 
     def test_retention_policy_effective_time(self):
-        import datetime
         from google.cloud._helpers import _datetime_to_rfc3339
-        from google.cloud._helpers import UTC
 
-        effective_time = datetime.datetime.utcnow().replace(tzinfo=UTC)
+        effective_time = _NOW(_UTC)
         properties = {
             "retentionPolicy": {"effectiveTime": _datetime_to_rfc3339(effective_time)}
         }
@@ -2961,9 +2994,8 @@ class Test_Bucket(unittest.TestCase):
 
     def test_time_created(self):
         from google.cloud._helpers import _RFC3339_MICROS
-        from google.cloud._helpers import UTC
 
-        TIMESTAMP = datetime.datetime(2014, 11, 5, 20, 34, 37, tzinfo=UTC)
+        TIMESTAMP = datetime.datetime(2014, 11, 5, 20, 34, 37, tzinfo=_UTC)
         TIME_CREATED = TIMESTAMP.strftime(_RFC3339_MICROS)
         properties = {"timeCreated": TIME_CREATED}
         bucket = self._make_one(properties=properties)
@@ -2972,6 +3004,19 @@ class Test_Bucket(unittest.TestCase):
     def test_time_created_unset(self):
         bucket = self._make_one()
         self.assertIsNone(bucket.time_created)
+
+    def test_updated(self):
+        from google.cloud._helpers import _RFC3339_MICROS
+
+        TIMESTAMP = datetime.datetime(2023, 11, 5, 20, 34, 37, tzinfo=_UTC)
+        UPDATED = TIMESTAMP.strftime(_RFC3339_MICROS)
+        properties = {"updated": UPDATED}
+        bucket = self._make_one(properties=properties)
+        self.assertEqual(bucket.updated, TIMESTAMP)
+
+    def test_updated_unset(self):
+        bucket = self._make_one()
+        self.assertIsNone(bucket.updated)
 
     def test_versioning_enabled_getter_missing(self):
         NAME = "name"
@@ -3076,6 +3121,41 @@ class Test_Bucket(unittest.TestCase):
         properties = {"objectRetention": {"mode": mode}}
         bucket = self._make_one(properties=properties)
         self.assertEqual(bucket.object_retention_mode, mode)
+
+    def test_soft_delete_policy_getter_w_entry(self):
+        from google.cloud.storage.bucket import SoftDeletePolicy
+        from google.cloud._helpers import _datetime_to_rfc3339
+
+        seconds = 86400 * 10  # 10 days
+        effective_time = _NOW(_UTC)
+        properties = {
+            "softDeletePolicy": {
+                "retentionDurationSeconds": seconds,
+                "effectiveTime": _datetime_to_rfc3339(effective_time),
+            }
+        }
+        bucket = self._make_one(properties=properties)
+
+        policy = SoftDeletePolicy(
+            bucket=bucket,
+            retention_duration_seconds=seconds,
+            effective_time=effective_time,
+        )
+        self.assertIsInstance(bucket.soft_delete_policy, SoftDeletePolicy)
+        self.assertEqual(bucket.soft_delete_policy, policy)
+        self.assertEqual(bucket.soft_delete_policy.retention_duration_seconds, seconds)
+        self.assertEqual(bucket.soft_delete_policy.effective_time, effective_time)
+
+    def test_soft_delete_policy_setter(self):
+        bucket = self._make_one()
+        policy = bucket.soft_delete_policy
+        self.assertIsNone(policy.retention_duration_seconds)
+        self.assertIsNone(policy.effective_time)
+
+        seconds = 86400 * 10  # 10 days
+        bucket.soft_delete_policy.retention_duration_seconds = seconds
+        self.assertTrue("softDeletePolicy" in bucket._changes)
+        self.assertEqual(bucket.soft_delete_policy.retention_duration_seconds, seconds)
 
     def test_configure_website_defaults(self):
         NAME = "name"
@@ -4029,6 +4109,109 @@ class Test_Bucket(unittest.TestCase):
             _target_object=bucket,
         )
 
+    def test_restore_blob_w_defaults(self):
+        bucket_name = "restore_bucket"
+        blob_name = "restore_blob"
+        generation = 123456
+        api_response = {"name": blob_name, "generation": generation}
+        client = mock.Mock(spec=["_post_resource"])
+        client._post_resource.return_value = api_response
+        bucket = self._make_one(client=client, name=bucket_name)
+
+        restored_blob = bucket.restore_blob(blob_name)
+
+        self.assertIs(restored_blob.bucket, bucket)
+        self.assertEqual(restored_blob.name, blob_name)
+        expected_path = f"/b/{bucket_name}/o/{blob_name}/restore"
+        expected_data = None
+        expected_query_params = {}
+        client._post_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+        )
+
+    def test_restore_blob_w_explicit(self):
+        user_project = "user-project-123"
+        bucket_name = "restore_bucket"
+        blob_name = "restore_blob"
+        generation = 123456
+        api_response = {"name": blob_name, "generation": generation}
+        client = mock.Mock(spec=["_post_resource"])
+        client._post_resource.return_value = api_response
+        bucket = self._make_one(
+            client=client, name=bucket_name, user_project=user_project
+        )
+        if_generation_match = 123456
+        if_generation_not_match = 654321
+        if_metageneration_match = 1
+        if_metageneration_not_match = 2
+        projection = "noAcl"
+
+        restored_blob = bucket.restore_blob(
+            blob_name,
+            client=client,
+            if_generation_match=if_generation_match,
+            if_generation_not_match=if_generation_not_match,
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
+            projection=projection,
+        )
+
+        self.assertEqual(restored_blob.name, blob_name)
+        self.assertEqual(restored_blob.bucket, bucket)
+        expected_path = f"/b/{bucket_name}/o/{blob_name}/restore"
+        expected_data = None
+        expected_query_params = {
+            "userProject": user_project,
+            "projection": projection,
+            "ifGenerationMatch": if_generation_match,
+            "ifGenerationNotMatch": if_generation_not_match,
+            "ifMetagenerationMatch": if_metageneration_match,
+            "ifMetagenerationNotMatch": if_metageneration_not_match,
+        }
+        client._post_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+        )
+
+    def test_restore_blob_explicit_copy_source_acl(self):
+        bucket_name = "restore_bucket"
+        blob_name = "restore"
+        generation = 123456
+        api_response = {"name": blob_name, "generation": generation}
+        client = mock.Mock(spec=["_post_resource"])
+        client._post_resource.return_value = api_response
+        bucket = self._make_one(client=client, name=bucket_name)
+        copy_source_acl = False
+
+        restored_blob = bucket.restore_blob(
+            blob_name,
+            copy_source_acl=copy_source_acl,
+            generation=generation,
+        )
+
+        self.assertEqual(restored_blob.name, blob_name)
+        self.assertEqual(restored_blob.bucket, bucket)
+        expected_path = f"/b/{bucket_name}/o/{blob_name}/restore"
+        expected_data = None
+        expected_query_params = {
+            "copySourceAcl": False,
+            "generation": generation,
+        }
+        client._post_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+        )
+
     def test_generate_signed_url_w_invalid_version(self):
         expiration = "2014-10-16T20:34:37.000Z"
         client = self._make_client()
@@ -4056,16 +4239,13 @@ class Test_Bucket(unittest.TestCase):
         scheme="http",
     ):
         from urllib import parse
-        from google.cloud._helpers import UTC
         from google.cloud.storage._helpers import _bucket_bound_hostname_url
-        from google.cloud.storage.blob import _API_ACCESS_ENDPOINT
-
-        api_access_endpoint = api_access_endpoint or _API_ACCESS_ENDPOINT
+        from google.cloud.storage._helpers import _get_default_storage_base_url
 
         delta = datetime.timedelta(hours=1)
 
         if expiration is None:
-            expiration = datetime.datetime.utcnow().replace(tzinfo=UTC) + delta
+            expiration = _NOW(_UTC) + delta
 
         client = self._make_client(_credentials=credentials)
         bucket = self._make_one(name=bucket_name, client=client)
@@ -4108,7 +4288,9 @@ class Test_Bucket(unittest.TestCase):
                 bucket_bound_hostname, scheme
             )
         else:
-            expected_api_access_endpoint = api_access_endpoint
+            expected_api_access_endpoint = (
+                api_access_endpoint or _get_default_storage_base_url()
+            )
             expected_resource = f"/{parse.quote(bucket_name)}"
 
         if virtual_hosted_style or bucket_bound_hostname:
@@ -4169,9 +4351,7 @@ class Test_Bucket(unittest.TestCase):
         self._generate_signed_url_v2_helper()
 
     def test_generate_signed_url_v2_w_expiration(self):
-        from google.cloud._helpers import UTC
-
-        expiration = datetime.datetime.utcnow().replace(tzinfo=UTC)
+        expiration = _NOW(_UTC)
         self._generate_signed_url_v2_helper(expiration=expiration)
 
     def test_generate_signed_url_v2_w_endpoint(self):
@@ -4257,6 +4437,17 @@ class Test_Bucket(unittest.TestCase):
 
     def test_generate_signed_url_v4_w_bucket_bound_hostname_w_bare_hostname(self):
         self._generate_signed_url_v4_helper(bucket_bound_hostname="cdn.example.com")
+
+    def test_generate_signed_url_v4_w_incompatible_params(self):
+        with self.assertRaises(ValueError):
+            self._generate_signed_url_v4_helper(
+                api_access_endpoint="example.com",
+                bucket_bound_hostname="cdn.example.com",
+            )
+        with self.assertRaises(ValueError):
+            self._generate_signed_url_v4_helper(
+                virtual_hosted_style=True, bucket_bound_hostname="cdn.example.com"
+            )
 
 
 class Test__item_to_notification(unittest.TestCase):

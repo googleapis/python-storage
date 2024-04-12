@@ -37,6 +37,7 @@ import storage_copy_file_archived_generation
 import storage_cors_configuration
 import storage_create_bucket_class_location
 import storage_create_bucket_dual_region
+import storage_create_bucket_object_retention
 import storage_define_bucket_website_configuration
 import storage_delete_file
 import storage_delete_file_archived_generation
@@ -71,6 +72,7 @@ import storage_rename_file
 import storage_set_autoclass
 import storage_set_bucket_default_kms_key
 import storage_set_client_endpoint
+import storage_set_object_retention_policy
 import storage_set_metadata
 import storage_transfer_manager_download_bucket
 import storage_transfer_manager_download_chunks_concurrently
@@ -361,7 +363,7 @@ def test_generate_upload_signed_url_v4(test_bucket, capsys):
 
     bucket = storage.Client().bucket(test_bucket.name)
     blob = bucket.blob(blob_name)
-    assert blob.download_as_string() == content
+    assert blob.download_as_bytes() == content
 
 
 def test_generate_signed_policy_v4(test_bucket, capsys):
@@ -592,7 +594,7 @@ def test_storage_compose_file(test_bucket):
             source_files[1],
             dest_file.name,
         )
-        composed = destination.download_as_string()
+        composed = destination.download_as_bytes()
 
         assert composed.decode("utf-8") == source_files[0] + source_files[1]
 
@@ -818,3 +820,24 @@ def test_transfer_manager_upload_chunks_concurrently(test_bucket, capsys):
 
         out, _ = capsys.readouterr()
         assert "File {} uploaded to {}".format(file.name, BLOB_NAME) in out
+
+
+def test_object_retention_policy(test_bucket_create, capsys):
+    storage_create_bucket_object_retention.create_bucket_object_retention(
+        test_bucket_create.name
+    )
+    out, _ = capsys.readouterr()
+    assert f"Created bucket {test_bucket_create.name} with object retention enabled setting" in out
+
+    blob_name = "test_object_retention"
+    storage_set_object_retention_policy.set_object_retention_policy(
+        test_bucket_create.name, "hello world", blob_name
+    )
+    out, _ = capsys.readouterr()
+    assert f"Retention policy for file {blob_name}" in out
+
+    # Remove retention policy for test cleanup
+    blob = test_bucket_create.blob(blob_name)
+    blob.retention.mode = None
+    blob.retention.retain_until_time = None
+    blob.patch(override_unlocked_retention=True)

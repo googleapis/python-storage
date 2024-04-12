@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2021 Google LLC
+# Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -16,30 +16,23 @@
 
 import sys
 
-"""Sample that gets RPO (Recovery Point Objective) of a bucket
-This sample is used on this page:
-    https://cloud.google.com/storage/docs/managing-turbo-replication
-For more information, see README.md.
-"""
-
-# [START storage_get_rpo]
-
+# [START storage_create_bucket_with_object_retention]
 from google.cloud import storage
 
 
-def get_rpo(bucket_name):
-    """Gets the RPO of the bucket"""
+def create_bucket_object_retention(bucket_name):
+    """Creates a bucket with object retention enabled."""
     # The ID of your GCS bucket
-    # bucket_name = "my-bucket"
+    # bucket_name = "your-bucket-name"
 
     storage_client = storage.Client()
-    bucket = storage_client.get_bucket(bucket_name)
-    rpo = bucket.rpo
+    bucket = storage_client.create_bucket(bucket_name, enable_object_retention=True)
 
-    print(f"RPO for {bucket.name} is {rpo}.")
+    print(f"Created bucket {bucket_name} with object retention enabled setting: {bucket.object_retention_mode}")
 
 
-# [END storage_get_rpo]
+# [END storage_create_bucket_with_object_retention]
+
 
 if __name__ == "__main__":
-    get_rpo(bucket_name=sys.argv[1])
+    create_bucket_object_retention(bucket_name=sys.argv[1])

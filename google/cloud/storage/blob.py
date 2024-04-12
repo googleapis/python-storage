@@ -57,11 +57,12 @@ from google.cloud.storage._helpers import _bucket_bound_hostname_url
 from google.cloud.storage._helpers import _raise_if_more_than_one_set
 from google.cloud.storage._helpers import _api_core_retry_to_resumable_media_retry
 from google.cloud.storage._helpers import _get_default_headers
+from google.cloud.storage._helpers import _get_default_storage_base_url
 from google.cloud.storage._signing import generate_signed_url_v2
 from google.cloud.storage._signing import generate_signed_url_v4
 from google.cloud.storage._helpers import _NUM_RETRIES_MESSAGE
-from google.cloud.storage._helpers import _DEFAULT_STORAGE_HOST
 from google.cloud.storage._helpers import _API_VERSION
+from google.cloud.storage._helpers import _virtual_hosted_style_base_url
 from google.cloud.storage.acl import ACL
 from google.cloud.storage.acl import ObjectACL
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
@@ -80,7 +81,6 @@ from google.cloud.storage.fileio import BlobReader
 from google.cloud.storage.fileio import BlobWriter
 
 
-_API_ACCESS_ENDPOINT = _DEFAULT_STORAGE_HOST
 _DEFAULT_CONTENT_TYPE = "application/octet-stream"
 _DOWNLOAD_URL_TEMPLATE = "{hostname}/download/storage/{api_version}{path}?alt=media"
 _BASE_UPLOAD_TEMPLATE = (
@@ -376,8 +376,12 @@ class Blob(_PropertyMixin):
         :rtype: `string`
         :returns: The public URL for this blob.
         """
+        if self.client:
+            endpoint = self.client.api_endpoint
+        else:
+            endpoint = _get_default_storage_base_url()
         return "{storage_base_url}/{bucket_name}/{quoted_name}".format(
-            storage_base_url=_API_ACCESS_ENDPOINT,
+            storage_base_url=endpoint,
             bucket_name=self.bucket.name,
             quoted_name=_quote(self.name, safe=b"/~"),
         )
@@ -416,7 +420,7 @@ class Blob(_PropertyMixin):
     def generate_signed_url(
         self,
         expiration=None,
-        api_access_endpoint=_API_ACCESS_ENDPOINT,
+        api_access_endpoint=None,
         method="GET",
         content_md5=None,
         content_type=None,
@@ -464,7 +468,9 @@ class Blob(_PropertyMixin):
             assumed to be ``UTC``.
 
         :type api_access_endpoint: str
-        :param api_access_endpoint: (Optional) URI base.
+        :param api_access_endpoint: (Optional) URI base, for instance
+            "https://storage.googleapis.com". If not specified, the client's
+            api_endpoint will be used. Incompatible with bucket_bound_hostname.
 
         :type method: str
         :param method: The HTTP verb that will be used when requesting the URL.
@@ -537,13 +543,14 @@ class Blob(_PropertyMixin):
         :param virtual_hosted_style:
             (Optional) If true, then construct the URL relative the bucket's
             virtual hostname, e.g., '<bucket-name>.storage.googleapis.com'.
+            Incompatible with bucket_bound_hostname.
 
         :type bucket_bound_hostname: str
         :param bucket_bound_hostname:
-            (Optional) If passed, then construct the URL relative to the
-            bucket-bound hostname.  Value can be a bare or with scheme, e.g.,
-            'example.com' or 'http://example.com'.  See:
-            https://cloud.google.com/storage/docs/request-endpoints#cname
+            (Optional) If passed, then construct the URL relative to the bucket-bound hostname.
+            Value can be a bare or with scheme, e.g., 'example.com' or 'http://example.com'.
+            Incompatible with api_access_endpoint and virtual_hosted_style.
+            See: https://cloud.google.com/storage/docs/request-endpoints#cname
 
         :type scheme: str
         :param scheme:
@@ -551,7 +558,7 @@ class Blob(_PropertyMixin):
             hostname, use this value as the scheme.  ``https`` will work only
             when using a CDN.  Defaults to ``"http"``.
 
-        :raises: :exc:`ValueError` when version is invalid.
+        :raises: :exc:`ValueError` when version is invalid or mutually exclusive arguments are used.
         :raises: :exc:`TypeError` when expiration is not a valid type.
         :raises: :exc:`AttributeError` if credentials is not an instance
                 of :class:`google.auth.credentials.Signing`.
@@ -565,25 +572,38 @@ class Blob(_PropertyMixin):
         elif version not in ("v2", "v4"):
             raise ValueError("'version' must be either 'v2' or 'v4'")
 
+        if (
+            api_access_endpoint is not None or virtual_hosted_style
+        ) and bucket_bound_hostname:
+            raise ValueError(
+                "The bucket_bound_hostname argument is not compatible with "
+                "either api_access_endpoint or virtual_hosted_style."
+            )
+
+        if api_access_endpoint is None:
+            client = self._require_client(client)
+            api_access_endpoint = client.api_endpoint
+
         quoted_name = _quote(self.name, safe=b"/~")
 
         # If you are on Google Compute Engine, you can't generate a signed URL
         # using GCE service account.
         # See https://github.com/googleapis/google-auth-library-python/issues/50
         if virtual_hosted_style:
-            api_access_endpoint = f"https://{self.bucket.name}.storage.googleapis.com"
+            api_access_endpoint = _virtual_hosted_style_base_url(
+                api_access_endpoint, self.bucket.name
+            )
+            resource = f"/{quoted_name}"
         elif bucket_bound_hostname:
             api_access_endpoint = _bucket_bound_hostname_url(
                 bucket_bound_hostname, scheme
             )
+            resource = f"/{quoted_name}"
         else:
             resource = f"/{self.bucket.name}/{quoted_name}"
 
-        if virtual_hosted_style or bucket_bound_hostname:
-            resource = f"/{quoted_name}"
-
         if credentials is None:
-            client = self._require_client(client)
+            client = self._require_client(client)  # May be redundant, but that's ok.
             credentials = client._credentials
 
         if version == "v2":
@@ -630,6 +650,7 @@ class Blob(_PropertyMixin):
         if_metageneration_not_match=None,
         timeout=_DEFAULT_TIMEOUT,
         retry=DEFAULT_RETRY,
+        soft_deleted=None,
     ):
         """Determines whether or not this blob exists.
 
@@ -674,6 +695,13 @@ class Blob(_PropertyMixin):
         :param retry:
             (Optional) How to retry the RPC. See: :ref:`configuring_retries`
 
+        :type soft_deleted: bool
+        :param soft_deleted:
+            (Optional) If True, looks for a soft-deleted object. Will only return True
+            if the object exists and is in a soft-deleted state.
+            :attr:`generation` is required to be set on the blob if ``soft_deleted`` is set to True.
+            See: https://cloud.google.com/storage/docs/soft-delete
+
         :rtype: bool
         :returns: True if the blob exists in Cloud Storage.
         """
@@ -682,6 +710,8 @@ class Blob(_PropertyMixin):
         # minimize the returned payload.
         query_params = self._query_params
         query_params["fields"] = "name"
+        if soft_deleted is not None:
+            query_params["softDeleted"] = soft_deleted
 
         _add_generation_match_parameters(
             query_params,
@@ -757,7 +787,13 @@ class Blob(_PropertyMixin):
 
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
         :param retry:
-            (Optional) How to retry the RPC. See: :ref:`configuring_retries`
+            (Optional) How to retry the RPC.
+            The default value is ``DEFAULT_RETRY_IF_GENERATION_SPECIFIED``, a conditional retry
+            policy which will only enable retries if ``if_generation_match`` or ``generation``
+            is set, in order to ensure requests are idempotent before retrying them.
+            Change the value to ``DEFAULT_RETRY`` or another `google.api_core.retry.Retry` object
+            to enable retries regardless of generation precondition setting.
+            See [Configuring Retries](https://cloud.google.com/python/docs/reference/storage/latest/retry_timeout).
 
         :raises: :class:`google.cloud.exceptions.NotFound`
                  (propagated from
@@ -2739,26 +2775,17 @@ class Blob(_PropertyMixin):
             "md5", "crc32c" and None. The default is None.
 
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
-        :param retry: (Optional) How to retry the RPC. A None value will disable
-            retries. A google.api_core.retry.Retry value will enable retries,
-            and the object will define retriable response codes and errors and
-            configure backoff and timeout options.
-
-            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a
-            Retry object and activates it only if certain conditions are met.
-            This class exists to provide safe defaults for RPC calls that are
-            not technically safe to retry normally (due to potential data
-            duplication or other side-effects) but become safe to retry if a
-            condition such as if_generation_match is set.
-
-            See the retry.py source code and docstrings in this package
-            (google.cloud.storage.retry) for information on retry types and how
-            to configure them.
+        :param retry: (Optional) How to retry the RPC.
+            The default value is ``DEFAULT_RETRY_IF_GENERATION_SPECIFIED``, a conditional retry
+            policy which will only enable retries if ``if_generation_match`` or ``generation``
+            is set, in order to ensure requests are idempotent before retrying them.
+            Change the value to ``DEFAULT_RETRY`` or another `google.api_core.retry.Retry` object
+            to enable retries regardless of generation precondition setting.
+            See [Configuring Retries](https://cloud.google.com/python/docs/reference/storage/latest/retry_timeout).
 
             Media operations (downloads and uploads) do not support non-default
-            predicates in a Retry object. The default will always be used. Other
-            configuration changes for Retry objects such as delays and deadlines
-            are respected.
+            predicates in a Retry object. Other configuration changes for Retry objects
+            such as delays and deadlines are respected.
 
         :raises: :class:`~google.cloud.exceptions.GoogleCloudError`
                  if the upload response returns an error status.
@@ -2904,26 +2931,17 @@ class Blob(_PropertyMixin):
             "md5", "crc32c" and None. The default is None.
 
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
-        :param retry: (Optional) How to retry the RPC. A None value will disable
-            retries. A google.api_core.retry.Retry value will enable retries,
-            and the object will define retriable response codes and errors and
-            configure backoff and timeout options.
-
-            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a
-            Retry object and activates it only if certain conditions are met.
-            This class exists to provide safe defaults for RPC calls that are
-            not technically safe to retry normally (due to potential data
-            duplication or other side-effects) but become safe to retry if a
-            condition such as if_generation_match is set.
-
-            See the retry.py source code and docstrings in this package
-            (google.cloud.storage.retry) for information on retry types and how
-            to configure them.
+        :param retry: (Optional) How to retry the RPC.
+            The default value is ``DEFAULT_RETRY_IF_GENERATION_SPECIFIED``, a conditional retry
+            policy which will only enable retries if ``if_generation_match`` or ``generation``
+            is set, in order to ensure requests are idempotent before retrying them.
+            Change the value to ``DEFAULT_RETRY`` or another `google.api_core.retry.Retry` object
+            to enable retries regardless of generation precondition setting.
+            See [Configuring Retries](https://cloud.google.com/python/docs/reference/storage/latest/retry_timeout).
 
             Media operations (downloads and uploads) do not support non-default
-            predicates in a Retry object. The default will always be used. Other
-            configuration changes for Retry objects such as delays and deadlines
-            are respected.
+            predicates in a Retry object. Other configuration changes for Retry objects
+            such as delays and deadlines are respected.
         """
 
         self._handle_filename_and_upload(
@@ -3033,26 +3051,17 @@ class Blob(_PropertyMixin):
             "md5", "crc32c" and None. The default is None.
 
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
-        :param retry: (Optional) How to retry the RPC. A None value will disable
-            retries. A google.api_core.retry.Retry value will enable retries,
-            and the object will define retriable response codes and errors and
-            configure backoff and timeout options.
-
-            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a
-            Retry object and activates it only if certain conditions are met.
-            This class exists to provide safe defaults for RPC calls that are
-            not technically safe to retry normally (due to potential data
-            duplication or other side-effects) but become safe to retry if a
-            condition such as if_generation_match is set.
-
-            See the retry.py source code and docstrings in this package
-            (google.cloud.storage.retry) for information on retry types and how
-            to configure them.
+        :param retry: (Optional) How to retry the RPC.
+            The default value is ``DEFAULT_RETRY_IF_GENERATION_SPECIFIED``, a conditional retry
+            policy which will only enable retries if ``if_generation_match`` or ``generation``
+            is set, in order to ensure requests are idempotent before retrying them.
+            Change the value to ``DEFAULT_RETRY`` or another `google.api_core.retry.Retry` object
+            to enable retries regardless of generation precondition setting.
+            See [Configuring Retries](https://cloud.google.com/python/docs/reference/storage/latest/retry_timeout).
 
             Media operations (downloads and uploads) do not support non-default
-            predicates in a Retry object. The default will always be used. Other
-            configuration changes for Retry objects such as delays and deadlines
-            are respected.
+            predicates in a Retry object. Other configuration changes for Retry objects
+            such as delays and deadlines are respected.
         """
         data = _to_bytes(data, encoding="utf-8")
         string_buffer = BytesIO(data)
@@ -3179,23 +3188,17 @@ class Blob(_PropertyMixin):
             (Optional) See :ref:`using-if-metageneration-not-match`
 
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
-        :param retry: (Optional) How to retry the RPC. A None value will disable
-            retries. A google.api_core.retry.Retry value will enable retries,
-            and the object will define retriable response codes and errors and
-            configure backoff and timeout options.
-            A google.cloud.storage.retry.ConditionalRetryPolicy value wraps a
-            Retry object and activates it only if certain conditions are met.
-            This class exists to provide safe defaults for RPC calls that are
-            not technically safe to retry normally (due to potential data
-            duplication or other side-effects) but become safe to retry if a
-            condition such as if_generation_match is set.
-            See the retry.py source code and docstrings in this package
-            (google.cloud.storage.retry) for information on retry types and how
-            to configure them.
+        :param retry: (Optional) How to retry the RPC.
+            The default value is ``DEFAULT_RETRY_IF_GENERATION_SPECIFIED``, a conditional retry
+            policy which will only enable retries if ``if_generation_match`` or ``generation``
+            is set, in order to ensure requests are idempotent before retrying them.
+            Change the value to ``DEFAULT_RETRY`` or another `google.api_core.retry.Retry` object
+            to enable retries regardless of generation precondition setting.
+            See [Configuring Retries](https://cloud.google.com/python/docs/reference/storage/latest/retry_timeout).
+
             Media operations (downloads and uploads) do not support non-default
-            predicates in a Retry object. The default will always be used. Other
-            configuration changes for Retry objects such as delays and deadlines
-            are respected.
+            predicates in a Retry object. Other configuration changes for Retry objects
+            such as delays and deadlines are respected.
 
         :rtype: str
         :returns: The resumable upload session URL. The upload can be
@@ -3601,7 +3604,13 @@ class Blob(_PropertyMixin):
 
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
         :param retry:
-            (Optional) How to retry the RPC. See: :ref:`configuring_retries`
+            (Optional) How to retry the RPC.
+            The default value is ``DEFAULT_RETRY_IF_GENERATION_SPECIFIED``, a conditional retry
+            policy which will only enable retries if ``if_generation_match`` or ``generation``
+            is set, in order to ensure requests are idempotent before retrying them.
+            Change the value to ``DEFAULT_RETRY`` or another `google.api_core.retry.Retry` object
+            to enable retries regardless of generation precondition setting.
+            See [Configuring Retries](https://cloud.google.com/python/docs/reference/storage/latest/retry_timeout).
         """
         sources_len = len(sources)
         client = self._require_client(client)
@@ -3763,7 +3772,13 @@ class Blob(_PropertyMixin):
 
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
         :param retry:
-            (Optional) How to retry the RPC. See: :ref:`configuring_retries`
+            (Optional) How to retry the RPC.
+            The default value is ``DEFAULT_RETRY_IF_GENERATION_SPECIFIED``, a conditional retry
+            policy which will only enable retries if ``if_generation_match`` or ``generation``
+            is set, in order to ensure requests are idempotent before retrying them.
+            Change the value to ``DEFAULT_RETRY`` or another `google.api_core.retry.Retry` object
+            to enable retries regardless of generation precondition setting.
+            See [Configuring Retries](https://cloud.google.com/python/docs/reference/storage/latest/retry_timeout).
 
         :rtype: tuple
         :returns: ``(token, bytes_rewritten, total_bytes)``, where ``token``
@@ -3923,7 +3938,13 @@ class Blob(_PropertyMixin):
 
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
         :param retry:
-            (Optional) How to retry the RPC. See: :ref:`configuring_retries`
+            (Optional) How to retry the RPC.
+            The default value is ``DEFAULT_RETRY_IF_GENERATION_SPECIFIED``, a conditional retry
+            policy which will only enable retries if ``if_generation_match`` or ``generation``
+            is set, in order to ensure requests are idempotent before retrying them.
+            Change the value to ``DEFAULT_RETRY`` or another `google.api_core.retry.Retry` object
+            to enable retries regardless of generation precondition setting.
+            See [Configuring Retries](https://cloud.google.com/python/docs/reference/storage/latest/retry_timeout).
         """
         # Update current blob's storage class prior to rewrite
         self._patch_property("storageClass", new_class)
@@ -4679,6 +4700,32 @@ class Blob(_PropertyMixin):
         """
         info = self._properties.get("retention", {})
         return Retention.from_api_repr(info, self)
+
+    @property
+    def soft_delete_time(self):
+        """If this object has been soft-deleted, returns the time at which it became soft-deleted.
+
+        :rtype: :class:`datetime.datetime` or ``NoneType``
+        :returns:
+            (readonly) The time that the object became soft-deleted.
+             Note this property is only set for soft-deleted objects.
+        """
+        soft_delete_time = self._properties.get("softDeleteTime")
+        if soft_delete_time is not None:
+            return _rfc3339_nanos_to_datetime(soft_delete_time)
+
+    @property
+    def hard_delete_time(self):
+        """If this object has been soft-deleted, returns the time at which it will be permanently deleted.
+
+        :rtype: :class:`datetime.datetime` or ``NoneType``
+        :returns:
+            (readonly) The time that the object will be permanently deleted.
+            Note this property is only set for soft-deleted objects.
+        """
+        hard_delete_time = self._properties.get("hardDeleteTime")
+        if hard_delete_time is not None:
+            return _rfc3339_nanos_to_datetime(hard_delete_time)
 
 
 def _get_host_name(connection):
