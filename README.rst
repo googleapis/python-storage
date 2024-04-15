@@ -17,8 +17,7 @@ A comprehensive list of changes in each version may be found in the `CHANGELOG`_
 Certain control plane and long-running operations for Cloud Storage (including Folder
 and Managed Folder operations) are supported via the `Storage Control Client`_.
 The `Storage Control API`_ creates one space to perform metadata-specific, control plane,
-and long-running operations apart from the Storage API. Separating these operations from
-the Storage API improves API standardization and lets you run faster releases.
+and long-running operations apart from the Storage API.
 
 Read more about the client libraries for Cloud APIs, including the older
 Google APIs Client Libraries, in `Client Libraries Explained`_.
