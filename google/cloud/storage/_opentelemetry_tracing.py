@@ -8,6 +8,7 @@ from contextlib import contextmanager
 from google.api_core import exceptions as api_exceptions
 from google.api_core import retry as api_retry
 from google.cloud.storage import __version__
+from google.cloud.storage.retry import ConditionalRetryPolicy
 
 
 ENABLE_OTEL_TRACES_ENV_VAR = "ENABLE_GCS_PYTHON_CLIENT_OTEL_TRACES"
@@ -73,6 +74,10 @@ def _get_final_attributes(attributes=None, client=None, api_request=None, retry=
         collected_attr.update(_set_api_request_attr(api_request, client))
     if isinstance(retry, api_retry.Retry):
         collected_attr.update(_set_retry_attr(retry))
+    if isinstance(retry, ConditionalRetryPolicy):
+        collected_attr.update(
+            _set_retry_attr(retry.retry_policy, retry.conditional_predicate)
+        )
     if attributes:
         collected_attr.update(attributes)
     final_attributes = {k: v for k, v in collected_attr.items() if v is not None}
@@ -87,15 +92,12 @@ def _set_api_request_attr(request, client):
         path = request.get("path")
         full_path = f"{client._connection.API_BASE_URL}{path}"
         attr["url.full"] = full_path
-    if request.get("query_params"):
-        attr["http.request.query_params"] = request.get("query_params")
-    if request.get("headers"):
-        attr["http.request.headers"] = request.get("headers")
     if request.get("timeout"):
         attr["connect_timeout,read_timeout"] = request.get("timeout")
     return attr
 
 
-def _set_retry_attr(retry):
-    retry_info = f"multiplier{retry._multiplier}/deadline{retry._deadline}/max{retry._maximum}/initial{retry._initial}/predicate{retry._predicate}"
+def _set_retry_attr(retry, conditional_predicate=None):
+    predicate = conditional_predicate if conditional_predicate else retry._predicate
+    retry_info = f"multiplier{retry._multiplier}/deadline{retry._deadline}/max{retry._maximum}/initial{retry._initial}/predicate{predicate}"
     return {"retry": retry_info}

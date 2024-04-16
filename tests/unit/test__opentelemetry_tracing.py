@@ -61,7 +61,7 @@ def setup_optin(mock_os_environ):
 
 
 @pytest.mark.skipif(
-    HAS_OPENTELEMETRY_INSTALLED is False, reason="Requires `opentelemetry`"
+    HAS_OPENTELEMETRY_INSTALLED is False, reason="Requires OpenTelemetry"
 )
 def test_enable_trace_yield_span(setup, setup_optin):
     assert _opentelemetry_tracing.HAS_OPENTELEMETRY
@@ -71,7 +71,7 @@ def test_enable_trace_yield_span(setup, setup_optin):
 
 
 @pytest.mark.skipif(
-    HAS_OPENTELEMETRY_INSTALLED is False, reason="Requires `opentelemetry`"
+    HAS_OPENTELEMETRY_INSTALLED is False, reason="Requires OpenTelemetry"
 )
 def test_enable_trace_call(setup, setup_optin):
     extra_attributes = {
@@ -97,7 +97,7 @@ def test_enable_trace_call(setup, setup_optin):
 
 
 @pytest.mark.skipif(
-    HAS_OPENTELEMETRY_INSTALLED is False, reason="Requires `opentelemetry`"
+    HAS_OPENTELEMETRY_INSTALLED is False, reason="Requires OpenTelemetry"
 )
 def test_enable_trace_error(setup, setup_optin):
     extra_attributes = {
@@ -128,10 +128,11 @@ def test_enable_trace_error(setup, setup_optin):
 
 
 @pytest.mark.skipif(
-    HAS_OPENTELEMETRY_INSTALLED is False, reason="Requires `opentelemetry`"
+    HAS_OPENTELEMETRY_INSTALLED is False, reason="Requires OpenTelemetry"
 )
 def test__get_final_attributes(setup, setup_optin):
     from google.api_core import retry as api_retry
+    from google.cloud.storage.retry import ConditionalRetryPolicy
 
     test_span_name = "OtelTracing.Test"
     test_span_attributes = {
@@ -140,8 +141,14 @@ def test__get_final_attributes(setup, setup_optin):
     api_request = {
         "method": "GET",
         "path": "/foo/bar/baz",
+        "timeout": (100, 100),
     }
-    retry_obj = api_retry.Retry()
+    retry_policy = api_retry.Retry()
+    conditional_predicate = mock.Mock()
+    required_kwargs = ("kwarg",)
+    retry_obj = ConditionalRetryPolicy(
+        retry_policy, conditional_predicate, required_kwargs
+    )
 
     expected_attributes = {
         "foo": "bar",
@@ -150,7 +157,8 @@ def test__get_final_attributes(setup, setup_optin):
         "user_agent.original": f"gcloud-python/{__version__}",
         "http.request.method": "GET",
         "url.full": "https://testOtel.org/foo/bar/baz",
-        "retry": f"multiplier{retry_obj._multiplier}/deadline{retry_obj._deadline}/max{retry_obj._maximum}/initial{retry_obj._initial}/predicate{retry_obj._predicate}",
+        "connect_timeout,read_timeout": (100, 100),
+        "retry": f"multiplier{retry_policy._multiplier}/deadline{retry_policy._deadline}/max{retry_policy._maximum}/initial{retry_policy._initial}/predicate{conditional_predicate}",
     }
 
     with mock.patch("google.cloud.storage.client.Client") as test_client:
@@ -168,8 +176,29 @@ def test__get_final_attributes(setup, setup_optin):
             assert span.attributes == expected_attributes
 
 
+def test__set_api_request_attr():
+    from google.cloud.storage import Client
+
+    api_request = {
+        "method": "GET",
+        "path": "/foo/bar/baz",
+        "timeout": (100, 100),
+    }
+
+    expected_attributes = {
+        "http.request.method": "GET",
+        "url.full": "https://storage.googleapis.com/foo/bar/baz",
+        "connect_timeout,read_timeout": (100, 100),
+    }
+    test_client = Client()
+    api_reqest_attributes = _opentelemetry_tracing._set_api_request_attr(
+        api_request, test_client
+    )
+    assert api_reqest_attributes == expected_attributes
+
+
 @pytest.mark.skipif(
-    HAS_OPENTELEMETRY_INSTALLED is False, reason="Requires `opentelemetry`"
+    HAS_OPENTELEMETRY_INSTALLED is False, reason="Requires OpenTelemetry"
 )
 def test_opentelemetry_not_installed(setup, monkeypatch):
     monkeypatch.setitem(sys.modules, "opentelemetry", None)
@@ -181,7 +210,7 @@ def test_opentelemetry_not_installed(setup, monkeypatch):
 
 
 @pytest.mark.skipif(
-    HAS_OPENTELEMETRY_INSTALLED is False, reason="Requires `opentelemetry`"
+    HAS_OPENTELEMETRY_INSTALLED is False, reason="Requires OpenTelemetry"
 )
 def test_opentelemetry_no_trace_optin(setup):
     assert _opentelemetry_tracing.HAS_OPENTELEMETRY
