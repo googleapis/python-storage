@@ -22,21 +22,19 @@ from google.api_core.exceptions import GoogleAPICallError
 from google.cloud.storage import __version__
 from google.cloud.storage import _opentelemetry_tracing
 
-try:
-    from opentelemetry import trace as trace_api
-    from opentelemetry.sdk.trace import TracerProvider, export
-    from opentelemetry.sdk.trace.export.in_memory_span_exporter import (
-        InMemorySpanExporter,
-    )
-
-    HAS_OPENTELEMETRY_INSTALLED = True
-except ImportError:
-    HAS_OPENTELEMETRY_INSTALLED = False
-
 
 @pytest.fixture
 def setup():
-    """Setup tracer provider and exporter."""
+    """Setup OTel packages and tracer provider."""
+    try:
+        from opentelemetry import trace as trace_api
+        from opentelemetry.sdk.trace import TracerProvider, export
+        from opentelemetry.sdk.trace.export.in_memory_span_exporter import (
+            InMemorySpanExporter,
+        )
+    except ImportError:
+        pytest.skip("This test suite requires OpenTelemetry pacakges.")
+
     tracer_provider = TracerProvider()
     memory_exporter = InMemorySpanExporter()
     span_processor = export.SimpleSpanProcessor(memory_exporter)
@@ -60,9 +58,6 @@ def setup_optin(mock_os_environ):
     importlib.reload(_opentelemetry_tracing)
 
 
-@pytest.mark.skipif(
-    HAS_OPENTELEMETRY_INSTALLED is False, reason="Requires OpenTelemetry"
-)
 def test_enable_trace_yield_span(setup, setup_optin):
     assert _opentelemetry_tracing.HAS_OPENTELEMETRY
     assert _opentelemetry_tracing.enable_otel_traces
@@ -70,10 +65,9 @@ def test_enable_trace_yield_span(setup, setup_optin):
         assert span is not None
 
 
-@pytest.mark.skipif(
-    HAS_OPENTELEMETRY_INSTALLED is False, reason="Requires OpenTelemetry"
-)
 def test_enable_trace_call(setup, setup_optin):
+    from opentelemetry import trace as trace_api
+
     extra_attributes = {
         "attribute1": "value1",
     }
@@ -96,10 +90,9 @@ def test_enable_trace_call(setup, setup_optin):
         assert span.name == "OtelTracing.Test"
 
 
-@pytest.mark.skipif(
-    HAS_OPENTELEMETRY_INSTALLED is False, reason="Requires OpenTelemetry"
-)
 def test_enable_trace_error(setup, setup_optin):
+    from opentelemetry import trace as trace_api
+
     extra_attributes = {
         "attribute1": "value1",
     }
@@ -116,23 +109,32 @@ def test_enable_trace_error(setup, setup_optin):
         ) as span:
             from google.cloud.exceptions import NotFound
 
+            assert span.kind == trace_api.SpanKind.CLIENT
+            assert span.attributes == expected_attributes
+            assert span.name == "OtelTracing.Test"
             raise NotFound("Test catching NotFound error in trace span.")
 
-        span_list = setup.get_finished_spans()
-        assert len(span_list) == 1
-        span = span_list[0]
-        assert span.kind == trace_api.SpanKind.CLIENT
-        assert span.attributes == expected_attributes
-        assert span.name == "OtelTracing.Test"
-        assert span.status.status_code == trace_api.StatusCode.ERROR
+
+def test_opentelemetry_not_installed(setup, monkeypatch):
+    monkeypatch.setitem(sys.modules, "opentelemetry", None)
+    importlib.reload(_opentelemetry_tracing)
+    # Test no-ops when OpenTelemetry is not installed.
+    with _opentelemetry_tracing.create_span("No-ops w/o opentelemetry") as span:
+        assert span is None
+    assert not _opentelemetry_tracing.HAS_OPENTELEMETRY
 
 
-@pytest.mark.skipif(
-    HAS_OPENTELEMETRY_INSTALLED is False, reason="Requires OpenTelemetry"
-)
+def test_opentelemetry_no_trace_optin(setup):
+    assert _opentelemetry_tracing.HAS_OPENTELEMETRY
+    assert not _opentelemetry_tracing.enable_otel_traces
+    # Test no-ops when user has not opt-in.
+    # This prevents customers accidentally being billed for tracing.
+    with _opentelemetry_tracing.create_span("No-ops w/o opt-in") as span:
+        assert span is None
+
+
 def test__get_final_attributes(setup, setup_optin):
     from google.api_core import retry as api_retry
-    from google.cloud.storage.retry import ConditionalRetryPolicy
 
     test_span_name = "OtelTracing.Test"
     test_span_attributes = {
@@ -143,12 +145,7 @@ def test__get_final_attributes(setup, setup_optin):
         "path": "/foo/bar/baz",
         "timeout": (100, 100),
     }
-    retry_policy = api_retry.Retry()
-    conditional_predicate = mock.Mock()
-    required_kwargs = ("kwarg",)
-    retry_obj = ConditionalRetryPolicy(
-        retry_policy, conditional_predicate, required_kwargs
-    )
+    retry_obj = api_retry.Retry()
 
     expected_attributes = {
         "foo": "bar",
@@ -158,7 +155,7 @@ def test__get_final_attributes(setup, setup_optin):
         "http.request.method": "GET",
         "url.full": "https://testOtel.org/foo/bar/baz",
         "connect_timeout,read_timeout": (100, 100),
-        "retry": f"multiplier{retry_policy._multiplier}/deadline{retry_policy._deadline}/max{retry_policy._maximum}/initial{retry_policy._initial}/predicate{conditional_predicate}",
+        "retry": f"multiplier{retry_obj._multiplier}/deadline{retry_obj._deadline}/max{retry_obj._maximum}/initial{retry_obj._initial}/predicate{retry_obj._predicate}",
     }
 
     with mock.patch("google.cloud.storage.client.Client") as test_client:
@@ -174,6 +171,34 @@ def test__get_final_attributes(setup, setup_optin):
             assert span is not None
             assert span.name == test_span_name
             assert span.attributes == expected_attributes
+
+
+def test__set_conditional_retry_attr(setup, setup_optin):
+    from google.api_core import retry as api_retry
+    from google.cloud.storage.retry import ConditionalRetryPolicy
+
+    test_span_name = "OtelTracing.Test"
+    retry_policy = api_retry.Retry()
+    conditional_predicate = mock.Mock()
+    required_kwargs = ("kwarg",)
+    retry_obj = ConditionalRetryPolicy(
+        retry_policy, conditional_predicate, required_kwargs
+    )
+
+    expected_attributes = {
+        "rpc.service": "CloudStorage",
+        "rpc.system": "http",
+        "user_agent.original": f"gcloud-python/{__version__}",
+        "retry": f"multiplier{retry_policy._multiplier}/deadline{retry_policy._deadline}/max{retry_policy._maximum}/initial{retry_policy._initial}/predicate{conditional_predicate}",
+    }
+
+    with _opentelemetry_tracing.create_span(
+        test_span_name,
+        retry=retry_obj,
+    ) as span:
+        assert span is not None
+        assert span.name == test_span_name
+        assert span.attributes == expected_attributes
 
 
 def test__set_api_request_attr():
@@ -195,27 +220,3 @@ def test__set_api_request_attr():
         api_request, test_client
     )
     assert api_reqest_attributes == expected_attributes
-
-
-@pytest.mark.skipif(
-    HAS_OPENTELEMETRY_INSTALLED is False, reason="Requires OpenTelemetry"
-)
-def test_opentelemetry_not_installed(setup, monkeypatch):
-    monkeypatch.setitem(sys.modules, "opentelemetry", None)
-    importlib.reload(_opentelemetry_tracing)
-    # Test no-ops when OpenTelemetry is not installed
-    with _opentelemetry_tracing.create_span("No-ops w/o opentelemetry") as span:
-        assert span is None
-    assert not _opentelemetry_tracing.HAS_OPENTELEMETRY
-
-
-@pytest.mark.skipif(
-    HAS_OPENTELEMETRY_INSTALLED is False, reason="Requires OpenTelemetry"
-)
-def test_opentelemetry_no_trace_optin(setup):
-    assert _opentelemetry_tracing.HAS_OPENTELEMETRY
-    assert not _opentelemetry_tracing.enable_otel_traces
-    # Test no-ops when user has not opt-in.
-    # This prevents customers accidentally being billed for tracing.
-    with _opentelemetry_tracing.create_span("No-ops w/o opt-in") as span:
-        assert span is None
