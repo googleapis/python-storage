@@ -83,10 +83,9 @@ def default(session, install_extras=True):
     session.install("mock", "pytest", "pytest-cov", "-c", constraints_path)
 
     if install_extras:
-        install_target = ".[tracing]"
-    else:
-        install_target = "."
-    session.install("-e", install_target, "-c", constraints_path)
+        session.install("opentelemetry-api", "opentelemetry-sdk")
+
+    session.install("-e", ".", "-c", constraints_path)
 
     # Run py.test against the unit tests.
     session.run(

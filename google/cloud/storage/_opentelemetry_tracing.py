@@ -49,8 +49,6 @@ def create_span(
     """Creates a context manager for a new span and set it as the current span
     in the configured tracer. If no configuration exists yields None."""
     if not HAS_OPENTELEMETRY or not enable_otel_traces:
-        print(f"HAS_OPENTELEMETRY is {HAS_OPENTELEMETRY}")
-        print(f"enable_otel_traces is {enable_otel_traces}")
         yield None
         return
 

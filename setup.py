@@ -39,7 +39,6 @@ extras = {
     "protobuf": ["protobuf<5.0.0dev"],
     "tracing": [
         "opentelemetry-api >= 1.1.0",
-        "opentelemetry-sdk >= 1.1.0",
     ],
 }
 

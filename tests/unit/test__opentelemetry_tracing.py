@@ -32,7 +32,7 @@ def setup():
         from opentelemetry.sdk.trace.export.in_memory_span_exporter import (
             InMemorySpanExporter,
         )
-    except ImportError:
+    except ImportError:  # pragma: NO COVER
         pytest.skip("This test suite requires OpenTelemetry pacakges.")
 
     tracer_provider = TracerProvider()
@@ -56,6 +56,24 @@ def setup_optin(mock_os_environ):
     """Mock envar to opt-in tracing for storage client."""
     mock_os_environ["ENABLE_GCS_PYTHON_CLIENT_OTEL_TRACES"] = True
     importlib.reload(_opentelemetry_tracing)
+
+
+def test_opentelemetry_not_installed(setup, monkeypatch):
+    monkeypatch.setitem(sys.modules, "opentelemetry", None)
+    importlib.reload(_opentelemetry_tracing)
+    # Test no-ops when OpenTelemetry is not installed.
+    with _opentelemetry_tracing.create_span("No-ops w/o opentelemetry") as span:
+        assert span is None
+    assert not _opentelemetry_tracing.HAS_OPENTELEMETRY
+
+
+def test_opentelemetry_no_trace_optin(setup):
+    assert _opentelemetry_tracing.HAS_OPENTELEMETRY
+    assert not _opentelemetry_tracing.enable_otel_traces
+    # Test no-ops when user has not opt-in.
+    # This prevents customers accidentally being billed for tracing.
+    with _opentelemetry_tracing.create_span("No-ops w/o opt-in") as span:
+        assert span is None
 
 
 def test_enable_trace_yield_span(setup, setup_optin):
@@ -115,25 +133,7 @@ def test_enable_trace_error(setup, setup_optin):
             raise NotFound("Test catching NotFound error in trace span.")
 
 
-def test_opentelemetry_not_installed(setup, monkeypatch):
-    monkeypatch.setitem(sys.modules, "opentelemetry", None)
-    importlib.reload(_opentelemetry_tracing)
-    # Test no-ops when OpenTelemetry is not installed.
-    with _opentelemetry_tracing.create_span("No-ops w/o opentelemetry") as span:
-        assert span is None
-    assert not _opentelemetry_tracing.HAS_OPENTELEMETRY
-
-
-def test_opentelemetry_no_trace_optin(setup):
-    assert _opentelemetry_tracing.HAS_OPENTELEMETRY
-    assert not _opentelemetry_tracing.enable_otel_traces
-    # Test no-ops when user has not opt-in.
-    # This prevents customers accidentally being billed for tracing.
-    with _opentelemetry_tracing.create_span("No-ops w/o opt-in") as span:
-        assert span is None
-
-
-def test__get_final_attributes(setup, setup_optin):
+def test_get_final_attributes(setup, setup_optin):
     from google.api_core import retry as api_retry
 
     test_span_name = "OtelTracing.Test"
@@ -173,7 +173,7 @@ def test__get_final_attributes(setup, setup_optin):
             assert span.attributes == expected_attributes
 
 
-def test__set_conditional_retry_attr(setup, setup_optin):
+def test_set_conditional_retry_attr(setup, setup_optin):
     from google.api_core import retry as api_retry
     from google.cloud.storage.retry import ConditionalRetryPolicy
 
@@ -201,7 +201,7 @@ def test__set_conditional_retry_attr(setup, setup_optin):
         assert span.attributes == expected_attributes
 
 
-def test__set_api_request_attr():
+def test_set_api_request_attr():
     from google.cloud.storage import Client
 
     api_request = {
