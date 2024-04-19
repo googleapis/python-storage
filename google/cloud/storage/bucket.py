@@ -38,6 +38,7 @@ from google.cloud.storage._signing import generate_signed_url_v2
 from google.cloud.storage._signing import generate_signed_url_v4
 from google.cloud.storage._helpers import _bucket_bound_hostname_url
 from google.cloud.storage._helpers import _virtual_hosted_style_base_url
+from google.cloud.storage._opentelemetry_tracing import create_span
 from google.cloud.storage.acl import BucketACL
 from google.cloud.storage.acl import DefaultObjectACL
 from google.cloud.storage.blob import Blob
@@ -827,6 +828,7 @@ class Bucket(_PropertyMixin):
             notification_id=notification_id,
         )
 
+    @create_span(name="Storage.Bucket.exists")
     def exists(
         self,
         client=None,
@@ -911,6 +913,7 @@ class Bucket(_PropertyMixin):
             return False
         return True
 
+    @create_span(name="Storage.Bucket.create")
     def create(
         self,
         client=None,
@@ -986,6 +989,7 @@ class Bucket(_PropertyMixin):
             retry=retry,
         )
 
+    @create_span(name="Storage.Bucket.update")
     def update(
         self,
         client=None,
@@ -1030,6 +1034,7 @@ class Bucket(_PropertyMixin):
             retry=retry,
         )
 
+    @create_span(name="Storage.Bucket.reload")
     def reload(
         self,
         client=None,
@@ -1091,6 +1096,7 @@ class Bucket(_PropertyMixin):
             retry=retry,
         )
 
+    @create_span(name="Storage.Bucket.patch")
     def patch(
         self,
         client=None,
@@ -1174,6 +1180,7 @@ class Bucket(_PropertyMixin):
 
         return self.path_helper(self.name)
 
+    @create_span(name="Storage.Bucket.getBlob")
     def get_blob(
         self,
         blob_name,
@@ -1290,6 +1297,7 @@ class Bucket(_PropertyMixin):
         else:
             return blob
 
+    @create_span(name="Storage.Bucket.listBlobs")
     def list_blobs(
         self,
         max_results=None,
@@ -1425,6 +1433,7 @@ class Bucket(_PropertyMixin):
             soft_deleted=soft_deleted,
         )
 
+    @create_span(name="Storage.Bucket.listNotifications")
     def list_notifications(
         self, client=None, timeout=_DEFAULT_TIMEOUT, retry=DEFAULT_RETRY
     ):
@@ -1462,6 +1471,7 @@ class Bucket(_PropertyMixin):
         iterator.bucket = self
         return iterator
 
+    @create_span(name="Storage.Bucket.getNotification")
     def get_notification(
         self,
         notification_id,
@@ -1499,6 +1509,7 @@ class Bucket(_PropertyMixin):
         notification.reload(client=client, timeout=timeout, retry=retry)
         return notification
 
+    @create_span(name="Storage.Bucket.delete")
     def delete(
         self,
         force=False,
@@ -1605,6 +1616,7 @@ class Bucket(_PropertyMixin):
             _target_object=None,
         )
 
+    @create_span(name="Storage.Bucket.deleteBlob")
     def delete_blob(
         self,
         blob_name,
@@ -1685,6 +1697,7 @@ class Bucket(_PropertyMixin):
             _target_object=None,
         )
 
+    @create_span(name="Storage.Bucket.deleteBlobs")
     def delete_blobs(
         self,
         blobs,
@@ -2085,6 +2098,7 @@ class Bucket(_PropertyMixin):
             )
         return new_blob
 
+    @create_span(name="Storage.Bucket.restore_blob")
     def restore_blob(
         self,
         blob_name,
@@ -2957,6 +2971,7 @@ class Bucket(_PropertyMixin):
         """
         return self.configure_website(None, None)
 
+    @create_span(name="Storage.Bucket.getIamPolicy")
     def get_iam_policy(
         self,
         client=None,
@@ -3019,6 +3034,7 @@ class Bucket(_PropertyMixin):
         )
         return Policy.from_api_repr(info)
 
+    @create_span(name="Storage.Bucket.setIamPolicy")
     def set_iam_policy(
         self,
         policy,
@@ -3075,6 +3091,7 @@ class Bucket(_PropertyMixin):
 
         return Policy.from_api_repr(info)
 
+    @create_span(name="Storage.Bucket.testIamPermissions")
     def test_iam_permissions(
         self, permissions, client=None, timeout=_DEFAULT_TIMEOUT, retry=DEFAULT_RETRY
     ):
@@ -3122,6 +3139,7 @@ class Bucket(_PropertyMixin):
         )
         return resp.get("permissions", [])
 
+    @create_span(name="Storage.Bucket.makePublic")
     def make_public(
         self,
         recursive=False,
@@ -3219,6 +3237,7 @@ class Bucket(_PropertyMixin):
                     timeout=timeout,
                 )
 
+    @create_span(name="Storage.Bucket.makePrivate")
     def make_private(
         self,
         recursive=False,
@@ -3366,6 +3385,7 @@ class Bucket(_PropertyMixin):
 
         return fields
 
+    @create_span(name="Storage.Bucket.lockRetentionPolicy")
     def lock_retention_policy(
         self, client=None, timeout=_DEFAULT_TIMEOUT, retry=DEFAULT_RETRY
     ):
