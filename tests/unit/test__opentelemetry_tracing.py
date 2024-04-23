@@ -204,19 +204,20 @@ def test_set_conditional_retry_attr(setup, setup_optin):
 def test_set_api_request_attr():
     from google.cloud.storage import Client
 
-    api_request = {
-        "method": "GET",
-        "path": "/foo/bar/baz",
-        "timeout": (100, 100),
-    }
+    test_client = Client()
+    args_method = {"method": "GET"}
+    expected_attributes = {"http.request.method": "GET"}
+    attr = _opentelemetry_tracing._set_api_request_attr(args_method, test_client)
+    assert attr == expected_attributes
 
+    args_path = {"path": "/foo/bar/baz"}
+    expected_attributes = {"url.full": "https://storage.googleapis.com/foo/bar/baz"}
+    attr = _opentelemetry_tracing._set_api_request_attr(args_path, test_client)
+    assert attr == expected_attributes
+
+    args_timeout = {"timeout": (100, 100)}
     expected_attributes = {
-        "http.request.method": "GET",
-        "url.full": "https://storage.googleapis.com/foo/bar/baz",
         "connect_timeout,read_timeout": (100, 100),
     }
-    test_client = Client()
-    api_reqest_attributes = _opentelemetry_tracing._set_api_request_attr(
-        api_request, test_client
-    )
-    assert api_reqest_attributes == expected_attributes
+    attr = _opentelemetry_tracing._set_api_request_attr(args_timeout, test_client)
+    assert attr == expected_attributes
