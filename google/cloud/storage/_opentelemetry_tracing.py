@@ -24,7 +24,6 @@ try:
 
     HAS_OPENTELEMETRY = True
 
-    logger.info(f"HAS_OPENTELEMETRY is {HAS_OPENTELEMETRY}")
 except ImportError:
     logger.debug(
         "This service is instrumented using OpenTelemetry. "
@@ -63,7 +62,7 @@ def create_span(
         except api_exceptions.GoogleAPICallError as error:
             span.set_status(trace.Status(trace.StatusCode.ERROR))
             span.record_exception(error)
-            raise error
+            raise
 
 
 def _get_final_attributes(attributes=None, client=None, api_request=None, retry=None):
