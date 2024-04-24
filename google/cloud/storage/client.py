@@ -41,6 +41,7 @@ from google.cloud.storage._helpers import _DEFAULT_SCHEME
 from google.cloud.storage._helpers import _STORAGE_HOST_TEMPLATE
 from google.cloud.storage._helpers import _NOW
 from google.cloud.storage._helpers import _UTC
+from google.cloud.storage._opentelemetry_tracing import create_span
 
 from google.cloud.storage._http import Connection
 from google.cloud.storage._signing import (
@@ -337,6 +338,7 @@ class Client(ClientWithProject):
         """
         return self._batch_stack.top
 
+    @create_span(name="Storage.Client.getServiceAccountEmail")
     def get_service_account_email(
         self, project=None, timeout=_DEFAULT_TIMEOUT, retry=DEFAULT_RETRY
     ):
