@@ -15,7 +15,7 @@
 """Manage access to objects and buckets."""
 
 from google.cloud.storage._helpers import _add_generation_match_parameters
-from google.cloud.storage._opentelemetry_tracing import create_span
+from google.cloud.storage._opentelemetry_tracing import create_trace_span
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 from google.cloud.storage.retry import DEFAULT_RETRY
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED
@@ -360,7 +360,7 @@ class ACL(object):
             client = self.client
         return client
 
-    @create_span(name="Storage.ACL.reload")
+    @create_trace_span(name="Storage.ACL.reload")
     def reload(self, client=None, timeout=_DEFAULT_TIMEOUT, retry=DEFAULT_RETRY):
         """Reload the ACL data from Cloud Storage.
 
@@ -486,7 +486,7 @@ class ACL(object):
 
         self.loaded = True
 
-    @create_span(name="Storage.ACL.save")
+    @create_trace_span(name="Storage.ACL.save")
     def save(
         self,
         acl=None,
@@ -555,7 +555,7 @@ class ACL(object):
                 retry=retry,
             )
 
-    @create_span(name="Storage.ACL.savePredefined")
+    @create_trace_span(name="Storage.ACL.savePredefined")
     def save_predefined(
         self,
         predefined,
@@ -621,7 +621,7 @@ class ACL(object):
             retry=retry,
         )
 
-    @create_span(name="Storage.ACL.clear")
+    @create_trace_span(name="Storage.ACL.clear")
     def clear(
         self,
         client=None,

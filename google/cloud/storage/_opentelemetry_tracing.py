@@ -42,7 +42,7 @@ _default_attributes = {
 
 
 @contextmanager
-def create_span(
+def create_trace_span(
     name, attributes=None, client=None, api_request=None, retry=None, **kwargs
 ):
     """Creates a context manager for a new span and set it as the current span
