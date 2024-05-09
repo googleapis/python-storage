@@ -146,7 +146,7 @@ You will also need to tell OpenTelemetry which exporter to use. An example to ex
 
     tracer_provider = TracerProvider()
     tracer_provider.add_span_processor(BatchSpanProcessor(CloudTraceSpanExporter()))
-    trace.set_tracer_provider(TracerProvider())
+    trace.set_tracer_provider(tracer_provider)
 
     # Optional yet recommended to instrument the requests HTTP library
     from opentelemetry.instrumentation.requests import RequestsInstrumentor
