@@ -18,7 +18,7 @@ import functools
 from google.cloud import _http
 from google.cloud.storage import __version__
 from google.cloud.storage import _helpers
-from google.cloud.storage._opentelemetry_tracing import create_span
+from google.cloud.storage._opentelemetry_tracing import create_trace_span
 
 
 class Connection(_http.JSONConnection):
@@ -72,7 +72,7 @@ class Connection(_http.JSONConnection):
             "gccl-invocation-id": invocation_id,
         }
         call = functools.partial(super(Connection, self).api_request, *args, **kwargs)
-        with create_span(
+        with create_trace_span(
             name="Storage.Connection.api_request",
             attributes=span_attributes,
             client=self._client,

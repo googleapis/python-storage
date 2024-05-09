@@ -62,7 +62,7 @@ def test_opentelemetry_not_installed(setup, monkeypatch):
     monkeypatch.setitem(sys.modules, "opentelemetry", None)
     importlib.reload(_opentelemetry_tracing)
     # Test no-ops when OpenTelemetry is not installed.
-    with _opentelemetry_tracing.create_span("No-ops w/o opentelemetry") as span:
+    with _opentelemetry_tracing.create_trace_span("No-ops w/o opentelemetry") as span:
         assert span is None
     assert not _opentelemetry_tracing.HAS_OPENTELEMETRY
 
@@ -72,14 +72,14 @@ def test_opentelemetry_no_trace_optin(setup):
     assert not _opentelemetry_tracing.enable_otel_traces
     # Test no-ops when user has not opt-in.
     # This prevents customers accidentally being billed for tracing.
-    with _opentelemetry_tracing.create_span("No-ops w/o opt-in") as span:
+    with _opentelemetry_tracing.create_trace_span("No-ops w/o opt-in") as span:
         assert span is None
 
 
 def test_enable_trace_yield_span(setup, setup_optin):
     assert _opentelemetry_tracing.HAS_OPENTELEMETRY
     assert _opentelemetry_tracing.enable_otel_traces
-    with _opentelemetry_tracing.create_span("No-ops for opentelemetry") as span:
+    with _opentelemetry_tracing.create_trace_span("No-ops for opentelemetry") as span:
         assert span is not None
 
 
@@ -96,7 +96,7 @@ def test_enable_trace_call(setup, setup_optin):
     }
     expected_attributes.update(extra_attributes)
 
-    with _opentelemetry_tracing.create_span(
+    with _opentelemetry_tracing.create_trace_span(
         "OtelTracing.Test", attributes=extra_attributes
     ) as span:
         span.set_attribute("after_setup_attribute", 1)
@@ -122,7 +122,7 @@ def test_enable_trace_error(setup, setup_optin):
     expected_attributes.update(extra_attributes)
 
     with pytest.raises(GoogleAPICallError):
-        with _opentelemetry_tracing.create_span(
+        with _opentelemetry_tracing.create_trace_span(
             "OtelTracing.Test", attributes=extra_attributes
         ) as span:
             from google.cloud.exceptions import NotFound
@@ -161,7 +161,7 @@ def test_get_final_attributes(setup, setup_optin):
     with mock.patch("google.cloud.storage.client.Client") as test_client:
         test_client.project = "test_project"
         test_client._connection.API_BASE_URL = "https://testOtel.org"
-        with _opentelemetry_tracing.create_span(
+        with _opentelemetry_tracing.create_trace_span(
             test_span_name,
             attributes=test_span_attributes,
             client=test_client,
@@ -192,7 +192,7 @@ def test_set_conditional_retry_attr(setup, setup_optin):
         "retry": f"multiplier{retry_policy._multiplier}/deadline{retry_policy._deadline}/max{retry_policy._maximum}/initial{retry_policy._initial}/predicate{conditional_predicate}",
     }
 
-    with _opentelemetry_tracing.create_span(
+    with _opentelemetry_tracing.create_trace_span(
         test_span_name,
         retry=retry_obj,
     ) as span:

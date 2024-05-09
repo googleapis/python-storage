@@ -63,6 +63,7 @@ from google.cloud.storage._signing import generate_signed_url_v4
 from google.cloud.storage._helpers import _NUM_RETRIES_MESSAGE
 from google.cloud.storage._helpers import _API_VERSION
 from google.cloud.storage._helpers import _virtual_hosted_style_base_url
+from google.cloud.storage._opentelemetry_tracing import create_trace_span
 from google.cloud.storage.acl import ACL
 from google.cloud.storage.acl import ObjectACL
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
@@ -639,6 +640,7 @@ class Blob(_PropertyMixin):
             access_token=access_token,
         )
 
+    @create_trace_span(name="Storage.Blob.exists")
     def exists(
         self,
         client=None,
@@ -744,6 +746,7 @@ class Blob(_PropertyMixin):
             return False
         return True
 
+    @create_trace_span(name="Storage.Blob.delete")
     def delete(
         self,
         client=None,
@@ -3281,6 +3284,7 @@ class Blob(_PropertyMixin):
         except resumable_media.InvalidResponse as exc:
             _raise_from_invalid_response(exc)
 
+    @create_trace_span(name="Storage.Blob.getIamPolicy")
     def get_iam_policy(
         self,
         client=None,
@@ -3349,6 +3353,7 @@ class Blob(_PropertyMixin):
         )
         return Policy.from_api_repr(info)
 
+    @create_trace_span(name="Storage.Blob.setIamPolicy")
     def set_iam_policy(
         self,
         policy,
@@ -3410,6 +3415,7 @@ class Blob(_PropertyMixin):
         )
         return Policy.from_api_repr(info)
 
+    @create_trace_span(name="Storage.Blob.testIamPermissions")
     def test_iam_permissions(
         self, permissions, client=None, timeout=_DEFAULT_TIMEOUT, retry=DEFAULT_RETRY
     ):
@@ -3464,6 +3470,7 @@ class Blob(_PropertyMixin):
 
         return resp.get("permissions", [])
 
+    @create_trace_span(name="Storage.Blob.makePublic")
     def make_public(
         self,
         client=None,
@@ -3517,6 +3524,7 @@ class Blob(_PropertyMixin):
             retry=retry,
         )
 
+    @create_trace_span(name="Storage.Blob.makePrivate")
     def make_private(
         self,
         client=None,
