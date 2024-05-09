@@ -206,9 +206,13 @@ def test_bucket_get_set_iam_policy(
 
 def test_bucket_crud_w_requester_pays(storage_client, buckets_to_delete, user_project):
     bucket_name = _helpers.unique_name("w-requester-pays")
-    created = _helpers.retry_429_503(storage_client.create_bucket)(
-        bucket_name, requester_pays=True
-    )
+    with pytest.warns(
+        PendingDeprecationWarning,
+        match="requester_pays arg is deprecated. Use Bucket().requester_pays instead",
+    ):
+        created = _helpers.retry_429_503(storage_client.create_bucket)(
+            bucket_name, requester_pays=True
+        )
     buckets_to_delete.append(created)
     assert created.name == bucket_name
     assert created.requester_pays
@@ -248,10 +252,14 @@ def test_bucket_acls_iam_w_user_project(
     storage_client, buckets_to_delete, user_project
 ):
     bucket_name = _helpers.unique_name("acl-w-user-project")
-    created = _helpers.retry_429_503(storage_client.create_bucket)(
-        bucket_name,
-        requester_pays=True,
-    )
+    with pytest.warns(
+        PendingDeprecationWarning,
+        match="requester_pays arg is deprecated. Use Bucket().requester_pays instead",
+    ):
+        created = _helpers.retry_429_503(storage_client.create_bucket)(
+            bucket_name,
+            requester_pays=True,
+        )
     buckets_to_delete.append(created)
 
     with_user_project = storage_client.bucket(bucket_name, user_project=user_project)
@@ -354,9 +362,13 @@ def test_bucket_copy_blob_w_user_project(
 ):
     payload = b"DEADBEEF"
     bucket_name = _helpers.unique_name("copy-w-requester-pays")
-    created = _helpers.retry_429_503(storage_client.create_bucket)(
-        bucket_name, requester_pays=True
-    )
+    with pytest.warns(
+        PendingDeprecationWarning,
+        match="requester_pays arg is deprecated. Use Bucket().requester_pays instead",
+    ):
+        created = _helpers.retry_429_503(storage_client.create_bucket)(
+            bucket_name, requester_pays=True
+        )
     buckets_to_delete.append(created)
     assert created.name == bucket_name
     assert created.requester_pays
@@ -410,9 +422,13 @@ def test_bucket_copy_blob_w_metageneration_match(
 ):
     payload = b"DEADBEEF"
     bucket_name = _helpers.unique_name("generation-match")
-    created = _helpers.retry_429_503(storage_client.create_bucket)(
-        bucket_name, requester_pays=True
-    )
+    with pytest.warns(
+        PendingDeprecationWarning,
+        match="requester_pays arg is deprecated.",
+    ):
+        created = _helpers.retry_429_503(storage_client.create_bucket)(
+            bucket_name, requester_pays=True
+        )
     buckets_to_delete.append(created)
     assert created.name == bucket_name
 
@@ -442,9 +458,13 @@ def test_bucket_get_blob_with_user_project(
     blob_name = "blob-name"
     payload = b"DEADBEEF"
     bucket_name = _helpers.unique_name("w-requester-pays")
-    created = _helpers.retry_429_503(storage_client.create_bucket)(
-        bucket_name, requester_pays=True
-    )
+    with pytest.warns(
+        PendingDeprecationWarning,
+        match="requester_pays arg is deprecated. Use Bucket().requester_pays instead",
+    ):
+        created = _helpers.retry_429_503(storage_client.create_bucket)(
+            bucket_name, requester_pays=True
+        )
     buckets_to_delete.append(created)
     assert created.name == bucket_name
     assert created.requester_pays

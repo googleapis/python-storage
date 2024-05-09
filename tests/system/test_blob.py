@@ -18,7 +18,6 @@ import io
 import os
 import tempfile
 import uuid
-import warnings
 
 import pytest
 import mock
@@ -862,7 +861,10 @@ def test_blob_compose_w_generation_match_list(shared_bucket, blobs_to_delete):
     to_append.upload_from_string(payload_to_append)
     blobs_to_delete.append(to_append)
 
-    with warnings.catch_warnings(record=True) as log:
+    with pytest.warns(
+        DeprecationWarning,
+        match="'if_generation_match: type list' is deprecated and supported for backwards-compatability reasons only",
+    ) as log:
         with pytest.raises(exceptions.PreconditionFailed):
             original.compose(
                 [original, to_append],
@@ -871,7 +873,10 @@ def test_blob_compose_w_generation_match_list(shared_bucket, blobs_to_delete):
             )
     assert len(log) == 2
 
-    with warnings.catch_warnings(record=True) as log:
+    with pytest.warns(
+        DeprecationWarning,
+        match="'if_generation_match: type list' is deprecated and supported for backwards-compatability reasons only",
+    ) as log:
         original.compose(
             [original, to_append],
             if_generation_match=[original.generation, to_append.generation],
