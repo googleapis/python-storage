@@ -2977,6 +2977,10 @@ class Bucket(_PropertyMixin):
         :type value: convertible to boolean
         :param value: If true, enable hierarchical namespace for this bucket.
                       If false, disable hierarchical namespace for this bucket.
+
+        .. note::
+          To enable hierarchical namespace, you must set it at bucket creation time.
+          Currently, hierarchical namespace configuration cannot be changed after bucket creation.
         """
         hns = self._properties.get("hierarchicalNamespace", {})
         hns["enabled"] = bool(value)
