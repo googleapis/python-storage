@@ -1812,6 +1812,7 @@ class Bucket(_PropertyMixin):
                 else:
                     raise
 
+    @create_trace_span(name="Storage.Bucket.copyBlob")
     def copy_blob(
         self,
         blob,
@@ -1961,6 +1962,7 @@ class Bucket(_PropertyMixin):
         new_blob._set_properties(copy_result)
         return new_blob
 
+    @create_trace_span(name="Storage.Bucket.renameBlob")
     def rename_blob(
         self,
         blob,
