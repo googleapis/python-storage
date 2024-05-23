@@ -1013,8 +1013,10 @@ class Blob(_PropertyMixin):
         if self.chunk_size is None:
             if raw_download:
                 klass = RawDownload
+                download_class = "RawDownload"
             else:
                 klass = Download
+                download_class = "Download"
 
             download = klass(
                 download_url,
@@ -1026,7 +1028,7 @@ class Blob(_PropertyMixin):
             )
             download._retry_strategy = retry_strategy
             with create_trace_span(
-                name=f"Storage.{klass.__name__}/consume",
+                name=f"Storage.{download_class}/consume",
                 attributes=extra_attributes,
                 api_request=args,
             ):
@@ -1039,8 +1041,10 @@ class Blob(_PropertyMixin):
 
             if raw_download:
                 klass = RawChunkedDownload
+                download_class = "RawChunkedDownload"
             else:
                 klass = ChunkedDownload
+                download_class = "ChunkedDownload"
 
             download = klass(
                 download_url,
@@ -1053,7 +1057,7 @@ class Blob(_PropertyMixin):
 
             download._retry_strategy = retry_strategy
             with create_trace_span(
-                name=f"Storage.{klass.__name__}/consumeNextChunk",
+                name=f"Storage.{download_class}/consumeNextChunk",
                 attributes=extra_attributes,
                 api_request=args,
             ):
