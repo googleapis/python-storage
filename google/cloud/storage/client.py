@@ -1069,6 +1069,7 @@ class Client(ClientWithProject):
         bucket._set_properties(api_response)
         return bucket
 
+    @create_trace_span(name="Storage.Client.downloadBlobToFile")
     def download_blob_to_file(
         self,
         blob_or_uri,
