@@ -24,6 +24,7 @@ import warnings
 import google.api_core.client_options
 
 from google.auth.credentials import AnonymousCredentials
+from google.oauth2 import service_account
 
 from google.api_core import page_iterator
 from google.cloud._helpers import _LocalStack
@@ -229,6 +230,11 @@ class Client(ClientWithProject):
             client_options=client_options,
             _http=_http,
         )
+
+        if isinstance(self._credentials, service_account.Credentials):
+            self._credentials = self._credentials.with_scopes(["https://www.googleapis.com/auth/cloud-platform"])
+            self._credentials = self._credentials.with_always_use_jwt_access(True)
+            self._credentials._create_self_signed_jwt(None)
 
         # Validate that the universe domain of the credentials matches the
         # universe domain of the client.
