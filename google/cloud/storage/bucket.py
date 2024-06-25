@@ -1316,6 +1316,7 @@ class Bucket(_PropertyMixin):
         match_glob=None,
         include_folders_as_prefixes=None,
         soft_deleted=None,
+        page_size=None,
     ):
         """Return an iterator used to find blobs in the bucket.
 
@@ -1409,6 +1410,11 @@ class Bucket(_PropertyMixin):
             Note ``soft_deleted`` and ``versions`` cannot be set to True simultaneously. See:
             https://cloud.google.com/storage/docs/soft-delete
 
+        :type page_size: int
+        :param page_size:
+            (Optional) Maximum number of blobs to return in each page.
+            Defaults to a value set by the API.
+
         :rtype: :class:`~google.api_core.page_iterator.Iterator`
         :returns: Iterator of all :class:`~google.cloud.storage.blob.Blob`
                   in this bucket matching the arguments.
@@ -1426,6 +1432,7 @@ class Bucket(_PropertyMixin):
             versions=versions,
             projection=projection,
             fields=fields,
+            page_size=page_size,
             timeout=timeout,
             retry=retry,
             match_glob=match_glob,
@@ -1668,7 +1675,13 @@ class Bucket(_PropertyMixin):
 
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
         :param retry:
-            (Optional) How to retry the RPC. See: :ref:`configuring_retries`
+            (Optional) How to retry the RPC.
+            The default value is ``DEFAULT_RETRY_IF_GENERATION_SPECIFIED``, a conditional retry
+            policy which will only enable retries if ``if_generation_match`` or ``generation``
+            is set, in order to ensure requests are idempotent before retrying them.
+            Change the value to ``DEFAULT_RETRY`` or another `google.api_core.retry.Retry` object
+            to enable retries regardless of generation precondition setting.
+            See [Configuring Retries](https://cloud.google.com/python/docs/reference/storage/latest/retry_timeout).
 
         :raises: :class:`google.cloud.exceptions.NotFound` Raises a NotFound
                  if the blob isn't found. To suppress
@@ -1770,7 +1783,13 @@ class Bucket(_PropertyMixin):
 
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
         :param retry:
-            (Optional) How to retry the RPC. See: :ref:`configuring_retries`
+            (Optional) How to retry the RPC.
+            The default value is ``DEFAULT_RETRY_IF_GENERATION_SPECIFIED``, a conditional retry
+            policy which will only enable retries if ``if_generation_match`` or ``generation``
+            is set, in order to ensure requests are idempotent before retrying them.
+            Change the value to ``DEFAULT_RETRY`` or another `google.api_core.retry.Retry` object
+            to enable retries regardless of generation precondition setting.
+            See [Configuring Retries](https://cloud.google.com/python/docs/reference/storage/latest/retry_timeout).
 
         :raises: :class:`~google.cloud.exceptions.NotFound` (if
                  `on_error` is not passed).
@@ -1916,7 +1935,13 @@ class Bucket(_PropertyMixin):
 
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
         :param retry:
-            (Optional) How to retry the RPC. See: :ref:`configuring_retries`
+            (Optional) How to retry the RPC.
+            The default value is ``DEFAULT_RETRY_IF_GENERATION_SPECIFIED``, a conditional retry
+            policy which will only enable retries if ``if_generation_match`` or ``generation``
+            is set, in order to ensure requests are idempotent before retrying them.
+            Change the value to ``DEFAULT_RETRY`` or another `google.api_core.retry.Retry` object
+            to enable retries regardless of generation precondition setting.
+            See [Configuring Retries](https://cloud.google.com/python/docs/reference/storage/latest/retry_timeout).
 
         :rtype: :class:`google.cloud.storage.blob.Blob`
         :returns: The new Blob.
@@ -2064,7 +2089,13 @@ class Bucket(_PropertyMixin):
 
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
         :param retry:
-            (Optional) How to retry the RPC. See: :ref:`configuring_retries`
+            (Optional) How to retry the RPC.
+            The default value is ``DEFAULT_RETRY_IF_GENERATION_SPECIFIED``, a conditional retry
+            policy which will only enable retries if ``if_generation_match`` or ``generation``
+            is set, in order to ensure requests are idempotent before retrying them.
+            Change the value to ``DEFAULT_RETRY`` or another `google.api_core.retry.Retry` object
+            to enable retries regardless of generation precondition setting.
+            See [Configuring Retries](https://cloud.google.com/python/docs/reference/storage/latest/retry_timeout).
 
         :rtype: :class:`Blob`
         :returns: The newly-renamed blob.
@@ -2941,6 +2972,35 @@ class Bucket(_PropertyMixin):
         object_retention = self._properties.get("objectRetention")
         if object_retention is not None:
             return object_retention.get("mode")
+
+    @property
+    def hierarchical_namespace_enabled(self):
+        """Whether hierarchical namespace is enabled for this bucket.
+
+        :setter: Update whether hierarchical namespace is enabled for this bucket.
+        :getter: Query whether hierarchical namespace is enabled for this bucket.
+
+        :rtype: bool
+        :returns: True if enabled, else False.
+        """
+        hns = self._properties.get("hierarchicalNamespace", {})
+        return hns.get("enabled")
+
+    @hierarchical_namespace_enabled.setter
+    def hierarchical_namespace_enabled(self, value):
+        """Enable or disable hierarchical namespace at the bucket-level.
+
+        :type value: convertible to boolean
+        :param value: If true, enable hierarchical namespace for this bucket.
+                      If false, disable hierarchical namespace for this bucket.
+
+        .. note::
+          To enable hierarchical namespace, you must set it at bucket creation time.
+          Currently, hierarchical namespace configuration cannot be changed after bucket creation.
+        """
+        hns = self._properties.get("hierarchicalNamespace", {})
+        hns["enabled"] = bool(value)
+        self._patch_property("hierarchicalNamespace", hns)
 
     def configure_website(self, main_page_suffix=None, not_found_page=None):
         """Configure website-related properties.

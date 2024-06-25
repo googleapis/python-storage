@@ -410,9 +410,9 @@ def test_bucket_copy_blob_w_metageneration_match(
 ):
     payload = b"DEADBEEF"
     bucket_name = _helpers.unique_name("generation-match")
-    created = _helpers.retry_429_503(storage_client.create_bucket)(
-        bucket_name, requester_pays=True
-    )
+    bucket = storage_client.bucket(bucket_name)
+    bucket.requester_pays = True
+    created = _helpers.retry_429_503(storage_client.create_bucket)(bucket)
     buckets_to_delete.append(created)
     assert created.name == bucket_name
 
@@ -1236,3 +1236,32 @@ def test_soft_delete_policy(
     bucket.soft_delete_policy.retention_duration_seconds = new_duration_secs
     bucket.patch()
     assert bucket.soft_delete_policy.retention_duration_seconds == new_duration_secs
+
+
+def test_new_bucket_with_hierarchical_namespace(
+    storage_client,
+    buckets_to_delete,
+):
+    # Test new bucket without specifying hierarchical namespace
+    bucket_name = _helpers.unique_name("new-wo-hns")
+    bucket_obj = storage_client.bucket(bucket_name)
+    bucket = storage_client.create_bucket(bucket_obj)
+    buckets_to_delete.append(bucket)
+    assert bucket.hierarchical_namespace_enabled is None
+
+    # Test new bucket with hierarchical namespace disabled
+    bucket_name = _helpers.unique_name("new-hns-disabled")
+    bucket_obj = storage_client.bucket(bucket_name)
+    bucket_obj.hierarchical_namespace_enabled = False
+    bucket = storage_client.create_bucket(bucket_obj)
+    buckets_to_delete.append(bucket)
+    assert bucket.hierarchical_namespace_enabled is False
+
+    # Test new bucket with hierarchical namespace enabled
+    bucket_name = _helpers.unique_name("new-hns-enabled")
+    bucket_obj = storage_client.bucket(bucket_name)
+    bucket_obj.hierarchical_namespace_enabled = True
+    bucket_obj.iam_configuration.uniform_bucket_level_access_enabled = True
+    bucket = storage_client.create_bucket(bucket_obj)
+    buckets_to_delete.append(bucket)
+    assert bucket.hierarchical_namespace_enabled is True
