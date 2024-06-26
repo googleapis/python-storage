@@ -56,9 +56,7 @@ _default_attributes = {
 
 
 @contextmanager
-def create_trace_span(
-    name, attributes=None, client=None, api_request=None, retry=None, **kwargs
-):
+def create_trace_span(name, attributes=None, client=None, api_request=None, retry=None):
     """Creates a context manager for a new span and set it as the current span
     in the configured tracer. If no configuration exists yields None."""
     if not HAS_OPENTELEMETRY or not enable_otel_traces:

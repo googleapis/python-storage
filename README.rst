@@ -121,7 +121,7 @@ Tracing With OpenTelemetry
 
 This is a PREVIEW FEATURE: Coverage and functionality are still in development and subject to change.
 
-This library uses `OpenTelemetry`_ to generate traces on calls to Google Cloud Storage.
+This library can be configured to use `OpenTelemetry`_ to generate traces on calls to Google Cloud Storage.
 For information on the benefits and utility of tracing, read the `Cloud Trace Overview <https://cloud.google.com/trace/docs/overview>`_.
 
 To enable OpenTelemetry tracing in the Cloud Storage client, first install OpenTelemetry:
