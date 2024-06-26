@@ -69,7 +69,8 @@ Some users may be using the original exception classes from the
 as not to break user applications following this pattern,
 `google-resumable-media` is still in the list of dependencies in this package's
 setup.py file. Applications which do not import directly from
-`google-resumable-media` can safely disregard this dependency.
+`google-resumable-media` can safely disregard this dependency. This backwards
+compatibility feature will be removed in a future major version update.
 
 Quick Start
 -----------
