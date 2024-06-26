@@ -34,13 +34,12 @@ from urllib.parse import urlsplit
 from urllib.parse import urlunsplit
 import warnings
 
-from google import resumable_media
-from google.resumable_media.requests import ChunkedDownload
-from google.resumable_media.requests import Download
-from google.resumable_media.requests import RawDownload
-from google.resumable_media.requests import RawChunkedDownload
-from google.resumable_media.requests import MultipartUpload
-from google.resumable_media.requests import ResumableUpload
+from google.cloud.storage._media.requests import ChunkedDownload
+from google.cloud.storage._media.requests import Download
+from google.cloud.storage._media.requests import RawDownload
+from google.cloud.storage._media.requests import RawChunkedDownload
+from google.cloud.storage._media.requests import MultipartUpload
+from google.cloud.storage._media.requests import ResumableUpload
 
 from google.api_core.iam import Policy
 from google.cloud import exceptions
@@ -72,6 +71,8 @@ from google.cloud.storage.constants import MULTI_REGIONAL_LEGACY_STORAGE_CLASS
 from google.cloud.storage.constants import NEARLINE_STORAGE_CLASS
 from google.cloud.storage.constants import REGIONAL_LEGACY_STORAGE_CLASS
 from google.cloud.storage.constants import STANDARD_STORAGE_CLASS
+from google.cloud.storage.exceptions import DataCorruption
+from google.cloud.storage.exceptions import InvalidResponse
 from google.cloud.storage.retry import ConditionalRetryPolicy
 from google.cloud.storage.retry import DEFAULT_RETRY
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_ETAG_IN_JSON
@@ -1197,7 +1198,7 @@ class Blob(_PropertyMixin):
                     **kwargs,
                 )
 
-        except resumable_media.DataCorruption:
+        except DataCorruption:
             # Delete the corrupt downloaded file.
             os.remove(filename)
             raise
@@ -2029,7 +2030,7 @@ class Blob(_PropertyMixin):
         :type chunk_size: int
         :param chunk_size:
             (Optional) Chunk size to use when creating a
-            :class:`~google.resumable_media.requests.ResumableUpload`.
+            :class:`~google.cloud.storage._media.requests.ResumableUpload`.
             If not passed, will fall back to the chunk size on the
             current blob, if the chunk size of a current blob is also
             `None`, will set the default value.
@@ -2061,7 +2062,7 @@ class Blob(_PropertyMixin):
             (Optional) The type of checksum to compute to verify
             the integrity of the object. After the upload is complete, the
             server-computed checksum of the resulting object will be checked
-            and google.resumable_media.common.DataCorruption will be raised on
+            and google.cloud.storage.exceptions.DataCorruption will be raised on
             a mismatch. On a validation failure, the client will attempt to
             delete the uploaded object automatically. Supported values
             are "md5", "crc32c" and None. The default is None.
@@ -2091,7 +2092,7 @@ class Blob(_PropertyMixin):
         :returns:
             Pair of
 
-            * The :class:`~google.resumable_media.requests.ResumableUpload`
+            * The :class:`~google.cloud.storage._media.requests.ResumableUpload`
               that was created
             * The ``transport`` used to initiate the upload.
         """
@@ -2251,7 +2252,7 @@ class Blob(_PropertyMixin):
             (Optional) The type of checksum to compute to verify
             the integrity of the object. After the upload is complete, the
             server-computed checksum of the resulting object will be checked
-            and google.resumable_media.common.DataCorruption will be raised on
+            and google.cloud.storage.exceptions.DataCorruption will be raised on
             a mismatch. On a validation failure, the client will attempt to
             delete the uploaded object automatically. Supported values
             are "md5", "crc32c" and None. The default is None.
@@ -2300,7 +2301,7 @@ class Blob(_PropertyMixin):
         while not upload.finished:
             try:
                 response = upload.transmit_next_chunk(transport, timeout=timeout)
-            except resumable_media.DataCorruption:
+            except DataCorruption:
                 # Attempt to delete the corrupted object.
                 self.delete()
                 raise
@@ -2395,7 +2396,7 @@ class Blob(_PropertyMixin):
             is too large and must be transmitted in multiple requests, the
             checksum will be incrementally computed and the client will handle
             verification and error handling, raising
-            google.resumable_media.common.DataCorruption on a mismatch and
+            google.cloud.storage.exceptions.DataCorruption on a mismatch and
             attempting to delete the corrupted file. Supported values are
             "md5", "crc32c" and None. The default is None.
 
@@ -2593,7 +2594,7 @@ class Blob(_PropertyMixin):
             is too large and must be transmitted in multiple requests, the
             checksum will be incrementally computed and the client will handle
             verification and error handling, raising
-            google.resumable_media.common.DataCorruption on a mismatch and
+            google.cloud.storage.exceptions.DataCorruption on a mismatch and
             attempting to delete the corrupted file. Supported values are
             "md5", "crc32c" and None. The default is None.
 
@@ -2657,7 +2658,7 @@ class Blob(_PropertyMixin):
                 command=command,
             )
             self._set_properties(created_json)
-        except resumable_media.InvalidResponse as exc:
+        except InvalidResponse as exc:
             _raise_from_invalid_response(exc)
 
     def upload_from_file(
@@ -2770,7 +2771,7 @@ class Blob(_PropertyMixin):
             is too large and must be transmitted in multiple requests, the
             checksum will be incrementally computed and the client will handle
             verification and error handling, raising
-            google.resumable_media.common.DataCorruption on a mismatch and
+            google.cloud.storage.exceptions.DataCorruption on a mismatch and
             attempting to delete the corrupted file. Supported values are
             "md5", "crc32c" and None. The default is None.
 
@@ -2926,7 +2927,7 @@ class Blob(_PropertyMixin):
             is too large and must be transmitted in multiple requests, the
             checksum will be incrementally computed and the client will handle
             verification and error handling, raising
-            google.resumable_media.common.DataCorruption on a mismatch and
+            google.cloud.storage.exceptions.DataCorruption on a mismatch and
             attempting to delete the corrupted file. Supported values are
             "md5", "crc32c" and None. The default is None.
 
@@ -3046,7 +3047,7 @@ class Blob(_PropertyMixin):
             is too large and must be transmitted in multiple requests, the
             checksum will be incrementally computed and the client will handle
             verification and error handling, raising
-            google.resumable_media.common.DataCorruption on a mismatch and
+            google.cloud.storage.exceptions.DataCorruption on a mismatch and
             attempting to delete the corrupted file. Supported values are
             "md5", "crc32c" and None. The default is None.
 
@@ -3163,7 +3164,7 @@ class Blob(_PropertyMixin):
             (Optional) The type of checksum to compute to verify
             the integrity of the object. After the upload is complete, the
             server-computed checksum of the resulting object will be checked
-            and google.resumable_media.common.DataCorruption will be raised on
+            and google.cloud.storage.exceptions.DataCorruption will be raised on
             a mismatch. On a validation failure, the client will attempt to
             delete the uploaded object automatically. Supported values
             are "md5", "crc32c" and None. The default is None.
@@ -3251,7 +3252,7 @@ class Blob(_PropertyMixin):
             )
 
             return upload.resumable_url
-        except resumable_media.InvalidResponse as exc:
+        except InvalidResponse as exc:
             _raise_from_invalid_response(exc)
 
     def get_iam_policy(
@@ -4362,7 +4363,7 @@ class Blob(_PropertyMixin):
                 checksum=checksum,
                 retry=retry,
             )
-        except resumable_media.InvalidResponse as exc:
+        except InvalidResponse as exc:
             _raise_from_invalid_response(exc)
 
     @property
@@ -4817,7 +4818,7 @@ def _maybe_rewind(stream, rewind=False):
 def _raise_from_invalid_response(error):
     """Re-wrap and raise an ``InvalidResponse`` exception.
 
-    :type error: :exc:`google.resumable_media.InvalidResponse`
+    :type error: :exc:`google.cloud.storage.exceptions.InvalidResponse`
     :param error: A caught exception from the ``google-resumable-media``
                   library.
 
