@@ -86,7 +86,7 @@ def default(session):
     # This dependency is included in setup.py for backwards compatibility only
     # and the client library is expected to pass all tests without it. See
     # setup.py and README for details.
-    session.run_install("pip", "uninstall", "-y", "google-resumable-media")
+    session.run("pip", "uninstall", "-y", "google-resumable-media")
 
     # Run py.test against the unit tests.
     session.run(
