@@ -104,7 +104,11 @@ def shared_bucket_name():
 def shared_bucket(storage_client, shared_bucket_name):
     bucket = storage_client.bucket(shared_bucket_name)
     bucket.versioning_enabled = True
-    _helpers.retry_429_503(bucket.create)()
+    # Create the bucket only if it doesn't yet exist.
+    try:
+        storage_client.get_bucket(bucket)
+    except exceptions.NotFound:
+        _helpers.retry_429_503(bucket.create)()
 
     yield bucket
 
@@ -119,7 +123,11 @@ def listable_bucket_name():
 @pytest.fixture(scope="session")
 def listable_bucket(storage_client, listable_bucket_name, file_data):
     bucket = storage_client.bucket(listable_bucket_name)
-    _helpers.retry_429_503(bucket.create)()
+    # Create the bucket only if it doesn't yet exist.
+    try:
+        storage_client.get_bucket(bucket)
+    except exceptions.NotFound:
+        _helpers.retry_429_503(bucket.create)()
 
     info = file_data["logo"]
     source_blob = bucket.blob(_listable_filenames[0])
@@ -179,7 +187,12 @@ def signing_bucket_name():
 @pytest.fixture(scope="session")
 def signing_bucket(storage_client, signing_bucket_name):
     bucket = storage_client.bucket(signing_bucket_name)
-    _helpers.retry_429_503(bucket.create)()
+    # Create the bucket only if it doesn't yet exist.
+    try:
+        storage_client.get_bucket(bucket)
+    except exceptions.NotFound:
+        _helpers.retry_429_503(bucket.create)()
+
     blob = bucket.blob("README.txt")
     blob.upload_from_string(_helpers.signing_blob_content)
 
@@ -205,7 +218,11 @@ def default_ebh_bucket_name():
 def default_ebh_bucket(storage_client, default_ebh_bucket_name):
     bucket = storage_client.bucket(default_ebh_bucket_name)
     bucket.default_event_based_hold = True
-    _helpers.retry_429_503(bucket.create)()
+    # Create the bucket only if it doesn't yet exist.
+    try:
+        storage_client.get_bucket(bucket)
+    except exceptions.NotFound:
+        _helpers.retry_429_503(bucket.create)()
 
     yield bucket
 
