@@ -20,6 +20,7 @@ import pytest
 from google.api_core import exceptions
 from google.cloud import kms
 from google.cloud.storage._helpers import _base64_md5hash
+from google.cloud.storage.retry import DEFAULT_RETRY
 from . import _helpers
 
 
@@ -131,7 +132,7 @@ def listable_bucket(storage_client, listable_bucket_name, file_data):
 
     info = file_data["logo"]
     source_blob = bucket.blob(_listable_filenames[0])
-    source_blob.upload_from_filename(info["path"])
+    source_blob.upload_from_filename(info["path"], retry=DEFAULT_RETRY)
 
     for filename in _listable_filenames[1:]:
         _helpers.retry_bad_copy(bucket.copy_blob)(
@@ -167,7 +168,7 @@ def hierarchy_bucket(storage_client, hierarchy_bucket_name, file_data):
     simple_path = _file_data["simple"]["path"]
     for filename in _hierarchy_filenames:
         blob = bucket.blob(filename)
-        blob.upload_from_filename(simple_path)
+        blob.upload_from_filename(simple_path, retry=DEFAULT_RETRY)
 
     yield bucket
 
