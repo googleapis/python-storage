@@ -137,7 +137,7 @@ _DOWNLOAD_AS_STRING_DEPRECATED = (
     "Use Blob.download_as_bytes() instead."
 )
 _GS_URL_REGEX_PATTERN = re.compile(
-    r"(?P<scheme>gs)://(?P<bucket_name>[a-z0-9_.-]+)/(?P<object_name>.+)"
+    r"(?P<scheme>gs|https)://(?:storage\.(?:mtls\.)?googleapis\.com/)?(?P<bucket_name>[a-z0-9_.-]+)/(?P<object_name>.+)"
 )
 
 _DEFAULT_CHUNKSIZE = 104857600  # 1024 * 1024 B * 100 = 100 MB
@@ -399,7 +399,7 @@ class Blob(_PropertyMixin):
             blob = Blob.from_string("gs://bucket/object", client=client)
 
         :type uri: str
-        :param uri: The blob uri following a gs://bucket/object pattern.
+        :param uri: The blob uri following a gs://bucket/object or https://storage.googleapis.com/bucket/object pattern.
           Both a bucket and object name is required to construct a blob object.
 
         :type client: :class:`~google.cloud.storage.client.Client`
@@ -414,7 +414,9 @@ class Blob(_PropertyMixin):
 
         match = _GS_URL_REGEX_PATTERN.match(uri)
         if not match:
-            raise ValueError("URI pattern must be gs://bucket/object")
+            raise ValueError(
+                "URI pattern must be gs://bucket/object or https://storage.googleapis.com/bucket/object"
+            )
         bucket = Bucket(client, name=match.group("bucket_name"))
         return cls(match.group("object_name"), bucket)
 
