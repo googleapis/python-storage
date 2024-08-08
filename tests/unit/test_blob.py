@@ -5916,6 +5916,41 @@ class Test_Blob(unittest.TestCase):
         self.assertEqual(blob.name, "b")
         self.assertEqual(blob.bucket.name, "buckets.example.com")
 
+    def test_from_string_w_public_url(self):
+        from google.cloud.storage.blob import Blob
+
+        client = self._make_client()
+        public_url = "https://storage.googleapis.com/bucket_name/b"
+        blob = Blob.from_string(public_url, client)
+
+        self.assertIsInstance(blob, Blob)
+        self.assertIs(blob.client, client)
+        self.assertEqual(blob.name, "b")
+        self.assertEqual(blob.bucket.name, "bucket_name")
+
+        nested_public_url = (
+            "https://storage.googleapis.com/bucket_name/path1/path2/b#name"
+        )
+        blob = Blob.from_string(nested_public_url, client)
+
+        self.assertIsInstance(blob, Blob)
+        self.assertIs(blob.client, client)
+        self.assertEqual(blob.name, "path1/path2/b#name")
+        self.assertEqual(blob.bucket.name, "bucket_name")
+
+    def test_from_string_w_authenticated_url(self):
+        from google.cloud.storage.blob import Blob
+
+        client = self._make_client()
+
+        authenticated_url = "https://storage.mtls.googleapis.com/bucket_name/b"
+        blob = Blob.from_string(authenticated_url, client)
+
+        self.assertIsInstance(blob, Blob)
+        self.assertIs(blob.client, client)
+        self.assertEqual(blob.name, "b")
+        self.assertEqual(blob.bucket.name, "bucket_name")
+
     def test_open(self):
         from io import TextIOWrapper
         from google.cloud.storage.fileio import BlobReader
