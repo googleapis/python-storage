@@ -413,6 +413,13 @@ class Blob(_PropertyMixin):
         from google.cloud.storage.bucket import Bucket
 
         match = _GS_URL_REGEX_PATTERN.match(uri)
+
+        if client is not None:
+            custom_url_regex_pattern = re.compile(
+                rf"(?:{client.api_endpoint})?(?P<bucket_name>[a-z0-9_.-]+)/(?P<object_name>.+)"
+            )
+            match = match or custom_url_regex_pattern.match(uri)
+
         if not match:
             raise ValueError(
                 "URI pattern must be gs://bucket/object or https://storage.googleapis.com/bucket/object"
