@@ -137,7 +137,7 @@ _DOWNLOAD_AS_STRING_DEPRECATED = (
     "Use Blob.download_as_bytes() instead."
 )
 _GS_URL_REGEX_PATTERN = re.compile(
-    r"(?P<scheme>gs|https)://(?:storage\.(?:mtls\.)?googleapis\.com/)?(?P<bucket_name>[a-z0-9_.-]+)/(?P<object_name>.+)"
+    r"(?P<scheme>gs)://(?P<bucket_name>[a-z0-9_.-]+)/(?P<object_name>.+)"
 )
 
 _DEFAULT_CHUNKSIZE = 104857600  # 1024 * 1024 B * 100 = 100 MB
@@ -414,11 +414,17 @@ class Blob(_PropertyMixin):
 
         match = _GS_URL_REGEX_PATTERN.match(uri)
 
-        if client is not None:
-            custom_url_regex_pattern = re.compile(
-                rf"(?:{client.api_endpoint})?(?P<bucket_name>[a-z0-9_.-]+)/(?P<object_name>.+)"
+        if not match:
+            if client:
+                endpoint = client.api_endpoint
+            else:
+                endpoint = _get_default_storage_base_url()
+            endpoint = endpoint.removeprefix("https://")
+
+            storage_url_regex_pattern = re.compile(
+                rf"(?P<scheme>https)://{re.escape(endpoint)}/(?P<bucket_name>[a-z0-9_.-]+)/(?P<object_name>.+)"
             )
-            match = match or custom_url_regex_pattern.match(uri)
+            match = storage_url_regex_pattern.match(uri)
 
         if not match:
             raise ValueError(

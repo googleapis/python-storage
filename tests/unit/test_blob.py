@@ -5941,7 +5941,7 @@ class Test_Blob(unittest.TestCase):
     def test_from_string_w_authenticated_url(self):
         from google.cloud.storage.blob import Blob
 
-        client = self._make_client()
+        client = self._make_client(api_endpoint="storage.mtls.googleapis.com")
 
         authenticated_url = "https://storage.mtls.googleapis.com/bucket_name/b"
         blob = Blob.from_string(authenticated_url, client)
