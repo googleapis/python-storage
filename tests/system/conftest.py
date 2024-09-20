@@ -344,7 +344,7 @@ def test_universe_domain():
 def test_universe_project_id():
     if _helpers.test_universe_project_id is None:
         pytest.skip("TEST_UNIVERSE_PROJECT_ID not set in environment.")
-    return _helpers.test_universe_domain_project
+    return _helpers.test_universe_project_id
 
 
 @pytest.fixture(scope="function")
