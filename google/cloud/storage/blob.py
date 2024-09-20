@@ -421,7 +421,7 @@ class Blob(_PropertyMixin):
                 endpoint = _get_default_storage_base_url()
 
             if endpoint.startswith("https://"):
-                endpoint = endpoint[len("https://"):]
+                endpoint = endpoint[len("https://") :]
 
             storage_url_regex_pattern = re.compile(
                 rf"(?P<scheme>https)://{re.escape(endpoint)}/(?P<bucket_name>[a-z0-9_.-]+)/(?P<object_name>.+)"
