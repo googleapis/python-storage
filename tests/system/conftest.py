@@ -362,15 +362,24 @@ def test_universe_domain_credential():
 
 
 @pytest.fixture(scope="function")
+def universe_domain_credential(test_universe_domain_credential):
+    from google.oauth2 import service_account
+
+    return service_account.Credentials.from_service_account_file(
+        test_universe_domain_credential
+    )
+
+
+@pytest.fixture(scope="function")
 def universe_domain_client(
-    test_universe_domain, test_universe_project_id, test_universe_domain_credential
+    test_universe_domain, test_universe_project_id, universe_domain_credential
 ):
     from google.cloud.storage import Client
 
     client_options = {"universe_domain": test_universe_domain}
     ud_storage_client = Client(
         project=test_universe_project_id,
-        credentials=test_universe_domain_credential,
+        credentials=universe_domain_credential,
         client_options=client_options,
     )
     with contextlib.closing(ud_storage_client):
