@@ -40,6 +40,8 @@ export TEST_UNIVERSE_DOMAIN=$(gcloud secrets versions access latest --project cl
 export TEST_UNIVERSE_PROJECT_ID=$(gcloud secrets versions access latest --project cloud-devrel-kokoro-resources --secret=client-library-test-universe-project-id)
 export TEST_UNIVERSE_LOCATION=$(gcloud secrets versions access latest --project cloud-devrel-kokoro-resources --secret=client-library-test-universe-storage-location)
 
+
+
 # Debug: show build environment
 env | grep KOKORO
 
