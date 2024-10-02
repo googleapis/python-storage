@@ -885,6 +885,7 @@ def download_chunks_concurrently(
             "'checksum' is in download_kwargs, but is not supported because sliced downloads have a different checksum mechanism from regular downloads. Use the 'crc32c_checksum' argument on download_chunks_concurrently instead."
         )
 
+    download_kwargs["checksum"] = None
     download_kwargs["command"] = "tm.download_sharded"
 
     # We must know the size and the generation of the blob.
