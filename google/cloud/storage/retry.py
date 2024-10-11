@@ -17,11 +17,13 @@
 See [Retry Strategy for Google Cloud Storage](https://cloud.google.com/storage/docs/retry-strategy#client-libraries)
 """
 
+from typing import Callable
 import requests
 import requests.exceptions as requests_exceptions
 
 from google.api_core import exceptions as api_exceptions
 from google.api_core import retry
+from google.api_core.retry import Retry
 from google.auth import exceptions as auth_exceptions
 
 
@@ -97,7 +99,12 @@ class ConditionalRetryPolicy(object):
         ``["query_params"]`` is commmonly used for preconditions in query_params.
     """
 
-    def __init__(self, retry_policy, conditional_predicate, required_kwargs):
+    def __init__(
+        self,
+        retry_policy: Retry,
+        conditional_predicate: Callable[..., bool],
+        required_kwargs,
+    ):
         self.retry_policy = retry_policy
         self.conditional_predicate = conditional_predicate
         self.required_kwargs = required_kwargs
