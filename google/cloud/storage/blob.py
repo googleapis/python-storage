@@ -27,6 +27,7 @@ import mimetypes
 import os
 import re
 from email.parser import HeaderParser
+from typing import Optional
 from urllib.parse import parse_qsl
 from urllib.parse import quote
 from urllib.parse import urlencode
@@ -66,6 +67,7 @@ from google.cloud.storage._helpers import _virtual_hosted_style_base_url
 from google.cloud.storage._opentelemetry_tracing import create_trace_span
 from google.cloud.storage.acl import ACL
 from google.cloud.storage.acl import ObjectACL
+from google.cloud.storage.bucket import Bucket
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 from google.cloud.storage.constants import ARCHIVE_STORAGE_CLASS
 from google.cloud.storage.constants import COLDLINE_STORAGE_CLASS
@@ -206,12 +208,12 @@ class Blob(_PropertyMixin):
 
     def __init__(
         self,
-        name,
-        bucket,
-        chunk_size=None,
-        encryption_key=None,
-        kms_key_name=None,
-        generation=None,
+        name: str,
+        bucket: Bucket,
+        chunk_size: Optional[int] = None,
+        encryption_key: Optional[bytes] = None,
+        kms_key_name: Optional[str] = None,
+        generation: Optional[int] = None,
     ):
         """
         property :attr:`name`
