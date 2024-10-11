@@ -27,7 +27,7 @@ import mimetypes
 import os
 import re
 from email.parser import HeaderParser
-from typing import Optional
+from typing import Optional, Self
 from urllib.parse import parse_qsl
 from urllib.parse import quote
 from urllib.parse import urlencode
@@ -68,6 +68,7 @@ from google.cloud.storage._opentelemetry_tracing import create_trace_span
 from google.cloud.storage.acl import ACL
 from google.cloud.storage.acl import ObjectACL
 from google.cloud.storage.bucket import Bucket
+from google.cloud.storage.client import Client
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 from google.cloud.storage.constants import ARCHIVE_STORAGE_CLASS
 from google.cloud.storage.constants import COLDLINE_STORAGE_CLASS
@@ -183,7 +184,7 @@ class Blob(_PropertyMixin):
         (Optional) If present, selects a specific revision of this object.
     """
 
-    _chunk_size = None  # Default value for each instance.
+    _chunk_size: Optional[int] = None  # Default value for each instance.
     _CHUNK_SIZE_MULTIPLE = 256 * 1024
     """Number (256 KB, in bytes) that must divide the chunk size."""
 
@@ -229,7 +230,7 @@ class Blob(_PropertyMixin):
             encryption_key=encryption_key, kms_key_name=kms_key_name
         )
 
-        self._encryption_key = encryption_key
+        self._encryption_key: Optional[bytes] = encryption_key
 
         if kms_key_name is not None:
             self._properties["kmsKeyName"] = kms_key_name
@@ -238,7 +239,7 @@ class Blob(_PropertyMixin):
             self._properties["generation"] = generation
 
     @property
-    def bucket(self):
+    def bucket(self) -> Bucket:
         """Bucket which contains the object.
 
         :rtype: :class:`~google.cloud.storage.bucket.Bucket`
@@ -247,7 +248,7 @@ class Blob(_PropertyMixin):
         return self._bucket
 
     @property
-    def chunk_size(self):
+    def chunk_size(self) -> Optional[int]:
         """Get the blob's default chunk size.
 
         :rtype: int or ``NoneType``
@@ -256,7 +257,7 @@ class Blob(_PropertyMixin):
         return self._chunk_size
 
     @chunk_size.setter
-    def chunk_size(self, value):
+    def chunk_size(self, value: Optional[int]):
         """Set the blob's default chunk size.
 
         :type value: int
@@ -272,7 +273,7 @@ class Blob(_PropertyMixin):
         self._chunk_size = value
 
     @property
-    def encryption_key(self):
+    def encryption_key(self) -> Optional[bytes]:
         """Retrieve the customer-supplied encryption key for the object.
 
         :rtype: bytes or ``NoneType``
@@ -283,7 +284,7 @@ class Blob(_PropertyMixin):
         return self._encryption_key
 
     @encryption_key.setter
-    def encryption_key(self, value):
+    def encryption_key(self, value: Optional[bytes]):
         """Set the blob's encryption key.
 
         See https://cloud.google.com/storage/docs/encryption#customer-supplied
@@ -297,7 +298,7 @@ class Blob(_PropertyMixin):
         self._encryption_key = value
 
     @staticmethod
-    def path_helper(bucket_path, blob_name):
+    def path_helper(bucket_path: str, blob_name: str) -> str:
         """Relative URL path for a blob.
 
         :type bucket_path: str
@@ -312,7 +313,7 @@ class Blob(_PropertyMixin):
         return bucket_path + "/o/" + _quote(blob_name)
 
     @property
-    def acl(self):
+    def acl(self) -> ObjectACL:
         """Create our ACL on demand."""
         return self._acl
 
@@ -325,7 +326,7 @@ class Blob(_PropertyMixin):
         return f"<Blob: {bucket_name}, {self.name}, {self.generation}>"
 
     @property
-    def path(self):
+    def path(self) -> str:
         """Getter property for the URL path to this Blob.
 
         :rtype: str
@@ -337,12 +338,12 @@ class Blob(_PropertyMixin):
         return self.path_helper(self.bucket.path, self.name)
 
     @property
-    def client(self):
+    def client(self) -> Client:
         """The client bound to this blob."""
         return self.bucket.client
 
     @property
-    def user_project(self):
+    def user_project(self) -> Optional[str]:
         """Project ID billed for API requests made via this blob.
 
         Derived from bucket's value.
@@ -370,13 +371,13 @@ class Blob(_PropertyMixin):
         return params
 
     @property
-    def public_url(self):
+    def public_url(self) -> str:
         """The public URL for this blob.
 
         Use :meth:`make_public` to enable anonymous access via the returned
         URL.
 
-        :rtype: `string`
+        :rtype: `str`
         :returns: The public URL for this blob.
         """
         if self.client:
@@ -390,7 +391,7 @@ class Blob(_PropertyMixin):
         )
 
     @classmethod
-    def from_string(cls, uri, client=None):
+    def from_string(cls, uri: str, client: Optional[Client] = None) -> Self:
         """Get a constructor for blob object by URI.
 
         .. code-block:: python
@@ -412,8 +413,6 @@ class Blob(_PropertyMixin):
         :rtype: :class:`google.cloud.storage.blob.Blob`
         :returns: The blob object created.
         """
-        from google.cloud.storage.bucket import Bucket
-
         match = _GS_URL_REGEX_PATTERN.match(uri)
         if not match:
             raise ValueError("URI pattern must be gs://bucket/object")
