@@ -664,8 +664,8 @@ class Bucket(_PropertyMixin):
     def __init__(
         self,
         client: Client,
-        name: str = None,
-        user_project: Optional[str] = None
+        name: Optional[str] = None,
+        user_project: Optional[str] = None,
     ):
         """
         property :attr:`name`
@@ -676,7 +676,7 @@ class Bucket(_PropertyMixin):
         self._client = client
         self._acl = BucketACL(self)
         self._default_object_acl = DefaultObjectACL(self)
-        self._label_removals = set()
+        self._label_removals: set[str] = set()
         self._user_project = user_project
 
     def __repr__(self):
@@ -2326,7 +2326,7 @@ class Bucket(_PropertyMixin):
         self._patch_property("encryption", encryption_config)
 
     @property
-    def labels(self):
+    def labels(self) -> dict[str, str]:
         """Retrieve or set labels assigned to this bucket.
 
         See
@@ -2356,7 +2356,7 @@ class Bucket(_PropertyMixin):
         return copy.deepcopy(labels)
 
     @labels.setter
-    def labels(self, mapping):
+    def labels(self, mapping: dict[str, str]):
         """Set labels assigned to this bucket.
 
         See

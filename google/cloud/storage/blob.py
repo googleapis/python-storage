@@ -14,8 +14,7 @@
 
 # pylint: disable=too-many-lines
 
-"""Create / interact with Google Cloud Storage blobs.
-"""
+"""Create / interact with Google Cloud Storage blobs."""
 
 import base64
 import copy
@@ -393,7 +392,7 @@ class Blob(_PropertyMixin):
         )
 
     @classmethod
-    def from_string(cls, uri: str, client: Optional[Client] = None) -> Self:
+    def from_string(cls, uri: str, client: Client) -> Self:
         """Get a constructor for blob object by URI.
 
         .. code-block:: python
@@ -423,9 +422,9 @@ class Blob(_PropertyMixin):
 
     def generate_signed_url(
         self,
-        expiration: Union[int, datetime.datetime, datetime.timedelta] = None,
-        api_access_endpoint: str = None,
-        method: str ="GET",
+        expiration: Union[int, datetime.datetime, datetime.timedelta, None] = None,
+        api_access_endpoint: Optional[str] = None,
+        method: str = "GET",
         content_md5: Optional[str] = None,
         content_type: Optional[str] = None,
         response_disposition: Optional[str] = None,
