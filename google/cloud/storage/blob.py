@@ -19,6 +19,7 @@
 
 import base64
 import copy
+import datetime
 import hashlib
 from io import BytesIO
 from io import TextIOWrapper
@@ -27,7 +28,7 @@ import mimetypes
 import os
 import re
 from email.parser import HeaderParser
-from typing import Optional, Self
+from typing import Optional, Self, Union
 from urllib.parse import parse_qsl
 from urllib.parse import quote
 from urllib.parse import urlencode
@@ -44,6 +45,7 @@ from google.resumable_media.requests import MultipartUpload
 from google.resumable_media.requests import ResumableUpload
 
 from google.api_core.iam import Policy
+from google.auth.credentials import Credentials
 from google.cloud import exceptions
 from google.cloud._helpers import _bytes_to_unicode
 from google.cloud._helpers import _datetime_to_rfc3339
@@ -421,25 +423,25 @@ class Blob(_PropertyMixin):
 
     def generate_signed_url(
         self,
-        expiration=None,
-        api_access_endpoint=None,
-        method="GET",
-        content_md5=None,
-        content_type=None,
-        response_disposition=None,
-        response_type=None,
-        generation=None,
-        headers=None,
-        query_parameters=None,
-        client=None,
-        credentials=None,
-        version=None,
-        service_account_email=None,
-        access_token=None,
-        virtual_hosted_style=False,
-        bucket_bound_hostname=None,
-        scheme="http",
-    ):
+        expiration: Union[int, datetime.datetime, datetime.timedelta] = None,
+        api_access_endpoint: str = None,
+        method: str ="GET",
+        content_md5: Optional[str] = None,
+        content_type: Optional[str] = None,
+        response_disposition: Optional[str] = None,
+        response_type: Optional[str] = None,
+        generation: Optional[str] = None,
+        headers: Optional[dict] = None,
+        query_parameters: Optional[dict] = None,
+        client: Optional[Client] = None,
+        credentials: Optional[Credentials] = None,
+        version: Optional[str] = None,
+        service_account_email: Optional[str] = None,
+        access_token: Optional[str] = None,
+        virtual_hosted_style: Optional[bool] = False,
+        bucket_bound_hostname: Optional[str] = None,
+        scheme: Optional[str] = "http",
+    ) -> str:
         """Generates a signed URL for this blob.
 
         .. note::
@@ -463,7 +465,7 @@ class Blob(_PropertyMixin):
         If ``bucket_bound_hostname`` is set as an argument of :attr:`api_access_endpoint`,
         ``https`` works only if using a ``CDN``.
 
-        :type expiration: Union[Integer, datetime.datetime, datetime.timedelta]
+        :type expiration: Union[int, datetime.datetime, datetime.timedelta]
         :param expiration:
             Point in time when the signed URL should expire. If a ``datetime``
             instance is passed without an explicit ``tzinfo`` set,  it will be
