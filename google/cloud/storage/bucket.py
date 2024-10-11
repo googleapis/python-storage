@@ -18,6 +18,7 @@ import base64
 import copy
 import datetime
 import json
+from typing import Optional
 from urllib.parse import urlsplit
 import warnings
 
@@ -42,6 +43,7 @@ from google.cloud.storage._opentelemetry_tracing import create_trace_span
 from google.cloud.storage.acl import BucketACL
 from google.cloud.storage.acl import DefaultObjectACL
 from google.cloud.storage.blob import Blob
+from google.cloud.storage.client import Client
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 from google.cloud.storage.constants import ARCHIVE_STORAGE_CLASS
 from google.cloud.storage.constants import COLDLINE_STORAGE_CLASS
@@ -659,7 +661,12 @@ class Bucket(_PropertyMixin):
     )
     """Allowed values for :attr:`location_type`."""
 
-    def __init__(self, client, name=None, user_project=None):
+    def __init__(
+        self,
+        client: Client,
+        name: str = None,
+        user_project: Optional[str] = None
+    ):
         """
         property :attr:`name`
             Get the bucket's name.
@@ -713,7 +720,7 @@ class Bucket(_PropertyMixin):
         self._patch_property("rpo", value)
 
     @property
-    def user_project(self):
+    def user_project(self) -> Optional[str]:
         """Project ID to be billed for API requests made via this bucket.
 
         If unset, API requests are billed to the bucket owner.
@@ -1161,7 +1168,7 @@ class Bucket(_PropertyMixin):
         return self._default_object_acl
 
     @staticmethod
-    def path_helper(bucket_name):
+    def path_helper(bucket_name: str) -> str:
         """Relative URL path for a bucket.
 
         :type bucket_name: str
