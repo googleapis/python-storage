@@ -17,5 +17,4 @@ import setuptools
 
 setuptools.setup(
     platforms="Posix; MacOS X; Windows",
-    include_package_data=True,
 )
