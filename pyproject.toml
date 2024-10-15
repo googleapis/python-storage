@@ -38,6 +38,9 @@ dependencies = [
 ]
 dynamic = ["version"]
 
+[project.urls]
+Repository = "https://github.com/googleapis/python-storage"
+
 [project.optional-dependencies]
 protobuf = ["protobuf<6.0.0dev"]
 tracing = ["opentelemetry-api >= 1.1.0"]

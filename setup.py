@@ -29,9 +29,7 @@ packages = [
     if package.startswith("google")
 ]
 
-
 setuptools.setup(
-    url="https://github.com/googleapis/python-storage",
     platforms="Posix; MacOS X; Windows",
     packages=packages,
     include_package_data=True,
