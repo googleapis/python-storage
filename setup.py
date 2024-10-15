@@ -15,6 +15,4 @@
 import setuptools
 
 
-setuptools.setup(
-    platforms="Posix; MacOS X; Windows",
-)
+setuptools.setup()
