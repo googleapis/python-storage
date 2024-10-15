@@ -44,6 +44,7 @@ from google.resumable_media.requests import MultipartUpload
 from google.resumable_media.requests import ResumableUpload
 
 from google.api_core.iam import Policy
+from google.api_core.retry import Retry
 from google.auth.credentials import Credentials
 from google.cloud import exceptions
 from google.cloud._helpers import _bytes_to_unicode
@@ -816,7 +817,7 @@ class Blob(_PropertyMixin):
             retry=retry,
         )
 
-    def _get_transport(self, client):
+    def _get_transport(self, client: Optional[Client]):
         """Return the client's transport.
 
         :type client: :class:`~google.cloud.storage.client.Client`
@@ -1376,7 +1377,7 @@ class Blob(_PropertyMixin):
         if_metageneration_not_match=None,
         timeout=_DEFAULT_TIMEOUT,
         checksum="md5",
-        retry=DEFAULT_RETRY,
+        retry: Union[Retry, ConditionalRetryPolicy] = DEFAULT_RETRY,
     ):
         """Download the contents of this blob as a bytes object.
 
@@ -2010,23 +2011,23 @@ class Blob(_PropertyMixin):
 
     def _initiate_resumable_upload(
         self,
-        client,
+        client: Client,
         stream,
-        content_type,
-        size,
-        num_retries,
-        predefined_acl=None,
-        extra_headers=None,
-        chunk_size=None,
-        if_generation_match=None,
-        if_generation_not_match=None,
-        if_metageneration_match=None,
-        if_metageneration_not_match=None,
+        content_type: Optional[str],
+        size: Optional[int],
+        num_retries: int,
+        predefined_acl: Optional[str] = None,
+        extra_headers: Optional[dict] = None,
+        chunk_size: Optional[int] = None,
+        if_generation_match: Optional[int] = None,
+        if_generation_not_match: Optional[int] = None,
+        if_metageneration_match: Optional[int] = None,
+        if_metageneration_not_match: Optional[int] = None,
         timeout=_DEFAULT_TIMEOUT,
-        checksum=None,
+        checksum: Optional[str] = None,
         retry=None,
-        command=None,
-    ):
+        command: Optional[str] = None,
+    ) -> tuple[ResumableUpload, Transport]:
         """Initiate a resumable upload.
 
         The content type of the upload will be determined in order
@@ -2078,19 +2079,19 @@ class Blob(_PropertyMixin):
             `None`, will set the default value.
             The default value of ``chunk_size`` is 100 MB.
 
-        :type if_generation_match: long
+        :type if_generation_match: int
         :param if_generation_match:
             (Optional) See :ref:`using-if-generation-match`
 
-        :type if_generation_not_match: long
+        :type if_generation_not_match: int
         :param if_generation_not_match:
             (Optional) See :ref:`using-if-generation-not-match`
 
-        :type if_metageneration_match: long
+        :type if_metageneration_match: int
         :param if_metageneration_match:
             (Optional) See :ref:`using-if-metageneration-match`
 
-        :type if_metageneration_not_match: long
+        :type if_metageneration_not_match: int
         :param if_metageneration_not_match:
             (Optional) See :ref:`using-if-metageneration-not-match`
 
@@ -3143,17 +3144,17 @@ class Blob(_PropertyMixin):
     @create_trace_span(name="Storage.Blob.createResumableUploadSession")
     def create_resumable_upload_session(
         self,
-        content_type=None,
-        size=None,
-        origin=None,
-        client=None,
+        content_type: Optional[str] = None,
+        size: Optional[int] = None,
+        origin: Optional[str] = None,
+        client: Optional[Client] = None,
         timeout=_DEFAULT_TIMEOUT,
-        checksum=None,
-        predefined_acl=None,
-        if_generation_match=None,
-        if_generation_not_match=None,
-        if_metageneration_match=None,
-        if_metageneration_not_match=None,
+        checksum: Optional[str] = None,
+        predefined_acl: Optional[str] = None,
+        if_generation_match: Optional[int] = None,
+        if_generation_not_match: Optional[int] = None,
+        if_metageneration_match: Optional[int] = None,
+        if_metageneration_not_match: Optional[int] = None,
         retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
     ):
         """Create a resumable upload session.
@@ -3231,19 +3232,19 @@ class Blob(_PropertyMixin):
         :type predefined_acl: str
         :param predefined_acl: (Optional) Predefined access control list
 
-        :type if_generation_match: long
+        :type if_generation_match: int
         :param if_generation_match:
             (Optional) See :ref:`using-if-generation-match`
 
-        :type if_generation_not_match: long
+        :type if_generation_not_match: int
         :param if_generation_not_match:
             (Optional) See :ref:`using-if-generation-not-match`
 
-        :type if_metageneration_match: long
+        :type if_metageneration_match: int
         :param if_metageneration_match:
             (Optional) See :ref:`using-if-metageneration-match`
 
-        :type if_metageneration_not_match: long
+        :type if_metageneration_not_match: int
         :param if_metageneration_not_match:
             (Optional) See :ref:`using-if-metageneration-not-match`
 
@@ -4050,12 +4051,12 @@ class Blob(_PropertyMixin):
     @create_trace_span(name="Storage.Blob.open")
     def open(
         self,
-        mode="r",
-        chunk_size=None,
-        ignore_flush=None,
-        encoding=None,
-        errors=None,
-        newline=None,
+        mode: str = "r",
+        chunk_size: Optional[int] = None,
+        ignore_flush: Optional[bool] = None,
+        encoding: Optional[str] = None,
+        errors: Optional[str] = None,
+        newline: Optional[str] = None,
         **kwargs,
     ):
         r"""Create a file handler for file-like I/O to or from this blob.
@@ -4114,7 +4115,7 @@ class Blob(_PropertyMixin):
             (unicode) text mode, or 'b' for bytes mode. If the second character
             is omitted, text mode is the default.
 
-        :type chunk_size: long
+        :type chunk_size: int
         :param chunk_size:
             (Optional) For reads, the minimum number of bytes to read at a time.
             If fewer bytes than the chunk_size are requested, the remainder is
@@ -4613,7 +4614,7 @@ class Blob(_PropertyMixin):
         return self._properties.get("selfLink")
 
     @property
-    def size(self):
+    def size(self) -> Optional[int]:
         """Size of the object, in bytes.
 
         See https://cloud.google.com/storage/docs/json_api/v1/objects
