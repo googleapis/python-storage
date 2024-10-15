@@ -1,10 +1,9 @@
 [build-system]
-requires = ["setuptools", "setuptools-scm"]
+requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "google-cloud-storage"
-version = "2.18.2"
 authors = [{ name = "Google LLC", email = "googleapis-packages@google.com" }]
 license = { text = "Apache 2.0" }
 requires-python = ">=3.7"
@@ -36,7 +35,11 @@ dependencies = [
   "requests >= 2.18.0, < 3.0.0dev",
   "google-crc32c >= 1.0, < 2.0dev",
 ]
+dynamic = ["version"]
 
 [project.optional-dependencies]
 protobuf = ["protobuf<6.0.0dev"]
 tracing = ["opentelemetry-api >= 1.1.0"]
+
+[tool.setuptools.dynamic]
+version = { attr = "google.cloud.storage.version.__version__" }
