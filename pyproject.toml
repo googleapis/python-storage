@@ -47,3 +47,8 @@ tracing = ["opentelemetry-api >= 1.1.0"]
 
 [tool.setuptools.dynamic]
 version = { attr = "google.cloud.storage.version.__version__" }
+
+[tool.setuptools.packages.find]
+# Only include packages under the 'google' namespace. Do not include tests,
+# benchmarks, etc.
+include = ["google*"]
