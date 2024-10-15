@@ -14,11 +14,11 @@
 
 # pylint: disable=too-many-lines
 
-"""Create / interact with Google Cloud Storage blobs.
-"""
+"""Create / interact with Google Cloud Storage blobs."""
 
 import base64
 import copy
+import datetime
 import hashlib
 from io import BytesIO
 from io import TextIOWrapper
@@ -27,6 +27,7 @@ import mimetypes
 import os
 import re
 from email.parser import HeaderParser
+from typing import Optional, Self, Union
 from urllib.parse import parse_qsl
 from urllib.parse import quote
 from urllib.parse import urlencode
@@ -43,6 +44,8 @@ from google.resumable_media.requests import MultipartUpload
 from google.resumable_media.requests import ResumableUpload
 
 from google.api_core.iam import Policy
+from google.api_core.retry import Retry
+from google.auth.credentials import Credentials
 from google.cloud import exceptions
 from google.cloud._helpers import _bytes_to_unicode
 from google.cloud._helpers import _datetime_to_rfc3339
@@ -66,6 +69,8 @@ from google.cloud.storage._helpers import _virtual_hosted_style_base_url
 from google.cloud.storage._opentelemetry_tracing import create_trace_span
 from google.cloud.storage.acl import ACL
 from google.cloud.storage.acl import ObjectACL
+from google.cloud.storage.bucket import Bucket
+from google.cloud.storage.client import Client
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 from google.cloud.storage.constants import ARCHIVE_STORAGE_CLASS
 from google.cloud.storage.constants import COLDLINE_STORAGE_CLASS
@@ -181,7 +186,7 @@ class Blob(_PropertyMixin):
         (Optional) If present, selects a specific revision of this object.
     """
 
-    _chunk_size = None  # Default value for each instance.
+    _chunk_size: Optional[int] = None  # Default value for each instance.
     _CHUNK_SIZE_MULTIPLE = 256 * 1024
     """Number (256 KB, in bytes) that must divide the chunk size."""
 
@@ -206,12 +211,12 @@ class Blob(_PropertyMixin):
 
     def __init__(
         self,
-        name,
-        bucket,
-        chunk_size=None,
-        encryption_key=None,
-        kms_key_name=None,
-        generation=None,
+        name: str,
+        bucket: Bucket,
+        chunk_size: Optional[int] = None,
+        encryption_key: Optional[bytes] = None,
+        kms_key_name: Optional[str] = None,
+        generation: Optional[int] = None,
     ):
         """
         property :attr:`name`
@@ -227,7 +232,7 @@ class Blob(_PropertyMixin):
             encryption_key=encryption_key, kms_key_name=kms_key_name
         )
 
-        self._encryption_key = encryption_key
+        self._encryption_key: Optional[bytes] = encryption_key
 
         if kms_key_name is not None:
             self._properties["kmsKeyName"] = kms_key_name
@@ -236,7 +241,7 @@ class Blob(_PropertyMixin):
             self._properties["generation"] = generation
 
     @property
-    def bucket(self):
+    def bucket(self) -> Bucket:
         """Bucket which contains the object.
 
         :rtype: :class:`~google.cloud.storage.bucket.Bucket`
@@ -245,7 +250,7 @@ class Blob(_PropertyMixin):
         return self._bucket
 
     @property
-    def chunk_size(self):
+    def chunk_size(self) -> Optional[int]:
         """Get the blob's default chunk size.
 
         :rtype: int or ``NoneType``
@@ -254,7 +259,7 @@ class Blob(_PropertyMixin):
         return self._chunk_size
 
     @chunk_size.setter
-    def chunk_size(self, value):
+    def chunk_size(self, value: Optional[int]):
         """Set the blob's default chunk size.
 
         :type value: int
@@ -270,7 +275,7 @@ class Blob(_PropertyMixin):
         self._chunk_size = value
 
     @property
-    def encryption_key(self):
+    def encryption_key(self) -> Optional[bytes]:
         """Retrieve the customer-supplied encryption key for the object.
 
         :rtype: bytes or ``NoneType``
@@ -281,7 +286,7 @@ class Blob(_PropertyMixin):
         return self._encryption_key
 
     @encryption_key.setter
-    def encryption_key(self, value):
+    def encryption_key(self, value: Optional[bytes]):
         """Set the blob's encryption key.
 
         See https://cloud.google.com/storage/docs/encryption#customer-supplied
@@ -295,7 +300,7 @@ class Blob(_PropertyMixin):
         self._encryption_key = value
 
     @staticmethod
-    def path_helper(bucket_path, blob_name):
+    def path_helper(bucket_path: str, blob_name: str) -> str:
         """Relative URL path for a blob.
 
         :type bucket_path: str
@@ -310,7 +315,7 @@ class Blob(_PropertyMixin):
         return bucket_path + "/o/" + _quote(blob_name)
 
     @property
-    def acl(self):
+    def acl(self) -> ObjectACL:
         """Create our ACL on demand."""
         return self._acl
 
@@ -323,7 +328,7 @@ class Blob(_PropertyMixin):
         return f"<Blob: {bucket_name}, {self.name}, {self.generation}>"
 
     @property
-    def path(self):
+    def path(self) -> str:
         """Getter property for the URL path to this Blob.
 
         :rtype: str
@@ -335,12 +340,12 @@ class Blob(_PropertyMixin):
         return self.path_helper(self.bucket.path, self.name)
 
     @property
-    def client(self):
+    def client(self) -> Client:
         """The client bound to this blob."""
         return self.bucket.client
 
     @property
-    def user_project(self):
+    def user_project(self) -> Optional[str]:
         """Project ID billed for API requests made via this blob.
 
         Derived from bucket's value.
@@ -368,13 +373,13 @@ class Blob(_PropertyMixin):
         return params
 
     @property
-    def public_url(self):
+    def public_url(self) -> str:
         """The public URL for this blob.
 
         Use :meth:`make_public` to enable anonymous access via the returned
         URL.
 
-        :rtype: `string`
+        :rtype: `str`
         :returns: The public URL for this blob.
         """
         if self.client:
@@ -388,7 +393,7 @@ class Blob(_PropertyMixin):
         )
 
     @classmethod
-    def from_string(cls, uri, client=None):
+    def from_string(cls, uri: str, client: Client) -> Self:
         """Get a constructor for blob object by URI.
 
         .. code-block:: python
@@ -410,8 +415,6 @@ class Blob(_PropertyMixin):
         :rtype: :class:`google.cloud.storage.blob.Blob`
         :returns: The blob object created.
         """
-        from google.cloud.storage.bucket import Bucket
-
         match = _GS_URL_REGEX_PATTERN.match(uri)
         if not match:
             raise ValueError("URI pattern must be gs://bucket/object")
@@ -420,25 +423,25 @@ class Blob(_PropertyMixin):
 
     def generate_signed_url(
         self,
-        expiration=None,
-        api_access_endpoint=None,
-        method="GET",
-        content_md5=None,
-        content_type=None,
-        response_disposition=None,
-        response_type=None,
-        generation=None,
-        headers=None,
-        query_parameters=None,
-        client=None,
-        credentials=None,
-        version=None,
-        service_account_email=None,
-        access_token=None,
-        virtual_hosted_style=False,
-        bucket_bound_hostname=None,
-        scheme="http",
-    ):
+        expiration: Union[int, datetime.datetime, datetime.timedelta, None] = None,
+        api_access_endpoint: Optional[str] = None,
+        method: str = "GET",
+        content_md5: Optional[str] = None,
+        content_type: Optional[str] = None,
+        response_disposition: Optional[str] = None,
+        response_type: Optional[str] = None,
+        generation: Optional[str] = None,
+        headers: Optional[dict] = None,
+        query_parameters: Optional[dict] = None,
+        client: Optional[Client] = None,
+        credentials: Optional[Credentials] = None,
+        version: Optional[str] = None,
+        service_account_email: Optional[str] = None,
+        access_token: Optional[str] = None,
+        virtual_hosted_style: Optional[bool] = False,
+        bucket_bound_hostname: Optional[str] = None,
+        scheme: Optional[str] = "http",
+    ) -> str:
         """Generates a signed URL for this blob.
 
         .. note::
@@ -462,7 +465,7 @@ class Blob(_PropertyMixin):
         If ``bucket_bound_hostname`` is set as an argument of :attr:`api_access_endpoint`,
         ``https`` works only if using a ``CDN``.
 
-        :type expiration: Union[Integer, datetime.datetime, datetime.timedelta]
+        :type expiration: Union[int, datetime.datetime, datetime.timedelta]
         :param expiration:
             Point in time when the signed URL should expire. If a ``datetime``
             instance is passed without an explicit ``tzinfo`` set,  it will be
@@ -814,7 +817,7 @@ class Blob(_PropertyMixin):
             retry=retry,
         )
 
-    def _get_transport(self, client):
+    def _get_transport(self, client: Optional[Client]):
         """Return the client's transport.
 
         :type client: :class:`~google.cloud.storage.client.Client`
@@ -1014,7 +1017,7 @@ class Blob(_PropertyMixin):
             "download.raw_download": raw_download,
             "upload.checksum": f"{checksum}",
         }
-        args = {"timeout": timeout}
+        args: dict[str, object] = {"timeout": timeout}
 
         if self.chunk_size is None:
             if raw_download:
@@ -1374,7 +1377,7 @@ class Blob(_PropertyMixin):
         if_metageneration_not_match=None,
         timeout=_DEFAULT_TIMEOUT,
         checksum="md5",
-        retry=DEFAULT_RETRY,
+        retry: Union[Retry, ConditionalRetryPolicy] = DEFAULT_RETRY,
     ):
         """Download the contents of this blob as a bytes object.
 
@@ -1993,7 +1996,7 @@ class Blob(_PropertyMixin):
             "url.full": upload_url,
             "upload.checksum": f"{checksum}",
         }
-        args = {"timeout": timeout}
+        args: dict[str, object] = {"timeout": timeout}
         with create_trace_span(
             name="Storage.MultipartUpload/transmit",
             attributes=extra_attributes,
@@ -2008,23 +2011,23 @@ class Blob(_PropertyMixin):
 
     def _initiate_resumable_upload(
         self,
-        client,
+        client: Client,
         stream,
-        content_type,
-        size,
-        num_retries,
-        predefined_acl=None,
-        extra_headers=None,
-        chunk_size=None,
-        if_generation_match=None,
-        if_generation_not_match=None,
-        if_metageneration_match=None,
-        if_metageneration_not_match=None,
+        content_type: Optional[str],
+        size: Optional[int],
+        num_retries: int,
+        predefined_acl: Optional[str] = None,
+        extra_headers: Optional[dict] = None,
+        chunk_size: Optional[int] = None,
+        if_generation_match: Optional[int] = None,
+        if_generation_not_match: Optional[int] = None,
+        if_metageneration_match: Optional[int] = None,
+        if_metageneration_not_match: Optional[int] = None,
         timeout=_DEFAULT_TIMEOUT,
-        checksum=None,
+        checksum: Optional[str] = None,
         retry=None,
-        command=None,
-    ):
+        command: Optional[str] = None,
+    ) -> tuple[ResumableUpload, Transport]:
         """Initiate a resumable upload.
 
         The content type of the upload will be determined in order
@@ -2076,19 +2079,19 @@ class Blob(_PropertyMixin):
             `None`, will set the default value.
             The default value of ``chunk_size`` is 100 MB.
 
-        :type if_generation_match: long
+        :type if_generation_match: int
         :param if_generation_match:
             (Optional) See :ref:`using-if-generation-match`
 
-        :type if_generation_not_match: long
+        :type if_generation_not_match: int
         :param if_generation_not_match:
             (Optional) See :ref:`using-if-generation-not-match`
 
-        :type if_metageneration_match: long
+        :type if_metageneration_match: int
         :param if_metageneration_match:
             (Optional) See :ref:`using-if-metageneration-match`
 
-        :type if_metageneration_not_match: long
+        :type if_metageneration_not_match: int
         :param if_metageneration_not_match:
             (Optional) See :ref:`using-if-metageneration-not-match`
 
@@ -2343,7 +2346,7 @@ class Blob(_PropertyMixin):
             "upload.chunk_size": upload.chunk_size,
             "upload.checksum": f"{checksum}",
         }
-        args = {"timeout": timeout}
+        args: dict[str, object] = {"timeout": timeout}
         # import pdb; pdb.set_trace()
         with create_trace_span(
             name="Storage.ResumableUpload/transmitNextChunk",
@@ -3141,17 +3144,17 @@ class Blob(_PropertyMixin):
     @create_trace_span(name="Storage.Blob.createResumableUploadSession")
     def create_resumable_upload_session(
         self,
-        content_type=None,
-        size=None,
-        origin=None,
-        client=None,
+        content_type: Optional[str] = None,
+        size: Optional[int] = None,
+        origin: Optional[str] = None,
+        client: Optional[Client] = None,
         timeout=_DEFAULT_TIMEOUT,
-        checksum=None,
-        predefined_acl=None,
-        if_generation_match=None,
-        if_generation_not_match=None,
-        if_metageneration_match=None,
-        if_metageneration_not_match=None,
+        checksum: Optional[str] = None,
+        predefined_acl: Optional[str] = None,
+        if_generation_match: Optional[int] = None,
+        if_generation_not_match: Optional[int] = None,
+        if_metageneration_match: Optional[int] = None,
+        if_metageneration_not_match: Optional[int] = None,
         retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
     ):
         """Create a resumable upload session.
@@ -3229,19 +3232,19 @@ class Blob(_PropertyMixin):
         :type predefined_acl: str
         :param predefined_acl: (Optional) Predefined access control list
 
-        :type if_generation_match: long
+        :type if_generation_match: int
         :param if_generation_match:
             (Optional) See :ref:`using-if-generation-match`
 
-        :type if_generation_not_match: long
+        :type if_generation_not_match: int
         :param if_generation_not_match:
             (Optional) See :ref:`using-if-generation-not-match`
 
-        :type if_metageneration_match: long
+        :type if_metageneration_match: int
         :param if_metageneration_match:
             (Optional) See :ref:`using-if-metageneration-match`
 
-        :type if_metageneration_not_match: long
+        :type if_metageneration_not_match: int
         :param if_metageneration_not_match:
             (Optional) See :ref:`using-if-metageneration-not-match`
 
@@ -4048,12 +4051,12 @@ class Blob(_PropertyMixin):
     @create_trace_span(name="Storage.Blob.open")
     def open(
         self,
-        mode="r",
-        chunk_size=None,
-        ignore_flush=None,
-        encoding=None,
-        errors=None,
-        newline=None,
+        mode: str = "r",
+        chunk_size: Optional[int] = None,
+        ignore_flush: Optional[bool] = None,
+        encoding: Optional[str] = None,
+        errors: Optional[str] = None,
+        newline: Optional[str] = None,
         **kwargs,
     ):
         r"""Create a file handler for file-like I/O to or from this blob.
@@ -4112,7 +4115,7 @@ class Blob(_PropertyMixin):
             (unicode) text mode, or 'b' for bytes mode. If the second character
             is omitted, text mode is the default.
 
-        :type chunk_size: long
+        :type chunk_size: int
         :param chunk_size:
             (Optional) For reads, the minimum number of bytes to read at a time.
             If fewer bytes than the chunk_size are requested, the remainder is
@@ -4611,7 +4614,7 @@ class Blob(_PropertyMixin):
         return self._properties.get("selfLink")
 
     @property
-    def size(self):
+    def size(self) -> Optional[int]:
         """Size of the object, in bytes.
 
         See https://cloud.google.com/storage/docs/json_api/v1/objects

@@ -15,10 +15,14 @@
 """Create / interact with Google Cloud Storage connections."""
 
 import functools
+from typing import Optional
+
+from google.api_core.client_info import ClientInfo
 from google.cloud import _http
 from google.cloud.storage import __version__
 from google.cloud.storage import _helpers
 from google.cloud.storage._opentelemetry_tracing import create_trace_span
+from google.cloud.storage.client import Client
 
 
 class Connection(_http.JSONConnection):
@@ -44,7 +48,12 @@ class Connection(_http.JSONConnection):
     DEFAULT_API_ENDPOINT = _helpers._get_default_storage_base_url()
     DEFAULT_API_MTLS_ENDPOINT = "https://storage.mtls.googleapis.com"
 
-    def __init__(self, client, client_info=None, api_endpoint=None):
+    def __init__(
+        self,
+        client: Client,
+        client_info: Optional[ClientInfo] = None,
+        api_endpoint: Optional[str] = None,
+    ):
         super(Connection, self).__init__(client, client_info)
         self.API_BASE_URL = api_endpoint or self.DEFAULT_API_ENDPOINT
         self.API_BASE_MTLS_URL = self.DEFAULT_API_MTLS_ENDPOINT

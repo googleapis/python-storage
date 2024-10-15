@@ -20,12 +20,18 @@ import collections
 import datetime
 import functools
 import json
+from typing import Optional, Union
 import warnings
 import google.api_core.client_options
-
-from google.auth.credentials import AnonymousCredentials
-
 from google.api_core import page_iterator
+from google.api_core.client_options import ClientOptions
+from google.api_core.client_info import ClientInfo
+from google.api_core.retry import Retry
+from google.auth.credentials import (
+    AnonymousCredentials,
+    Credentials,
+    Signing,
+)
 from google.cloud._helpers import _LocalStack
 from google.cloud.client import ClientWithProject
 from google.cloud.exceptions import NotFound
@@ -58,9 +64,7 @@ from google.cloud.storage.acl import BucketACL
 from google.cloud.storage.acl import DefaultObjectACL
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 from google.cloud.storage.retry import DEFAULT_RETRY
-
-
-_marker = object()
+from google.cloud.storage.retry import ConditionalRetryPolicy
 
 
 class Client(ClientWithProject):
@@ -118,24 +122,21 @@ class Client(ClientWithProject):
 
     def __init__(
         self,
-        project=_marker,
-        credentials=None,
+        project: Optional[str] = None,
+        credentials: Optional[Credentials] = None,
         _http=None,
-        client_info=None,
-        client_options=None,
-        use_auth_w_custom_endpoint=True,
-        extra_headers={},
+        client_info: Optional[ClientInfo] = None,
+        client_options: Optional[ClientOptions] = None,
+        use_auth_w_custom_endpoint: Optional[bool] = True,
+        extra_headers: dict = {},
     ):
-        self._base_connection = None
+        self._base_connection: Optional[Connection] = None
 
         if project is None:
             no_project = True
             project = "<none>"
         else:
             no_project = False
-
-        if project is _marker:
-            project = None
 
         # Save the initial value of constructor arguments before they
         # are passed along, for use in __reduce__ defined elsewhere.
@@ -274,11 +275,11 @@ class Client(ClientWithProject):
         return self._universe_domain or _DEFAULT_UNIVERSE_DOMAIN
 
     @property
-    def api_endpoint(self):
+    def api_endpoint(self) -> str:
         return self._connection.API_BASE_URL
 
     @property
-    def _connection(self):
+    def _connection(self) -> Union[Batch, Connection]:
         """Get connection or batch on the client.
 
         :rtype: :class:`google.cloud.storage._http.Connection`
@@ -291,7 +292,7 @@ class Client(ClientWithProject):
             return self._base_connection
 
     @_connection.setter
-    def _connection(self, value):
+    def _connection(self, value: Connection):
         """Set connection on the client.
 
         Intended to be used by constructor (since the base class calls)
@@ -329,7 +330,7 @@ class Client(ClientWithProject):
         return self._batch_stack.pop()
 
     @property
-    def current_batch(self):
+    def current_batch(self) -> Optional[Batch]:
         """Currently-active batch.
 
         :rtype: :class:`google.cloud.storage.batch.Batch` or ``NoneType`` (if
@@ -729,7 +730,7 @@ class Client(ClientWithProject):
         query_params=None,
         headers=None,
         timeout=_DEFAULT_TIMEOUT,
-        retry=DEFAULT_RETRY,
+        retry: Union[Retry, ConditionalRetryPolicy] = DEFAULT_RETRY,
         _target_object=None,
     ):
         """Helper for bucket / blob methods making API 'DELETE' calls.
@@ -1642,17 +1643,17 @@ class Client(ClientWithProject):
 
     def generate_signed_post_policy_v4(
         self,
-        bucket_name,
-        blob_name,
-        expiration,
-        conditions=None,
-        fields=None,
-        credentials=None,
-        virtual_hosted_style=False,
-        bucket_bound_hostname=None,
-        scheme="http",
-        service_account_email=None,
-        access_token=None,
+        bucket_name: str,
+        blob_name: str,
+        expiration: Union[int, datetime.datetime, datetime.timedelta],
+        conditions: Optional[list] = None,
+        fields: Optional[dict] = None,
+        credentials: Optional[Signing] = None,
+        virtual_hosted_style: bool = False,
+        bucket_bound_hostname: Optional[str] = None,
+        scheme: str = "http",
+        service_account_email: Optional[str] = None,
+        access_token: Optional[str] = None,
     ):
         """Generate a V4 signed policy object. Generated policy object allows user to upload objects with a POST request.
 
@@ -1723,7 +1724,7 @@ class Client(ClientWithProject):
                 "can be specified."
             )
 
-        credentials = self._credentials if credentials is None else credentials
+        credentials: Signing = self._credentials if credentials is None else credentials
         client_email = service_account_email
         if not access_token or not service_account_email:
             ensure_signed_credentials(credentials)
