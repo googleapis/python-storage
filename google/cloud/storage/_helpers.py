@@ -21,15 +21,19 @@ import base64
 import datetime
 from hashlib import md5
 import os
+from typing import Optional, Union
 from urllib.parse import urlsplit
 from urllib.parse import urlunsplit
 from uuid import uuid4
 
 from google import resumable_media
+from google.api_core.retry import Retry
 from google.auth import environment_vars
+from google.cloud.storage.client import Client
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 from google.cloud.storage.retry import DEFAULT_RETRY
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED
+from google.cloud.storage.retry import ConditionalRetryPolicy
 
 
 STORAGE_EMULATOR_ENV_VAR = "STORAGE_EMULATOR_HOST"  # Despite name, includes scheme.
@@ -51,7 +55,7 @@ _TRUE_DEFAULT_STORAGE_HOST = _STORAGE_HOST_TEMPLATE.format(
 
 _DEFAULT_SCHEME = "https://"
 
-_API_VERSION = os.getenv(_API_VERSION_OVERRIDE_ENV_VAR, "v1")
+_API_VERSION: str = os.getenv(_API_VERSION_OVERRIDE_ENV_VAR, "v1")
 """API version of the default storage host"""
 
 # etag match parameters in snake case and equivalent header
@@ -158,10 +162,10 @@ class _PropertyMixin(object):
                  number or letter.
     """
 
-    def __init__(self, name=None):
+    def __init__(self, name: Optional[str] = None):
         self.name = name
-        self._properties = {}
-        self._changes = set()
+        self._properties: dict = {}
+        self._changes: set = set()
 
     @property
     def path(self):
@@ -169,7 +173,7 @@ class _PropertyMixin(object):
         raise NotImplementedError
 
     @property
-    def client(self):
+    def client(self) -> Client:
         """Abstract getter for the object client."""
         raise NotImplementedError
 
@@ -178,7 +182,7 @@ class _PropertyMixin(object):
         """Abstract getter for the object user_project."""
         raise NotImplementedError
 
-    def _require_client(self, client):
+    def _require_client(self, client: Optional[Client]) -> Client:
         """Check client or verify over-ride.
 
         :type client: :class:`~google.cloud.storage.client.Client` or
@@ -307,7 +311,7 @@ class _PropertyMixin(object):
         )
         self._set_properties(api_response)
 
-    def _patch_property(self, name, value):
+    def _patch_property(self, name: str, value: object):
         """Update field of this object's properties.
 
         This method will only update the field provided and will not
@@ -424,7 +428,9 @@ class _PropertyMixin(object):
         if_metageneration_match=None,
         if_metageneration_not_match=None,
         timeout=_DEFAULT_TIMEOUT,
-        retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
+        retry: Union[
+            Retry, ConditionalRetryPolicy
+        ] = DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
         override_unlocked_retention=False,
     ):
         """Sends all properties in a PUT request.
