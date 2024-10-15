@@ -1017,7 +1017,7 @@ class Blob(_PropertyMixin):
             "download.raw_download": raw_download,
             "upload.checksum": f"{checksum}",
         }
-        args = {"timeout": timeout}
+        args: dict[str, object] = {"timeout": timeout}
 
         if self.chunk_size is None:
             if raw_download:
@@ -1996,7 +1996,7 @@ class Blob(_PropertyMixin):
             "url.full": upload_url,
             "upload.checksum": f"{checksum}",
         }
-        args = {"timeout": timeout}
+        args: dict[str, object] = {"timeout": timeout}
         with create_trace_span(
             name="Storage.MultipartUpload/transmit",
             attributes=extra_attributes,
@@ -2346,7 +2346,7 @@ class Blob(_PropertyMixin):
             "upload.chunk_size": upload.chunk_size,
             "upload.checksum": f"{checksum}",
         }
-        args = {"timeout": timeout}
+        args: dict[str, object] = {"timeout": timeout}
         # import pdb; pdb.set_trace()
         with create_trace_span(
             name="Storage.ResumableUpload/transmitNextChunk",
