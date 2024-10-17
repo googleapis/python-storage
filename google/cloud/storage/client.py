@@ -390,7 +390,12 @@ class Client(ClientWithProject):
         :rtype: :class:`google.cloud.storage.bucket.Bucket`
         :returns: The bucket object created.
         """
-        return Bucket(client=self, name=bucket_name, user_project=user_project)
+        return Bucket(
+            client=self,
+            name=bucket_name,
+            user_project=user_project,
+            generation=generation,
+        )
 
     def batch(self, raise_exception=True):
         """Factory constructor for batch object.
@@ -815,10 +820,12 @@ class Client(ClientWithProject):
         """
         if isinstance(bucket_or_name, Bucket):
             if generation:
-                raise ValueError('The generation can only be specified if a '
-                    'name is used to specify a bucket, not a Bucket object. '
-                    'Create a new Bucket object with the correct generation '
-                    'instead.')
+                raise ValueError(
+                    "The generation can only be specified if a "
+                    "name is used to specify a bucket, not a Bucket object. "
+                    "Create a new Bucket object with the correct generation "
+                    "instead."
+                )
             bucket = bucket_or_name
             if bucket.client is None:
                 bucket._client = self
@@ -1555,10 +1562,7 @@ class Client(ClientWithProject):
         :rtype: :class:`google.cloud.storage.bucket.Bucket`
         :returns: The restored Bucket.
         """
-        query_params = {}
-
-        if generation is not None:
-            query_params["generation"] = generation
+        query_params = {"generation": generation}
 
         _add_generation_match_parameters(
             query_params,

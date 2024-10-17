@@ -749,19 +749,6 @@ class Bucket(_PropertyMixin):
         if generation is not None:
             return int(generation)
 
-    @generation.setter
-    def generation(self, value):
-        """Set the generation of this bucket.
-
-        Only buckets with soft delete policies have generations.
-
-        See: https://cloud.google.com/storage/docs/managing-turbo-replication
-
-        :type value: int
-        :param value: The generation to set.
-        """
-        self._patch_property("generation", value)
-
     @property
     def soft_delete_time(self):
         """If this bucket has been soft-deleted, returns the time at which it became soft-deleted.
