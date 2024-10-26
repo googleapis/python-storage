@@ -705,12 +705,6 @@ class Blob(_PropertyMixin):
             :attr:`generation` is required to be set on the blob if ``soft_deleted`` is set to True.
             See: https://cloud.google.com/storage/docs/soft-delete
 
-        :type soft_deleted: bool
-        :param soft_deleted:
-            (Optional) If True, looks for a soft-deleted object. Will only return True
-            if the object exists and is in a soft-deleted state.
-            :attr:`generation` is required to be set on the blob if ``soft_deleted`` is set to True.
-            See: https://cloud.google.com/storage/docs/soft-delete
         :type restore_token: str
         :param restore_token:
             (Optional) The restore_token is required to retrieve a soft-deleted object only if
@@ -4812,13 +4806,14 @@ class Blob(_PropertyMixin):
 
     @property
     def restore_token(self):
-        """Restore token used to differentiate soft-deleted objects with the same name and generation.
+        """The restore token, a universally unique identifier (UUID), along with the object's
+        name and generation value, uniquely identifies a soft-deleted object.
         This field is only returned for soft-deleted objects in hierarchical namespace buckets.
 
         :rtype: string or ``NoneType``
         :returns:
-            (readonly) The restore token, a universally unique identifier (UUID), along with the object's
-            name and generation value, uniquely identifies a soft-deleted object.
+            (readonly) The restore token used to differentiate soft-deleted objects with the same name and generation.
+            This field is only returned for soft-deleted objects in hierarchical namespace buckets.
         """
         return self._properties.get("restoreToken")
 

@@ -982,7 +982,7 @@ class Test_Bucket(unittest.TestCase):
             _target_object=blob,
         )
 
-    def test_get_blob_hit_w_generation_w_soft_deleted(self):
+    def test_get_blob_hit_w_gen_soft_deleted_restore_token(self):
         from google.cloud.storage.blob import Blob
 
         name = "name"
