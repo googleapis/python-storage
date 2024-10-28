@@ -2180,10 +2180,11 @@ class Bucket(_PropertyMixin):
                            If used, must be 'full' or 'noAcl'.
 
         :type restore_token: str
-        :param restore_token: (Optional) The restore_token is required to restore a soft-deleted object
-        only if its name and generation value do not uniquely identify it, and hierarchical namespace
-        is enabled on the bucket. Otherwise, this parameter is optional.
-        See: https://cloud.google.com/storage/docs/json_api/v1/objects/restore
+        :param restore_token:
+            (Optional) The restore_token is required to restore a soft-deleted object
+            only if its name and generation value do not uniquely identify it, and hierarchical namespace
+            is enabled on the bucket. Otherwise, this parameter is optional.
+            See: https://cloud.google.com/storage/docs/json_api/v1/objects/restore
 
         :type if_generation_match: long
         :param if_generation_match:
