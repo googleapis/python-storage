@@ -2035,7 +2035,7 @@ class Test_Bucket(unittest.TestCase):
         api_response = {"name": name}
         client = mock.Mock(spec=["_get_resource"])
         client._get_resource.return_value = api_response
-        bucket = self._make_one(client, name=name)
+        bucket = self._make_one(client, name=name, generation=12345)
 
         bucket.reload(soft_deleted=True)
 
@@ -2043,6 +2043,7 @@ class Test_Bucket(unittest.TestCase):
         expected_query_params = {
             "projection": "noAcl",
             "softDeleted": True,
+            "generation": 12345,
         }
         expected_headers = {}
         client._get_resource.assert_called_once_with(

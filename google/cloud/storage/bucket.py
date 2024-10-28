@@ -779,8 +779,6 @@ class Bucket(_PropertyMixin):
     def _query_params(self):
         """Default query parameters."""
         params = super()._query_params
-        if self.generation is not None:
-            params["generation"] = self.generation
         return params
 
     @classmethod
