@@ -629,8 +629,7 @@ class Bucket(_PropertyMixin):
 
     :type generation: int
     :param generation: (Optional) If present, selects a specific revision of
-                       this bucket. Only buckets with soft delete policies
-                       have generations.
+                       this bucket.
     """
 
     _MAX_OBJECTS_FOR_ITERATION = 256
@@ -740,10 +739,7 @@ class Bucket(_PropertyMixin):
 
         :rtype: int or ``NoneType``
         :returns: The generation of the bucket or ``None`` if the bucket's
-                  resource has not been loaded from the server. Only buckets
-                  with soft delete policies have generations; buckets without
-                  such a policy will also have ``None`` in this field. See
-                  the Bucket.soft_delete_policy property.
+                  resource has not been loaded from the server.
         """
         generation = self._properties.get("generation")
         if generation is not None:

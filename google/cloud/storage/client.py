@@ -809,7 +809,7 @@ class Client(ClientWithProject):
                  str, \
             ]):
                 The bucket resource to pass or name to create.
-            generation (Optional[long]):
+            generation (Optional[int]):
                 The bucket generation. Only buckets with soft delete policies
                 have generations. If generation is specified, bucket_or_name
                 must be a name (str).
@@ -862,12 +862,12 @@ class Client(ClientWithProject):
                 Can also be passed as a tuple (connect_timeout, read_timeout).
                 See :meth:`requests.Session.request` documentation for details.
 
-            if_metageneration_match (Optional[long]):
+            if_metageneration_match (Optional[int]):
                 Make the operation conditional on whether the
-                blob's current metageneration matches the given value.
+                bucket's current metageneration matches the given value.
 
-            if_metageneration_not_match (Optional[long]):
-                Make the operation conditional on whether the blob's
+            if_metageneration_not_match (Optional[int]):
+                Make the operation conditional on whether the bucket's
                 current metageneration does not match the given value.
 
             retry (Optional[Union[google.api_core.retry.Retry, google.cloud.storage.retry.ConditionalRetryPolicy]]):
@@ -884,11 +884,11 @@ class Client(ClientWithProject):
                 See the retry.py source code and docstrings in this package (google.cloud.storage.retry) for
                 information on retry types and how to configure them.
 
-            generation (Optional[long]):
-                The generation of the bucket. Only buckets with soft delete
-                policies have generations. The generation can be used to specify
-                a specific soft-deleted version of the bucket, in conjunction
-                with the ``soft_deleted`` argument below.
+            generation (Optional[int]):
+                The generation of the bucket. The generation can be used to
+                specify a specific soft-deleted version of the bucket, in
+                conjunction with the ``soft_deleted`` argument below. If
+                ``soft_deleted`` is not True, the generation is unused.
 
             soft_deleted (Optional[bool]):
                 If True, looks for a soft-deleted bucket. Will only return
@@ -1534,6 +1534,7 @@ class Client(ClientWithProject):
         self,
         bucket_name,
         generation,
+        projection="noAcl",
         if_metageneration_match=None,
         if_metageneration_not_match=None,
         timeout=_DEFAULT_TIMEOUT,
@@ -1546,6 +1547,19 @@ class Client(ClientWithProject):
 
         :type generation: int
         :param generation: Selects the specific revision of the bucket.
+
+        :type projection: str
+        :param projection:
+            (Optional) Specifies the set of properties to return. If used, must
+            be 'full' or 'noAcl'. Defaults to 'noAcl'.
+
+        if_metageneration_match (Optional[int]):
+            Make the operation conditional on whether the
+            blob's current metageneration matches the given value.
+
+        if_metageneration_not_match (Optional[int]):
+            Make the operation conditional on whether the blob's
+            current metageneration does not match the given value.
 
         :type timeout: float or tuple
         :param timeout:
@@ -1562,7 +1576,7 @@ class Client(ClientWithProject):
         :rtype: :class:`google.cloud.storage.bucket.Bucket`
         :returns: The restored Bucket.
         """
-        query_params = {"generation": generation}
+        query_params = {"generation": generation, "projection": projection}
 
         _add_generation_match_parameters(
             query_params,

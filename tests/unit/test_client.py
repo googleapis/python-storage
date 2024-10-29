@@ -2416,7 +2416,7 @@ class TestClient(unittest.TestCase):
         self.assertEqual(bucket.name, NAME)
 
         expected_path = f"/b/{NAME}/restore"
-        expected_query_params = {"generation": 12345}
+        expected_query_params = {"generation": 12345, "projection": "noAcl"}
         client._post_resource.assert_called_once_with(
             expected_path,
             None,
