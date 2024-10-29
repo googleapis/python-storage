@@ -384,8 +384,7 @@ class Client(ClientWithProject):
 
         :type generation: int
         :param generation: (Optional) If present, selects a specific revision of
-                           this bucket. Only buckets with soft delete policies
-                           have generations.
+                           this bucket.
 
         :rtype: :class:`google.cloud.storage.bucket.Bucket`
         :returns: The bucket object created.
@@ -810,9 +809,8 @@ class Client(ClientWithProject):
             ]):
                 The bucket resource to pass or name to create.
             generation (Optional[int]):
-                The bucket generation. Only buckets with soft delete policies
-                have generations. If generation is specified, bucket_or_name
-                must be a name (str).
+                The bucket generation. If generation is specified,
+                bucket_or_name must be a name (str).
 
         Returns:
             google.cloud.storage.bucket.Bucket
