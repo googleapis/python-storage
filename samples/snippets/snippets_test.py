@@ -852,6 +852,7 @@ def test_create_bucket_hierarchical_namespace(test_bucket_create, capsys):
     out, _ = capsys.readouterr()
     assert f"Created bucket {test_bucket_create.name} with hierarchical namespace enabled" in out
 
+
 def test_storage_trace_quickstart(test_bucket, capsys):
     blob_name = f"trace_quickstart_{uuid.uuid4().hex}"
     contents = "The quick brown fox jumps over the lazy dog."
