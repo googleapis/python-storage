@@ -853,17 +853,6 @@ def test_create_bucket_hierarchical_namespace(test_bucket_create, capsys):
     assert f"Created bucket {test_bucket_create.name} with hierarchical namespace enabled" in out
 
 def test_storage_trace_quickstart(test_bucket, capsys):
-    blob_name =  f"trace_quickstart_{uuid.uuid4().hex}"
-    contents = "The quick brown fox jumps over the lazy dog."
-    storage_trace_quickstart.run_quickstart(
-        test_bucket.name, blob_name, contents
-    )
-    out, _ = capsys.readouterr()
-
-    assert f"{blob_name} uploaded to {test_bucket.name}" in out
-    assert f"Downloaded storage object {blob_name} from bucket {test_bucket.name}" in out
-
-def test_storage_trace_quickstart(test_bucket, capsys):
     blob_name = f"trace_quickstart_{uuid.uuid4().hex}"
     contents = "The quick brown fox jumps over the lazy dog."
     storage_trace_quickstart.run_quickstart(test_bucket.name, blob_name, contents)
