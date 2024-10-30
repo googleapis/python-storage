@@ -184,7 +184,9 @@ PYTEST_COMMON_ARGS = ["--junitxml=sponge_log.xml"]
 
 
 def _session_tests(
-    session: nox.sessions.Session, post_install: Callable = None
+    session: nox.sessions.Session,
+    post_install: Callable = None,
+    install_extras: bool = True,
 ) -> None:
     # check for presence of tests
     test_list = glob.glob("**/*_test.py", recursive=True) + glob.glob("**/test_*.py", recursive=True)
@@ -219,6 +221,14 @@ def _session_tests(
 
     if INSTALL_LIBRARY_FROM_SOURCE:
         session.install("-e", _get_repo_root())
+
+    if install_extras:
+        session.install("opentelemetry-api", "opentelemetry-sdk")
+        session.install(
+            "opentelemetry-exporter-gcp-trace",
+            "opentelemetry-propagator-gcp",
+            "opentelemetry-instrumentation-requests",
+        )
 
     if post_install:
         post_install(session)
