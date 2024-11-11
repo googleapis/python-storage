@@ -26,13 +26,14 @@ def run_quickstart(bucket_name, blob_name, contents):
 
     from opentelemetry import trace
     from opentelemetry.exporter.cloud_trace import CloudTraceSpanExporter
-    from opentelemetry.instrumentation.requests import RequestsInstrumentor
     from opentelemetry.resourcedetector.gcp_resource_detector import (
         GoogleCloudResourceDetector,
     )
     from opentelemetry.sdk.trace import TracerProvider
     from opentelemetry.sdk.trace.export import BatchSpanProcessor
     from opentelemetry.sdk.trace.sampling import TraceIdRatioBased
+    # Optional: Enable traces emitted from the requests HTTP library.
+    from opentelemetry.instrumentation.requests import RequestsInstrumentor
 
     from google.cloud import storage
 
@@ -59,18 +60,21 @@ def run_quickstart(bucket_name, blob_name, contents):
     tracer_provider.add_span_processor(BatchSpanProcessor(CloudTraceSpanExporter()))
     trace.set_tracer_provider(tracer_provider)
 
-    # Optional yet recommended: enable traces emitted from the requests HTTP library.
+    # Optional: Enable traces emitted from the requests HTTP library.
     RequestsInstrumentor().instrument(tracer_provider=tracer_provider)
 
-    # Instantiate a storage client and perform a write and read workload.
-    storage_client = storage.Client()
-    bucket = storage_client.bucket(bucket_name)
-    blob = bucket.blob(blob_name)
-    blob.upload_from_string(contents)
-    print(f"{blob_name} uploaded to {bucket_name}.")
+    # Get the tracer and create a new root span.
+    tracer = tracer_provider.get_tracer("My App")
+    with tracer.start_as_current_span("trace-quickstart"):
+        # Instantiate a storage client and perform a write and read workload.
+        storage_client = storage.Client()
+        bucket = storage_client.bucket(bucket_name)
+        blob = bucket.blob(blob_name)
+        blob.upload_from_string(contents)
+        print(f"{blob_name} uploaded to {bucket_name}.")
 
-    blob.download_as_bytes()
-    print("Downloaded storage object {} from bucket {}.".format(blob_name, bucket_name))
+        blob.download_as_bytes()
+        print("Downloaded storage object {} from bucket {}.".format(blob_name, bucket_name))
 
     # [END storage_enable_otel_tracing]
 
