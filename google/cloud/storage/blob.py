@@ -59,7 +59,6 @@ from google.cloud.storage._helpers import _get_default_headers
 from google.cloud.storage._helpers import _get_default_storage_base_url
 from google.cloud.storage._signing import generate_signed_url_v2
 from google.cloud.storage._signing import generate_signed_url_v4
-from google.cloud.storage._helpers import _NUM_RETRIES_MESSAGE
 from google.cloud.storage._helpers import _API_VERSION
 from google.cloud.storage._helpers import _virtual_hosted_style_base_url
 from google.cloud.storage.acl import ACL
@@ -1829,7 +1828,6 @@ class Blob(_PropertyMixin):
         stream,
         content_type,
         size,
-        num_retries,
         predefined_acl,
         if_generation_match,
         if_generation_not_match,
@@ -1865,15 +1863,6 @@ class Blob(_PropertyMixin):
             The number of bytes to be uploaded (which will be read from
             ``stream``). If not provided, the upload will be concluded once
             ``stream`` is exhausted (or :data:`None`).
-
-        :type num_retries: int
-        :param num_retries:
-            Number of upload retries. By default, only uploads with
-            if_generation_match set will be retried, as uploads without the
-            argument are not guaranteed to be idempotent. Setting num_retries
-            will override this default behavior and guarantee retries even when
-            if_generation_match is not set.  (Deprecated: This argument
-            will be removed in a future release.)
 
         :type predefined_acl: str
         :param predefined_acl: (Optional) Predefined access control list
@@ -1989,9 +1978,7 @@ class Blob(_PropertyMixin):
         upload_url = _add_query_parameters(base_url, name_value_pairs)
         upload = MultipartUpload(upload_url, headers=headers, checksum=checksum)
 
-        upload._retry_strategy = _api_core_retry_to_resumable_media_retry(
-            retry, num_retries
-        )
+        upload._retry_strategy = _api_core_retry_to_resumable_media_retry(retry)
 
         response = upload.transmit(
             transport, data, object_metadata, content_type, timeout=timeout
@@ -2005,7 +1992,6 @@ class Blob(_PropertyMixin):
         stream,
         content_type,
         size,
-        num_retries,
         predefined_acl=None,
         extra_headers=None,
         chunk_size=None,
@@ -2046,15 +2032,6 @@ class Blob(_PropertyMixin):
 
         :type predefined_acl: str
         :param predefined_acl: (Optional) Predefined access control list
-
-        :type num_retries: int
-        :param num_retries:
-            Number of upload retries. By default, only uploads with
-            if_generation_match set will be retried, as uploads without the
-            argument are not guaranteed to be idempotent. Setting num_retries
-            will override this default behavior and guarantee retries even when
-            if_generation_match is not set.  (Deprecated: This argument
-            will be removed in a future release.)
 
         :type extra_headers: dict
         :param extra_headers:
@@ -2185,9 +2162,7 @@ class Blob(_PropertyMixin):
             upload_url, chunk_size, headers=headers, checksum=checksum
         )
 
-        upload._retry_strategy = _api_core_retry_to_resumable_media_retry(
-            retry, num_retries
-        )
+        upload._retry_strategy = _api_core_retry_to_resumable_media_retry(retry)
 
         upload.initiate(
             transport,
@@ -2207,7 +2182,6 @@ class Blob(_PropertyMixin):
         stream,
         content_type,
         size,
-        num_retries,
         predefined_acl,
         if_generation_match,
         if_generation_not_match,
@@ -2246,15 +2220,6 @@ class Blob(_PropertyMixin):
             The number of bytes to be uploaded (which will be read from
             ``stream``). If not provided, the upload will be concluded once
             ``stream`` is exhausted (or :data:`None`).
-
-        :type num_retries: int
-        :param num_retries:
-            Number of upload retries. By default, only uploads with
-            if_generation_match set will be retried, as uploads without the
-            argument are not guaranteed to be idempotent. Setting num_retries
-            will override this default behavior and guarantee retries even when
-            if_generation_match is not set.  (Deprecated: This argument
-            will be removed in a future release.)
 
         :type predefined_acl: str
         :param predefined_acl: (Optional) Predefined access control list
@@ -2320,7 +2285,6 @@ class Blob(_PropertyMixin):
             stream,
             content_type,
             size,
-            num_retries,
             predefined_acl=predefined_acl,
             if_generation_match=if_generation_match,
             if_generation_not_match=if_generation_not_match,
@@ -2346,7 +2310,6 @@ class Blob(_PropertyMixin):
         stream,
         content_type,
         size,
-        num_retries,
         predefined_acl,
         if_generation_match,
         if_generation_not_match,
@@ -2386,15 +2349,6 @@ class Blob(_PropertyMixin):
             The number of bytes to be uploaded (which will be read from
             ``stream``). If not provided, the upload will be concluded once
             ``stream`` is exhausted (or :data:`None`).
-
-        :type num_retries: int
-        :param num_retries:
-            Number of upload retries. By default, only uploads with
-            if_generation_match set will be retried, as uploads without the
-            argument are not guaranteed to be idempotent. Setting num_retries
-            will override this default behavior and guarantee retries even when
-            if_generation_match is not set.  (Deprecated: This argument
-            will be removed in a future release.)
 
         :type predefined_acl: str
         :param predefined_acl: (Optional) Predefined access control list
@@ -2485,7 +2439,6 @@ class Blob(_PropertyMixin):
                 stream,
                 content_type,
                 size,
-                num_retries,
                 predefined_acl,
                 if_generation_match,
                 if_generation_not_match,
@@ -2502,7 +2455,6 @@ class Blob(_PropertyMixin):
                 stream,
                 content_type,
                 size,
-                num_retries,
                 predefined_acl,
                 if_generation_match,
                 if_generation_not_match,
@@ -2522,7 +2474,6 @@ class Blob(_PropertyMixin):
         rewind=False,
         size=None,
         content_type=None,
-        num_retries=None,
         client=None,
         predefined_acl=None,
         if_generation_match=None,
@@ -2579,15 +2530,6 @@ class Blob(_PropertyMixin):
 
         :type content_type: str
         :param content_type: (Optional) Type of content being uploaded.
-
-        :type num_retries: int
-        :param num_retries:
-            Number of upload retries. By default, only uploads with
-            if_generation_match set will be retried, as uploads without the
-            argument are not guaranteed to be idempotent. Setting num_retries
-            will override this default behavior and guarantee retries even when
-            if_generation_match is not set.  (Deprecated: This argument
-            will be removed in a future release.)
 
         :type client: :class:`~google.cloud.storage.client.Client`
         :param client:
@@ -2662,14 +2604,6 @@ class Blob(_PropertyMixin):
         :raises: :class:`~google.cloud.exceptions.GoogleCloudError`
                  if the upload response returns an error status.
         """
-        if num_retries is not None:
-            warnings.warn(_NUM_RETRIES_MESSAGE, DeprecationWarning, stacklevel=2)
-            # num_retries and retry are mutually exclusive. If num_retries is
-            # set and retry is exactly the default, then nullify retry for
-            # backwards compatibility.
-            if retry is DEFAULT_RETRY_IF_GENERATION_SPECIFIED:
-                retry = None
-
         _maybe_rewind(file_obj, rewind=rewind)
         predefined_acl = ACL.validate_predefined(predefined_acl)
 
@@ -2679,7 +2613,6 @@ class Blob(_PropertyMixin):
                 file_obj,
                 content_type,
                 size,
-                num_retries,
                 predefined_acl,
                 if_generation_match,
                 if_generation_not_match,
@@ -2700,7 +2633,6 @@ class Blob(_PropertyMixin):
         rewind=False,
         size=None,
         content_type=None,
-        num_retries=None,
         client=None,
         predefined_acl=None,
         if_generation_match=None,
@@ -2756,15 +2688,6 @@ class Blob(_PropertyMixin):
 
         :type content_type: str
         :param content_type: (Optional) Type of content being uploaded.
-
-        :type num_retries: int
-        :param num_retries:
-            Number of upload retries. By default, only uploads with
-            if_generation_match set will be retried, as uploads without the
-            argument are not guaranteed to be idempotent. Setting num_retries
-            will override this default behavior and guarantee retries even when
-            if_generation_match is not set.  (Deprecated: This argument
-            will be removed in a future release.)
 
         :type client: :class:`~google.cloud.storage.client.Client`
         :param client:
@@ -2829,7 +2752,6 @@ class Blob(_PropertyMixin):
             rewind=rewind,
             size=size,
             content_type=content_type,
-            num_retries=num_retries,
             client=client,
             predefined_acl=predefined_acl,
             if_generation_match=if_generation_match,
@@ -2869,7 +2791,6 @@ class Blob(_PropertyMixin):
         self,
         filename,
         content_type=None,
-        num_retries=None,
         client=None,
         predefined_acl=None,
         if_generation_match=None,
@@ -2917,15 +2838,6 @@ class Blob(_PropertyMixin):
         :param client:
             (Optional) The client to use.  If not passed, falls back to the
             ``client`` stored on the blob's bucket.
-
-        :type num_retries: int
-        :param num_retries:
-            Number of upload retries. By default, only uploads with
-            if_generation_match set will be retried, as uploads without the
-            argument are not guaranteed to be idempotent. Setting num_retries
-            will override this default behavior and guarantee retries even when
-            if_generation_match is not set.  (Deprecated: This argument
-            will be removed in a future release.)
 
         :type predefined_acl: str
         :param predefined_acl: (Optional) Predefined access control list
@@ -2981,7 +2893,6 @@ class Blob(_PropertyMixin):
         self._handle_filename_and_upload(
             filename,
             content_type=content_type,
-            num_retries=num_retries,
             client=client,
             predefined_acl=predefined_acl,
             if_generation_match=if_generation_match,
@@ -2997,7 +2908,6 @@ class Blob(_PropertyMixin):
         self,
         data,
         content_type="text/plain",
-        num_retries=None,
         client=None,
         predefined_acl=None,
         if_generation_match=None,
@@ -3032,15 +2942,6 @@ class Blob(_PropertyMixin):
         :param content_type:
             (Optional) Type of content being uploaded. Defaults to
             ``'text/plain'``.
-
-        :type num_retries: int
-        :param num_retries:
-            Number of upload retries. By default, only uploads with
-            if_generation_match set will be retried, as uploads without the
-            argument are not guaranteed to be idempotent. Setting num_retries
-            will override this default behavior and guarantee retries even when
-            if_generation_match is not set.  (Deprecated: This argument
-            will be removed in a future release.)
 
         :type client: :class:`~google.cloud.storage.client.Client`
         :param client:
@@ -3103,7 +3004,6 @@ class Blob(_PropertyMixin):
             file_obj=string_buffer,
             size=len(data),
             content_type=content_type,
-            num_retries=num_retries,
             client=client,
             predefined_acl=predefined_acl,
             if_generation_match=if_generation_match,
@@ -3271,7 +3171,6 @@ class Blob(_PropertyMixin):
                 fake_stream,
                 content_type,
                 size,
-                None,
                 predefined_acl=predefined_acl,
                 if_generation_match=if_generation_match,
                 if_generation_not_match=if_generation_not_match,
@@ -4061,15 +3960,8 @@ class Blob(_PropertyMixin):
         For uploads only, the following additional arguments are supported:
 
         - ``content_type``
-        - ``num_retries``
         - ``predefined_acl``
         - ``checksum``
-
-        .. note::
-
-           ``num_retries`` is supported for backwards-compatibility
-           reasons only; please use ``retry`` with a Retry object or
-           ConditionalRetryPolicy instead.
 
         :type mode: str
         :param mode:
