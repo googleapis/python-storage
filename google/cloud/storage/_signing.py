@@ -30,6 +30,7 @@ from google.auth.transport import requests
 from google.cloud import _helpers
 from google.cloud.storage._helpers import _NOW
 from google.cloud.storage._helpers import _UTC
+from google.cloud.storage.retry import DEFAULT_RETRY
 
 
 # `google.cloud.storage._signing.NOW` is deprecated.
@@ -677,9 +678,16 @@ def _sign_message(message, access_token, service_account_email):
         "Content-type": "application/json",
     }
     body = json.dumps({"payload": base64.b64encode(message).decode("utf-8")})
-
     request = requests.Request()
-    response = request(url=url, method=method, body=body, headers=headers)
+
+    def retriable_request():
+        response = request(url=url, method=method, body=body, headers=headers)
+        return response
+
+    # Apply the default retry object to the signBlob call.
+    retry = DEFAULT_RETRY
+    call = retry(retriable_request)
+    response = call()
 
     if response.status != http.client.OK:
         raise exceptions.TransportError(
