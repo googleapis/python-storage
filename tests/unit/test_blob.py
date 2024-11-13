@@ -2176,7 +2176,7 @@ class Test_Blob(unittest.TestCase):
             retry=DEFAULT_RETRY,
         )
 
-        mock_warn.assert_called_once_with(
+        mock_warn.assert_any_call(
             _DOWNLOAD_AS_STRING_DEPRECATED,
             PendingDeprecationWarning,
             stacklevel=2,
@@ -2214,7 +2214,7 @@ class Test_Blob(unittest.TestCase):
             retry=None,
         )
 
-        mock_warn.assert_called_once_with(
+        mock_warn.assert_any_call(
             _DOWNLOAD_AS_STRING_DEPRECATED,
             PendingDeprecationWarning,
             stacklevel=2,
@@ -4529,7 +4529,7 @@ class Test_Blob(unittest.TestCase):
             _target_object=destination,
         )
 
-        mock_warn.assert_called_with(
+        mock_warn.assert_any_call(
             _COMPOSE_IF_GENERATION_LIST_DEPRECATED,
             DeprecationWarning,
             stacklevel=2,
@@ -4559,7 +4559,7 @@ class Test_Blob(unittest.TestCase):
 
         client._post_resource.assert_not_called()
 
-        mock_warn.assert_called_with(
+        mock_warn.assert_any_call(
             _COMPOSE_IF_GENERATION_LIST_DEPRECATED,
             DeprecationWarning,
             stacklevel=2,
@@ -4603,7 +4603,7 @@ class Test_Blob(unittest.TestCase):
             _target_object=destination,
         )
 
-        mock_warn.assert_called_with(
+        mock_warn.assert_any_call(
             _COMPOSE_IF_METAGENERATION_LIST_DEPRECATED,
             DeprecationWarning,
             stacklevel=2,

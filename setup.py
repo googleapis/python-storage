@@ -38,11 +38,16 @@ dependencies = [
     # exceptions and importing. Users who are not importing
     # google-resumable-media classes in their application can safely disregard
     # this dependency.
-    "google-resumable-media >= 2.6.0",
+    "google-resumable-media >= 2.7.2",
     "requests >= 2.18.0, < 3.0.0dev",
     "google-crc32c >= 1.0, < 2.0dev",
 ]
-extras = {"protobuf": ["protobuf<5.0.0dev"]}
+extras = {
+    "protobuf": ["protobuf<6.0.0dev"],
+    "tracing": [
+        "opentelemetry-api >= 1.1.0",
+    ],
+}
 
 
 # Setup boilerplate below this line.

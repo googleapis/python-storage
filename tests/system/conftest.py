@@ -20,6 +20,7 @@ import pytest
 from google.api_core import exceptions
 from google.cloud import kms
 from google.cloud.storage._helpers import _base64_md5hash
+from google.cloud.storage.retry import DEFAULT_RETRY
 from . import _helpers
 
 
@@ -104,7 +105,11 @@ def shared_bucket_name():
 def shared_bucket(storage_client, shared_bucket_name):
     bucket = storage_client.bucket(shared_bucket_name)
     bucket.versioning_enabled = True
-    _helpers.retry_429_503(bucket.create)()
+    # Create the bucket only if it doesn't yet exist.
+    try:
+        storage_client.get_bucket(bucket)
+    except exceptions.NotFound:
+        _helpers.retry_429_503(bucket.create)()
 
     yield bucket
 
@@ -119,11 +124,15 @@ def listable_bucket_name():
 @pytest.fixture(scope="session")
 def listable_bucket(storage_client, listable_bucket_name, file_data):
     bucket = storage_client.bucket(listable_bucket_name)
-    _helpers.retry_429_503(bucket.create)()
+    # Create the bucket only if it doesn't yet exist.
+    try:
+        storage_client.get_bucket(bucket)
+    except exceptions.NotFound:
+        _helpers.retry_429_503(bucket.create)()
 
     info = file_data["logo"]
     source_blob = bucket.blob(_listable_filenames[0])
-    source_blob.upload_from_filename(info["path"])
+    source_blob.upload_from_filename(info["path"], retry=DEFAULT_RETRY)
 
     for filename in _listable_filenames[1:]:
         _helpers.retry_bad_copy(bucket.copy_blob)(
@@ -150,12 +159,16 @@ def hierarchy_bucket_name():
 @pytest.fixture(scope="session")
 def hierarchy_bucket(storage_client, hierarchy_bucket_name, file_data):
     bucket = storage_client.bucket(hierarchy_bucket_name)
-    _helpers.retry_429_503(bucket.create)()
+    # Create the hierarchy bucket only if it doesn't yet exist.
+    try:
+        storage_client.get_bucket(bucket)
+    except exceptions.NotFound:
+        _helpers.retry_429_503(bucket.create)()
 
     simple_path = _file_data["simple"]["path"]
     for filename in _hierarchy_filenames:
         blob = bucket.blob(filename)
-        blob.upload_from_filename(simple_path)
+        blob.upload_from_filename(simple_path, retry=DEFAULT_RETRY)
 
     yield bucket
 
@@ -175,7 +188,12 @@ def signing_bucket_name():
 @pytest.fixture(scope="session")
 def signing_bucket(storage_client, signing_bucket_name):
     bucket = storage_client.bucket(signing_bucket_name)
-    _helpers.retry_429_503(bucket.create)()
+    # Create the bucket only if it doesn't yet exist.
+    try:
+        storage_client.get_bucket(bucket)
+    except exceptions.NotFound:
+        _helpers.retry_429_503(bucket.create)()
+
     blob = bucket.blob("README.txt")
     blob.upload_from_string(_helpers.signing_blob_content)
 
@@ -201,7 +219,11 @@ def default_ebh_bucket_name():
 def default_ebh_bucket(storage_client, default_ebh_bucket_name):
     bucket = storage_client.bucket(default_ebh_bucket_name)
     bucket.default_event_based_hold = True
-    _helpers.retry_429_503(bucket.create)()
+    # Create the bucket only if it doesn't yet exist.
+    try:
+        storage_client.get_bucket(bucket)
+    except exceptions.NotFound:
+        _helpers.retry_429_503(bucket.create)()
 
     yield bucket
 
@@ -309,3 +331,56 @@ def keyring(storage_client, kms_bucket, kms_client):
         except exceptions.NotFound:
             key = {"purpose": purpose}
             kms_client.create_crypto_key(keyring_path, key_name, key)
+
+
+@pytest.fixture(scope="function")
+def test_universe_domain():
+    if _helpers.test_universe_domain is None:
+        pytest.skip("TEST_UNIVERSE_DOMAIN not set in environment.")
+    return _helpers.test_universe_domain
+
+
+@pytest.fixture(scope="function")
+def test_universe_project_id():
+    if _helpers.test_universe_project_id is None:
+        pytest.skip("TEST_UNIVERSE_PROJECT_ID not set in environment.")
+    return _helpers.test_universe_project_id
+
+
+@pytest.fixture(scope="function")
+def test_universe_location():
+    if _helpers.test_universe_location is None:
+        pytest.skip("TEST_UNIVERSE_LOCATION not set in environment.")
+    return _helpers.test_universe_location
+
+
+@pytest.fixture(scope="function")
+def test_universe_domain_credential():
+    if _helpers.test_universe_domain_credential is None:
+        pytest.skip("TEST_UNIVERSE_DOMAIN_CREDENTIAL not set in environment.")
+    return _helpers.test_universe_domain_credential
+
+
+@pytest.fixture(scope="function")
+def universe_domain_credential(test_universe_domain_credential):
+    from google.oauth2 import service_account
+
+    return service_account.Credentials.from_service_account_file(
+        test_universe_domain_credential
+    )
+
+
+@pytest.fixture(scope="function")
+def universe_domain_client(
+    test_universe_domain, test_universe_project_id, universe_domain_credential
+):
+    from google.cloud.storage import Client
+
+    client_options = {"universe_domain": test_universe_domain}
+    ud_storage_client = Client(
+        project=test_universe_project_id,
+        credentials=universe_domain_credential,
+        client_options=client_options,
+    )
+    with contextlib.closing(ud_storage_client):
+        yield ud_storage_client

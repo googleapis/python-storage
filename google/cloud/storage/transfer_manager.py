@@ -30,6 +30,7 @@ from google.api_core import exceptions
 from google.cloud.storage import Client
 from google.cloud.storage import Blob
 from google.cloud.storage.blob import _get_host_name
+from google.cloud.storage.blob import _quote
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 from google.cloud.storage._helpers import _api_core_retry_to_resumable_media_retry
 from google.cloud.storage.retry import DEFAULT_RETRY
@@ -884,6 +885,8 @@ def download_chunks_concurrently(
             "'checksum' is in download_kwargs, but is not supported because sliced downloads have a different checksum mechanism from regular downloads. Use the 'crc32c_checksum' argument on download_chunks_concurrently instead."
         )
 
+    download_kwargs = download_kwargs.copy()
+    download_kwargs["checksum"] = None
     download_kwargs["command"] = "tm.download_sharded"
 
     # We must know the size and the generation of the blob.
@@ -1083,7 +1086,7 @@ def upload_chunks_concurrently(
 
     hostname = _get_host_name(client._connection)
     url = "{hostname}/{bucket}/{blob}".format(
-        hostname=hostname, bucket=bucket.name, blob=blob.name
+        hostname=hostname, bucket=bucket.name, blob=_quote(blob.name)
     )
 
     base_headers, object_metadata, content_type = blob._get_upload_arguments(

@@ -532,13 +532,15 @@ class TestClient(unittest.TestCase):
         PROJECT = "PROJECT"
         CREDENTIALS = _make_credentials()
         BUCKET_NAME = "BUCKET_NAME"
+        GENERATION = 12345
 
         client = self._make_one(project=PROJECT, credentials=CREDENTIALS)
-        bucket = client.bucket(BUCKET_NAME)
+        bucket = client.bucket(BUCKET_NAME, generation=GENERATION)
         self.assertIsInstance(bucket, Bucket)
         self.assertIs(bucket.client, client)
         self.assertEqual(bucket.name, BUCKET_NAME)
         self.assertIsNone(bucket.user_project)
+        self.assertEqual(bucket.generation, GENERATION)
 
     def test_bucket_w_user_project(self):
         from google.cloud.storage.bucket import Bucket
@@ -958,6 +960,20 @@ class TestClient(unittest.TestCase):
         self.assertIs(found, bucket)
         self.assertIs(found.client, other_client)
 
+    def test__bucket_arg_to_bucket_raises_on_generation(self):
+        from google.cloud.storage.bucket import Bucket
+
+        project = "PROJECT"
+        credentials = _make_credentials()
+        client = self._make_one(project=project, credentials=credentials)
+        other_client = mock.Mock(spec=[])
+        bucket_name = "w_client"
+
+        bucket = Bucket(other_client, name=bucket_name)
+
+        with self.assertRaises(ValueError):
+            client._bucket_arg_to_bucket(bucket, generation=12345)
+
     def test__bucket_arg_to_bucket_w_bucket_wo_client(self):
         from google.cloud.storage.bucket import Bucket
 
@@ -977,14 +993,16 @@ class TestClient(unittest.TestCase):
         from google.cloud.storage.bucket import Bucket
 
         project = "PROJECT"
+        generation = 12345
         credentials = _make_credentials()
         client = self._make_one(project=project, credentials=credentials)
         bucket_name = "string-name"
 
-        found = client._bucket_arg_to_bucket(bucket_name)
+        found = client._bucket_arg_to_bucket(bucket_name, generation)
 
         self.assertIsInstance(found, Bucket)
         self.assertEqual(found.name, bucket_name)
+        self.assertEqual(found.generation, generation)
         self.assertIs(found.client, client)
 
     def test_get_bucket_miss_w_string_w_defaults(self):
@@ -1041,6 +1059,41 @@ class TestClient(unittest.TestCase):
             query_params=expected_query_params,
             headers=expected_headers,
             timeout=timeout,
+            retry=DEFAULT_RETRY,
+            _target_object=bucket,
+        )
+
+    def test_get_bucket_hit_w_string_w_soft_deleted(self):
+        from google.cloud.storage.bucket import Bucket
+
+        project = "PROJECT"
+        bucket_name = "bucket-name"
+        generation = 12345
+        api_response = {"name": bucket_name, "generation": generation}
+        credentials = _make_credentials()
+        client = self._make_one(project=project, credentials=credentials)
+        client._get_resource = mock.Mock(return_value=api_response)
+
+        bucket = client.get_bucket(
+            bucket_name, generation=generation, soft_deleted=True
+        )
+
+        self.assertIsInstance(bucket, Bucket)
+        self.assertEqual(bucket.name, bucket_name)
+        self.assertEqual(bucket.generation, generation)
+
+        expected_path = f"/b/{bucket_name}"
+        expected_query_params = {
+            "generation": generation,
+            "projection": "noAcl",
+            "softDeleted": True,
+        }
+        expected_headers = {}
+        client._get_resource.assert_called_once_with(
+            expected_path,
+            query_params=expected_query_params,
+            headers=expected_headers,
+            timeout=60,
             retry=DEFAULT_RETRY,
             _target_object=bucket,
         )
@@ -2259,6 +2312,39 @@ class TestClient(unittest.TestCase):
             retry=DEFAULT_RETRY,
         )
 
+    def test_list_buckets_w_soft_deleted(self):
+        from google.cloud.storage.client import _item_to_bucket
+
+        project = "PROJECT"
+        credentials = _make_credentials()
+        client = self._make_one(project=project, credentials=credentials)
+        client._list_resource = mock.Mock(spec=[])
+
+        iterator = client.list_buckets(soft_deleted=True)
+
+        self.assertIs(iterator, client._list_resource.return_value)
+
+        expected_path = "/b"
+        expected_item_to_value = _item_to_bucket
+        expected_page_token = None
+        expected_max_results = None
+        expected_page_size = None
+        expected_extra_params = {
+            "project": project,
+            "projection": "noAcl",
+            "softDeleted": True,
+        }
+        client._list_resource.assert_called_once_with(
+            expected_path,
+            expected_item_to_value,
+            page_token=expected_page_token,
+            max_results=expected_max_results,
+            extra_params=expected_extra_params,
+            page_size=expected_page_size,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
+        )
+
     def test_list_buckets_w_explicit(self):
         from google.cloud.storage.client import _item_to_bucket
 
@@ -2310,6 +2396,33 @@ class TestClient(unittest.TestCase):
             page_size=expected_page_size,
             timeout=timeout,
             retry=retry,
+        )
+
+    def test_restore_bucket(self):
+        from google.cloud.storage.bucket import Bucket
+
+        PROJECT = "PROJECT"
+        NAME = "my_deleted_bucket"
+        GENERATION = 12345
+
+        api_response = {"name": NAME}
+        credentials = _make_credentials()
+        client = self._make_one(project=PROJECT, credentials=credentials)
+        client._post_resource = mock.Mock(return_value=api_response)
+
+        bucket = client.restore_bucket(NAME, GENERATION)
+
+        self.assertIsInstance(bucket, Bucket)
+        self.assertEqual(bucket.name, NAME)
+
+        expected_path = f"/b/{NAME}/restore"
+        expected_query_params = {"generation": 12345, "projection": "noAcl"}
+        client._post_resource.assert_called_once_with(
+            expected_path,
+            None,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
         )
 
     def _create_hmac_key_helper(
@@ -2831,6 +2944,50 @@ class TestClient(unittest.TestCase):
                         ["starts-with", "$Content-Type", "text/plain"],
                     ],
                     credentials=_create_signing_credentials(),
+                    service_account_email="test@mail.com",
+                    access_token="token",
+                )
+        self.assertEqual(
+            policy["url"], "https://storage.googleapis.com/" + BUCKET_NAME + "/"
+        )
+        fields = policy["fields"]
+
+        self.assertEqual(fields["key"], BLOB_NAME)
+        self.assertEqual(fields["x-goog-algorithm"], "GOOG4-RSA-SHA256")
+        self.assertEqual(fields["x-goog-date"], "20200312T114716Z")
+        self.assertEqual(
+            fields["x-goog-credential"],
+            "test@mail.com/20200312/auto/storage/goog4_request",
+        )
+        self.assertEqual(fields["x-goog-signature"], EXPECTED_SIGN)
+        self.assertEqual(fields["policy"], EXPECTED_POLICY)
+
+    def test_get_signed_policy_v4_with_access_token_sa_email(self):
+        import datetime
+
+        BUCKET_NAME = "bucket-name"
+        BLOB_NAME = "object-name"
+        EXPECTED_SIGN = "0c4003044105"
+        EXPECTED_POLICY = "eyJjb25kaXRpb25zIjpbeyJidWNrZXQiOiJidWNrZXQtbmFtZSJ9LHsiYWNsIjoicHJpdmF0ZSJ9LFsic3RhcnRzLXdpdGgiLCIkQ29udGVudC1UeXBlIiwidGV4dC9wbGFpbiJdLHsiYnVja2V0IjoiYnVja2V0LW5hbWUifSx7ImtleSI6Im9iamVjdC1uYW1lIn0seyJ4LWdvb2ctZGF0ZSI6IjIwMjAwMzEyVDExNDcxNloifSx7IngtZ29vZy1jcmVkZW50aWFsIjoidGVzdEBtYWlsLmNvbS8yMDIwMDMxMi9hdXRvL3N0b3JhZ2UvZ29vZzRfcmVxdWVzdCJ9LHsieC1nb29nLWFsZ29yaXRobSI6IkdPT0c0LVJTQS1TSEEyNTYifV0sImV4cGlyYXRpb24iOiIyMDIwLTAzLTI2VDAwOjAwOjEwWiJ9"
+
+        project = "PROJECT"
+        credentials = _make_credentials(project=project)
+        client = self._make_one(credentials=credentials)
+
+        dtstamps_patch, now_patch, expire_secs_patch = _time_functions_patches()
+        with dtstamps_patch, now_patch, expire_secs_patch:
+            with mock.patch(
+                "google.cloud.storage.client._sign_message", return_value=b"DEADBEEF"
+            ):
+                policy = client.generate_signed_post_policy_v4(
+                    BUCKET_NAME,
+                    BLOB_NAME,
+                    expiration=datetime.datetime(2020, 3, 12),
+                    conditions=[
+                        {"bucket": BUCKET_NAME},
+                        {"acl": "private"},
+                        ["starts-with", "$Content-Type", "text/plain"],
+                    ],
                     service_account_email="test@mail.com",
                     access_token="token",
                 )

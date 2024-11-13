@@ -38,6 +38,7 @@ from google.cloud.storage._signing import generate_signed_url_v2
 from google.cloud.storage._signing import generate_signed_url_v4
 from google.cloud.storage._helpers import _bucket_bound_hostname_url
 from google.cloud.storage._helpers import _virtual_hosted_style_base_url
+from google.cloud.storage._opentelemetry_tracing import create_trace_span
 from google.cloud.storage.acl import BucketACL
 from google.cloud.storage.acl import DefaultObjectACL
 from google.cloud.storage.blob import Blob
@@ -628,6 +629,10 @@ class Bucket(_PropertyMixin):
     :type user_project: str
     :param user_project: (Optional) the project ID to be billed for API
                          requests made via this instance.
+
+    :type generation: int
+    :param generation: (Optional) If present, selects a specific revision of
+                       this bucket.
     """
 
     _MAX_OBJECTS_FOR_ITERATION = 256
@@ -661,7 +666,7 @@ class Bucket(_PropertyMixin):
     )
     """Allowed values for :attr:`location_type`."""
 
-    def __init__(self, client, name=None, user_project=None):
+    def __init__(self, client, name=None, user_project=None, generation=None):
         """
         property :attr:`name`
             Get the bucket's name.
@@ -673,6 +678,9 @@ class Bucket(_PropertyMixin):
         self._default_object_acl = DefaultObjectACL(self)
         self._label_removals = set()
         self._user_project = user_project
+
+        if generation is not None:
+            self._properties["generation"] = generation
 
     def __repr__(self):
         return f"<Bucket: {self.name}>"
@@ -727,6 +735,50 @@ class Bucket(_PropertyMixin):
         :rtype: str
         """
         return self._user_project
+
+    @property
+    def generation(self):
+        """Retrieve the generation for the bucket.
+
+        :rtype: int or ``NoneType``
+        :returns: The generation of the bucket or ``None`` if the bucket's
+                  resource has not been loaded from the server.
+        """
+        generation = self._properties.get("generation")
+        if generation is not None:
+            return int(generation)
+
+    @property
+    def soft_delete_time(self):
+        """If this bucket has been soft-deleted, returns the time at which it became soft-deleted.
+
+        :rtype: :class:`datetime.datetime` or ``NoneType``
+        :returns:
+            (readonly) The time that the bucket became soft-deleted.
+             Note this property is only set for soft-deleted buckets.
+        """
+        soft_delete_time = self._properties.get("softDeleteTime")
+        if soft_delete_time is not None:
+            return _rfc3339_nanos_to_datetime(soft_delete_time)
+
+    @property
+    def hard_delete_time(self):
+        """If this bucket has been soft-deleted, returns the time at which it will be permanently deleted.
+
+        :rtype: :class:`datetime.datetime` or ``NoneType``
+        :returns:
+            (readonly) The time that the bucket will be permanently deleted.
+            Note this property is only set for soft-deleted buckets.
+        """
+        hard_delete_time = self._properties.get("hardDeleteTime")
+        if hard_delete_time is not None:
+            return _rfc3339_nanos_to_datetime(hard_delete_time)
+
+    @property
+    def _query_params(self):
+        """Default query parameters."""
+        params = super()._query_params
+        return params
 
     @classmethod
     def from_uri(cls, uri, client=None):
@@ -858,6 +910,7 @@ class Bucket(_PropertyMixin):
             notification_id=notification_id,
         )
 
+    @create_trace_span(name="Storage.Bucket.exists")
     def exists(
         self,
         client=None,
@@ -942,6 +995,7 @@ class Bucket(_PropertyMixin):
             return False
         return True
 
+    @create_trace_span(name="Storage.Bucket.create")
     def create(
         self,
         client=None,
@@ -1017,6 +1071,7 @@ class Bucket(_PropertyMixin):
             retry=retry,
         )
 
+    @create_trace_span(name="Storage.Bucket.update")
     def update(
         self,
         client=None,
@@ -1061,6 +1116,7 @@ class Bucket(_PropertyMixin):
             retry=retry,
         )
 
+    @create_trace_span(name="Storage.Bucket.reload")
     def reload(
         self,
         client=None,
@@ -1071,6 +1127,7 @@ class Bucket(_PropertyMixin):
         if_metageneration_match=None,
         if_metageneration_not_match=None,
         retry=DEFAULT_RETRY,
+        soft_deleted=None,
     ):
         """Reload properties from Cloud Storage.
 
@@ -1110,6 +1167,13 @@ class Bucket(_PropertyMixin):
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
         :param retry:
             (Optional) How to retry the RPC. See: :ref:`configuring_retries`
+
+        :type soft_deleted: bool
+        :param soft_deleted: (Optional) If True, looks for a soft-deleted
+            bucket. Will only return the bucket metadata if the bucket exists
+            and is in a soft-deleted state. The bucket ``generation`` must be
+            set if ``soft_deleted`` is set to True.
+            See: https://cloud.google.com/storage/docs/soft-delete
         """
         super(Bucket, self).reload(
             client=client,
@@ -1120,8 +1184,10 @@ class Bucket(_PropertyMixin):
             if_metageneration_match=if_metageneration_match,
             if_metageneration_not_match=if_metageneration_not_match,
             retry=retry,
+            soft_deleted=soft_deleted,
         )
 
+    @create_trace_span(name="Storage.Bucket.patch")
     def patch(
         self,
         client=None,
@@ -1205,6 +1271,7 @@ class Bucket(_PropertyMixin):
 
         return self.path_helper(self.name)
 
+    @create_trace_span(name="Storage.Bucket.getBlob")
     def get_blob(
         self,
         blob_name,
@@ -1321,6 +1388,7 @@ class Bucket(_PropertyMixin):
         else:
             return blob
 
+    @create_trace_span(name="Storage.Bucket.listBlobs")
     def list_blobs(
         self,
         max_results=None,
@@ -1463,6 +1531,7 @@ class Bucket(_PropertyMixin):
             soft_deleted=soft_deleted,
         )
 
+    @create_trace_span(name="Storage.Bucket.listNotifications")
     def list_notifications(
         self, client=None, timeout=_DEFAULT_TIMEOUT, retry=DEFAULT_RETRY
     ):
@@ -1500,6 +1569,7 @@ class Bucket(_PropertyMixin):
         iterator.bucket = self
         return iterator
 
+    @create_trace_span(name="Storage.Bucket.getNotification")
     def get_notification(
         self,
         notification_id,
@@ -1537,6 +1607,7 @@ class Bucket(_PropertyMixin):
         notification.reload(client=client, timeout=timeout, retry=retry)
         return notification
 
+    @create_trace_span(name="Storage.Bucket.delete")
     def delete(
         self,
         force=False,
@@ -1643,6 +1714,7 @@ class Bucket(_PropertyMixin):
             _target_object=None,
         )
 
+    @create_trace_span(name="Storage.Bucket.deleteBlob")
     def delete_blob(
         self,
         blob_name,
@@ -1729,6 +1801,7 @@ class Bucket(_PropertyMixin):
             _target_object=None,
         )
 
+    @create_trace_span(name="Storage.Bucket.deleteBlobs")
     def delete_blobs(
         self,
         blobs,
@@ -1849,6 +1922,7 @@ class Bucket(_PropertyMixin):
                 else:
                     raise
 
+    @create_trace_span(name="Storage.Bucket.copyBlob")
     def copy_blob(
         self,
         blob,
@@ -2004,6 +2078,7 @@ class Bucket(_PropertyMixin):
         new_blob._set_properties(copy_result)
         return new_blob
 
+    @create_trace_span(name="Storage.Bucket.renameBlob")
     def rename_blob(
         self,
         blob,
@@ -2147,6 +2222,7 @@ class Bucket(_PropertyMixin):
             )
         return new_blob
 
+    @create_trace_span(name="Storage.Bucket.restore_blob")
     def restore_blob(
         self,
         blob_name,
@@ -2174,8 +2250,8 @@ class Bucket(_PropertyMixin):
         :param client: (Optional) The client to use. If not passed, falls back
                        to the ``client`` stored on the current bucket.
 
-        :type generation: long
-        :param generation: (Optional) If present, selects a specific revision of this object.
+        :type generation: int
+        :param generation: Selects the specific revision of the object.
 
         :type copy_source_acl: bool
         :param copy_source_acl: (Optional) If true, copy the soft-deleted object's access controls.
@@ -3048,6 +3124,7 @@ class Bucket(_PropertyMixin):
         """
         return self.configure_website(None, None)
 
+    @create_trace_span(name="Storage.Bucket.getIamPolicy")
     def get_iam_policy(
         self,
         client=None,
@@ -3110,6 +3187,7 @@ class Bucket(_PropertyMixin):
         )
         return Policy.from_api_repr(info)
 
+    @create_trace_span(name="Storage.Bucket.setIamPolicy")
     def set_iam_policy(
         self,
         policy,
@@ -3166,6 +3244,7 @@ class Bucket(_PropertyMixin):
 
         return Policy.from_api_repr(info)
 
+    @create_trace_span(name="Storage.Bucket.testIamPermissions")
     def test_iam_permissions(
         self, permissions, client=None, timeout=_DEFAULT_TIMEOUT, retry=DEFAULT_RETRY
     ):
@@ -3213,6 +3292,7 @@ class Bucket(_PropertyMixin):
         )
         return resp.get("permissions", [])
 
+    @create_trace_span(name="Storage.Bucket.makePublic")
     def make_public(
         self,
         recursive=False,
@@ -3310,6 +3390,7 @@ class Bucket(_PropertyMixin):
                     timeout=timeout,
                 )
 
+    @create_trace_span(name="Storage.Bucket.makePrivate")
     def make_private(
         self,
         recursive=False,
@@ -3457,6 +3538,7 @@ class Bucket(_PropertyMixin):
 
         return fields
 
+    @create_trace_span(name="Storage.Bucket.lockRetentionPolicy")
     def lock_retention_policy(
         self, client=None, timeout=_DEFAULT_TIMEOUT, retry=DEFAULT_RETRY
     ):
