@@ -291,11 +291,11 @@ def test_create_signed_read_url_v4_w_access_token_universe_domain(
     universe_domain_iam_client,
     universe_domain_client,
     test_universe_location,
-    test_universe_domain_credential,
+    universe_domain_credential,
     buckets_to_delete,
     no_mtls,
 ):
-    service_account_email = test_universe_domain_credential.service_account_email
+    service_account_email = universe_domain_credential.service_account_email
     name = path_template.expand(
         "projects/{project}/serviceAccounts/{service_account}",
         project="-",
