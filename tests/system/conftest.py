@@ -387,6 +387,21 @@ def universe_domain_client(
 
 
 @pytest.fixture(scope="function")
+def universe_domain_bucket(universe_domain_client, test_universe_location):
+    bucket_name = _helpers.unique_name("gcp-systest-ud")
+    bucket = universe_domain_client.create_bucket(
+        bucket_name, location=test_universe_location
+    )
+
+    blob = bucket.blob("README.txt")
+    blob.upload_from_string(_helpers.signing_blob_content)
+
+    yield bucket
+
+    _helpers.delete_bucket(bucket)
+
+
+@pytest.fixture(scope="function")
 def universe_domain_iam_client(
     test_universe_domain, test_universe_project_id, universe_domain_credential
 ):
@@ -397,5 +412,5 @@ def universe_domain_iam_client(
         credentials=universe_domain_credential,
         client_options=client_options,
     )
-    with contextlib.closing(iam_client):
-        yield iam_client
+
+    return iam_client

@@ -292,7 +292,7 @@ def test_create_signed_read_url_v4_w_access_token_universe_domain(
     universe_domain_client,
     test_universe_location,
     universe_domain_credential,
-    buckets_to_delete,
+    universe_domain_bucket,
     no_mtls,
 ):
     service_account_email = universe_domain_credential.service_account_email
@@ -306,15 +306,10 @@ def test_create_signed_read_url_v4_w_access_token_universe_domain(
         "https://www.googleapis.com/auth/iam",
     ]
     response = universe_domain_iam_client.generate_access_token(name=name, scope=scope)
-    bucket_name = _helpers.unique_name("gcp-systest-ud-sign-blob")
-    ud_bucket = universe_domain_client.create_bucket(
-        bucket_name, location=test_universe_location
-    )
-    buckets_to_delete.append(ud_bucket)
 
     _create_signed_read_url_helper(
         universe_domain_client,
-        ud_bucket,
+        universe_domain_bucket,
         version="v4",
         service_account_email=service_account_email,
         access_token=response.access_token,
