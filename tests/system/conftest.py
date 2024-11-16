@@ -384,3 +384,18 @@ def universe_domain_client(
     )
     with contextlib.closing(ud_storage_client):
         yield ud_storage_client
+
+
+@pytest.fixture(scope="function")
+def universe_domain_iam_client(
+    test_universe_domain, test_universe_project_id, universe_domain_credential
+):
+    from google.cloud import iam_credentials_v1
+
+    client_options = {"universe_domain": test_universe_domain}
+    iam_client = iam_credentials_v1.IAMCredentialsClient(
+        credentials=universe_domain_credential,
+        client_options=client_options,
+    )
+    with contextlib.closing(iam_client):
+        yield iam_client
