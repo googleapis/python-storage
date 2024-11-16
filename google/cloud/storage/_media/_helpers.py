@@ -20,7 +20,6 @@ import base64
 import hashlib
 import logging
 import random
-import warnings
 
 from urllib.parse import parse_qs
 from urllib.parse import urlencode
@@ -294,6 +293,7 @@ def _get_checksum_object(checksum_type):
         # In order to support platforms that don't have google_crc32c
         # support, only perform the import on demand.
         import google_crc32c
+
         return google_crc32c.Checksum()
     elif checksum_type is None:
         return None
@@ -304,6 +304,7 @@ def _get_checksum_object(checksum_type):
 def _is_crc32c_available_and_fast():
     try:
         import google_crc32c
+
         if google_crc32c.implementation == "c":
             return True
     except Exception:

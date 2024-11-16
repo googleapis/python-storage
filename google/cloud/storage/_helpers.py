@@ -651,9 +651,6 @@ def _api_core_retry_to_resumable_media_retry(retry):
 def _get_invocation_id():
     return "gccl-invocation-id/" + str(uuid4())
 
-def _detect_supported_checksums():
-    """Returns 'crc32c' if a fast crc32c impl. is available, else 'md5'"""
-    
 
 def _get_default_headers(
     user_agent,

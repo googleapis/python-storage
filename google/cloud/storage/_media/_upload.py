@@ -265,7 +265,9 @@ class MultipartUpload(UploadBase):
         super(MultipartUpload, self).__init__(upload_url, headers=headers)
         self._checksum_type = checksum
         if self._checksum_type == "auto":
-            self.checksum_type = "crc32c" if _helpers._is_crc32c_available_and_fast() else "md5"
+            self._checksum_type = (
+                "crc32c" if _helpers._is_crc32c_available_and_fast() else "md5"
+            )
 
     def _prepare_request(self, data, metadata, content_type):
         """Prepare the contents of an HTTP request.
@@ -390,7 +392,9 @@ class ResumableUpload(UploadBase):
         self._bytes_checksummed = 0
         self._checksum_type = checksum
         if self._checksum_type == "auto":
-            self.checksum_type = "crc32c" if _helpers._is_crc32c_available_and_fast() else "md5"
+            self._checksum_type = (
+                "crc32c" if _helpers._is_crc32c_available_and_fast() else "md5"
+            )
         self._checksum_object = None
         self._total_bytes = None
         self._resumable_url = None
@@ -1228,7 +1232,9 @@ class XMLMPUPart(UploadBase):
         self._etag = None
         self._checksum_type = checksum
         if self._checksum_type == "auto":
-            self.checksum_type = "crc32c" if _helpers._is_crc32c_available_and_fast() else "md5"
+            self._checksum_type = (
+                "crc32c" if _helpers._is_crc32c_available_and_fast() else "md5"
+            )
         self._checksum_object = None
 
     @property

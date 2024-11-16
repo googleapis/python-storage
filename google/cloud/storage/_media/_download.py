@@ -136,14 +136,22 @@ class Download(DownloadBase):
     """
 
     def __init__(
-        self, media_url, stream=None, start=None, end=None, headers=None, checksum="auto"
+        self,
+        media_url,
+        stream=None,
+        start=None,
+        end=None,
+        headers=None,
+        checksum="auto",
     ):
         super(Download, self).__init__(
             media_url, stream=stream, start=start, end=end, headers=headers
         )
         self.checksum = checksum
         if self.checksum == "auto":
-            self.checksum = "crc32c" if _helpers._is_crc32c_available_and_fast() else "md5"
+            self.checksum = (
+                "crc32c" if _helpers._is_crc32c_available_and_fast() else "md5"
+            )
         self._bytes_downloaded = 0
         self._expected_checksum = None
         self._checksum_object = None
