@@ -142,43 +142,6 @@ def calculate_retry_wait(base_wait, max_sleep, multiplier=2.0):
     return new_base_wait, new_base_wait + 0.001 * jitter_ms
 
 
-def _get_crc32c_object():
-    """Get crc32c object
-    Attempt to use the Google-CRC32c package. If it isn't available, try
-    to use CRCMod. CRCMod might be using a 'slow' varietal. If so, warn...
-    """
-    try:
-        import google_crc32c  # type: ignore
-
-        crc_obj = google_crc32c.Checksum()
-    except ImportError:
-        try:
-            import crcmod  # type: ignore
-
-            crc_obj = crcmod.predefined.Crc("crc-32c")
-            _is_fast_crcmod()
-
-        except ImportError:
-            raise ImportError("Failed to import either `google-crc32c` or `crcmod`")
-
-    return crc_obj
-
-
-def _is_fast_crcmod():
-    # Determine if this is using the slow form of crcmod.
-    nested_crcmod = __import__(
-        "crcmod.crcmod",
-        globals(),
-        locals(),
-        ["_usingExtension"],
-        0,
-    )
-    fast_crc = getattr(nested_crcmod, "_usingExtension", False)
-    if not fast_crc:
-        warnings.warn(_SLOW_CRC32C_WARNING, RuntimeWarning, stacklevel=2)
-    return fast_crc
-
-
 def _get_metadata_key(checksum_type):
     if checksum_type == "md5":
         return "md5Hash"
@@ -231,10 +194,7 @@ def _get_expected_checksum(response, get_headers, media_url, checksum_type):
             _LOGGER.info(msg)
             checksum_object = _DoNothingHash()
         else:
-            if checksum_type == "md5":
-                checksum_object = hashlib.md5()
-            else:
-                checksum_object = _get_crc32c_object()
+            checksum_object = _get_checksum_object(checksum_type)
     else:
         expected_checksum = None
         checksum_object = _DoNothingHash()
@@ -331,11 +291,24 @@ def _get_checksum_object(checksum_type):
     if checksum_type == "md5":
         return hashlib.md5()
     elif checksum_type == "crc32c":
-        return _get_crc32c_object()
+        # In order to support platforms that don't have google_crc32c
+        # support, only perform the import on demand.
+        import google_crc32c
+        return google_crc32c.Checksum()
     elif checksum_type is None:
         return None
     else:
         raise ValueError("checksum must be ``'md5'``, ``'crc32c'`` or ``None``")
+
+
+def _is_crc32c_available_and_fast():
+    try:
+        import google_crc32c
+        if google_crc32c.implementation == "c":
+            return True
+    except Exception:
+        pass
+    return False
 
 
 def _parse_generation_header(response, get_headers):

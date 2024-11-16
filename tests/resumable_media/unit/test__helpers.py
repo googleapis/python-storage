@@ -24,6 +24,8 @@ from google.cloud.storage._media import _helpers
 from google.cloud.storage._media import common
 from google.cloud.storage.exceptions import InvalidResponse
 
+import google_crc32c
+
 
 def test_do_nothing():
     ret_val = _helpers.do_nothing()
@@ -196,7 +198,7 @@ def test__get_checksum_object(checksum):
 
     checksum_types = {
         "md5": type(hashlib.md5()),
-        "crc32c": type(_helpers._get_crc32c_object()),
+        "crc32c": type(google_crc32c.Checksum()),
         None: type(None),
     }
     assert isinstance(checksum_object, checksum_types[checksum])
@@ -207,51 +209,51 @@ def test__get_checksum_object_invalid():
         _helpers._get_checksum_object("invalid")
 
 
-@mock.patch("builtins.__import__")
-def test__get_crc32_object_wo_google_crc32c_wo_crcmod(mock_import):
-    mock_import.side_effect = ImportError("testing")
+# @mock.patch("builtins.__import__")
+# def test__get_crc32_object_wo_google_crc32c_wo_crcmod(mock_import):
+#     mock_import.side_effect = ImportError("testing")
 
-    with pytest.raises(ImportError):
-        _helpers._get_crc32c_object()
+#     with pytest.raises(ImportError):
+#         _helpers._get_crc32c_object()
 
-    expected_calls = [
-        mock.call("google_crc32c", mock.ANY, None, None, 0),
-        mock.call("crcmod", mock.ANY, None, None, 0),
-    ]
-    mock_import.assert_has_calls(expected_calls)
-
-
-@mock.patch("builtins.__import__")
-def test__get_crc32_object_w_google_crc32c(mock_import):
-    google_crc32c = mock.Mock(spec=["Checksum"])
-    mock_import.return_value = google_crc32c
-
-    found = _helpers._get_crc32c_object()
-
-    assert found is google_crc32c.Checksum.return_value
-    google_crc32c.Checksum.assert_called_once_with()
-
-    mock_import.assert_called_once_with("google_crc32c", mock.ANY, None, None, 0)
+#     expected_calls = [
+#         mock.call("google_crc32c", mock.ANY, None, None, 0),
+#         mock.call("crcmod", mock.ANY, None, None, 0),
+#     ]
+#     mock_import.assert_has_calls(expected_calls)
 
 
-@mock.patch("builtins.__import__")
-def test__get_crc32_object_wo_google_crc32c_w_crcmod(mock_import):
-    crcmod = mock.Mock(spec=["predefined", "crcmod"])
-    crcmod.predefined = mock.Mock(spec=["Crc"])
-    crcmod.crcmod = mock.Mock(spec=["_usingExtension"])
-    mock_import.side_effect = [ImportError("testing"), crcmod, crcmod.crcmod]
+# @mock.patch("builtins.__import__")
+# def test__get_crc32_object_w_google_crc32c(mock_import):
+#     google_crc32c = mock.Mock(spec=["Checksum"])
+#     mock_import.return_value = google_crc32c
 
-    found = _helpers._get_crc32c_object()
+#     found = _helpers._get_crc32c_object()
 
-    assert found is crcmod.predefined.Crc.return_value
-    crcmod.predefined.Crc.assert_called_once_with("crc-32c")
+#     assert found is google_crc32c.Checksum.return_value
+#     google_crc32c.Checksum.assert_called_once_with()
 
-    expected_calls = [
-        mock.call("google_crc32c", mock.ANY, None, None, 0),
-        mock.call("crcmod", mock.ANY, None, None, 0),
-        mock.call("crcmod.crcmod", mock.ANY, {}, ["_usingExtension"], 0),
-    ]
-    mock_import.assert_has_calls(expected_calls)
+#     mock_import.assert_called_once_with("google_crc32c", mock.ANY, None, None, 0)
+
+
+# @mock.patch("builtins.__import__")
+# def test__get_crc32_object_wo_google_crc32c_w_crcmod(mock_import):
+#     crcmod = mock.Mock(spec=["predefined", "crcmod"])
+#     crcmod.predefined = mock.Mock(spec=["Crc"])
+#     crcmod.crcmod = mock.Mock(spec=["_usingExtension"])
+#     mock_import.side_effect = [ImportError("testing"), crcmod, crcmod.crcmod]
+
+#     found = _helpers._get_crc32c_object()
+
+#     assert found is crcmod.predefined.Crc.return_value
+#     crcmod.predefined.Crc.assert_called_once_with("crc-32c")
+
+#     expected_calls = [
+#         mock.call("google_crc32c", mock.ANY, None, None, 0),
+#         mock.call("crcmod", mock.ANY, None, None, 0),
+#         mock.call("crcmod.crcmod", mock.ANY, {}, ["_usingExtension"], 0),
+#     ]
+#     mock_import.assert_has_calls(expected_calls)
 
 
 @pytest.mark.filterwarnings("ignore::RuntimeWarning")
