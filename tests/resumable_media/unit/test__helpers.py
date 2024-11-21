@@ -150,40 +150,6 @@ class Test_require_status_code(object):
             callback.assert_not_called()
 
 
-class Test_calculate_retry_wait(object):
-    @mock.patch("random.randint", return_value=125)
-    def test_past_limit(self, randint_mock):
-        base_wait, wait_time = _helpers.calculate_retry_wait(70.0, 64.0)
-
-        assert base_wait == 64.0
-        assert wait_time == 64.125
-        randint_mock.assert_called_once_with(0, 1000)
-
-    @mock.patch("random.randint", return_value=250)
-    def test_at_limit(self, randint_mock):
-        base_wait, wait_time = _helpers.calculate_retry_wait(50.0, 50.0)
-
-        assert base_wait == 50.0
-        assert wait_time == 50.25
-        randint_mock.assert_called_once_with(0, 1000)
-
-    @mock.patch("random.randint", return_value=875)
-    def test_under_limit(self, randint_mock):
-        base_wait, wait_time = _helpers.calculate_retry_wait(16.0, 33.0)
-
-        assert base_wait == 32.0
-        assert wait_time == 32.875
-        randint_mock.assert_called_once_with(0, 1000)
-
-    @mock.patch("random.randint", return_value=875)
-    def test_custom_multiplier(self, randint_mock):
-        base_wait, wait_time = _helpers.calculate_retry_wait(16.0, 64.0, 3)
-
-        assert base_wait == 48.0
-        assert wait_time == 48.875
-        randint_mock.assert_called_once_with(0, 1000)
-
-
 def _make_response(status_code):
     return mock.Mock(status_code=status_code, spec=["status_code"])
 

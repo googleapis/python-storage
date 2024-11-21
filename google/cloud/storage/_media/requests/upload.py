@@ -80,7 +80,7 @@ class SimpleUpload(_request_helpers.RequestsMixin, _upload.SimpleUpload):
             return result
 
         return _request_helpers.wait_and_retry(
-            retriable_request, self._get_status_code, self._retry_strategy
+            retriable_request, self._retry_strategy
         )
 
 
@@ -153,7 +153,7 @@ class MultipartUpload(_request_helpers.RequestsMixin, _upload.MultipartUpload):
             return result
 
         return _request_helpers.wait_and_retry(
-            retriable_request, self._get_status_code, self._retry_strategy
+            retriable_request, self._retry_strategy
         )
 
 
@@ -421,7 +421,7 @@ class ResumableUpload(_request_helpers.RequestsMixin, _upload.ResumableUpload):
             return result
 
         return _request_helpers.wait_and_retry(
-            retriable_request, self._get_status_code, self._retry_strategy
+            retriable_request, self._retry_strategy
         )
 
     def transmit_next_chunk(
@@ -516,7 +516,7 @@ class ResumableUpload(_request_helpers.RequestsMixin, _upload.ResumableUpload):
             return result
 
         return _request_helpers.wait_and_retry(
-            retriable_request, self._get_status_code, self._retry_strategy
+            retriable_request, self._retry_strategy
         )
 
     def recover(self, transport):
@@ -556,7 +556,7 @@ class ResumableUpload(_request_helpers.RequestsMixin, _upload.ResumableUpload):
             return result
 
         return _request_helpers.wait_and_retry(
-            retriable_request, self._get_status_code, self._retry_strategy
+            retriable_request, self._retry_strategy
         )
 
 
@@ -637,7 +637,7 @@ class XMLMPUContainer(_request_helpers.RequestsMixin, _upload.XMLMPUContainer):
             return result
 
         return _request_helpers.wait_and_retry(
-            retriable_request, self._get_status_code, self._retry_strategy
+            retriable_request, self._retry_strategy
         )
 
     def finalize(
@@ -677,7 +677,7 @@ class XMLMPUContainer(_request_helpers.RequestsMixin, _upload.XMLMPUContainer):
             return result
 
         return _request_helpers.wait_and_retry(
-            retriable_request, self._get_status_code, self._retry_strategy
+            retriable_request, self._retry_strategy
         )
 
     def cancel(
@@ -719,7 +719,7 @@ class XMLMPUContainer(_request_helpers.RequestsMixin, _upload.XMLMPUContainer):
             return result
 
         return _request_helpers.wait_and_retry(
-            retriable_request, self._get_status_code, self._retry_strategy
+            retriable_request, self._retry_strategy
         )
 
 
@@ -761,5 +761,5 @@ class XMLMPUPart(_request_helpers.RequestsMixin, _upload.XMLMPUPart):
             return result
 
         return _request_helpers.wait_and_retry(
-            retriable_request, self._get_status_code, self._retry_strategy
+            retriable_request, self._retry_strategy
         )

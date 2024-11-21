@@ -54,7 +54,6 @@ from google.cloud.storage._helpers import _PropertyMixin
 from google.cloud.storage._helpers import _scalar_property
 from google.cloud.storage._helpers import _bucket_bound_hostname_url
 from google.cloud.storage._helpers import _raise_if_more_than_one_set
-from google.cloud.storage._helpers import _api_core_retry_to_resumable_media_retry
 from google.cloud.storage._helpers import _get_default_headers
 from google.cloud.storage._helpers import _get_default_storage_base_url
 from google.cloud.storage._signing import generate_signed_url_v2
@@ -972,7 +971,7 @@ class Blob(_PropertyMixin):
         raw_download=False,
         timeout=_DEFAULT_TIMEOUT,
         checksum="auto",
-        retry=None,
+        retry=DEFAULT_RETRY,
     ):
         """Perform a download without any error handling.
 
@@ -1024,9 +1023,7 @@ class Blob(_PropertyMixin):
         :type retry: google.api_core.retry.Retry
         :param retry: (Optional) How to retry the RPC. A None value will disable
             retries. A google.api_core.retry.Retry value will enable retries,
-            and the object will configure backoff and timeout options. Custom
-            predicates (customizable error codes) are not supported for media
-            operations such as this one.
+            and the object will configure backoff and timeout options.
 
             This private method does not accept ConditionalRetryPolicy values
             because the information necessary to evaluate the policy is instead
@@ -1036,8 +1033,6 @@ class Blob(_PropertyMixin):
             (google.cloud.storage.retry) for information on retry types and how
             to configure them.
         """
-
-        retry_strategy = _api_core_retry_to_resumable_media_retry(retry)
 
         if self.chunk_size is None:
             if raw_download:
@@ -1052,8 +1047,8 @@ class Blob(_PropertyMixin):
                 start=start,
                 end=end,
                 checksum=checksum,
+                retry=retry
             )
-            download._retry_strategy = retry_strategy
             response = download.consume(transport, timeout=timeout)
             self._extract_headers_from_download(response)
         else:
@@ -1073,9 +1068,9 @@ class Blob(_PropertyMixin):
                 headers=headers,
                 start=start if start else 0,
                 end=end,
+                retry=retry,
             )
 
-            download._retry_strategy = retry_strategy
             while not download.finished:
                 download.consume_next_chunk(transport, timeout=timeout)
 
@@ -1189,11 +1184,6 @@ class Blob(_PropertyMixin):
             See the retry.py source code and docstrings in this package
             (google.cloud.storage.retry) for information on retry types and how
             to configure them.
-
-            Media operations (downloads and uploads) do not support non-default
-            predicates in a Retry object. The default will always be used. Other
-            configuration changes for Retry objects such as delays and deadlines
-            are respected.
 
         :raises: :class:`google.cloud.exceptions.NotFound`
         """
@@ -1343,11 +1333,6 @@ class Blob(_PropertyMixin):
             (google.cloud.storage.retry) for information on retry types and how
             to configure them.
 
-            Media operations (downloads and uploads) do not support non-default
-            predicates in a Retry object. The default will always be used. Other
-            configuration changes for Retry objects such as delays and deadlines
-            are respected.
-
         :raises: :class:`google.cloud.exceptions.NotFound`
         """
 
@@ -1462,11 +1447,6 @@ class Blob(_PropertyMixin):
             (google.cloud.storage.retry) for information on retry types and how
             to configure them.
 
-            Media operations (downloads and uploads) do not support non-default
-            predicates in a Retry object. The default will always be used. Other
-            configuration changes for Retry objects such as delays and deadlines
-            are respected.
-
         :rtype: bytes
         :returns: The data stored in this blob.
 
@@ -1577,11 +1557,6 @@ class Blob(_PropertyMixin):
             (google.cloud.storage.retry) for information on retry types and how
             to configure them.
 
-            Media operations (downloads and uploads) do not support non-default
-            predicates in a Retry object. The default will always be used. Other
-            configuration changes for Retry objects such as delays and deadlines
-            are respected.
-
         :rtype: bytes
         :returns: The data stored in this blob.
 
@@ -1691,11 +1666,6 @@ class Blob(_PropertyMixin):
             See the retry.py source code and docstrings in this package
             (google.cloud.storage.retry) for information on retry types and how
             to configure them.
-
-            Media operations (downloads and uploads) do not support non-default
-            predicates in a Retry object. The default will always be used. Other
-            configuration changes for Retry objects such as delays and deadlines
-            are respected.
 
         :rtype: text
         :returns: The data stored in this blob, decoded to text.
@@ -1904,9 +1874,7 @@ class Blob(_PropertyMixin):
         :type retry: google.api_core.retry.Retry
         :param retry: (Optional) How to retry the RPC. A None value will disable
             retries. A google.api_core.retry.Retry value will enable retries,
-            and the object will configure backoff and timeout options. Custom
-            predicates (customizable error codes) are not supported for media
-            operations such as this one.
+            and the object will configure backoff and timeout options.
 
             This private method does not accept ConditionalRetryPolicy values
             because the information necessary to evaluate the policy is instead
@@ -1981,9 +1949,7 @@ class Blob(_PropertyMixin):
             )
 
         upload_url = _add_query_parameters(base_url, name_value_pairs)
-        upload = MultipartUpload(upload_url, headers=headers, checksum=checksum)
-
-        upload._retry_strategy = _api_core_retry_to_resumable_media_retry(retry)
+        upload = MultipartUpload(upload_url, headers=headers, checksum=checksum, retry=retry)
 
         response = upload.transmit(
             transport, data, object_metadata, content_type, timeout=timeout
@@ -2087,9 +2053,7 @@ class Blob(_PropertyMixin):
         :type retry: google.api_core.retry.Retry
         :param retry: (Optional) How to retry the RPC. A None value will disable
             retries. A google.api_core.retry.Retry value will enable retries,
-            and the object will configure backoff and timeout options. Custom
-            predicates (customizable error codes) are not supported for media
-            operations such as this one.
+            and the object will configure backoff and timeout options.
 
             This private method does not accept ConditionalRetryPolicy values
             because the information necessary to evaluate the policy is instead
@@ -2166,10 +2130,8 @@ class Blob(_PropertyMixin):
 
         upload_url = _add_query_parameters(base_url, name_value_pairs)
         upload = ResumableUpload(
-            upload_url, chunk_size, headers=headers, checksum=checksum
+            upload_url, chunk_size, headers=headers, checksum=checksum, retry=retry
         )
-
-        upload._retry_strategy = _api_core_retry_to_resumable_media_retry(retry)
 
         upload.initiate(
             transport,
@@ -2267,9 +2229,7 @@ class Blob(_PropertyMixin):
         :type retry: google.api_core.retry.Retry
         :param retry: (Optional) How to retry the RPC. A None value will disable
             retries. A google.api_core.retry.Retry value will enable retries,
-            and the object will configure backoff and timeout options. Custom
-            predicates (customizable error codes) are not supported for media
-            operations such as this one.
+            and the object will configure backoff and timeout options.
 
             This private method does not accept ConditionalRetryPolicy values
             because the information necessary to evaluate the policy is instead
@@ -2414,11 +2374,6 @@ class Blob(_PropertyMixin):
             See the retry.py source code and docstrings in this package
             (google.cloud.storage.retry) for information on retry types and how
             to configure them.
-
-            Media operations (downloads and uploads) do not support non-default
-            predicates in a Retry object. The default will always be used. Other
-            configuration changes for Retry objects such as delays and deadlines
-            are respected.
 
         :type command: str
         :param command:
@@ -2603,11 +2558,6 @@ class Blob(_PropertyMixin):
             (google.cloud.storage.retry) for information on retry types and how
             to configure them.
 
-            Media operations (downloads and uploads) do not support non-default
-            predicates in a Retry object. The default will always be used. Other
-            configuration changes for Retry objects such as delays and deadlines
-            are respected.
-
         :type command: str
         :param command:
             (Optional) Information about which interface for upload was used,
@@ -2754,11 +2704,7 @@ class Blob(_PropertyMixin):
             Change the value to ``DEFAULT_RETRY`` or another `google.api_core.retry.Retry` object
             to enable retries regardless of generation precondition setting.
             See [Configuring Retries](https://cloud.google.com/python/docs/reference/storage/latest/retry_timeout).
-
-            Media operations (downloads and uploads) do not support non-default
-            predicates in a Retry object. Other configuration changes for Retry objects
-            such as delays and deadlines are respected.
-
+    
         :raises: :class:`~google.cloud.exceptions.GoogleCloudError`
                  if the upload response returns an error status.
         """
@@ -2901,10 +2847,6 @@ class Blob(_PropertyMixin):
             Change the value to ``DEFAULT_RETRY`` or another `google.api_core.retry.Retry` object
             to enable retries regardless of generation precondition setting.
             See [Configuring Retries](https://cloud.google.com/python/docs/reference/storage/latest/retry_timeout).
-
-            Media operations (downloads and uploads) do not support non-default
-            predicates in a Retry object. Other configuration changes for Retry objects
-            such as delays and deadlines are respected.
         """
 
         self._handle_filename_and_upload(
@@ -3012,10 +2954,6 @@ class Blob(_PropertyMixin):
             Change the value to ``DEFAULT_RETRY`` or another `google.api_core.retry.Retry` object
             to enable retries regardless of generation precondition setting.
             See [Configuring Retries](https://cloud.google.com/python/docs/reference/storage/latest/retry_timeout).
-
-            Media operations (downloads and uploads) do not support non-default
-            predicates in a Retry object. Other configuration changes for Retry objects
-            such as delays and deadlines are respected.
         """
         data = _to_bytes(data, encoding="utf-8")
         string_buffer = BytesIO(data)
@@ -3150,10 +3088,6 @@ class Blob(_PropertyMixin):
             Change the value to ``DEFAULT_RETRY`` or another `google.api_core.retry.Retry` object
             to enable retries regardless of generation precondition setting.
             See [Configuring Retries](https://cloud.google.com/python/docs/reference/storage/latest/retry_timeout).
-
-            Media operations (downloads and uploads) do not support non-default
-            predicates in a Retry object. Other configuration changes for Retry objects
-            such as delays and deadlines are respected.
 
         :rtype: str
         :returns: The resumable upload session URL. The upload can be
@@ -4248,11 +4182,6 @@ class Blob(_PropertyMixin):
             See the retry.py source code and docstrings in this package
             (google.cloud.storage.retry) for information on retry types and how
             to configure them.
-
-            Media operations (downloads and uploads) do not support non-default
-            predicates in a Retry object. The default will always be used. Other
-            configuration changes for Retry objects such as delays and deadlines
-            are respected.
 
         :type command: str
         :param command:

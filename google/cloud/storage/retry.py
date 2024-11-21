@@ -17,8 +17,11 @@
 See [Retry Strategy for Google Cloud Storage](https://cloud.google.com/storage/docs/retry-strategy#client-libraries)
 """
 
+import http
+
 import requests
 import requests.exceptions as requests_exceptions
+import urllib3
 
 from google.api_core import exceptions as api_exceptions
 from google.api_core import retry
@@ -35,6 +38,13 @@ _RETRYABLE_TYPES = (
     requests.ConnectionError,
     requests_exceptions.ChunkedEncodingError,
     requests_exceptions.Timeout,
+    http.client.BadStatusLine,
+    http.client.IncompleteRead,
+    http.client.ResponseNotReady,
+    urllib3.exceptions.PoolError,
+    urllib3.exceptions.ProtocolError,
+    urllib3.exceptions.SSLError,
+    urllib3.exceptions.TimeoutError,
 )
 
 

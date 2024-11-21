@@ -1248,6 +1248,8 @@ class Test_Blob(unittest.TestCase):
 
         extra_kwargs.update(timeout_kwarg)
 
+        retry = extra_kwargs.get("retry", DEFAULT_RETRY)
+
         with patch as patched:
             if w_range:
                 blob._do_download(
@@ -1278,6 +1280,7 @@ class Test_Blob(unittest.TestCase):
                 start=1,
                 end=3,
                 checksum="auto",
+                retry=retry,
             )
         else:
             patched.assert_called_once_with(
@@ -1287,18 +1290,12 @@ class Test_Blob(unittest.TestCase):
                 start=None,
                 end=None,
                 checksum="auto",
+                retry=retry,
             )
 
         patched.return_value.consume.assert_called_once_with(
             transport, timeout=expected_timeout
         )
-
-        retry_strategy = patched.return_value._retry_strategy
-        retry = extra_kwargs.get("retry", None)
-        if retry is None:
-            self.assertEqual(retry_strategy.max_retries, 0)
-        else:
-            self.assertEqual(retry_strategy.max_sleep, retry._maximum)
 
     def test__do_download_wo_chunks_wo_range_wo_raw(self):
         self._do_download_helper_wo_chunks(w_range=False, raw_download=False)
@@ -1411,11 +1408,11 @@ class Test_Blob(unittest.TestCase):
 
         if w_range:
             patched.assert_called_once_with(
-                download_url, chunk_size, file_obj, headers=headers, start=1, end=3
+                download_url, chunk_size, file_obj, headers=headers, start=1, end=3, retry=DEFAULT_RETRY
             )
         else:
             patched.assert_called_once_with(
-                download_url, chunk_size, file_obj, headers=headers, start=0, end=None
+                download_url, chunk_size, file_obj, headers=headers, start=0, end=None, retry=DEFAULT_RETRY
             )
         download.consume_next_chunk.assert_called_once_with(
             transport, timeout=expected_timeout
@@ -2790,12 +2787,7 @@ class Test_Blob(unittest.TestCase):
         self.assertEqual(upload._content_type, content_type)
         self.assertEqual(upload.resumable_url, resumable_url)
         retry_strategy = upload._retry_strategy
-        if retry is None:
-            self.assertEqual(retry_strategy.max_retries, 0)
-        else:
-            self.assertEqual(retry_strategy.max_sleep, 60.0)
-            self.assertEqual(retry_strategy.max_cumulative_retry, 120.0)
-            self.assertIsNone(retry_strategy.max_retries)
+        self.assertEqual(retry_strategy, retry)
         self.assertIs(client._http, transport)
         # Make sure we never read from the stream.
         self.assertEqual(stream.tell(), 0)
