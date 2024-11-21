@@ -2704,7 +2704,7 @@ class Blob(_PropertyMixin):
             Change the value to ``DEFAULT_RETRY`` or another `google.api_core.retry.Retry` object
             to enable retries regardless of generation precondition setting.
             See [Configuring Retries](https://cloud.google.com/python/docs/reference/storage/latest/retry_timeout).
-    
+
         :raises: :class:`~google.cloud.exceptions.GoogleCloudError`
                  if the upload response returns an error status.
         """

@@ -26,7 +26,7 @@ from urllib.parse import urlencode
 from urllib.parse import urlsplit
 from urllib.parse import urlunsplit
 
-from google.cloud.storage._media import common
+from google.cloud.storage import retry
 from google.cloud.storage.exceptions import InvalidResponse
 
 
@@ -101,7 +101,7 @@ def require_status_code(response, status_codes, get_status_code, callback=do_not
     """
     status_code = get_status_code(response)
     if status_code not in status_codes:
-        if status_code not in common.RETRYABLE:
+        if status_code not in retry._RETRYABLE_STATUS_CODES:
             callback()
         raise InvalidResponse(
             response,

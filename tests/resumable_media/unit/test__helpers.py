@@ -22,6 +22,7 @@ import pytest  # type: ignore
 
 from google.cloud.storage._media import _helpers
 from google.cloud.storage._media import common
+from google.cloud.storage.retry import _RETRYABLE_STATUS_CODES
 from google.cloud.storage.exceptions import InvalidResponse
 
 import google_crc32c
@@ -130,7 +131,7 @@ class Test_require_status_code(object):
     def test_retryable_failure_without_callback(self):
         status_codes = (http.client.OK,)
         retryable_responses = [
-            _make_response(status_code) for status_code in common.RETRYABLE
+            _make_response(status_code) for status_code in _RETRYABLE_STATUS_CODES
         ]
         callback = mock.Mock(spec=[])
         for retryable_response in retryable_responses:

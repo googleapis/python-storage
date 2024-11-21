@@ -38,7 +38,12 @@ class Test_should_retry(unittest.TestCase):
         from google.cloud.storage import retry
 
         for exc_type in retry._RETRYABLE_TYPES:
-            exc = exc_type("testing")
+            # Some of the types need one positional argument, some two.
+            # The easiest way to accommodate both is just to use a try/except.
+            try:
+                exc = exc_type("testing")
+            except TypeError:
+                exc = exc_type("testing", "testing")
             self.assertTrue(self._call_fut(exc))
 
     def test_w_google_api_call_error_hit(self):
