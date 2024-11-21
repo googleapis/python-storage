@@ -1763,7 +1763,7 @@ class TestClient(unittest.TestCase):
             None,
             None,
             False,
-            checksum="md5",
+            checksum="auto",
             timeout=_DEFAULT_TIMEOUT,
             retry=DEFAULT_RETRY,
         )
@@ -1802,7 +1802,7 @@ class TestClient(unittest.TestCase):
             None,
             None,
             False,
-            checksum="md5",
+            checksum="auto",
             timeout=_DEFAULT_TIMEOUT,
             retry=DEFAULT_RETRY,
         )
@@ -1929,7 +1929,7 @@ class TestClient(unittest.TestCase):
             None,
             None,
             raw_download,
-            checksum="md5",
+            checksum="auto",
             timeout=_DEFAULT_TIMEOUT,
             retry=expected_retry,
         )
