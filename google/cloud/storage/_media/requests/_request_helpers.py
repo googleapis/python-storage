@@ -17,16 +17,6 @@
 This utilities are explicitly catered to ``requests``-like transports.
 """
 
-import http.client
-import requests.exceptions
-import urllib3.exceptions  # type: ignore
-
-import time
-
-from google.cloud.storage.exceptions import InvalidResponse
-from google.cloud.storage._media import common
-from google.cloud.storage._media import _helpers
-
 _SINGLE_GET_CHUNK_SIZE = 8192
 # The number of seconds to wait to establish a connection
 # (connect() call on socket). Avoid setting this to a multiple of 3 to not

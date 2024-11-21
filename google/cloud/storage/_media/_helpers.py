@@ -19,7 +19,6 @@ from __future__ import absolute_import
 import base64
 import hashlib
 import logging
-import random
 
 from urllib.parse import parse_qs
 from urllib.parse import urlencode

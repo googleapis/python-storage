@@ -17,7 +17,5 @@
 Includes custom exception types, useful constants and shared helpers.
 """
 
-import http.client
-
 UPLOAD_CHUNK_SIZE = 262144  # 256 * 1024
 """int: Chunks in a resumable upload must come in multiples of 256 KB."""

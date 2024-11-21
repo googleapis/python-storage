@@ -243,9 +243,7 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
 
             return result
 
-        return _request_helpers.wait_and_retry(
-            retriable_request, self._retry_strategy
-        )
+        return _request_helpers.wait_and_retry(retriable_request, self._retry_strategy)
 
 
 class RawDownload(_request_helpers.RawRequestsMixin, _download.Download):
@@ -442,9 +440,7 @@ class RawDownload(_request_helpers.RawRequestsMixin, _download.Download):
 
             return result
 
-        return _request_helpers.wait_and_retry(
-            retriable_request, self._retry_strategy
-        )
+        return _request_helpers.wait_and_retry(retriable_request, self._retry_strategy)
 
 
 class ChunkedDownload(_request_helpers.RequestsMixin, _download.ChunkedDownload):
@@ -525,9 +521,7 @@ class ChunkedDownload(_request_helpers.RequestsMixin, _download.ChunkedDownload)
             self._process_response(result)
             return result
 
-        return _request_helpers.wait_and_retry(
-            retriable_request, self._retry_strategy
-        )
+        return _request_helpers.wait_and_retry(retriable_request, self._retry_strategy)
 
 
 class RawChunkedDownload(_request_helpers.RawRequestsMixin, _download.ChunkedDownload):
@@ -609,9 +603,7 @@ class RawChunkedDownload(_request_helpers.RawRequestsMixin, _download.ChunkedDow
             self._process_response(result)
             return result
 
-        return _request_helpers.wait_and_retry(
-            retriable_request, self._retry_strategy
-        )
+        return _request_helpers.wait_and_retry(retriable_request, self._retry_strategy)
 
 
 def _add_decoder(response_raw, checksum):

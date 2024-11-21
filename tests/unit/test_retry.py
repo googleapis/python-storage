@@ -15,6 +15,7 @@
 import unittest
 
 from google.cloud.storage import _helpers
+from google.cloud.storage.exceptions import InvalidResponse
 
 import mock
 
@@ -58,6 +59,18 @@ class Test_should_retry(unittest.TestCase):
 
         exc = exceptions.GoogleAPICallError("testing")
         exc.code = 999
+        self.assertFalse(self._call_fut(exc))
+
+    def test_w_InvalidResponse_hit(self):
+        response = mock.Mock()
+        response.status_code = 408
+        exc = InvalidResponse(response, "testing")
+        self.assertTrue(self._call_fut(exc))
+
+    def test_w_InvalidResponse_miss(self):
+        response = mock.Mock()
+        response.status_code = 999
+        exc = InvalidResponse(response, "testing")
         self.assertFalse(self._call_fut(exc))
 
     def test_w_stdlib_error_miss(self):

@@ -19,7 +19,6 @@ import http.client
 import re
 
 from google.cloud.storage._media import _helpers
-from google.cloud.storage._media import common
 from google.cloud.storage.exceptions import InvalidResponse
 from google.cloud.storage.retry import DEFAULT_RETRY
 
@@ -61,7 +60,15 @@ class DownloadBase(object):
         end (Optional[int]): The last byte in a range to be downloaded.
     """
 
-    def __init__(self, media_url, stream=None, start=None, end=None, headers=None, retry=DEFAULT_RETRY):
+    def __init__(
+        self,
+        media_url,
+        stream=None,
+        start=None,
+        end=None,
+        headers=None,
+        retry=DEFAULT_RETRY,
+    ):
         self.media_url = media_url
         self._stream = stream
         self.start = start
@@ -280,13 +287,27 @@ class ChunkedDownload(DownloadBase):
         ValueError: If ``start`` is negative.
     """
 
-    def __init__(self, media_url, chunk_size, stream, start=0, end=None, headers=None, retry=DEFAULT_RETRY):
+    def __init__(
+        self,
+        media_url,
+        chunk_size,
+        stream,
+        start=0,
+        end=None,
+        headers=None,
+        retry=DEFAULT_RETRY,
+    ):
         if start < 0:
             raise ValueError(
                 "On a chunked download the starting " "value cannot be negative."
             )
         super(ChunkedDownload, self).__init__(
-            media_url, stream=stream, start=start, end=end, headers=headers, retry=retry,
+            media_url,
+            stream=stream,
+            start=start,
+            end=end,
+            headers=headers,
+            retry=retry,
         )
         self.chunk_size = chunk_size
         self._bytes_downloaded = 0

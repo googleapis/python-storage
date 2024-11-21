@@ -1047,7 +1047,7 @@ class Blob(_PropertyMixin):
                 start=start,
                 end=end,
                 checksum=checksum,
-                retry=retry
+                retry=retry,
             )
             response = download.consume(transport, timeout=timeout)
             self._extract_headers_from_download(response)
@@ -1949,7 +1949,9 @@ class Blob(_PropertyMixin):
             )
 
         upload_url = _add_query_parameters(base_url, name_value_pairs)
-        upload = MultipartUpload(upload_url, headers=headers, checksum=checksum, retry=retry)
+        upload = MultipartUpload(
+            upload_url, headers=headers, checksum=checksum, retry=retry
+        )
 
         response = upload.transmit(
             transport, data, object_metadata, content_type, timeout=timeout

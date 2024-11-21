@@ -1408,11 +1408,23 @@ class Test_Blob(unittest.TestCase):
 
         if w_range:
             patched.assert_called_once_with(
-                download_url, chunk_size, file_obj, headers=headers, start=1, end=3, retry=DEFAULT_RETRY
+                download_url,
+                chunk_size,
+                file_obj,
+                headers=headers,
+                start=1,
+                end=3,
+                retry=DEFAULT_RETRY,
             )
         else:
             patched.assert_called_once_with(
-                download_url, chunk_size, file_obj, headers=headers, start=0, end=None, retry=DEFAULT_RETRY
+                download_url,
+                chunk_size,
+                file_obj,
+                headers=headers,
+                start=0,
+                end=None,
+                retry=DEFAULT_RETRY,
             )
         download.consume_next_chunk.assert_called_once_with(
             transport, timeout=expected_timeout

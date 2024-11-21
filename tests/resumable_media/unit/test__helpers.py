@@ -21,7 +21,6 @@ from unittest import mock
 import pytest  # type: ignore
 
 from google.cloud.storage._media import _helpers
-from google.cloud.storage._media import common
 from google.cloud.storage.retry import _RETRYABLE_STATUS_CODES
 from google.cloud.storage.exceptions import InvalidResponse
 

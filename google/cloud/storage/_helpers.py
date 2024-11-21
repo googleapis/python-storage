@@ -26,7 +26,6 @@ from urllib.parse import urlunsplit
 from uuid import uuid4
 
 from google.auth import environment_vars
-from google.cloud.storage import _media
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 from google.cloud.storage.retry import DEFAULT_RETRY
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED

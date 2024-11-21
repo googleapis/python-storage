@@ -15,14 +15,8 @@
 import http.client
 
 from unittest import mock
-import pytest  # type: ignore
 
-import requests.exceptions
-import urllib3.exceptions  # type: ignore
-
-from google.cloud.storage._media import common
 from google.cloud.storage._media.requests import _request_helpers
-from google.cloud.storage.exceptions import InvalidResponse
 
 EXPECTED_TIMEOUT = (61, 60)
 

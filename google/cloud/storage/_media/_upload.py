@@ -30,7 +30,6 @@ import sys
 import urllib.parse
 
 from google.cloud.storage._media import _helpers
-from google.cloud.storage._media import common
 from google.cloud.storage._media import UPLOAD_CHUNK_SIZE
 from google.cloud.storage.exceptions import InvalidResponse
 from google.cloud.storage.exceptions import DataCorruption
@@ -411,7 +410,9 @@ class ResumableUpload(UploadBase):
             :data:`.UPLOAD_CHUNK_SIZE`.
     """
 
-    def __init__(self, upload_url, chunk_size, checksum="auto", headers=None, retry=DEFAULT_RETRY):
+    def __init__(
+        self, upload_url, chunk_size, checksum="auto", headers=None, retry=DEFAULT_RETRY
+    ):
         super(ResumableUpload, self).__init__(upload_url, headers=headers, retry=retry)
         if chunk_size % UPLOAD_CHUNK_SIZE != 0:
             raise ValueError(
@@ -953,7 +954,9 @@ class XMLMPUContainer(UploadBase):
             response.
     """
 
-    def __init__(self, upload_url, filename, headers=None, upload_id=None, retry=DEFAULT_RETRY):
+    def __init__(
+        self, upload_url, filename, headers=None, upload_id=None, retry=DEFAULT_RETRY
+    ):
         super().__init__(upload_url, headers=headers, retry=retry)
         self._filename = filename
         self._upload_id = upload_id
@@ -1271,7 +1274,7 @@ class XMLMPUPart(UploadBase):
         part_number,
         headers=None,
         checksum="auto",
-        retry=DEFAULT_RETRY
+        retry=DEFAULT_RETRY,
     ):
         super().__init__(upload_url, headers=headers, retry=retry)
         self._filename = filename

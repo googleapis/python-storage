@@ -22,7 +22,6 @@ import pytest  # type: ignore
 
 from google.cloud.storage._media import _helpers
 from google.cloud.storage._media import _upload
-from google.cloud.storage._media import common
 from google.cloud.storage.exceptions import InvalidResponse
 from google.cloud.storage.exceptions import DataCorruption
 from google.cloud.storage.retry import DEFAULT_RETRY
