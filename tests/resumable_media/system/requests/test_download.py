@@ -271,7 +271,7 @@ class TestDownload(object):
     def _read_response_content(response):
         return response.content
 
-    @pytest.mark.parametrize("checksum", ["md5", "crc32c", None])
+    @pytest.mark.parametrize("checksum", ["auto", "md5", "crc32c", None])
     def test_download_full(self, add_files, authorized_transport, checksum):
         for info in ALL_FILES:
             actual_contents = self._get_contents(info)

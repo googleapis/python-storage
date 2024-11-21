@@ -302,6 +302,11 @@ def _get_checksum_object(checksum_type):
 
 
 def _is_crc32c_available_and_fast():
+    """Return True if the google_crc32c C extension is installed.
+
+    Return False if either the package is not installed, or if only the
+    pure-Python version is installed.
+    """
     try:
         import google_crc32c
 
