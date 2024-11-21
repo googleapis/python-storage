@@ -26,6 +26,7 @@ import urllib3
 from google.api_core import exceptions as api_exceptions
 from google.api_core import retry
 from google.auth import exceptions as auth_exceptions
+from google.cloud.storage.exceptions import InvalidResponse
 
 
 _RETRYABLE_TYPES = (
@@ -64,6 +65,8 @@ def _should_retry(exc):
         return True
     elif isinstance(exc, api_exceptions.GoogleAPICallError):
         return exc.code in _RETRYABLE_STATUS_CODES
+    elif isinstance(exc, InvalidResponse):
+        return exc.response.status_code in _RETRYABLE_STATUS_CODES
     elif isinstance(exc, auth_exceptions.TransportError):
         return _should_retry(exc.args[0])
     else:
