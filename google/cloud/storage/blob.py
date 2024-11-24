@@ -607,6 +607,9 @@ class Blob(_PropertyMixin):
             client = self._require_client(client)  # May be redundant, but that's ok.
             credentials = client._credentials
 
+        client = self._require_client(client)
+        universe_domain = client.universe_domain
+
         if version == "v2":
             helper = generate_signed_url_v2
         else:
@@ -638,6 +641,7 @@ class Blob(_PropertyMixin):
             query_parameters=query_parameters,
             service_account_email=service_account_email,
             access_token=access_token,
+            universe_domain=universe_domain,
         )
 
     @create_trace_span(name="Storage.Blob.exists")
@@ -2344,7 +2348,6 @@ class Blob(_PropertyMixin):
             "upload.checksum": f"{checksum}",
         }
         args = {"timeout": timeout}
-        # import pdb; pdb.set_trace()
         with create_trace_span(
             name="Storage.ResumableUpload/transmitNextChunk",
             attributes=extra_attributes,
