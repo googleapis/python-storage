@@ -99,6 +99,14 @@ class MultipartUpload(_request_helpers.RequestsMixin, _upload.MultipartUpload):
             "crc32c", "auto", and None. The default is "auto", which will try
             to detect if the C extension for crc32c is installed and fall back
             to md5 otherwise.
+        retry (Optional[google.api_core.retry.Retry]): How to retry the
+            RPC. A None value will disable retries. A
+            google.api_core.retry.Retry value will enable retries, and the
+            object will configure backoff and timeout options.
+
+            See the retry.py source code and docstrings in this package
+            (google.cloud.storage.retry) for information on retry types and how
+            to configure them.
 
     Attributes:
         upload_url (str): The URL where the content will be uploaded.
@@ -335,6 +343,14 @@ class ResumableUpload(_request_helpers.RequestsMixin, _upload.ResumableUpload):
             host automatically. Supported values are "md5", "crc32c", "auto",
             and None. The default is "auto", which will try to detect if the C
             extension for crc32c is installed and fall back to md5 otherwise.
+        retry (Optional[google.api_core.retry.Retry]): How to retry the
+            RPC. A None value will disable retries. A
+            google.api_core.retry.Retry value will enable retries, and the
+            object will configure backoff and timeout options.
+
+            See the retry.py source code and docstrings in this package
+            (google.cloud.storage.retry) for information on retry types and how
+            to configure them.
 
     Attributes:
         upload_url (str): The URL where the content will be uploaded.
@@ -577,6 +593,14 @@ class XMLMPUContainer(_request_helpers.RequestsMixin, _upload.XMLMPUContainer):
             be sent with the :meth:`initiate` request, e.g. headers for
             encrypted data. These headers will be propagated to individual
             XMLMPUPart objects spawned from this container as well.
+        retry (Optional[google.api_core.retry.Retry]): How to retry the
+            RPC. A None value will disable retries. A
+            google.api_core.retry.Retry value will enable retries, and the
+            object will configure backoff and timeout options.
+
+            See the retry.py source code and docstrings in this package
+            (google.cloud.storage.retry) for information on retry types and how
+            to configure them.
 
     Attributes:
         upload_url (str): The URL where the content will be uploaded.
