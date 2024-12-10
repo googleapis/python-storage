@@ -32,14 +32,13 @@ from google.cloud.storage import Blob
 from google.cloud.storage.blob import _get_host_name
 from google.cloud.storage.blob import _quote
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
-from google.cloud.storage._helpers import _api_core_retry_to_resumable_media_retry
 from google.cloud.storage.retry import DEFAULT_RETRY
 
 import google_crc32c
 
-from google.resumable_media.requests.upload import XMLMPUContainer
-from google.resumable_media.requests.upload import XMLMPUPart
-from google.resumable_media.common import DataCorruption
+from google.cloud.storage._media.requests.upload import XMLMPUContainer
+from google.cloud.storage._media.requests.upload import XMLMPUPart
+from google.cloud.storage.exceptions import DataCorruption
 
 TM_DEFAULT_CHUNK_SIZE = 32 * 1024 * 1024
 DEFAULT_MAX_WORKERS = 8
@@ -866,9 +865,9 @@ def download_chunks_concurrently(
     :raises:
         :exc:`concurrent.futures.TimeoutError`
             if deadline is exceeded.
-        :exc:`google.resumable_media.common.DataCorruption`
+        :exc:`google.cloud.storage._media.common.DataCorruption`
             if the download's checksum doesn't agree with server-computed
-            checksum. The `google.resumable_media` exception is used here for
+            checksum. The `google.cloud.storage._media` exception is used here for
             consistency with other download methods despite the exception
             originating elsewhere.
     """
@@ -936,8 +935,8 @@ def download_chunks_concurrently(
         expected_checksum = blob.crc32c
         if actual_checksum != expected_checksum:
             # For consistency with other download methods we will use
-            # "google.resumable_media.common.DataCorruption" despite the error
-            # not originating inside google.resumable_media.
+            # "google.cloud.storage._media.common.DataCorruption" despite the error
+            # not originating inside google.cloud.storage._media.
             download_url = blob._get_download_url(
                 client,
                 if_generation_match=download_kwargs.get("if_generation_match"),
@@ -965,7 +964,7 @@ def upload_chunks_concurrently(
     worker_type=PROCESS,
     max_workers=DEFAULT_MAX_WORKERS,
     *,
-    checksum="md5",
+    checksum="auto",
     timeout=_DEFAULT_TIMEOUT,
     retry=DEFAULT_RETRY,
 ):
@@ -1051,12 +1050,14 @@ def upload_chunks_concurrently(
 
     :type checksum: str
     :param checksum:
-        (Optional) The checksum scheme to use: either "md5", "crc32c" or None.
-        Each individual part is checksummed. At present, the selected checksum
-        rule is only applied to parts and a separate checksum of the entire
-        resulting blob is not computed. Please compute and compare the checksum
-        of the file to the resulting blob separately if needed, using the
-        "crc32c" algorithm as per the XML MPU documentation.
+        (Optional) The checksum scheme to use: either "md5", "crc32c", "auto"
+        or None. The default is "auto", which will try to detect if the C
+        extension for crc32c is installed and fall back to md5 otherwise.
+        Each individual part is checksummed. At present, the selected
+        checksum rule is only applied to parts and a separate checksum of the
+        entire resulting blob is not computed. Please compute and compare the
+        checksum of the file to the resulting blob separately if needed, using
+        the "crc32c" algorithm as per the XML MPU documentation.
 
     :type timeout: float or tuple
     :param timeout:
@@ -1105,8 +1106,7 @@ def upload_chunks_concurrently(
     if blob.kms_key_name is not None and "cryptoKeyVersions" not in blob.kms_key_name:
         headers["x-goog-encryption-kms-key-name"] = blob.kms_key_name
 
-    container = XMLMPUContainer(url, filename, headers=headers)
-    container._retry_strategy = _api_core_retry_to_resumable_media_retry(retry)
+    container = XMLMPUContainer(url, filename, headers=headers, retry=retry)
 
     container.initiate(transport=transport, content_type=content_type)
     upload_id = container.upload_id
@@ -1188,8 +1188,8 @@ def _upload_part(
         part_number=part_number,
         checksum=checksum,
         headers=headers,
+        retry=retry,
     )
-    part._retry_strategy = _api_core_retry_to_resumable_media_retry(retry)
     part.upload(client._http)
     return (part_number, part.etag)
 

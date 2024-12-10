@@ -1779,7 +1779,7 @@ class TestClient(unittest.TestCase):
         return blob
 
     def test_download_blob_to_file_with_failure(self):
-        from google.resumable_media import InvalidResponse
+        from google.cloud.storage.exceptions import InvalidResponse
         from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 
         project = "PROJECT"
@@ -1816,7 +1816,7 @@ class TestClient(unittest.TestCase):
             None,
             None,
             False,
-            checksum="md5",
+            checksum="auto",
             timeout=_DEFAULT_TIMEOUT,
             retry=DEFAULT_RETRY,
         )
@@ -1837,7 +1837,7 @@ class TestClient(unittest.TestCase):
             _helpers, "_get_invocation_id", return_value=GCCL_INVOCATION_TEST_CONST
         ):
             with mock.patch(
-                "google.cloud.storage.client.Blob.from_string", return_value=blob
+                "google.cloud.storage.client.Blob.from_uri", return_value=blob
             ):
                 client.download_blob_to_file(
                     "gs://bucket_name/path/to/object", file_obj
@@ -1855,7 +1855,7 @@ class TestClient(unittest.TestCase):
             None,
             None,
             False,
-            checksum="md5",
+            checksum="auto",
             timeout=_DEFAULT_TIMEOUT,
             retry=DEFAULT_RETRY,
         )
@@ -1982,7 +1982,7 @@ class TestClient(unittest.TestCase):
             None,
             None,
             raw_download,
-            checksum="md5",
+            checksum="auto",
             timeout=_DEFAULT_TIMEOUT,
             retry=expected_retry,
         )
