@@ -4,6 +4,30 @@
 
 [1]: https://pypi.org/project/google-cloud-storage/#history
 
+## [2.20.0](https://github.com/googleapis/python-storage/compare/v2.19.0...v2.20.0) (2024-12-11)
+
+
+### Features
+
+* Add "auto" checksum option and make default ([#1383](https://github.com/googleapis/python-storage/issues/1383)) ([5375fa0](https://github.com/googleapis/python-storage/commit/5375fa07385c60cac694025aee123e20cb25bb65))
+* Download_to_filename deletes the empty file on a 404 ([#1394](https://github.com/googleapis/python-storage/issues/1394)) ([066be2d](https://github.com/googleapis/python-storage/commit/066be2db789cfd28d47d143ca0f7ccc9da183682))
+* Enable custom predicates for media operations ([#1385](https://github.com/googleapis/python-storage/issues/1385)) ([f3517bf](https://github.com/googleapis/python-storage/commit/f3517bfcb9e4ab8e4d761eb64a753e64b3d5871d))
+* Integrate google-resumable-media ([#1283](https://github.com/googleapis/python-storage/issues/1283)) ([bd917b4](https://github.com/googleapis/python-storage/commit/bd917b49d2a20e2e1edee2d32dc65b66da8d6aba))
+
+
+### Bug Fixes
+
+* Cancel upload when BlobWriter exits with exception ([#1243](https://github.com/googleapis/python-storage/issues/1243)) ([df107d2](https://github.com/googleapis/python-storage/commit/df107d20a772e9b955d9978cd4a7731869e92cbe))
+* Changed name of methods `Blob.from_string()` and `Bucket.from_string()` to `from_uri()` ([#1335](https://github.com/googleapis/python-storage/issues/1335)) ([58c1d03](https://github.com/googleapis/python-storage/commit/58c1d038198046665317a0d00eb9630608349476))
+* Correctly calculate starting offset for retries of ranged reads ([#1376](https://github.com/googleapis/python-storage/issues/1376)) ([7b6c9a0](https://github.com/googleapis/python-storage/commit/7b6c9a0fb3a79d713f951176a690f6e72c4d77c5))
+* Remove deprecated num_retries argument ([#1377](https://github.com/googleapis/python-storage/issues/1377)) ([58b5040](https://github.com/googleapis/python-storage/commit/58b5040933d4b21e0be94357ed5aa14c87969f73))
+* Remove deprecated text_mode argument ([#1379](https://github.com/googleapis/python-storage/issues/1379)) ([4d20a8e](https://github.com/googleapis/python-storage/commit/4d20a8efa8cf37bb7f099b20a8c352c9a0c42659))
+
+
+### Documentation
+
+* Fix issue with exceptions.py documentation ([#1328](https://github.com/googleapis/python-storage/issues/1328)) ([22b8c30](https://github.com/googleapis/python-storage/commit/22b8c304afc7199fbc2dec448a4a3c5eba7d4e3a))
+
 ## [2.19.0](https://github.com/googleapis/python-storage/compare/v2.18.2...v2.19.0) (2024-11-21)
 
 
