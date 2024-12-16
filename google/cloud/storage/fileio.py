@@ -297,7 +297,7 @@ class BlobWriter(io.BufferedIOBase):
         blob,
         chunk_size=None,
         ignore_flush=False,
-        retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+        retry=DEFAULT_RETRY,
         **upload_kwargs,
     ):
         for kwarg in upload_kwargs:
