@@ -901,7 +901,7 @@ class Test_Blob(unittest.TestCase):
                     None,
                     None,
                     None,
-                    DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+                    DEFAULT_RETRY,
                 )
             ],
         )
@@ -928,7 +928,7 @@ class Test_Blob(unittest.TestCase):
                     None,
                     None,
                     None,
-                    DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+                    DEFAULT_RETRY,
                 )
             ],
         )
@@ -955,7 +955,7 @@ class Test_Blob(unittest.TestCase):
                     None,
                     None,
                     None,
-                    DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+                    DEFAULT_RETRY,
                 )
             ],
         )
@@ -3394,8 +3394,7 @@ class Test_Blob(unittest.TestCase):
         if_generation_not_match = kwargs.get("if_generation_not_match", None)
         if_metageneration_match = kwargs.get("if_metageneration_match", None)
         if_metageneration_not_match = kwargs.get("if_metageneration_not_match", None)
-        default_retry = DEFAULT_RETRY_IF_GENERATION_SPECIFIED
-        retry = kwargs.get("retry", default_retry)
+        retry = kwargs.get("retry", DEFAULT_RETRY)
         ret_val = blob.upload_from_file(
             stream,
             size=len(data),
@@ -3485,7 +3484,7 @@ class Test_Blob(unittest.TestCase):
 
         expected_timeout = self._get_default_timeout() if timeout is None else timeout
         if not retry:
-            retry = DEFAULT_RETRY_IF_GENERATION_SPECIFIED
+            retry = DEFAULT_RETRY
         self.assertEqual(
             kwargs,
             {
@@ -3617,6 +3616,8 @@ class Test_Blob(unittest.TestCase):
         extra_kwargs = {}
         if "retry" in kwargs:
             extra_kwargs["retry"] = kwargs["retry"]
+        else:
+            extra_kwargs["retry"] = DEFAULT_RETRY
         # Check the mock.
         payload = _to_bytes(data, encoding="utf-8")
         stream = self._do_upload_mock_call_helper(
