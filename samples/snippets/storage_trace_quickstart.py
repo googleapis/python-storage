@@ -31,7 +31,7 @@ def run_quickstart(bucket_name, blob_name, contents):
     )
     from opentelemetry.sdk.trace import TracerProvider
     from opentelemetry.sdk.trace.export import BatchSpanProcessor
-    from opentelemetry.sdk.trace.sampling import TraceIdRatioBased
+    from opentelemetry.sdk.trace.sampling import ALWAYS_ON
     # Optional: Enable traces emitted from the requests HTTP library.
     from opentelemetry.instrumentation.requests import RequestsInstrumentor
 
@@ -48,11 +48,11 @@ def run_quickstart(bucket_name, blob_name, contents):
     # traces: https://cloud.google.com/trace/docs/setup/python-ot
     # Choose and configure the exporter for your set up accordingly.
 
-    # Configure the sampling rate to control trace ingestion volume.
-    # Trace sampling rate must be in the range [0.0,1.0].
-    tracing_rate = 1.0
     tracer_provider = TracerProvider(
-        sampler=TraceIdRatioBased(tracing_rate),
+        # Sampling is set to ALWAYS_ON.
+        # It is recommended to sample based on a ratio to control trace ingestion volume,
+        # for instance, sampler=TraceIdRatioBased(0.2)
+        sampler=ALWAYS_ON,
         resource=GoogleCloudResourceDetector().detect(),
     )
 
