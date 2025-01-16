@@ -37,6 +37,8 @@
         {"name": "storage.objects.get",                   "resources": ["BUCKET", "OBJECT"]},
         {"name": "storage.objects.list",                  "resources": ["BUCKET", "OBJECT"]},
         {"name": "storage.objects.delete",                "resources": ["BUCKET", "OBJECT"]},
+        {"name": "storage.objects.insert",                "resources": ["BUCKET"]},
+        {"name": "storage.objects.patch",                 "resources": ["BUCKET", "OBJECT"]},
         {"name": "storage.serviceaccount.get",            "resources": []}
       ],
       "preconditionProvided": false,
