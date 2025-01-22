@@ -34,13 +34,12 @@ from urllib.parse import urlsplit
 from urllib.parse import urlunsplit
 import warnings
 
-from google import resumable_media
-from google.resumable_media.requests import ChunkedDownload
-from google.resumable_media.requests import Download
-from google.resumable_media.requests import RawDownload
-from google.resumable_media.requests import RawChunkedDownload
-from google.resumable_media.requests import MultipartUpload
-from google.resumable_media.requests import ResumableUpload
+from google.cloud.storage._media.requests import ChunkedDownload
+from google.cloud.storage._media.requests import Download
+from google.cloud.storage._media.requests import RawDownload
+from google.cloud.storage._media.requests import RawChunkedDownload
+from google.cloud.storage._media.requests import MultipartUpload
+from google.cloud.storage._media.requests import ResumableUpload
 
 from google.api_core.iam import Policy
 from google.cloud import exceptions
@@ -55,12 +54,10 @@ from google.cloud.storage._helpers import _PropertyMixin
 from google.cloud.storage._helpers import _scalar_property
 from google.cloud.storage._helpers import _bucket_bound_hostname_url
 from google.cloud.storage._helpers import _raise_if_more_than_one_set
-from google.cloud.storage._helpers import _api_core_retry_to_resumable_media_retry
 from google.cloud.storage._helpers import _get_default_headers
 from google.cloud.storage._helpers import _get_default_storage_base_url
 from google.cloud.storage._signing import generate_signed_url_v2
 from google.cloud.storage._signing import generate_signed_url_v4
-from google.cloud.storage._helpers import _NUM_RETRIES_MESSAGE
 from google.cloud.storage._helpers import _API_VERSION
 from google.cloud.storage._helpers import _virtual_hosted_style_base_url
 from google.cloud.storage._opentelemetry_tracing import create_trace_span
@@ -73,6 +70,8 @@ from google.cloud.storage.constants import MULTI_REGIONAL_LEGACY_STORAGE_CLASS
 from google.cloud.storage.constants import NEARLINE_STORAGE_CLASS
 from google.cloud.storage.constants import REGIONAL_LEGACY_STORAGE_CLASS
 from google.cloud.storage.constants import STANDARD_STORAGE_CLASS
+from google.cloud.storage.exceptions import DataCorruption
+from google.cloud.storage.exceptions import InvalidResponse
 from google.cloud.storage.retry import ConditionalRetryPolicy
 from google.cloud.storage.retry import DEFAULT_RETRY
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_ETAG_IN_JSON
@@ -135,6 +134,10 @@ _COMPOSE_IF_SOURCE_GENERATION_MISMATCH_ERROR = (
 _DOWNLOAD_AS_STRING_DEPRECATED = (
     "Blob.download_as_string() is deprecated and will be removed in future. "
     "Use Blob.download_as_bytes() instead."
+)
+_FROM_STRING_DEPRECATED = (
+    "Blob.from_string() is deprecated and will be removed in future. "
+    "Use Blob.from_uri() instead."
 )
 _GS_URL_REGEX_PATTERN = re.compile(
     r"(?P<scheme>gs)://(?P<bucket_name>[a-z0-9_.-]+)/(?P<object_name>.+)"
@@ -388,7 +391,7 @@ class Blob(_PropertyMixin):
         )
 
     @classmethod
-    def from_string(cls, uri, client=None):
+    def from_uri(cls, uri, client=None):
         """Get a constructor for blob object by URI.
 
         .. code-block:: python
@@ -396,7 +399,7 @@ class Blob(_PropertyMixin):
             from google.cloud import storage
             from google.cloud.storage.blob import Blob
             client = storage.Client()
-            blob = Blob.from_string("gs://bucket/object", client=client)
+            blob = Blob.from_uri("gs://bucket/object", client=client)
 
         :type uri: str
         :param uri: The blob uri following a gs://bucket/object pattern.
@@ -417,6 +420,35 @@ class Blob(_PropertyMixin):
             raise ValueError("URI pattern must be gs://bucket/object")
         bucket = Bucket(client, name=match.group("bucket_name"))
         return cls(match.group("object_name"), bucket)
+
+    @classmethod
+    def from_string(cls, uri, client=None):
+        """(Deprecated) Get a constructor for blob object by URI.
+
+        .. note::
+           Deprecated alias for :meth:`from_uri`.
+
+        .. code-block:: python
+
+            from google.cloud import storage
+            from google.cloud.storage.blob import Blob
+            client = storage.Client()
+            blob = Blob.from_string("gs://bucket/object", client=client)
+
+        :type uri: str
+        :param uri: The blob uri following a gs://bucket/object pattern.
+          Both a bucket and object name is required to construct a blob object.
+
+        :type client: :class:`~google.cloud.storage.client.Client`
+        :param client:
+            (Optional) The client to use.  Application code should
+            *always* pass ``client``.
+
+        :rtype: :class:`google.cloud.storage.blob.Blob`
+        :returns: The blob object created.
+        """
+        warnings.warn(_FROM_STRING_DEPRECATED, PendingDeprecationWarning, stacklevel=2)
+        return Blob.from_uri(uri=uri, client=client)
 
     def generate_signed_url(
         self,
@@ -945,8 +977,8 @@ class Blob(_PropertyMixin):
         end=None,
         raw_download=False,
         timeout=_DEFAULT_TIMEOUT,
-        checksum="md5",
-        retry=None,
+        checksum="auto",
+        retry=DEFAULT_RETRY,
     ):
         """Perform a download without any error handling.
 
@@ -991,15 +1023,14 @@ class Blob(_PropertyMixin):
             instance in the case of transcoded or ranged downloads where the
             remote service does not know the correct checksum, including
             downloads where chunk_size is set) an INFO-level log will be
-            emitted. Supported values are "md5", "crc32c" and None. The default
-            is "md5".
+            emitted. Supported values are "md5", "crc32c", "auto" and None. The
+            default is "auto", which will try to detect if the C extension for
+            crc32c is installed and fall back to md5 otherwise.
 
         :type retry: google.api_core.retry.Retry
         :param retry: (Optional) How to retry the RPC. A None value will disable
             retries. A google.api_core.retry.Retry value will enable retries,
-            and the object will configure backoff and timeout options. Custom
-            predicates (customizable error codes) are not supported for media
-            operations such as this one.
+            and the object will configure backoff and timeout options.
 
             This private method does not accept ConditionalRetryPolicy values
             because the information necessary to evaluate the policy is instead
@@ -1009,8 +1040,6 @@ class Blob(_PropertyMixin):
             (google.cloud.storage.retry) for information on retry types and how
             to configure them.
         """
-
-        retry_strategy = _api_core_retry_to_resumable_media_retry(retry)
 
         extra_attributes = {
             "url.full": download_url,
@@ -1035,8 +1064,8 @@ class Blob(_PropertyMixin):
                 start=start,
                 end=end,
                 checksum=checksum,
+                retry=retry,
             )
-            download._retry_strategy = retry_strategy
             with create_trace_span(
                 name=f"Storage.{download_class}/consume",
                 attributes=extra_attributes,
@@ -1063,9 +1092,9 @@ class Blob(_PropertyMixin):
                 headers=headers,
                 start=start if start else 0,
                 end=end,
+                retry=retry,
             )
 
-            download._retry_strategy = retry_strategy
             with create_trace_span(
                 name=f"Storage.{download_class}/consumeNextChunk",
                 attributes=extra_attributes,
@@ -1089,7 +1118,7 @@ class Blob(_PropertyMixin):
         if_metageneration_match=None,
         if_metageneration_not_match=None,
         timeout=_DEFAULT_TIMEOUT,
-        checksum="md5",
+        checksum="auto",
         retry=DEFAULT_RETRY,
     ):
         """Download the contents of this blob into a file-like object.
@@ -1165,8 +1194,9 @@ class Blob(_PropertyMixin):
             instance in the case of transcoded or ranged downloads where the
             remote service does not know the correct checksum, including
             downloads where chunk_size is set) an INFO-level log will be
-            emitted. Supported values are "md5", "crc32c" and None. The default
-            is "md5".
+            emitted. Supported values are "md5", "crc32c", "auto" and None. The
+            default is "auto", which will try to detect if the C extension for
+            crc32c is installed and fall back to md5 otherwise.
 
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
         :param retry: (Optional) How to retry the RPC. A None value will disable
@@ -1184,11 +1214,6 @@ class Blob(_PropertyMixin):
             See the retry.py source code and docstrings in this package
             (google.cloud.storage.retry) for information on retry types and how
             to configure them.
-
-            Media operations (downloads and uploads) do not support non-default
-            predicates in a Retry object. The default will always be used. Other
-            configuration changes for Retry objects such as delays and deadlines
-            are respected.
 
         :raises: :class:`google.cloud.exceptions.NotFound`
         """
@@ -1227,8 +1252,8 @@ class Blob(_PropertyMixin):
                     **kwargs,
                 )
 
-        except resumable_media.DataCorruption:
-            # Delete the corrupt downloaded file.
+        except (DataCorruption, NotFound):
+            # Delete the corrupt or empty downloaded file.
             os.remove(filename)
             raise
 
@@ -1252,7 +1277,7 @@ class Blob(_PropertyMixin):
         if_metageneration_match=None,
         if_metageneration_not_match=None,
         timeout=_DEFAULT_TIMEOUT,
-        checksum="md5",
+        checksum="auto",
         retry=DEFAULT_RETRY,
     ):
         """Download the contents of this blob into a named file.
@@ -1318,8 +1343,9 @@ class Blob(_PropertyMixin):
             instance in the case of transcoded or ranged downloads where the
             remote service does not know the correct checksum, including
             downloads where chunk_size is set) an INFO-level log will be
-            emitted. Supported values are "md5", "crc32c" and None. The default
-            is "md5".
+            emitted. Supported values are "md5", "crc32c", "auto" and None. The
+            default is "auto", which will try to detect if the C extension for
+            crc32c is installed and fall back to md5 otherwise.
 
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
         :param retry: (Optional) How to retry the RPC. A None value will disable
@@ -1337,11 +1363,6 @@ class Blob(_PropertyMixin):
             See the retry.py source code and docstrings in this package
             (google.cloud.storage.retry) for information on retry types and how
             to configure them.
-
-            Media operations (downloads and uploads) do not support non-default
-            predicates in a Retry object. The default will always be used. Other
-            configuration changes for Retry objects such as delays and deadlines
-            are respected.
 
         :raises: :class:`google.cloud.exceptions.NotFound`
         """
@@ -1377,7 +1398,7 @@ class Blob(_PropertyMixin):
         if_metageneration_match=None,
         if_metageneration_not_match=None,
         timeout=_DEFAULT_TIMEOUT,
-        checksum="md5",
+        checksum="auto",
         retry=DEFAULT_RETRY,
     ):
         """Download the contents of this blob as a bytes object.
@@ -1437,8 +1458,9 @@ class Blob(_PropertyMixin):
             instance in the case of transcoded or ranged downloads where the
             remote service does not know the correct checksum, including
             downloads where chunk_size is set) an INFO-level log will be
-            emitted. Supported values are "md5", "crc32c" and None. The default
-            is "md5".
+            emitted. Supported values are "md5", "crc32c", "auto" and None. The
+            default is "auto", which will try to detect if the C extension for
+            crc32c is installed and fall back to md5 otherwise.
 
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
         :param retry: (Optional) How to retry the RPC. A None value will disable
@@ -1456,11 +1478,6 @@ class Blob(_PropertyMixin):
             See the retry.py source code and docstrings in this package
             (google.cloud.storage.retry) for information on retry types and how
             to configure them.
-
-            Media operations (downloads and uploads) do not support non-default
-            predicates in a Retry object. The default will always be used. Other
-            configuration changes for Retry objects such as delays and deadlines
-            are respected.
 
         :rtype: bytes
         :returns: The data stored in this blob.
@@ -1573,11 +1590,6 @@ class Blob(_PropertyMixin):
             (google.cloud.storage.retry) for information on retry types and how
             to configure them.
 
-            Media operations (downloads and uploads) do not support non-default
-            predicates in a Retry object. The default will always be used. Other
-            configuration changes for Retry objects such as delays and deadlines
-            are respected.
-
         :rtype: bytes
         :returns: The data stored in this blob.
 
@@ -1688,11 +1700,6 @@ class Blob(_PropertyMixin):
             See the retry.py source code and docstrings in this package
             (google.cloud.storage.retry) for information on retry types and how
             to configure them.
-
-            Media operations (downloads and uploads) do not support non-default
-            predicates in a Retry object. The default will always be used. Other
-            configuration changes for Retry objects such as delays and deadlines
-            are respected.
 
         :rtype: text
         :returns: The data stored in this blob, decoded to text.
@@ -1829,14 +1836,13 @@ class Blob(_PropertyMixin):
         stream,
         content_type,
         size,
-        num_retries,
         predefined_acl,
         if_generation_match,
         if_generation_not_match,
         if_metageneration_match,
         if_metageneration_not_match,
         timeout=_DEFAULT_TIMEOUT,
-        checksum=None,
+        checksum="auto",
         retry=None,
         command=None,
     ):
@@ -1865,15 +1871,6 @@ class Blob(_PropertyMixin):
             The number of bytes to be uploaded (which will be read from
             ``stream``). If not provided, the upload will be concluded once
             ``stream`` is exhausted (or :data:`None`).
-
-        :type num_retries: int
-        :param num_retries:
-            Number of upload retries. By default, only uploads with
-            if_generation_match set will be retried, as uploads without the
-            argument are not guaranteed to be idempotent. Setting num_retries
-            will override this default behavior and guarantee retries even when
-            if_generation_match is not set.  (Deprecated: This argument
-            will be removed in a future release.)
 
         :type predefined_acl: str
         :param predefined_acl: (Optional) Predefined access control list
@@ -1904,15 +1901,14 @@ class Blob(_PropertyMixin):
             (Optional) The type of checksum to compute to verify
             the integrity of the object. The request metadata will be amended
             to include the computed value. Using this option will override a
-            manually-set checksum value. Supported values are "md5",
-            "crc32c" and None. The default is None.
-
+            manually-set checksum value. Supported values are "md5", "crc32c",
+            "auto" and None. The default is "auto", which will try to detect if
+            the C extension for crc32c is installed and fall back to md5
+            otherwise.
         :type retry: google.api_core.retry.Retry
         :param retry: (Optional) How to retry the RPC. A None value will disable
             retries. A google.api_core.retry.Retry value will enable retries,
-            and the object will configure backoff and timeout options. Custom
-            predicates (customizable error codes) are not supported for media
-            operations such as this one.
+            and the object will configure backoff and timeout options.
 
             This private method does not accept ConditionalRetryPolicy values
             because the information necessary to evaluate the policy is instead
@@ -1987,10 +1983,8 @@ class Blob(_PropertyMixin):
             )
 
         upload_url = _add_query_parameters(base_url, name_value_pairs)
-        upload = MultipartUpload(upload_url, headers=headers, checksum=checksum)
-
-        upload._retry_strategy = _api_core_retry_to_resumable_media_retry(
-            retry, num_retries
+        upload = MultipartUpload(
+            upload_url, headers=headers, checksum=checksum, retry=retry
         )
 
         extra_attributes = {
@@ -2016,7 +2010,6 @@ class Blob(_PropertyMixin):
         stream,
         content_type,
         size,
-        num_retries,
         predefined_acl=None,
         extra_headers=None,
         chunk_size=None,
@@ -2025,7 +2018,7 @@ class Blob(_PropertyMixin):
         if_metageneration_match=None,
         if_metageneration_not_match=None,
         timeout=_DEFAULT_TIMEOUT,
-        checksum=None,
+        checksum="auto",
         retry=None,
         command=None,
     ):
@@ -2058,15 +2051,6 @@ class Blob(_PropertyMixin):
         :type predefined_acl: str
         :param predefined_acl: (Optional) Predefined access control list
 
-        :type num_retries: int
-        :param num_retries:
-            Number of upload retries. By default, only uploads with
-            if_generation_match set will be retried, as uploads without the
-            argument are not guaranteed to be idempotent. Setting num_retries
-            will override this default behavior and guarantee retries even when
-            if_generation_match is not set.  (Deprecated: This argument
-            will be removed in a future release.)
-
         :type extra_headers: dict
         :param extra_headers:
             (Optional) Extra headers to add to standard headers.
@@ -2074,7 +2058,7 @@ class Blob(_PropertyMixin):
         :type chunk_size: int
         :param chunk_size:
             (Optional) Chunk size to use when creating a
-            :class:`~google.resumable_media.requests.ResumableUpload`.
+            :class:`~google.cloud.storage._media.requests.ResumableUpload`.
             If not passed, will fall back to the chunk size on the
             current blob, if the chunk size of a current blob is also
             `None`, will set the default value.
@@ -2106,17 +2090,17 @@ class Blob(_PropertyMixin):
             (Optional) The type of checksum to compute to verify
             the integrity of the object. After the upload is complete, the
             server-computed checksum of the resulting object will be checked
-            and google.resumable_media.common.DataCorruption will be raised on
+            and google.cloud.storage.exceptions.DataCorruption will be raised on
             a mismatch. On a validation failure, the client will attempt to
-            delete the uploaded object automatically. Supported values
-            are "md5", "crc32c" and None. The default is None.
+            delete the uploaded object automatically. Supported values are
+            "md5", "crc32c", "auto" and None. The default is "auto", which will
+            try to detect if the C extension for crc32c is installed and fall
+            back to md5 otherwise.
 
         :type retry: google.api_core.retry.Retry
         :param retry: (Optional) How to retry the RPC. A None value will disable
             retries. A google.api_core.retry.Retry value will enable retries,
-            and the object will configure backoff and timeout options. Custom
-            predicates (customizable error codes) are not supported for media
-            operations such as this one.
+            and the object will configure backoff and timeout options.
 
             This private method does not accept ConditionalRetryPolicy values
             because the information necessary to evaluate the policy is instead
@@ -2136,7 +2120,7 @@ class Blob(_PropertyMixin):
         :returns:
             Pair of
 
-            * The :class:`~google.resumable_media.requests.ResumableUpload`
+            * The :class:`~google.cloud.storage._media.requests.ResumableUpload`
               that was created
             * The ``transport`` used to initiate the upload.
         """
@@ -2193,11 +2177,7 @@ class Blob(_PropertyMixin):
 
         upload_url = _add_query_parameters(base_url, name_value_pairs)
         upload = ResumableUpload(
-            upload_url, chunk_size, headers=headers, checksum=checksum
-        )
-
-        upload._retry_strategy = _api_core_retry_to_resumable_media_retry(
-            retry, num_retries
+            upload_url, chunk_size, headers=headers, checksum=checksum, retry=retry
         )
 
         upload.initiate(
@@ -2218,14 +2198,13 @@ class Blob(_PropertyMixin):
         stream,
         content_type,
         size,
-        num_retries,
         predefined_acl,
         if_generation_match,
         if_generation_not_match,
         if_metageneration_match,
         if_metageneration_not_match,
         timeout=_DEFAULT_TIMEOUT,
-        checksum=None,
+        checksum="auto",
         retry=None,
         command=None,
     ):
@@ -2258,15 +2237,6 @@ class Blob(_PropertyMixin):
             ``stream``). If not provided, the upload will be concluded once
             ``stream`` is exhausted (or :data:`None`).
 
-        :type num_retries: int
-        :param num_retries:
-            Number of upload retries. By default, only uploads with
-            if_generation_match set will be retried, as uploads without the
-            argument are not guaranteed to be idempotent. Setting num_retries
-            will override this default behavior and guarantee retries even when
-            if_generation_match is not set.  (Deprecated: This argument
-            will be removed in a future release.)
-
         :type predefined_acl: str
         :param predefined_acl: (Optional) Predefined access control list
 
@@ -2296,17 +2266,17 @@ class Blob(_PropertyMixin):
             (Optional) The type of checksum to compute to verify
             the integrity of the object. After the upload is complete, the
             server-computed checksum of the resulting object will be checked
-            and google.resumable_media.common.DataCorruption will be raised on
+            and google.cloud.storage.exceptions.DataCorruption will be raised on
             a mismatch. On a validation failure, the client will attempt to
-            delete the uploaded object automatically. Supported values
-            are "md5", "crc32c" and None. The default is None.
+            delete the uploaded object automatically. Supported values are
+            "md5", "crc32c", "auto" and None. The default is "auto", which will
+            try to detect if the C extension for crc32c is installed and fall
+            back to md5 otherwise.
 
         :type retry: google.api_core.retry.Retry
         :param retry: (Optional) How to retry the RPC. A None value will disable
             retries. A google.api_core.retry.Retry value will enable retries,
-            and the object will configure backoff and timeout options. Custom
-            predicates (customizable error codes) are not supported for media
-            operations such as this one.
+            and the object will configure backoff and timeout options.
 
             This private method does not accept ConditionalRetryPolicy values
             because the information necessary to evaluate the policy is instead
@@ -2331,7 +2301,6 @@ class Blob(_PropertyMixin):
             stream,
             content_type,
             size,
-            num_retries,
             predefined_acl=predefined_acl,
             if_generation_match=if_generation_match,
             if_generation_not_match=if_generation_not_match,
@@ -2357,7 +2326,7 @@ class Blob(_PropertyMixin):
             while not upload.finished:
                 try:
                     response = upload.transmit_next_chunk(transport, timeout=timeout)
-                except resumable_media.DataCorruption:
+                except DataCorruption:
                     # Attempt to delete the corrupted object.
                     self.delete()
                     raise
@@ -2369,14 +2338,13 @@ class Blob(_PropertyMixin):
         stream,
         content_type,
         size,
-        num_retries,
         predefined_acl,
         if_generation_match,
         if_generation_not_match,
         if_metageneration_match,
         if_metageneration_not_match,
         timeout=_DEFAULT_TIMEOUT,
-        checksum=None,
+        checksum="auto",
         retry=None,
         command=None,
     ):
@@ -2410,15 +2378,6 @@ class Blob(_PropertyMixin):
             ``stream``). If not provided, the upload will be concluded once
             ``stream`` is exhausted (or :data:`None`).
 
-        :type num_retries: int
-        :param num_retries:
-            Number of upload retries. By default, only uploads with
-            if_generation_match set will be retried, as uploads without the
-            argument are not guaranteed to be idempotent. Setting num_retries
-            will override this default behavior and guarantee retries even when
-            if_generation_match is not set.  (Deprecated: This argument
-            will be removed in a future release.)
-
         :type predefined_acl: str
         :param predefined_acl: (Optional) Predefined access control list
 
@@ -2452,9 +2411,11 @@ class Blob(_PropertyMixin):
             is too large and must be transmitted in multiple requests, the
             checksum will be incrementally computed and the client will handle
             verification and error handling, raising
-            google.resumable_media.common.DataCorruption on a mismatch and
+            google.cloud.storage.exceptions.DataCorruption on a mismatch and
             attempting to delete the corrupted file. Supported values are
-            "md5", "crc32c" and None. The default is None.
+            "md5", "crc32c", "auto" and None. The default is "auto", which will
+            try to detect if the C extension for crc32c is installed and fall
+            back to md5 otherwise.
 
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
         :param retry: (Optional) How to retry the RPC. A None value will disable
@@ -2472,11 +2433,6 @@ class Blob(_PropertyMixin):
             See the retry.py source code and docstrings in this package
             (google.cloud.storage.retry) for information on retry types and how
             to configure them.
-
-            Media operations (downloads and uploads) do not support non-default
-            predicates in a Retry object. The default will always be used. Other
-            configuration changes for Retry objects such as delays and deadlines
-            are respected.
 
         :type command: str
         :param command:
@@ -2508,7 +2464,6 @@ class Blob(_PropertyMixin):
                 stream,
                 content_type,
                 size,
-                num_retries,
                 predefined_acl,
                 if_generation_match,
                 if_generation_not_match,
@@ -2525,7 +2480,6 @@ class Blob(_PropertyMixin):
                 stream,
                 content_type,
                 size,
-                num_retries,
                 predefined_acl,
                 if_generation_match,
                 if_generation_not_match,
@@ -2545,7 +2499,6 @@ class Blob(_PropertyMixin):
         rewind=False,
         size=None,
         content_type=None,
-        num_retries=None,
         client=None,
         predefined_acl=None,
         if_generation_match=None,
@@ -2553,7 +2506,7 @@ class Blob(_PropertyMixin):
         if_metageneration_match=None,
         if_metageneration_not_match=None,
         timeout=_DEFAULT_TIMEOUT,
-        checksum=None,
+        checksum="auto",
         retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
         command=None,
     ):
@@ -2603,15 +2556,6 @@ class Blob(_PropertyMixin):
         :type content_type: str
         :param content_type: (Optional) Type of content being uploaded.
 
-        :type num_retries: int
-        :param num_retries:
-            Number of upload retries. By default, only uploads with
-            if_generation_match set will be retried, as uploads without the
-            argument are not guaranteed to be idempotent. Setting num_retries
-            will override this default behavior and guarantee retries even when
-            if_generation_match is not set.  (Deprecated: This argument
-            will be removed in a future release.)
-
         :type client: :class:`~google.cloud.storage.client.Client`
         :param client:
             (Optional) The client to use.  If not passed, falls back to the
@@ -2650,9 +2594,11 @@ class Blob(_PropertyMixin):
             is too large and must be transmitted in multiple requests, the
             checksum will be incrementally computed and the client will handle
             verification and error handling, raising
-            google.resumable_media.common.DataCorruption on a mismatch and
+            google.cloud.storage.exceptions.DataCorruption on a mismatch and
             attempting to delete the corrupted file. Supported values are
-            "md5", "crc32c" and None. The default is None.
+            "md5", "crc32c", "auto" and None. The default is "auto", which will
+            try to detect if the C extension for crc32c is installed and fall
+            back to md5 otherwise.
 
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
         :param retry: (Optional) How to retry the RPC. A None value will disable
@@ -2671,11 +2617,6 @@ class Blob(_PropertyMixin):
             (google.cloud.storage.retry) for information on retry types and how
             to configure them.
 
-            Media operations (downloads and uploads) do not support non-default
-            predicates in a Retry object. The default will always be used. Other
-            configuration changes for Retry objects such as delays and deadlines
-            are respected.
-
         :type command: str
         :param command:
             (Optional) Information about which interface for upload was used,
@@ -2685,14 +2626,6 @@ class Blob(_PropertyMixin):
         :raises: :class:`~google.cloud.exceptions.GoogleCloudError`
                  if the upload response returns an error status.
         """
-        if num_retries is not None:
-            warnings.warn(_NUM_RETRIES_MESSAGE, DeprecationWarning, stacklevel=2)
-            # num_retries and retry are mutually exclusive. If num_retries is
-            # set and retry is exactly the default, then nullify retry for
-            # backwards compatibility.
-            if retry is DEFAULT_RETRY_IF_GENERATION_SPECIFIED:
-                retry = None
-
         _maybe_rewind(file_obj, rewind=rewind)
         predefined_acl = ACL.validate_predefined(predefined_acl)
 
@@ -2702,7 +2635,6 @@ class Blob(_PropertyMixin):
                 file_obj,
                 content_type,
                 size,
-                num_retries,
                 predefined_acl,
                 if_generation_match,
                 if_generation_not_match,
@@ -2714,7 +2646,7 @@ class Blob(_PropertyMixin):
                 command=command,
             )
             self._set_properties(created_json)
-        except resumable_media.InvalidResponse as exc:
+        except InvalidResponse as exc:
             _raise_from_invalid_response(exc)
 
     @create_trace_span(name="Storage.Blob.uploadFromFile")
@@ -2724,7 +2656,6 @@ class Blob(_PropertyMixin):
         rewind=False,
         size=None,
         content_type=None,
-        num_retries=None,
         client=None,
         predefined_acl=None,
         if_generation_match=None,
@@ -2732,7 +2663,7 @@ class Blob(_PropertyMixin):
         if_metageneration_match=None,
         if_metageneration_not_match=None,
         timeout=_DEFAULT_TIMEOUT,
-        checksum=None,
+        checksum="auto",
         retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
     ):
         """Upload the contents of this blob from a file-like object.
@@ -2781,15 +2712,6 @@ class Blob(_PropertyMixin):
         :type content_type: str
         :param content_type: (Optional) Type of content being uploaded.
 
-        :type num_retries: int
-        :param num_retries:
-            Number of upload retries. By default, only uploads with
-            if_generation_match set will be retried, as uploads without the
-            argument are not guaranteed to be idempotent. Setting num_retries
-            will override this default behavior and guarantee retries even when
-            if_generation_match is not set.  (Deprecated: This argument
-            will be removed in a future release.)
-
         :type client: :class:`~google.cloud.storage.client.Client`
         :param client:
             (Optional) The client to use.  If not passed, falls back to the
@@ -2828,9 +2750,11 @@ class Blob(_PropertyMixin):
             is too large and must be transmitted in multiple requests, the
             checksum will be incrementally computed and the client will handle
             verification and error handling, raising
-            google.resumable_media.common.DataCorruption on a mismatch and
+            google.cloud.storage.exceptions.DataCorruption on a mismatch and
             attempting to delete the corrupted file. Supported values are
-            "md5", "crc32c" and None. The default is None.
+            "md5", "crc32c", "auto" and None. The default is "auto", which will
+            try to detect if the C extension for crc32c is installed and fall
+            back to md5 otherwise.
 
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
         :param retry: (Optional) How to retry the RPC.
@@ -2841,10 +2765,6 @@ class Blob(_PropertyMixin):
             to enable retries regardless of generation precondition setting.
             See [Configuring Retries](https://cloud.google.com/python/docs/reference/storage/latest/retry_timeout).
 
-            Media operations (downloads and uploads) do not support non-default
-            predicates in a Retry object. Other configuration changes for Retry objects
-            such as delays and deadlines are respected.
-
         :raises: :class:`~google.cloud.exceptions.GoogleCloudError`
                  if the upload response returns an error status.
         """
@@ -2853,7 +2773,6 @@ class Blob(_PropertyMixin):
             rewind=rewind,
             size=size,
             content_type=content_type,
-            num_retries=num_retries,
             client=client,
             predefined_acl=predefined_acl,
             if_generation_match=if_generation_match,
@@ -2894,7 +2813,6 @@ class Blob(_PropertyMixin):
         self,
         filename,
         content_type=None,
-        num_retries=None,
         client=None,
         predefined_acl=None,
         if_generation_match=None,
@@ -2902,7 +2820,7 @@ class Blob(_PropertyMixin):
         if_metageneration_match=None,
         if_metageneration_not_match=None,
         timeout=_DEFAULT_TIMEOUT,
-        checksum=None,
+        checksum="auto",
         retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
     ):
         """Upload this blob's contents from the content of a named file.
@@ -2943,15 +2861,6 @@ class Blob(_PropertyMixin):
             (Optional) The client to use.  If not passed, falls back to the
             ``client`` stored on the blob's bucket.
 
-        :type num_retries: int
-        :param num_retries:
-            Number of upload retries. By default, only uploads with
-            if_generation_match set will be retried, as uploads without the
-            argument are not guaranteed to be idempotent. Setting num_retries
-            will override this default behavior and guarantee retries even when
-            if_generation_match is not set.  (Deprecated: This argument
-            will be removed in a future release.)
-
         :type predefined_acl: str
         :param predefined_acl: (Optional) Predefined access control list
 
@@ -2985,9 +2894,11 @@ class Blob(_PropertyMixin):
             is too large and must be transmitted in multiple requests, the
             checksum will be incrementally computed and the client will handle
             verification and error handling, raising
-            google.resumable_media.common.DataCorruption on a mismatch and
+            google.cloud.storage.exceptions.DataCorruption on a mismatch and
             attempting to delete the corrupted file. Supported values are
-            "md5", "crc32c" and None. The default is None.
+            "md5", "crc32c", "auto" and None. The default is "auto", which will
+            try to detect if the C extension for crc32c is installed and fall
+            back to md5 otherwise.
 
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
         :param retry: (Optional) How to retry the RPC.
@@ -2997,16 +2908,11 @@ class Blob(_PropertyMixin):
             Change the value to ``DEFAULT_RETRY`` or another `google.api_core.retry.Retry` object
             to enable retries regardless of generation precondition setting.
             See [Configuring Retries](https://cloud.google.com/python/docs/reference/storage/latest/retry_timeout).
-
-            Media operations (downloads and uploads) do not support non-default
-            predicates in a Retry object. Other configuration changes for Retry objects
-            such as delays and deadlines are respected.
         """
 
         self._handle_filename_and_upload(
             filename,
             content_type=content_type,
-            num_retries=num_retries,
             client=client,
             predefined_acl=predefined_acl,
             if_generation_match=if_generation_match,
@@ -3023,7 +2929,6 @@ class Blob(_PropertyMixin):
         self,
         data,
         content_type="text/plain",
-        num_retries=None,
         client=None,
         predefined_acl=None,
         if_generation_match=None,
@@ -3031,7 +2936,7 @@ class Blob(_PropertyMixin):
         if_metageneration_match=None,
         if_metageneration_not_match=None,
         timeout=_DEFAULT_TIMEOUT,
-        checksum=None,
+        checksum="auto",
         retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
     ):
         """Upload contents of this blob from the provided string.
@@ -3058,15 +2963,6 @@ class Blob(_PropertyMixin):
         :param content_type:
             (Optional) Type of content being uploaded. Defaults to
             ``'text/plain'``.
-
-        :type num_retries: int
-        :param num_retries:
-            Number of upload retries. By default, only uploads with
-            if_generation_match set will be retried, as uploads without the
-            argument are not guaranteed to be idempotent. Setting num_retries
-            will override this default behavior and guarantee retries even when
-            if_generation_match is not set.  (Deprecated: This argument
-            will be removed in a future release.)
 
         :type client: :class:`~google.cloud.storage.client.Client`
         :param client:
@@ -3106,9 +3002,11 @@ class Blob(_PropertyMixin):
             is too large and must be transmitted in multiple requests, the
             checksum will be incrementally computed and the client will handle
             verification and error handling, raising
-            google.resumable_media.common.DataCorruption on a mismatch and
+            google.cloud.storage.exceptions.DataCorruption on a mismatch and
             attempting to delete the corrupted file. Supported values are
-            "md5", "crc32c" and None. The default is None.
+            "md5", "crc32c", "auto" and None. The default is "auto", which will
+            try to detect if the C extension for crc32c is installed and fall
+            back to md5 otherwise.
 
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
         :param retry: (Optional) How to retry the RPC.
@@ -3118,10 +3016,6 @@ class Blob(_PropertyMixin):
             Change the value to ``DEFAULT_RETRY`` or another `google.api_core.retry.Retry` object
             to enable retries regardless of generation precondition setting.
             See [Configuring Retries](https://cloud.google.com/python/docs/reference/storage/latest/retry_timeout).
-
-            Media operations (downloads and uploads) do not support non-default
-            predicates in a Retry object. Other configuration changes for Retry objects
-            such as delays and deadlines are respected.
         """
         data = _to_bytes(data, encoding="utf-8")
         string_buffer = BytesIO(data)
@@ -3129,7 +3023,6 @@ class Blob(_PropertyMixin):
             file_obj=string_buffer,
             size=len(data),
             content_type=content_type,
-            num_retries=num_retries,
             client=client,
             predefined_acl=predefined_acl,
             if_generation_match=if_generation_match,
@@ -3149,7 +3042,7 @@ class Blob(_PropertyMixin):
         origin=None,
         client=None,
         timeout=_DEFAULT_TIMEOUT,
-        checksum=None,
+        checksum="auto",
         predefined_acl=None,
         if_generation_match=None,
         if_generation_not_match=None,
@@ -3224,10 +3117,12 @@ class Blob(_PropertyMixin):
             (Optional) The type of checksum to compute to verify
             the integrity of the object. After the upload is complete, the
             server-computed checksum of the resulting object will be checked
-            and google.resumable_media.common.DataCorruption will be raised on
+            and google.cloud.storage.exceptions.DataCorruption will be raised on
             a mismatch. On a validation failure, the client will attempt to
-            delete the uploaded object automatically. Supported values
-            are "md5", "crc32c" and None. The default is None.
+            delete the uploaded object automatically. Supported values are
+            "md5", "crc32c", "auto" and None. The default is "auto", which will
+            try to detect if the C extension for crc32c is installed and fall
+            back to md5 otherwise.
 
         :type predefined_acl: str
         :param predefined_acl: (Optional) Predefined access control list
@@ -3256,10 +3151,6 @@ class Blob(_PropertyMixin):
             Change the value to ``DEFAULT_RETRY`` or another `google.api_core.retry.Retry` object
             to enable retries regardless of generation precondition setting.
             See [Configuring Retries](https://cloud.google.com/python/docs/reference/storage/latest/retry_timeout).
-
-            Media operations (downloads and uploads) do not support non-default
-            predicates in a Retry object. Other configuration changes for Retry objects
-            such as delays and deadlines are respected.
 
         :rtype: str
         :returns: The resumable upload session URL. The upload can be
@@ -3298,7 +3189,6 @@ class Blob(_PropertyMixin):
                 fake_stream,
                 content_type,
                 size,
-                None,
                 predefined_acl=predefined_acl,
                 if_generation_match=if_generation_match,
                 if_generation_not_match=if_generation_not_match,
@@ -3312,7 +3202,7 @@ class Blob(_PropertyMixin):
             )
 
             return upload.resumable_url
-        except resumable_media.InvalidResponse as exc:
+        except InvalidResponse as exc:
             _raise_from_invalid_response(exc)
 
     @create_trace_span(name="Storage.Blob.getIamPolicy")
@@ -4097,15 +3987,8 @@ class Blob(_PropertyMixin):
         For uploads only, the following additional arguments are supported:
 
         - ``content_type``
-        - ``num_retries``
         - ``predefined_acl``
         - ``checksum``
-
-        .. note::
-
-           ``num_retries`` is supported for backwards-compatibility
-           reasons only; please use ``retry`` with a Retry object or
-           ConditionalRetryPolicy instead.
 
         :type mode: str
         :param mode:
@@ -4285,7 +4168,7 @@ class Blob(_PropertyMixin):
         if_metageneration_match=None,
         if_metageneration_not_match=None,
         timeout=_DEFAULT_TIMEOUT,
-        checksum="md5",
+        checksum="auto",
         retry=DEFAULT_RETRY,
         command=None,
     ):
@@ -4351,8 +4234,9 @@ class Blob(_PropertyMixin):
             instance in the case of transcoded or ranged downloads where the
             remote service does not know the correct checksum, including
             downloads where chunk_size is set) an INFO-level log will be
-            emitted. Supported values are "md5", "crc32c" and None. The default
-            is "md5".
+            emitted. Supported values are "md5", "crc32c", "auto" and None. The
+            default is "auto", which will try to detect if the C extension for
+            crc32c is installed and fall back to md5 otherwise.
 
         :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
         :param retry: (Optional) How to retry the RPC. A None value will disable
@@ -4370,11 +4254,6 @@ class Blob(_PropertyMixin):
             See the retry.py source code and docstrings in this package
             (google.cloud.storage.retry) for information on retry types and how
             to configure them.
-
-            Media operations (downloads and uploads) do not support non-default
-            predicates in a Retry object. The default will always be used. Other
-            configuration changes for Retry objects such as delays and deadlines
-            are respected.
 
         :type command: str
         :param command:
@@ -4432,7 +4311,7 @@ class Blob(_PropertyMixin):
                 checksum=checksum,
                 retry=retry,
             )
-        except resumable_media.InvalidResponse as exc:
+        except InvalidResponse as exc:
             _raise_from_invalid_response(exc)
 
     @property
@@ -4887,7 +4766,7 @@ def _maybe_rewind(stream, rewind=False):
 def _raise_from_invalid_response(error):
     """Re-wrap and raise an ``InvalidResponse`` exception.
 
-    :type error: :exc:`google.resumable_media.InvalidResponse`
+    :type error: :exc:`google.cloud.storage.exceptions.InvalidResponse`
     :param error: A caught exception from the ``google-resumable-media``
                   library.
 

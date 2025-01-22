@@ -1121,7 +1121,7 @@ class Client(ClientWithProject):
         if_metageneration_match=None,
         if_metageneration_not_match=None,
         timeout=_DEFAULT_TIMEOUT,
-        checksum="md5",
+        checksum="auto",
         retry=DEFAULT_RETRY,
     ):
         """Download the contents of a blob object or blob URI into a file-like object.
@@ -1176,8 +1176,10 @@ class Client(ClientWithProject):
                 instance in the case of transcoded or ranged downloads where the
                 remote service does not know the correct checksum, including
                 downloads where chunk_size is set) an INFO-level log will be
-                emitted. Supported values are "md5", "crc32c" and None. The default
-                is "md5".
+                emitted. Supported values are "md5", "crc32c", "auto" and None.
+                The default is "auto", which will try to detect if the C
+                extension for crc32c is installed and fall back to md5 otherwise.
+
             retry (google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy)
                 (Optional) How to retry the RPC. A None value will disable
                 retries. A google.api_core.retry.Retry value will enable retries,
@@ -1194,15 +1196,10 @@ class Client(ClientWithProject):
                 See the retry.py source code and docstrings in this package
                 (google.cloud.storage.retry) for information on retry types and how
                 to configure them.
-
-                Media operations (downloads and uploads) do not support non-default
-                predicates in a Retry object. The default will always be used. Other
-                configuration changes for Retry objects such as delays and deadlines
-                are respected.
         """
 
         if not isinstance(blob_or_uri, Blob):
-            blob_or_uri = Blob.from_string(blob_or_uri)
+            blob_or_uri = Blob.from_uri(blob_or_uri)
 
         blob_or_uri._prep_and_do_download(
             file_obj,

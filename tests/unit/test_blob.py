@@ -27,12 +27,15 @@ from urllib.parse import urlencode
 import mock
 import pytest
 
+from google.cloud.exceptions import NotFound
 from google.cloud.storage import _helpers
 from google.cloud.storage._helpers import _get_default_headers
 from google.cloud.storage._helpers import _get_default_storage_base_url
 from google.cloud.storage._helpers import _DEFAULT_UNIVERSE_DOMAIN
 from google.cloud.storage._helpers import _NOW
 from google.cloud.storage._helpers import _UTC
+from google.cloud.storage.exceptions import DataCorruption
+from google.cloud.storage.exceptions import InvalidResponse
 from google.cloud.storage.retry import (
     DEFAULT_RETRY,
     DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
@@ -1249,6 +1252,8 @@ class Test_Blob(unittest.TestCase):
 
         extra_kwargs.update(timeout_kwarg)
 
+        retry = extra_kwargs.get("retry", DEFAULT_RETRY)
+
         with patch as patched:
             if w_range:
                 blob._do_download(
@@ -1278,7 +1283,8 @@ class Test_Blob(unittest.TestCase):
                 headers=headers,
                 start=1,
                 end=3,
-                checksum="md5",
+                checksum="auto",
+                retry=retry,
             )
         else:
             patched.assert_called_once_with(
@@ -1287,19 +1293,13 @@ class Test_Blob(unittest.TestCase):
                 headers=headers,
                 start=None,
                 end=None,
-                checksum="md5",
+                checksum="auto",
+                retry=retry,
             )
 
         patched.return_value.consume.assert_called_once_with(
             transport, timeout=expected_timeout
         )
-
-        retry_strategy = patched.return_value._retry_strategy
-        retry = extra_kwargs.get("retry", None)
-        if retry is None:
-            self.assertEqual(retry_strategy.max_retries, 0)
-        else:
-            self.assertEqual(retry_strategy.max_sleep, retry._maximum)
 
     def test__do_download_wo_chunks_wo_range_wo_raw(self):
         self._do_download_helper_wo_chunks(w_range=False, raw_download=False)
@@ -1412,11 +1412,23 @@ class Test_Blob(unittest.TestCase):
 
         if w_range:
             patched.assert_called_once_with(
-                download_url, chunk_size, file_obj, headers=headers, start=1, end=3
+                download_url,
+                chunk_size,
+                file_obj,
+                headers=headers,
+                start=1,
+                end=3,
+                retry=DEFAULT_RETRY,
             )
         else:
             patched.assert_called_once_with(
-                download_url, chunk_size, file_obj, headers=headers, start=0, end=None
+                download_url,
+                chunk_size,
+                file_obj,
+                headers=headers,
+                start=0,
+                end=None,
+                retry=DEFAULT_RETRY,
             )
         download.consume_next_chunk.assert_called_once_with(
             transport, timeout=expected_timeout
@@ -1488,7 +1500,7 @@ class Test_Blob(unittest.TestCase):
                 if_metageneration_not_match=None,
                 raw_download=False,
                 timeout=expected_timeout,
-                checksum="md5",
+                checksum="auto",
                 retry=DEFAULT_RETRY,
             )
 
@@ -1519,7 +1531,7 @@ class Test_Blob(unittest.TestCase):
                 if_metageneration_not_match=None,
                 raw_download=False,
                 timeout=expected_timeout,
-                checksum="md5",
+                checksum="auto",
                 retry=DEFAULT_RETRY,
             )
 
@@ -1546,7 +1558,7 @@ class Test_Blob(unittest.TestCase):
                 if_metageneration_not_match=None,
                 raw_download=False,
                 timeout=expected_timeout,
-                checksum="md5",
+                checksum="auto",
                 retry=DEFAULT_RETRY,
             )
 
@@ -1573,7 +1585,7 @@ class Test_Blob(unittest.TestCase):
                 if_metageneration_not_match=None,
                 raw_download=False,
                 timeout=expected_timeout,
-                checksum="md5",
+                checksum="auto",
                 retry=DEFAULT_RETRY,
             )
 
@@ -1621,7 +1633,7 @@ class Test_Blob(unittest.TestCase):
                 if_metageneration_not_match=None,
                 raw_download=raw_download,
                 timeout=expected_timeout,
-                checksum="md5",
+                checksum="auto",
                 retry=expected_retry,
             )
 
@@ -1700,7 +1712,7 @@ class Test_Blob(unittest.TestCase):
                 if_metageneration_match=None,
                 if_metageneration_not_match=None,
                 timeout=expected_timeout,
-                checksum="md5",
+                checksum="auto",
                 retry=expected_retry,
             )
             stream = blob._prep_and_do_download.mock_calls[0].args[0]
@@ -1756,7 +1768,7 @@ class Test_Blob(unittest.TestCase):
                 if_metageneration_not_match=None,
                 raw_download=False,
                 timeout=expected_timeout,
-                checksum="md5",
+                checksum="auto",
                 retry=DEFAULT_RETRY,
             )
             stream = blob._prep_and_do_download.mock_calls[0].args[0]
@@ -1789,15 +1801,13 @@ class Test_Blob(unittest.TestCase):
                 if_metageneration_not_match=None,
                 raw_download=False,
                 timeout=expected_timeout,
-                checksum="md5",
+                checksum="auto",
                 retry=DEFAULT_RETRY,
             )
             stream = blob._prep_and_do_download.mock_calls[0].args[0]
             self.assertEqual(stream.name, temp.name)
 
     def test_download_to_filename_corrupted(self):
-        from google.resumable_media import DataCorruption
-
         blob_name = "blob-name"
         client = self._make_client()
         bucket = _Bucket(client)
@@ -1833,7 +1843,49 @@ class Test_Blob(unittest.TestCase):
                 if_metageneration_not_match=None,
                 raw_download=False,
                 timeout=expected_timeout,
-                checksum="md5",
+                checksum="auto",
+                retry=DEFAULT_RETRY,
+            )
+            stream = blob._prep_and_do_download.mock_calls[0].args[0]
+            self.assertEqual(stream.name, filename)
+
+    def test_download_to_filename_notfound(self):
+        blob_name = "blob-name"
+        client = self._make_client()
+        bucket = _Bucket(client)
+        blob = self._make_one(blob_name, bucket=bucket)
+
+        with mock.patch.object(blob, "_prep_and_do_download"):
+            blob._prep_and_do_download.side_effect = NotFound("testing")
+
+            # Try to download into a temporary file (don't use
+            # `_NamedTemporaryFile` it will try to remove after the file is
+            # already removed)
+            filehandle, filename = tempfile.mkstemp()
+            os.close(filehandle)
+            self.assertTrue(os.path.exists(filename))
+
+            with self.assertRaises(NotFound):
+                blob.download_to_filename(filename)
+
+            # Make sure the file was cleaned up.
+            self.assertFalse(os.path.exists(filename))
+
+            expected_timeout = self._get_default_timeout()
+            blob._prep_and_do_download.assert_called_once_with(
+                mock.ANY,
+                client=None,
+                start=None,
+                end=None,
+                if_etag_match=None,
+                if_etag_not_match=None,
+                if_generation_match=None,
+                if_generation_not_match=None,
+                if_metageneration_match=None,
+                if_metageneration_not_match=None,
+                raw_download=False,
+                timeout=expected_timeout,
+                checksum="auto",
                 retry=DEFAULT_RETRY,
             )
             stream = blob._prep_and_do_download.mock_calls[0].args[0]
@@ -1873,7 +1925,7 @@ class Test_Blob(unittest.TestCase):
                 if_metageneration_match=None,
                 if_metageneration_not_match=None,
                 timeout=expected_timeout,
-                checksum="md5",
+                checksum="auto",
                 retry=expected_retry,
             )
             stream = blob._prep_and_do_download.mock_calls[0].args[0]
@@ -1908,7 +1960,7 @@ class Test_Blob(unittest.TestCase):
             if_metageneration_match=None,
             if_metageneration_not_match=None,
             timeout=self._get_default_timeout(),
-            checksum="md5",
+            checksum="auto",
             retry=DEFAULT_RETRY,
         )
 
@@ -1938,7 +1990,7 @@ class Test_Blob(unittest.TestCase):
             if_metageneration_match=None,
             if_metageneration_not_match=None,
             timeout=self._get_default_timeout(),
-            checksum="md5",
+            checksum="auto",
             retry=DEFAULT_RETRY,
         )
 
@@ -2175,7 +2227,7 @@ class Test_Blob(unittest.TestCase):
             if_metageneration_match=None,
             if_metageneration_not_match=None,
             timeout=self._get_default_timeout(),
-            checksum="md5",
+            checksum="auto",
             retry=DEFAULT_RETRY,
         )
 
@@ -2213,7 +2265,7 @@ class Test_Blob(unittest.TestCase):
             if_metageneration_match=None,
             if_metageneration_not_match=None,
             timeout=self._get_default_timeout(),
-            checksum="md5",
+            checksum="auto",
             retry=None,
         )
 
@@ -2354,7 +2406,6 @@ class Test_Blob(unittest.TestCase):
         mock_get_boundary,
         client=None,
         size=None,
-        num_retries=None,
         user_project=None,
         predefined_acl=None,
         if_generation_match=None,
@@ -2410,12 +2461,12 @@ class Test_Blob(unittest.TestCase):
                 stream,
                 content_type,
                 size,
-                num_retries,
                 predefined_acl,
                 if_generation_match,
                 if_generation_not_match,
                 if_metageneration_match,
                 if_metageneration_not_match,
+                checksum=None,
                 retry=retry,
                 **timeout_kwarg,
             )
@@ -2494,48 +2545,44 @@ class Test_Blob(unittest.TestCase):
             "POST", upload_url, data=payload, headers=headers, timeout=expected_timeout
         )
 
-    @mock.patch("google.resumable_media._upload.get_boundary", return_value=b"==0==")
+    @mock.patch(
+        "google.cloud.storage._media._upload.get_boundary", return_value=b"==0=="
+    )
     def test__do_multipart_upload_no_size(self, mock_get_boundary):
         self._do_multipart_success(mock_get_boundary, predefined_acl="private")
 
-    @mock.patch("google.resumable_media._upload.get_boundary", return_value=b"==0==")
+    @mock.patch(
+        "google.cloud.storage._media._upload.get_boundary", return_value=b"==0=="
+    )
     def test__do_multipart_upload_no_size_retry(self, mock_get_boundary):
         self._do_multipart_success(
             mock_get_boundary, predefined_acl="private", retry=DEFAULT_RETRY
         )
 
-    @mock.patch("google.resumable_media._upload.get_boundary", return_value=b"==0==")
-    def test__do_multipart_upload_no_size_num_retries(self, mock_get_boundary):
-        self._do_multipart_success(
-            mock_get_boundary, predefined_acl="private", num_retries=2
-        )
-
-    @mock.patch("google.resumable_media._upload.get_boundary", return_value=b"==0==")
-    def test__do_multipart_upload_no_size_retry_conflict(self, mock_get_boundary):
-        with self.assertRaises(ValueError):
-            self._do_multipart_success(
-                mock_get_boundary,
-                predefined_acl="private",
-                num_retries=2,
-                retry=DEFAULT_RETRY,
-            )
-
-    @mock.patch("google.resumable_media._upload.get_boundary", return_value=b"==0==")
+    @mock.patch(
+        "google.cloud.storage._media._upload.get_boundary", return_value=b"==0=="
+    )
     def test__do_multipart_upload_no_size_mtls(self, mock_get_boundary):
         self._do_multipart_success(
             mock_get_boundary, predefined_acl="private", mtls=True
         )
 
-    @mock.patch("google.resumable_media._upload.get_boundary", return_value=b"==0==")
+    @mock.patch(
+        "google.cloud.storage._media._upload.get_boundary", return_value=b"==0=="
+    )
     def test__do_multipart_upload_with_size(self, mock_get_boundary):
         self._do_multipart_success(mock_get_boundary, size=10)
 
-    @mock.patch("google.resumable_media._upload.get_boundary", return_value=b"==0==")
+    @mock.patch(
+        "google.cloud.storage._media._upload.get_boundary", return_value=b"==0=="
+    )
     def test__do_multipart_upload_with_user_project(self, mock_get_boundary):
         user_project = "user-project-123"
         self._do_multipart_success(mock_get_boundary, user_project=user_project)
 
-    @mock.patch("google.resumable_media._upload.get_boundary", return_value=b"==0==")
+    @mock.patch(
+        "google.cloud.storage._media._upload.get_boundary", return_value=b"==0=="
+    )
     def test__do_multipart_upload_with_kms(self, mock_get_boundary):
         kms_resource = (
             "projects/test-project-123/"
@@ -2545,7 +2592,9 @@ class Test_Blob(unittest.TestCase):
         )
         self._do_multipart_success(mock_get_boundary, kms_key_name=kms_resource)
 
-    @mock.patch("google.resumable_media._upload.get_boundary", return_value=b"==0==")
+    @mock.patch(
+        "google.cloud.storage._media._upload.get_boundary", return_value=b"==0=="
+    )
     def test__do_multipart_upload_with_kms_with_version(self, mock_get_boundary):
         kms_resource = (
             "projects/test-project-123/"
@@ -2556,27 +2605,37 @@ class Test_Blob(unittest.TestCase):
         )
         self._do_multipart_success(mock_get_boundary, kms_key_name=kms_resource)
 
-    @mock.patch("google.resumable_media._upload.get_boundary", return_value=b"==0==")
+    @mock.patch(
+        "google.cloud.storage._media._upload.get_boundary", return_value=b"==0=="
+    )
     def test__do_multipart_upload_with_retry(self, mock_get_boundary):
         self._do_multipart_success(mock_get_boundary, retry=DEFAULT_RETRY)
 
-    @mock.patch("google.resumable_media._upload.get_boundary", return_value=b"==0==")
+    @mock.patch(
+        "google.cloud.storage._media._upload.get_boundary", return_value=b"==0=="
+    )
     def test__do_multipart_upload_with_generation_match(self, mock_get_boundary):
         self._do_multipart_success(
             mock_get_boundary, if_generation_match=4, if_metageneration_match=4
         )
 
-    @mock.patch("google.resumable_media._upload.get_boundary", return_value=b"==0==")
+    @mock.patch(
+        "google.cloud.storage._media._upload.get_boundary", return_value=b"==0=="
+    )
     def test__do_multipart_upload_with_custom_timeout(self, mock_get_boundary):
         self._do_multipart_success(mock_get_boundary, timeout=9.58)
 
-    @mock.patch("google.resumable_media._upload.get_boundary", return_value=b"==0==")
+    @mock.patch(
+        "google.cloud.storage._media._upload.get_boundary", return_value=b"==0=="
+    )
     def test__do_multipart_upload_with_generation_not_match(self, mock_get_boundary):
         self._do_multipart_success(
             mock_get_boundary, if_generation_not_match=4, if_metageneration_not_match=4
         )
 
-    @mock.patch("google.resumable_media._upload.get_boundary", return_value=b"==0==")
+    @mock.patch(
+        "google.cloud.storage._media._upload.get_boundary", return_value=b"==0=="
+    )
     def test__do_multipart_upload_with_client(self, mock_get_boundary):
         transport = self._mock_transport(http.client.OK, {})
         client = mock.Mock(_http=transport, _connection=_Connection, spec=["_http"])
@@ -2584,7 +2643,9 @@ class Test_Blob(unittest.TestCase):
         client._extra_headers = {}
         self._do_multipart_success(mock_get_boundary, client=client)
 
-    @mock.patch("google.resumable_media._upload.get_boundary", return_value=b"==0==")
+    @mock.patch(
+        "google.cloud.storage._media._upload.get_boundary", return_value=b"==0=="
+    )
     def test__do_multipart_upload_with_client_custom_headers(self, mock_get_boundary):
         custom_headers = {
             "x-goog-custom-audit-foo": "bar",
@@ -2596,7 +2657,9 @@ class Test_Blob(unittest.TestCase):
         client._extra_headers = custom_headers
         self._do_multipart_success(mock_get_boundary, client=client)
 
-    @mock.patch("google.resumable_media._upload.get_boundary", return_value=b"==0==")
+    @mock.patch(
+        "google.cloud.storage._media._upload.get_boundary", return_value=b"==0=="
+    )
     def test__do_multipart_upload_with_metadata(self, mock_get_boundary):
         self._do_multipart_success(mock_get_boundary, metadata={"test": "test"})
 
@@ -2623,7 +2686,6 @@ class Test_Blob(unittest.TestCase):
         size=None,
         extra_headers=None,
         chunk_size=None,
-        num_retries=None,
         user_project=None,
         predefined_acl=None,
         if_generation_match=None,
@@ -2637,7 +2699,7 @@ class Test_Blob(unittest.TestCase):
         mtls=False,
         retry=None,
     ):
-        from google.resumable_media.requests import ResumableUpload
+        from google.cloud.storage._media.requests import ResumableUpload
         from google.cloud.storage.blob import _DEFAULT_CHUNKSIZE
 
         bucket = _Bucket(name="whammy", user_project=user_project)
@@ -2698,7 +2760,6 @@ class Test_Blob(unittest.TestCase):
                 stream,
                 content_type,
                 size,
-                num_retries,
                 extra_headers=extra_headers,
                 chunk_size=chunk_size,
                 predefined_acl=predefined_acl,
@@ -2784,15 +2845,7 @@ class Test_Blob(unittest.TestCase):
         self.assertEqual(upload._content_type, content_type)
         self.assertEqual(upload.resumable_url, resumable_url)
         retry_strategy = upload._retry_strategy
-        self.assertFalse(num_retries is not None and retry is not None)
-        if num_retries is not None and retry is None:
-            self.assertEqual(retry_strategy.max_retries, num_retries)
-        elif retry is None:
-            self.assertEqual(retry_strategy.max_retries, 0)
-        else:
-            self.assertEqual(retry_strategy.max_sleep, 60.0)
-            self.assertEqual(retry_strategy.max_cumulative_retry, 120.0)
-            self.assertIsNone(retry_strategy.max_retries)
+        self.assertEqual(retry_strategy, retry)
         self.assertIs(client._http, transport)
         # Make sure we never read from the stream.
         self.assertEqual(stream.tell(), 0)
@@ -2877,13 +2930,6 @@ class Test_Blob(unittest.TestCase):
     def test__initiate_resumable_upload_with_retry(self):
         self._initiate_resumable_helper(retry=DEFAULT_RETRY)
 
-    def test__initiate_resumable_upload_w_num_retries(self):
-        self._initiate_resumable_helper(num_retries=11)
-
-    def test__initiate_resumable_upload_with_retry_conflict(self):
-        with self.assertRaises(ValueError):
-            self._initiate_resumable_helper(retry=DEFAULT_RETRY, num_retries=2)
-
     def test__initiate_resumable_upload_with_generation_match(self):
         self._initiate_resumable_helper(
             if_generation_match=4, if_metageneration_match=4
@@ -2924,17 +2970,15 @@ class Test_Blob(unittest.TestCase):
     def _make_resumable_transport(
         self, headers1, headers2, headers3, total_bytes, data_corruption=False
     ):
-        from google import resumable_media
-
         fake_transport = mock.Mock(spec=["request"])
 
         fake_response1 = self._mock_requests_response(http.client.OK, headers1)
         fake_response2 = self._mock_requests_response(
-            resumable_media.PERMANENT_REDIRECT, headers2
+            http.client.PERMANENT_REDIRECT, headers2
         )
         json_body = f'{{"size": "{total_bytes:d}"}}'
         if data_corruption:
-            fake_response3 = resumable_media.DataCorruption(None)
+            fake_response3 = DataCorruption(None)
         else:
             fake_response3 = self._mock_requests_response(
                 http.client.OK, headers3, content=json_body.encode("utf-8")
@@ -3048,7 +3092,6 @@ class Test_Blob(unittest.TestCase):
     def _do_resumable_helper(
         self,
         use_size=False,
-        num_retries=None,
         predefined_acl=None,
         if_generation_match=None,
         if_generation_not_match=None,
@@ -3118,12 +3161,12 @@ class Test_Blob(unittest.TestCase):
                 stream,
                 content_type,
                 size,
-                num_retries,
                 predefined_acl,
                 if_generation_match,
                 if_generation_not_match,
                 if_metageneration_match,
                 if_metageneration_not_match,
+                checksum=None,
                 retry=retry,
                 **timeout_kwarg,
             )
@@ -3187,19 +3230,10 @@ class Test_Blob(unittest.TestCase):
     def test__do_resumable_upload_with_retry(self):
         self._do_resumable_helper(retry=DEFAULT_RETRY)
 
-    def test__do_resumable_upload_w_num_retries(self):
-        self._do_resumable_helper(num_retries=8)
-
-    def test__do_resumable_upload_with_retry_conflict(self):
-        with self.assertRaises(ValueError):
-            self._do_resumable_helper(num_retries=9, retry=DEFAULT_RETRY)
-
     def test__do_resumable_upload_with_predefined_acl(self):
         self._do_resumable_helper(predefined_acl="private")
 
     def test__do_resumable_upload_with_data_corruption(self):
-        from google.resumable_media import DataCorruption
-
         with mock.patch("google.cloud.storage.blob.Blob.delete") as patch:
             try:
                 self._do_resumable_helper(data_corruption=True)
@@ -3210,7 +3244,6 @@ class Test_Blob(unittest.TestCase):
     def _do_upload_helper(
         self,
         chunk_size=None,
-        num_retries=None,
         predefined_acl=None,
         if_generation_match=None,
         if_generation_not_match=None,
@@ -3256,12 +3289,12 @@ class Test_Blob(unittest.TestCase):
             stream,
             content_type,
             size,
-            num_retries,
             predefined_acl,
             if_generation_match,
             if_generation_not_match,
             if_metageneration_match,
             if_metageneration_not_match,
+            checksum=None,
             retry=retry,
             **timeout_kwarg,
         )
@@ -3277,7 +3310,6 @@ class Test_Blob(unittest.TestCase):
                 stream,
                 content_type,
                 size,
-                num_retries,
                 predefined_acl,
                 if_generation_match,
                 if_generation_not_match,
@@ -3296,7 +3328,6 @@ class Test_Blob(unittest.TestCase):
                 stream,
                 content_type,
                 size,
-                num_retries,
                 predefined_acl,
                 if_generation_match,
                 if_generation_not_match,
@@ -3335,9 +3366,6 @@ class Test_Blob(unittest.TestCase):
     def test__do_upload_with_retry(self):
         self._do_upload_helper(retry=DEFAULT_RETRY)
 
-    def test__do_upload_w_num_retries(self):
-        self._do_upload_helper(num_retries=2)
-
     def test__do_upload_with_conditional_retry_success(self):
         self._do_upload_helper(
             retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED, if_generation_match=123456
@@ -3366,13 +3394,15 @@ class Test_Blob(unittest.TestCase):
         if_generation_not_match = kwargs.get("if_generation_not_match", None)
         if_metageneration_match = kwargs.get("if_metageneration_match", None)
         if_metageneration_not_match = kwargs.get("if_metageneration_not_match", None)
-        num_retries = kwargs.get("num_retries", None)
-        default_retry = (
-            DEFAULT_RETRY_IF_GENERATION_SPECIFIED if not num_retries else None
-        )
+        default_retry = DEFAULT_RETRY_IF_GENERATION_SPECIFIED
         retry = kwargs.get("retry", default_retry)
         ret_val = blob.upload_from_file(
-            stream, size=len(data), content_type=content_type, client=client, **kwargs
+            stream,
+            size=len(data),
+            content_type=content_type,
+            client=client,
+            checksum=None,
+            **kwargs,
         )
 
         # Check the response and side-effects.
@@ -3387,7 +3417,6 @@ class Test_Blob(unittest.TestCase):
             stream,
             content_type,
             len(data),
-            num_retries,
             predefined_acl,
             if_generation_match,
             if_generation_not_match,
@@ -3407,33 +3436,6 @@ class Test_Blob(unittest.TestCase):
     def test_upload_from_file_with_retry(self):
         self._upload_from_file_helper(retry=DEFAULT_RETRY)
 
-    @mock.patch("warnings.warn")
-    def test_upload_from_file_w_num_retries(self, mock_warn):
-        from google.cloud.storage._helpers import _NUM_RETRIES_MESSAGE
-
-        self._upload_from_file_helper(num_retries=2)
-
-        mock_warn.assert_any_call(
-            _NUM_RETRIES_MESSAGE,
-            DeprecationWarning,
-            stacklevel=2,
-        )
-
-    @mock.patch("warnings.warn")
-    def test_upload_from_file_with_retry_conflict(self, mock_warn):
-        from google.cloud.storage._helpers import _NUM_RETRIES_MESSAGE
-
-        # Special case here: in a conflict this method should NOT raise an error
-        # as that's handled further downstream. It should pass both options
-        # through.
-        self._upload_from_file_helper(retry=DEFAULT_RETRY, num_retries=2)
-
-        mock_warn.assert_any_call(
-            _NUM_RETRIES_MESSAGE,
-            DeprecationWarning,
-            stacklevel=2,
-        )
-
     def test_upload_from_file_with_rewind(self):
         stream = self._upload_from_file_helper(rewind=True)
         assert stream.tell() == 0
@@ -3444,7 +3446,6 @@ class Test_Blob(unittest.TestCase):
     def test_upload_from_file_failure(self):
         import requests
 
-        from google.resumable_media import InvalidResponse
         from google.cloud import exceptions
 
         message = "Someone is already in this spot."
@@ -3466,27 +3467,25 @@ class Test_Blob(unittest.TestCase):
         content_type,
         size,
         timeout=None,
-        num_retries=None,
         retry=None,
     ):
         self.assertEqual(blob._do_upload.call_count, 1)
         mock_call = blob._do_upload.mock_calls[0]
         call_name, pos_args, kwargs = mock_call
         self.assertEqual(call_name, "")
-        self.assertEqual(len(pos_args), 10)
+        self.assertEqual(len(pos_args), 9)
         self.assertEqual(pos_args[0], client)
         self.assertEqual(pos_args[2], content_type)
         self.assertEqual(pos_args[3], size)
-        self.assertEqual(pos_args[4], num_retries)  # num_retries
-        self.assertIsNone(pos_args[5])  # predefined_acl
-        self.assertIsNone(pos_args[6])  # if_generation_match
-        self.assertIsNone(pos_args[7])  # if_generation_not_match
-        self.assertIsNone(pos_args[8])  # if_metageneration_match
-        self.assertIsNone(pos_args[9])  # if_metageneration_not_match
+        self.assertIsNone(pos_args[4])  # predefined_acl
+        self.assertIsNone(pos_args[5])  # if_generation_match
+        self.assertIsNone(pos_args[6])  # if_generation_not_match
+        self.assertIsNone(pos_args[7])  # if_metageneration_match
+        self.assertIsNone(pos_args[8])  # if_metageneration_not_match
 
         expected_timeout = self._get_default_timeout() if timeout is None else timeout
         if not retry:
-            retry = DEFAULT_RETRY_IF_GENERATION_SPECIFIED if not num_retries else None
+            retry = DEFAULT_RETRY_IF_GENERATION_SPECIFIED
         self.assertEqual(
             kwargs,
             {
@@ -3517,7 +3516,7 @@ class Test_Blob(unittest.TestCase):
                 file_obj.write(data)
 
             ret_val = blob.upload_from_filename(
-                temp.name, content_type=content_type, client=client
+                temp.name, content_type=content_type, client=client, checksum=None
             )
 
         # Check the response and side-effects.
@@ -3548,7 +3547,11 @@ class Test_Blob(unittest.TestCase):
                 file_obj.write(data)
 
             ret_val = blob.upload_from_filename(
-                temp.name, content_type=content_type, client=client, retry=DEFAULT_RETRY
+                temp.name,
+                content_type=content_type,
+                client=client,
+                retry=DEFAULT_RETRY,
+                checksum=None,
             )
 
         # Check the response and side-effects.
@@ -3562,47 +3565,6 @@ class Test_Blob(unittest.TestCase):
         self.assertTrue(stream.closed)
         self.assertEqual(stream.mode, "rb")
         self.assertEqual(stream.name, temp.name)
-
-    @mock.patch("warnings.warn")
-    def test_upload_from_filename_w_num_retries(self, mock_warn):
-        from google.cloud._testing import _NamedTemporaryFile
-        from google.cloud.storage._helpers import _NUM_RETRIES_MESSAGE
-
-        blob = self._make_one("blob-name", bucket=None)
-        # Mock low-level upload helper on blob (it is tested elsewhere).
-        created_json = {"metadata": {"mint": "ice-cream"}}
-        blob._do_upload = mock.Mock(return_value=created_json, spec=[])
-        # Make sure `metadata` is empty before the request.
-        self.assertIsNone(blob.metadata)
-
-        data = b"soooo much data"
-        content_type = "image/svg+xml"
-        client = mock.sentinel.client
-        with _NamedTemporaryFile() as temp:
-            with open(temp.name, "wb") as file_obj:
-                file_obj.write(data)
-
-            ret_val = blob.upload_from_filename(
-                temp.name, content_type=content_type, client=client, num_retries=2
-            )
-
-        # Check the response and side-effects.
-        self.assertIsNone(ret_val)
-        self.assertEqual(blob.metadata, created_json["metadata"])
-
-        # Check the mock.
-        stream = self._do_upload_mock_call_helper(
-            blob, client, content_type, len(data), num_retries=2
-        )
-        self.assertTrue(stream.closed)
-        self.assertEqual(stream.mode, "rb")
-        self.assertEqual(stream.name, temp.name)
-
-        mock_warn.assert_any_call(
-            _NUM_RETRIES_MESSAGE,
-            DeprecationWarning,
-            stacklevel=2,
-        )
 
     def test_upload_from_filename_w_custom_timeout(self):
         from google.cloud._testing import _NamedTemporaryFile
@@ -3622,7 +3584,11 @@ class Test_Blob(unittest.TestCase):
                 file_obj.write(data)
 
             blob.upload_from_filename(
-                temp.name, content_type=content_type, client=client, timeout=9.58
+                temp.name,
+                content_type=content_type,
+                client=client,
+                timeout=9.58,
+                checksum=None,
             )
 
         # Check the mock.
@@ -3642,7 +3608,7 @@ class Test_Blob(unittest.TestCase):
         self.assertIsNone(blob.component_count)
 
         client = mock.sentinel.client
-        ret_val = blob.upload_from_string(data, client=client, **kwargs)
+        ret_val = blob.upload_from_string(data, client=client, checksum=None, **kwargs)
 
         # Check the response and side-effects.
         self.assertIsNone(ret_val)
@@ -3651,8 +3617,6 @@ class Test_Blob(unittest.TestCase):
         extra_kwargs = {}
         if "retry" in kwargs:
             extra_kwargs["retry"] = kwargs["retry"]
-        if "num_retries" in kwargs:
-            extra_kwargs["num_retries"] = kwargs["num_retries"]
         # Check the mock.
         payload = _to_bytes(data, encoding="utf-8")
         stream = self._do_upload_mock_call_helper(
@@ -3681,19 +3645,6 @@ class Test_Blob(unittest.TestCase):
     def test_upload_from_string_w_text_w_retry(self):
         data = "\N{snowman} \N{sailboat}"
         self._upload_from_string_helper(data, retry=DEFAULT_RETRY)
-
-    @mock.patch("warnings.warn")
-    def test_upload_from_string_with_num_retries(self, mock_warn):
-        from google.cloud.storage._helpers import _NUM_RETRIES_MESSAGE
-
-        data = "\N{snowman} \N{sailboat}"
-        self._upload_from_string_helper(data, num_retries=2)
-
-        mock_warn.assert_any_call(
-            _NUM_RETRIES_MESSAGE,
-            DeprecationWarning,
-            stacklevel=2,
-        )
 
     def _create_resumable_upload_session_helper(
         self,
@@ -3836,7 +3787,6 @@ class Test_Blob(unittest.TestCase):
         )
 
     def test_create_resumable_upload_session_with_failure(self):
-        from google.resumable_media import InvalidResponse
         from google.cloud import exceptions
 
         message = "5-oh-3 woe is me."
@@ -5879,7 +5829,49 @@ class Test_Blob(unittest.TestCase):
         self.assertIsNone(blob.soft_delete_time)
         self.assertIsNone(blob.hard_delete_time)
 
-    def test_from_string_w_valid_uri(self):
+    def test_from_uri_w_valid_uri(self):
+        from google.cloud.storage.blob import Blob
+
+        client = self._make_client()
+        basic_uri = "gs://bucket_name/b"
+        blob = Blob.from_uri(basic_uri, client)
+
+        self.assertIsInstance(blob, Blob)
+        self.assertIs(blob.client, client)
+        self.assertEqual(blob.name, "b")
+        self.assertEqual(blob.bucket.name, "bucket_name")
+
+        nested_uri = "gs://bucket_name/path1/path2/b#name"
+        blob = Blob.from_uri(nested_uri, client)
+
+        self.assertIsInstance(blob, Blob)
+        self.assertIs(blob.client, client)
+        self.assertEqual(blob.name, "path1/path2/b#name")
+        self.assertEqual(blob.bucket.name, "bucket_name")
+
+    def test_from_uri_w_invalid_uri(self):
+        from google.cloud.storage.blob import Blob
+
+        client = self._make_client()
+
+        with pytest.raises(ValueError):
+            Blob.from_uri("http://bucket_name/b", client)
+
+    def test_from_uri_w_domain_name_bucket(self):
+        from google.cloud.storage.blob import Blob
+
+        client = self._make_client()
+        uri = "gs://buckets.example.com/b"
+        blob = Blob.from_uri(uri, client)
+
+        self.assertIsInstance(blob, Blob)
+        self.assertIs(blob.client, client)
+        self.assertEqual(blob.name, "b")
+        self.assertEqual(blob.bucket.name, "buckets.example.com")
+
+    @mock.patch("warnings.warn")
+    def test_from_string(self, mock_warn):
+        from google.cloud.storage.blob import _FROM_STRING_DEPRECATED
         from google.cloud.storage.blob import Blob
 
         client = self._make_client()
@@ -5899,25 +5891,11 @@ class Test_Blob(unittest.TestCase):
         self.assertEqual(blob.name, "path1/path2/b#name")
         self.assertEqual(blob.bucket.name, "bucket_name")
 
-    def test_from_string_w_invalid_uri(self):
-        from google.cloud.storage.blob import Blob
-
-        client = self._make_client()
-
-        with pytest.raises(ValueError):
-            Blob.from_string("http://bucket_name/b", client)
-
-    def test_from_string_w_domain_name_bucket(self):
-        from google.cloud.storage.blob import Blob
-
-        client = self._make_client()
-        uri = "gs://buckets.example.com/b"
-        blob = Blob.from_string(uri, client)
-
-        self.assertIsInstance(blob, Blob)
-        self.assertIs(blob.client, client)
-        self.assertEqual(blob.name, "b")
-        self.assertEqual(blob.bucket.name, "buckets.example.com")
+        mock_warn.assert_any_call(
+            _FROM_STRING_DEPRECATED,
+            PendingDeprecationWarning,
+            stacklevel=2,
+        )
 
     def test_open(self):
         from io import TextIOWrapper
@@ -6139,7 +6117,6 @@ class Test__raise_from_invalid_response(unittest.TestCase):
     def _helper(self, message, code=http.client.BAD_REQUEST, reason=None, args=()):
         import requests
 
-        from google.resumable_media import InvalidResponse
         from google.api_core import exceptions
 
         response = requests.Response()
