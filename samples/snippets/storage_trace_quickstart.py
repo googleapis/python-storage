@@ -21,7 +21,7 @@ Sample that exports OpenTelemetry Traces collected from the Storage client to Cl
 """
 
 
-def run_quickstart(bucket_name, blob_name, contents):
+def run_quickstart(bucket_name, blob_name, data):
     # [START storage_enable_otel_tracing]
 
     from opentelemetry import trace
@@ -42,11 +42,11 @@ def run_quickstart(bucket_name, blob_name, contents):
     # The ID of your GCS object
     # blob_name = "your-object-name"
     # The contents to upload to the file
-    # contents = "The quick brown fox jumps over the lazy dog."
+    # data = "The quick brown fox jumps over the lazy dog."
 
     # In this sample, we use Google Cloud Trace to export the OpenTelemetry
     # traces: https://cloud.google.com/trace/docs/setup/python-ot
-    # Choose and configure the exporter for your set up accordingly.
+    # Choose and configure the exporter for your environment.
 
     tracer_provider = TracerProvider(
         # Sampling is set to ALWAYS_ON.
@@ -70,7 +70,7 @@ def run_quickstart(bucket_name, blob_name, contents):
         storage_client = storage.Client()
         bucket = storage_client.bucket(bucket_name)
         blob = bucket.blob(blob_name)
-        blob.upload_from_string(contents)
+        blob.upload_from_string(data)
         print(f"{blob_name} uploaded to {bucket_name}.")
 
         blob.download_as_bytes()
@@ -80,4 +80,4 @@ def run_quickstart(bucket_name, blob_name, contents):
 
 
 if __name__ == "__main__":
-    run_quickstart(bucket_name=sys.argv[1], blob_name=sys.argv[2], contents=sys.argv[3])
+    run_quickstart(bucket_name=sys.argv[1], blob_name=sys.argv[2], data=sys.argv[3])
