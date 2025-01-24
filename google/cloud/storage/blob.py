@@ -76,7 +76,6 @@ from google.cloud.storage.retry import ConditionalRetryPolicy
 from google.cloud.storage.retry import DEFAULT_RETRY
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_ETAG_IN_JSON
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_GENERATION_SPECIFIED
-from google.cloud.storage.retry import DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED
 from google.cloud.storage.fileio import BlobReader
 from google.cloud.storage.fileio import BlobWriter
 
@@ -3439,7 +3438,7 @@ class Blob(_PropertyMixin):
         if_generation_not_match=None,
         if_metageneration_match=None,
         if_metageneration_not_match=None,
-        retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
+        retry=DEFAULT_RETRY,
     ):
         """Update blob's ACL, granting read access to anonymous users.
 
@@ -3493,7 +3492,7 @@ class Blob(_PropertyMixin):
         if_generation_not_match=None,
         if_metageneration_match=None,
         if_metageneration_not_match=None,
-        retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
+        retry=DEFAULT_RETRY,
     ):
         """Update blob's ACL, revoking read access for anonymous users.
 

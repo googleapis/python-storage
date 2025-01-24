@@ -36,10 +36,7 @@ from google.cloud.storage._helpers import _NOW
 from google.cloud.storage._helpers import _UTC
 from google.cloud.storage.exceptions import DataCorruption
 from google.cloud.storage.exceptions import InvalidResponse
-from google.cloud.storage.retry import (
-    DEFAULT_RETRY,
-    DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
-)
+from google.cloud.storage.retry import DEFAULT_RETRY
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_ETAG_IN_JSON
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_GENERATION_SPECIFIED
 from tests.unit.test__helpers import GCCL_INVOCATION_TEST_CONST
@@ -4146,7 +4143,7 @@ class Test_Blob(unittest.TestCase):
             expected_patch_data,
             query_params=expected_query_params,
             timeout=self._get_default_timeout(),
-            retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
+            retry=DEFAULT_RETRY,
         )
 
     def test_make_public_w_timeout(self):
@@ -4173,7 +4170,7 @@ class Test_Blob(unittest.TestCase):
             expected_patch_data,
             query_params=expected_query_params,
             timeout=timeout,
-            retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
+            retry=DEFAULT_RETRY,
         )
 
     def test_make_public_w_preconditions(self):
@@ -4203,7 +4200,7 @@ class Test_Blob(unittest.TestCase):
             expected_patch_data,
             query_params=expected_query_params,
             timeout=self._get_default_timeout(),
-            retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
+            retry=DEFAULT_RETRY,
         )
 
     def test_make_private_w_defaults(self):
@@ -4227,7 +4224,7 @@ class Test_Blob(unittest.TestCase):
             expected_patch_data,
             query_params=expected_query_params,
             timeout=self._get_default_timeout(),
-            retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
+            retry=DEFAULT_RETRY,
         )
 
     def test_make_private_w_timeout(self):
@@ -4252,7 +4249,7 @@ class Test_Blob(unittest.TestCase):
             expected_patch_data,
             query_params=expected_query_params,
             timeout=timeout,
-            retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
+            retry=DEFAULT_RETRY,
         )
 
     def test_make_private_w_preconditions(self):
@@ -4280,7 +4277,7 @@ class Test_Blob(unittest.TestCase):
             expected_patch_data,
             query_params=expected_query_params,
             timeout=self._get_default_timeout(),
-            retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
+            retry=DEFAULT_RETRY,
         )
 
     def test_compose_wo_content_type_set(self):

@@ -2252,7 +2252,7 @@ class Test_Bucket(unittest.TestCase):
             expected_patch_data,
             query_params=expected_patch_query_params,
             timeout=self._get_default_timeout(),
-            retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
+            retry=DEFAULT_RETRY,
         )
 
     def test_copy_blob_w_name_and_user_project(self):
