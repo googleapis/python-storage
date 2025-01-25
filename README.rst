@@ -3,24 +3,24 @@ Python Client for Google Cloud Storage
 
 |stable| |pypi| |versions|
 
-`Google Cloud Storage`_ is a managed service for storing unstructured data. Cloud Storage
+``Google Cloud Storage``_ is a managed service for storing unstructured data. Cloud Storage
 allows world-wide storage and retrieval of any amount of data at any time. You can use
 Cloud Storage for a range of scenarios including serving website content, storing data
 for archival and disaster recovery, or distributing large data objects to users via direct download.
 
-A comprehensive list of changes in each version may be found in the `CHANGELOG`_.
+A comprehensive list of changes in each version may be found in the ``CHANGELOG``_.
 
-- `Product Documentation`_
-- `Client Library Documentation`_
-- `github.com/googleapis/python-storage`_
+- ``Product Documentation``_
+- ``Client Library Documentation``_
+- ``github.com/googleapis/python-storage``_
 
 Certain control plane and long-running operations for Cloud Storage (including Folder
-and Managed Folder operations) are supported via the `Storage Control Client`_.
-The `Storage Control API`_ creates one space to perform metadata-specific, control plane,
+and Managed Folder operations) are supported via the ``Storage Control Client``_.
+The ``Storage Control API``_ creates one space to perform metadata-specific, control plane,
 and long-running operations apart from the Storage API.
 
 Read more about the client libraries for Cloud APIs, including the older
-Google APIs Client Libraries, in `Client Libraries Explained`_.
+Google APIs Client Libraries, in ``Client Libraries Explained``_.
 
 .. |stable| image:: https://img.shields.io/badge/support-stable-gold.svg
    :target: https://github.com/googleapis/google-cloud-python/blob/main/README.rst#stability-levels
@@ -37,42 +37,44 @@ Google APIs Client Libraries, in `Client Libraries Explained`_.
 .. _Storage Control API: https://cloud.google.com/storage/docs/reference/rpc/google.storage.control.v2
 .. _Client Libraries Explained: https://cloud.google.com/apis/docs/client-libraries-explained
 
-Major Version Release Notes
----------------------------
+3.0 Major Version Notes
+-----------------------
 
-Preview Release
-~~~~~~~~~~~~~~~
+Feedback Welcome
+~~~~~~~~~~~~~~~~
 
-Python Storage 3.0 is currently in a preview state. If you experience that
-backwards compatibility for your application is broken with this release for any
-reason, please let us know through the Github issues system. While some breaks
-of backwards compatibility may be unavoidable due to new features in the major
-version release, we will do our best to minimize them. Thank you.
+If you experience that backwards compatibility for your application is broken
+with this major version release, please let us know through the Github issues
+system. While some breaks of backwards compatibility may be unavoidable due to
+new features in the major version release, we will do our best to minimize
+them. Thank you.
 
 Exception Handling
 ~~~~~~~~~~~~~~~~~~
 
-In Python Storage 3.0, the dependency `google-resumable-media` was integrated.
-The `google-resumable-media` dependency included exceptions
-`google.resumable_media.common.InvalidResponse` and
-`google.resumable_media.common.DataCorruption`, which were often imported
+In Python Storage 3.0, the dependency ``google-resumable-media`` was integrated.
+The ``google-resumable-media`` dependency included exceptions
+``google.resumable_media.common.InvalidResponse`` and
+``google.resumable_media.common.DataCorruption``, which were often imported
 directly in user application code. The replacements for these exceptions are
-`google.cloud.storage.exceptions.InvalidResponse` and
-`google.cloud.storage.exceptions.DataCorruption`. Please update application code
+``google.cloud.storage.exceptions.InvalidResponse`` and
+``google.cloud.storage.exceptions.DataCorruption``. Please update application code
 to import and use these exceptions instead.
 
-For backwards compatibility, if `google-resumable-media` is installed, the new
+For backwards compatibility, if ``google-resumable-media`` is installed, the new
 exceptions will be defined as subclasses of the old exceptions, so applications
 should continue to work without modification. This backwards compatibility
 feature may be removed in a future major version update.
 
 Some users may be using the original exception classes from the
-`google-resumable-media` library without explicitly importing that library. So
+``google-resumable-media`` library without explicitly installing that library. So
 as not to break user applications following this pattern,
-`google-resumable-media` is still in the list of dependencies in this package's
+``google-resumable-media`` is still in the list of dependencies in this package's
 setup.py file. Applications which do not import directly from
-`google-resumable-media` can safely disregard this dependency. This backwards
-compatibility feature will be removed in a future major version update.
+``google-resumable-media`` can safely disregard this dependency.
+This backwards compatibility feature **will be removed** in a future major
+version update. Please migrate to using the ``google.cloud.storage.exceptions``
+classes as above.
 
 Checksum Defaults
 ~~~~~~~~~~~~~~~~~
@@ -83,9 +85,9 @@ fast (C extension) crc32c implementation is not available, in which case it will
 use md5 instead. Before Python Storage 3.0, the default was md5 for most
 downloads and None for most uploads. Note that ranged downloads ("start" or
 "end" set) still do not support any checksumming, and some features in
-`transfer_manager.py` still support crc32c only.
+``transfer_manager.py`` still support crc32c only.
 
-Note: The method `Blob.upload_from_file()` requires a file in bytes mode, but
+Note: The method ``Blob.upload_from_file()`` requires a file in bytes mode, but
 when checksum is set to None, as was the previous default, would not throw an
 error if passed a file in string mode under some circumstances. With the new
 defaults, it will now raise a TypeError. Please use a file opened in bytes
@@ -94,24 +96,27 @@ reading mode as required.
 Miscellaneous
 ~~~~~~~~~~~~~
 
-- The `BlobWriter` class now attempts to terminate an ongoing resumable upload if
+- The ``BlobWriter`` class now attempts to terminate an ongoing resumable upload if
   the writer exits with an exception.
 - Retry behavior is now identical between media operations (uploads and
   downloads) and other operations, and custom predicates are now supported for
   media operations as well.
-- Blob.download_as_filename() will now delete the empty file if it results in a
+- ``Blob.download_as_filename()`` will now delete the empty file if it results in a
   google.cloud.exceptions.NotFound exception (HTTP 404).
+- Previously, object upload, metadata update, and delete methods had retries
+  disabled by default unless the generation or metageneration was specified in
+  the request. This has now changed so that retries are enabled by default.
 
 Quick Start
 -----------
 
 In order to use this library, you first need to go through the following steps.
-A step-by-step guide may also be found in `Get Started with Client Libraries`_.
+A step-by-step guide may also be found in ``Get Started with Client Libraries``_.
 
-1. `Select or create a Cloud Platform project.`_
-2. `Enable billing for your project.`_
-3. `Enable the Google Cloud Storage API.`_
-4. `Setup Authentication.`_
+1. ``Select or create a Cloud Platform project.``_
+2. ``Enable billing for your project.``_
+3. ``Enable the Google Cloud Storage API.``_
+4. ``Setup Authentication.``_
 
 .. _Get Started with Client Libraries: https://cloud.google.com/storage/docs/reference/libraries#client-libraries-install-python
 .. _Select or create a Cloud Platform project.: https://console.cloud.google.com/project
@@ -122,29 +127,29 @@ A step-by-step guide may also be found in `Get Started with Client Libraries`_.
 Installation
 ~~~~~~~~~~~~
 
-Install this library in a virtual environment using `venv`_. `venv`_ is a tool that
+Install this library in a virtual environment using ``venv``_. ``venv``_ is a tool that
 creates isolated Python environments. These isolated environments can have separate
 versions of Python packages, which allows you to isolate one project's dependencies
 from the dependencies of other projects.
 
-With `venv`_, it's possible to install this library without needing system
+With ``venv``_, it's possible to install this library without needing system
 install permissions, and without clashing with the installed system
 dependencies.
 
-.. _`venv`: https://docs.python.org/3/library/venv.html
+.. _``venv``: https://docs.python.org/3/library/venv.html
 
 
 Code samples and snippets
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Code samples and snippets live in the `samples/`_ folder.
+Code samples and snippets live in the ``samples/``_ folder.
 
-.. _`samples/`: https://github.com/googleapis/python-storage/tree/main/samples
+.. _``samples/``: https://github.com/googleapis/python-storage/tree/main/samples
 
 
 Supported Python Versions
 ^^^^^^^^^^^^^^^^^^^^^^^^^
-Our client libraries are compatible with all current `active`_ and `maintenance`_ versions of
+Our client libraries are compatible with all current ``active``_ and ``maintenance``_ versions of
 Python.
 
 Python >= 3.7
@@ -156,7 +161,7 @@ Unsupported Python Versions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Python <= 3.6
 
-If you are using an `end-of-life`_
+If you are using an ``end-of-life``_
 version of Python, we recommend that you update as soon as possible to an actively supported version.
 
 .. _end-of-life: https://devguide.python.org/devcycle/#end-of-life-branches
@@ -186,8 +191,8 @@ Tracing With OpenTelemetry
 
 This is a PREVIEW FEATURE: Coverage and functionality are still in development and subject to change.
 
-This library can be configured to use `OpenTelemetry`_ to generate traces on calls to Google Cloud Storage.
-For information on the benefits and utility of tracing, read the `Cloud Trace Overview <https://cloud.google.com/trace/docs/overview>`_.
+This library can be configured to use ``OpenTelemetry``_ to generate traces on calls to Google Cloud Storage.
+For information on the benefits and utility of tracing, read the ``Cloud Trace Overview <https://cloud.google.com/trace/docs/overview>``_.
 
 To enable OpenTelemetry tracing in the Cloud Storage client, first install OpenTelemetry:
 
@@ -226,9 +231,9 @@ You will also need to tell OpenTelemetry which exporter to use. An example to ex
     from opentelemetry.instrumentation.requests import RequestsInstrumentor
     RequestsInstrumentor().instrument(tracer_provider=tracer_provider)
 
-In this example, tracing data will be published to the `Google Cloud Trace`_ console.
+In this example, tracing data will be published to the ``Google Cloud Trace``_ console.
 Tracing is most effective when many libraries are instrumented to provide insight over the entire lifespan of a request.
-For a list of libraries that can be instrumented, refer to the `OpenTelemetry Registry`_.
+For a list of libraries that can be instrumented, refer to the ``OpenTelemetry Registry``_.
 
 .. _OpenTelemetry: https://opentelemetry.io
 .. _OpenTelemetry Registry: https://opentelemetry.io/ecosystem/registry
@@ -238,11 +243,11 @@ For a list of libraries that can be instrumented, refer to the `OpenTelemetry Re
 Next Steps
 ~~~~~~~~~~
 
--  Read the `Google Cloud Storage Product documentation`_ to learn
+-  Read the ``Google Cloud Storage Product documentation``_ to learn
    more about the product and see How-to Guides.
--  Read the `Client Library Documentation`_ for Google Cloud Storage API
+-  Read the ``Client Library Documentation``_ for Google Cloud Storage API
    to see other available methods on the client.
--  View this `README`_ to see the full list of Cloud
+-  View this ``README``_ to see the full list of Cloud
    APIs that we cover.
 
 .. _Google Cloud Storage Product documentation:  https://cloud.google.com/storage
