@@ -3,24 +3,24 @@ Python Client for Google Cloud Storage
 
 |stable| |pypi| |versions|
 
-``Google Cloud Storage``_ is a managed service for storing unstructured data. Cloud Storage
+`Google Cloud Storage`_ is a managed service for storing unstructured data. Cloud Storage
 allows world-wide storage and retrieval of any amount of data at any time. You can use
 Cloud Storage for a range of scenarios including serving website content, storing data
 for archival and disaster recovery, or distributing large data objects to users via direct download.
 
-A comprehensive list of changes in each version may be found in the ``CHANGELOG``_.
+A comprehensive list of changes in each version may be found in the `CHANGELOG`_.
 
-- ``Product Documentation``_
-- ``Client Library Documentation``_
-- ``github.com/googleapis/python-storage``_
+- `Product Documentation`_
+- `Client Library Documentation`_
+- `github.com/googleapis/python-storage`_
 
 Certain control plane and long-running operations for Cloud Storage (including Folder
-and Managed Folder operations) are supported via the ``Storage Control Client``_.
-The ``Storage Control API``_ creates one space to perform metadata-specific, control plane,
+and Managed Folder operations) are supported via the `Storage Control Client`_.
+The `Storage Control API`_ creates one space to perform metadata-specific, control plane,
 and long-running operations apart from the Storage API.
 
 Read more about the client libraries for Cloud APIs, including the older
-Google APIs Client Libraries, in ``Client Libraries Explained``_.
+Google APIs Client Libraries, in `Client Libraries Explained`_.
 
 .. |stable| image:: https://img.shields.io/badge/support-stable-gold.svg
    :target: https://github.com/googleapis/google-cloud-python/blob/main/README.rst#stability-levels
@@ -111,12 +111,12 @@ Quick Start
 -----------
 
 In order to use this library, you first need to go through the following steps.
-A step-by-step guide may also be found in ``Get Started with Client Libraries``_.
+A step-by-step guide may also be found in `Get Started with Client Libraries`_.
 
-1. ``Select or create a Cloud Platform project.``_
-2. ``Enable billing for your project.``_
-3. ``Enable the Google Cloud Storage API.``_
-4. ``Setup Authentication.``_
+1. `Select or create a Cloud Platform project.`_
+2. `Enable billing for your project.`_
+3. `Enable the Google Cloud Storage API.`_
+4. `Setup Authentication.`_
 
 .. _Get Started with Client Libraries: https://cloud.google.com/storage/docs/reference/libraries#client-libraries-install-python
 .. _Select or create a Cloud Platform project.: https://console.cloud.google.com/project
@@ -127,29 +127,29 @@ A step-by-step guide may also be found in ``Get Started with Client Libraries``_
 Installation
 ~~~~~~~~~~~~
 
-Install this library in a virtual environment using ``venv``_. ``venv``_ is a tool that
+Install this library in a virtual environment using `venv`_. `venv`_ is a tool that
 creates isolated Python environments. These isolated environments can have separate
 versions of Python packages, which allows you to isolate one project's dependencies
 from the dependencies of other projects.
 
-With ``venv``_, it's possible to install this library without needing system
+With `venv`_, it's possible to install this library without needing system
 install permissions, and without clashing with the installed system
 dependencies.
 
-.. _``venv``: https://docs.python.org/3/library/venv.html
+.. _`venv`: https://docs.python.org/3/library/venv.html
 
 
 Code samples and snippets
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Code samples and snippets live in the ``samples/``_ folder.
+Code samples and snippets live in the `samples/`_ folder.
 
-.. _``samples/``: https://github.com/googleapis/python-storage/tree/main/samples
+.. _`samples/`: https://github.com/googleapis/python-storage/tree/main/samples
 
 
 Supported Python Versions
 ^^^^^^^^^^^^^^^^^^^^^^^^^
-Our client libraries are compatible with all current ``active``_ and ``maintenance``_ versions of
+Our client libraries are compatible with all current `active`_ and `maintenance`_ versions of
 Python.
 
 Python >= 3.7
@@ -161,7 +161,7 @@ Unsupported Python Versions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Python <= 3.6
 
-If you are using an ``end-of-life``_
+If you are using an `end-of-life`_
 version of Python, we recommend that you update as soon as possible to an actively supported version.
 
 .. _end-of-life: https://devguide.python.org/devcycle/#end-of-life-branches
@@ -191,8 +191,8 @@ Tracing With OpenTelemetry
 
 This is a PREVIEW FEATURE: Coverage and functionality are still in development and subject to change.
 
-This library can be configured to use ``OpenTelemetry``_ to generate traces on calls to Google Cloud Storage.
-For information on the benefits and utility of tracing, read the ``Cloud Trace Overview <https://cloud.google.com/trace/docs/overview>``_.
+This library can be configured to use `OpenTelemetry`_ to generate traces on calls to Google Cloud Storage.
+For information on the benefits and utility of tracing, read the `Cloud Trace Overview <https://cloud.google.com/trace/docs/overview>`_.
 
 To enable OpenTelemetry tracing in the Cloud Storage client, first install OpenTelemetry:
 
@@ -231,9 +231,9 @@ You will also need to tell OpenTelemetry which exporter to use. An example to ex
     from opentelemetry.instrumentation.requests import RequestsInstrumentor
     RequestsInstrumentor().instrument(tracer_provider=tracer_provider)
 
-In this example, tracing data will be published to the ``Google Cloud Trace``_ console.
+In this example, tracing data will be published to the `Google Cloud Trace`_ console.
 Tracing is most effective when many libraries are instrumented to provide insight over the entire lifespan of a request.
-For a list of libraries that can be instrumented, refer to the ``OpenTelemetry Registry``_.
+For a list of libraries that can be instrumented, refer to the `OpenTelemetry Registry`_.
 
 .. _OpenTelemetry: https://opentelemetry.io
 .. _OpenTelemetry Registry: https://opentelemetry.io/ecosystem/registry
@@ -243,11 +243,11 @@ For a list of libraries that can be instrumented, refer to the ``OpenTelemetry R
 Next Steps
 ~~~~~~~~~~
 
--  Read the ``Google Cloud Storage Product documentation``_ to learn
+-  Read the `Google Cloud Storage Product documentation`_ to learn
    more about the product and see How-to Guides.
--  Read the ``Client Library Documentation``_ for Google Cloud Storage API
+-  Read the `Client Library Documentation`_ for Google Cloud Storage API
    to see other available methods on the client.
--  View this ``README``_ to see the full list of Cloud
+-  View this `README`_ to see the full list of Cloud
    APIs that we cover.
 
 .. _Google Cloud Storage Product documentation:  https://cloud.google.com/storage
