@@ -23,8 +23,6 @@ Please consult the README for details on this major version release.
 
 * Add "auto" checksum option and make default ([#1383](https://github.com/googleapis/python-storage/issues/1383)) ([5375fa0](https://github.com/googleapis/python-storage/commit/5375fa07385c60cac694025aee123e20cb25bb65))
 * Blob.download_to_filename() deletes the empty destination file on a 404 ([#1394](https://github.com/googleapis/python-storage/pull/1394)) ([066be2d](https://github.com/googleapis/python-storage/commit/066be2db789cfd28d47d143ca0f7ccc9da183682))
-* Deprecated argument "text_mode" has been removed ([#1379](https://github.com/googleapis/python-storage/issues/1379)) ([4d20a8e](https://github.com/googleapis/python-storage/commit/4d20a8efa8cf37bb7f099b20a8c352c9a0c42659))
-* Deprecated positional argument "num_retries" has been removed ([#1377](https://github.com/googleapis/python-storage/issues/1377)) ([58b5040](https://github.com/googleapis/python-storage/commit/58b5040933d4b21e0be94357ed5aa14c87969f73))
 * Enable custom predicates for media operations ([#1385](https://github.com/googleapis/python-storage/issues/1385)) ([f3517bf](https://github.com/googleapis/python-storage/commit/f3517bfcb9e4ab8e4d761eb64a753e64b3d5871d))
 * Integrate google-resumable-media ([#1283](https://github.com/googleapis/python-storage/issues/1283)) ([bd917b4](https://github.com/googleapis/python-storage/commit/bd917b49d2a20e2e1edee2d32dc65b66da8d6aba))
 * Retry by default for uploads, blob deletes, metadata updates ([#1400](https://github.com/googleapis/python-storage/issues/1400)) ([0426005](https://github.com/googleapis/python-storage/commit/0426005175079ebdd73c299642a83b8193086d60))
