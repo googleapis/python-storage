@@ -11,24 +11,23 @@
 
 Please consult the README for details on this major version release.
 
-* The default checksum strategy for uploads has changed from None to "auto"
-* The default checksum strategy for downloads has changed from "md5" to "auto"
-* Deprecated positional argument "num_retries" has been removed
-* Deprecated argument "text_mode" has been removed
-* Blob.download_to_filename() deletes the empty destination file on a 404
+* The default checksum strategy for uploads has changed from None to "auto" ([#1383](https://github.com/googleapis/python-storage/issues/1383))
+* The default checksum strategy for downloads has changed from "md5" to "auto" ([#1383](https://github.com/googleapis/python-storage/issues/1383))
+* Deprecated positional argument "num_retries" has been removed ([#1377](https://github.com/googleapis/python-storage/issues/1377))
+* Deprecated argument "text_mode" has been removed ([#1379](https://github.com/googleapis/python-storage/issues/1379))
+* Blob.download_to_filename() now deletes the empty destination file on a 404 ([#1394](https://github.com/googleapis/python-storage/pull/1394))
+* Media operations now use the same retry backoff, timeout and custom predicate system as non-media operations, which may slightly impact default retry behavior ([#1385](https://github.com/googleapis/python-storage/issues/1385))
+* Retries are now enabled by default for uploads, blob deletes and blob metadata updates ([#1400](https://github.com/googleapis/python-storage/issues/1400))
 
 ### Features
 
 * Add "auto" checksum option and make default ([#1383](https://github.com/googleapis/python-storage/issues/1383)) ([5375fa0](https://github.com/googleapis/python-storage/commit/5375fa07385c60cac694025aee123e20cb25bb65))
-* Blob.download_to_filename() deletes the empty destination file on a 404 ([066be2d](https://github.com/googleapis/python-storage/commit/066be2db789cfd28d47d143ca0f7ccc9da183682))
-* Deprecated argument "text_mode" has been removed ([#1379](https://github.com/googleapis/python-storage/issues/1379)) (4d20a8e) ([4e9a382](https://github.com/googleapis/python-storage/commit/4e9a382dd91f7d951cb9b95319b05e0cdda06415))
-* Deprecated positional argument "num_retries" has been removed ([#1377](https://github.com/googleapis/python-storage/issues/1377)) (58b5040) ([4e9a382](https://github.com/googleapis/python-storage/commit/4e9a382dd91f7d951cb9b95319b05e0cdda06415))
+* Blob.download_to_filename() deletes the empty destination file on a 404 ([#1394](https://github.com/googleapis/python-storage/pull/1394)) ([066be2d](https://github.com/googleapis/python-storage/commit/066be2db789cfd28d47d143ca0f7ccc9da183682))
+* Deprecated argument "text_mode" has been removed ([#1379](https://github.com/googleapis/python-storage/issues/1379)) ([4d20a8e](https://github.com/googleapis/python-storage/commit/4d20a8efa8cf37bb7f099b20a8c352c9a0c42659))
+* Deprecated positional argument "num_retries" has been removed ([#1377](https://github.com/googleapis/python-storage/issues/1377)) ([58b5040](https://github.com/googleapis/python-storage/commit/58b5040933d4b21e0be94357ed5aa14c87969f73))
 * Enable custom predicates for media operations ([#1385](https://github.com/googleapis/python-storage/issues/1385)) ([f3517bf](https://github.com/googleapis/python-storage/commit/f3517bfcb9e4ab8e4d761eb64a753e64b3d5871d))
 * Integrate google-resumable-media ([#1283](https://github.com/googleapis/python-storage/issues/1283)) ([bd917b4](https://github.com/googleapis/python-storage/commit/bd917b49d2a20e2e1edee2d32dc65b66da8d6aba))
-* Media operation retries now work identically to other retries, which may impact default retry settings ([#1385](https://github.com/googleapis/python-storage/issues/1385)) (f3517bf) ([4e9a382](https://github.com/googleapis/python-storage/commit/4e9a382dd91f7d951cb9b95319b05e0cdda06415))
 * Retry by default for uploads, blob deletes, metadata updates ([#1400](https://github.com/googleapis/python-storage/issues/1400)) ([0426005](https://github.com/googleapis/python-storage/commit/0426005175079ebdd73c299642a83b8193086d60))
-* The default checksum strategy for downloads has changed from "md5" to "auto" ([#1383](https://github.com/googleapis/python-storage/issues/1383)) (5375fa0) ([4e9a382](https://github.com/googleapis/python-storage/commit/4e9a382dd91f7d951cb9b95319b05e0cdda06415))
-* The default checksum strategy for uploads has changed from None to "auto" ([#1383](https://github.com/googleapis/python-storage/issues/1383)) (5375fa0) ([4e9a382](https://github.com/googleapis/python-storage/commit/4e9a382dd91f7d951cb9b95319b05e0cdda06415))
 
 
 ### Bug Fixes
