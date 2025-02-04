@@ -4,6 +4,13 @@
 
 [1]: https://pypi.org/project/google-cloud-storage/#history
 
+## [2.19.1](https://github.com/googleapis/python-storage/compare/v2.19.0...v2.19.1) (2025-02-04)
+
+
+### Bug Fixes
+
+* Filter download_kwargs in BlobReader ([#1411](https://github.com/googleapis/python-storage/issues/1411)) ([0780ea5](https://github.com/googleapis/python-storage/commit/0780ea5c2c073eedb681af5d65083c8be05b8823))
+
 ## [2.19.0](https://github.com/googleapis/python-storage/compare/v2.18.2...v2.19.0) (2024-11-21)
 
 
