@@ -2205,7 +2205,6 @@ class Bucket(_PropertyMixin):
         :rtype: :class:`Blob`
         :returns: The newly-renamed blob.
         """
-
         same_name = blob.name == new_name
 
         new_blob = self.copy_blob(
@@ -2252,7 +2251,7 @@ class Bucket(_PropertyMixin):
         if_source_metageneration_match=None,
         if_source_metageneration_not_match=None,
         timeout=_DEFAULT_TIMEOUT,
-        retry=DEFAULT_RETRY,
+        retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
     ):
         """Move a blob to a new name within a single HNS bucket.
 

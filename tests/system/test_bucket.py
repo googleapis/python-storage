@@ -450,6 +450,7 @@ def test_bucket_move_blob_hns(
     assert created.hierarchical_namespace_enabled is True
 
     source = created.blob("source")
+    source_gen = source.generation
     source.upload_from_string(payload)
     blobs_to_delete.append(source)
 
@@ -462,6 +463,8 @@ def test_bucket_move_blob_hns(
     blobs_to_delete.append(dest)
 
     assert dest.download_as_bytes() == payload
+    assert dest.generation is not None
+    assert source_gen != dest.generation
 
 
 def test_bucket_get_blob_with_user_project(

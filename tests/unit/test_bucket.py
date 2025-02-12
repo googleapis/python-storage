@@ -2348,7 +2348,7 @@ class Test_Bucket(unittest.TestCase):
             expected_data,
             query_params=expected_query_params,
             timeout=self._get_default_timeout(),
-            retry=DEFAULT_RETRY,
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
             _target_object=new_blob,
         )
 
