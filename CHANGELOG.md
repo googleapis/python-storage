@@ -4,6 +4,13 @@
 
 [1]: https://pypi.org/project/google-cloud-storage/#history
 
+## [3.1.0](https://github.com/googleapis/python-storage/compare/v3.0.0...v3.1.0) (2025-02-12)
+
+
+### Features
+
+* Add Bucket.move_blob() for HNS-enabled buckets ([#1431](https://github.com/googleapis/python-storage/issues/1431)) ([24c000f](https://github.com/googleapis/python-storage/commit/24c000fb7b9f576e6d6c6ec5733f3971fe133655))
+
 ## [3.0.0](https://github.com/googleapis/python-storage/compare/v2.19.0...v3.0.0) (2025-01-28)
 
 
