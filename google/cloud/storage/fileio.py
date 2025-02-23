@@ -15,12 +15,9 @@
 """Module for file-like access of blobs, usually invoked via Blob.open()."""
 
 import io
-import warnings
 
 from google.api_core.exceptions import RequestRangeNotSatisfiable
-from google.cloud.storage._helpers import _NUM_RETRIES_MESSAGE
 from google.cloud.storage.retry import DEFAULT_RETRY
-from google.cloud.storage.retry import DEFAULT_RETRY_IF_GENERATION_SPECIFIED
 from google.cloud.storage.retry import ConditionalRetryPolicy
 
 
@@ -45,7 +42,6 @@ VALID_DOWNLOAD_KWARGS = {
 VALID_UPLOAD_KWARGS = {
     "content_type",
     "predefined_acl",
-    "num_retries",
     "if_generation_match",
     "if_generation_not_match",
     "if_metageneration_match",
@@ -92,6 +88,7 @@ class BlobReader(io.BufferedIOBase):
         configuration changes for Retry objects such as delays and deadlines
         are respected.
 
+    :type download_kwargs: dict
     :param download_kwargs:
         Keyword arguments to pass to the underlying API calls.
         The following arguments are supported:
@@ -101,9 +98,10 @@ class BlobReader(io.BufferedIOBase):
         - ``if_metageneration_match``
         - ``if_metageneration_not_match``
         - ``timeout``
+        - ``raw_download``
 
-        Note that download_kwargs are also applied to blob.reload(), if a reload
-        is needed during seek().
+        Note that download_kwargs (excluding ``raw_download``) are also applied to blob.reload(),
+        if a reload is needed during seek().
     """
 
     def __init__(self, blob, chunk_size=None, retry=DEFAULT_RETRY, **download_kwargs):
@@ -178,7 +176,10 @@ class BlobReader(io.BufferedIOBase):
         self._checkClosed()  # Raises ValueError if closed.
 
         if self._blob.size is None:
-            self._blob.reload(**self._download_kwargs)
+            reload_kwargs = {
+                k: v for k, v in self._download_kwargs.items() if k != "raw_download"
+            }
+            self._blob.reload(**reload_kwargs)
 
         initial_offset = self._pos + self._buffer.tell()
 
@@ -240,12 +241,6 @@ class BlobWriter(io.BufferedIOBase):
         writes must be exactly a multiple of 256KiB as with other resumable
         uploads. The default is the chunk_size of the blob, or 40 MiB.
 
-    :type text_mode: bool
-    :param text_mode:
-        (Deprecated) A synonym for ignore_flush. For backwards-compatibility,
-        if True, sets ignore_flush to True. Use ignore_flush instead. This
-        parameter will be removed in a future release.
-
     :type ignore_flush: bool
     :param ignore_flush:
         Makes flush() do nothing instead of raise an error. flush() without
@@ -281,6 +276,7 @@ class BlobWriter(io.BufferedIOBase):
         configuration changes for Retry objects such as delays and deadlines
         are respected.
 
+    :type upload_kwargs: dict
     :param upload_kwargs:
         Keyword arguments to pass to the underlying API
         calls. The following arguments are supported:
@@ -291,7 +287,6 @@ class BlobWriter(io.BufferedIOBase):
         - ``if_metageneration_not_match``
         - ``timeout``
         - ``content_type``
-        - ``num_retries``
         - ``predefined_acl``
         - ``checksum``
     """
@@ -300,9 +295,8 @@ class BlobWriter(io.BufferedIOBase):
         self,
         blob,
         chunk_size=None,
-        text_mode=False,
         ignore_flush=False,
-        retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+        retry=DEFAULT_RETRY,
         **upload_kwargs,
     ):
         for kwarg in upload_kwargs:
@@ -316,8 +310,7 @@ class BlobWriter(io.BufferedIOBase):
         # Resumable uploads require a chunk size of a multiple of 256KiB.
         # self._chunk_size must not be changed after the upload is initiated.
         self._chunk_size = chunk_size or blob.chunk_size or DEFAULT_CHUNK_SIZE
-        # text_mode is a deprecated synonym for ignore_flush
-        self._ignore_flush = ignore_flush or text_mode
+        self._ignore_flush = ignore_flush
         self._retry = retry
         self._upload_kwargs = upload_kwargs
 
@@ -359,18 +352,8 @@ class BlobWriter(io.BufferedIOBase):
         return pos
 
     def _initiate_upload(self):
-        # num_retries is only supported for backwards-compatibility reasons.
-        num_retries = self._upload_kwargs.pop("num_retries", None)
         retry = self._retry
         content_type = self._upload_kwargs.pop("content_type", None)
-
-        if num_retries is not None:
-            warnings.warn(_NUM_RETRIES_MESSAGE, DeprecationWarning, stacklevel=2)
-            # num_retries and retry are mutually exclusive. If num_retries is
-            # set and retry is exactly the default, then nullify retry for
-            # backwards compatibility.
-            if retry is DEFAULT_RETRY_IF_GENERATION_SPECIFIED:
-                retry = None
 
         # Handle ConditionalRetryPolicy.
         if isinstance(retry, ConditionalRetryPolicy):
@@ -391,7 +374,6 @@ class BlobWriter(io.BufferedIOBase):
             self._buffer,
             content_type,
             None,
-            num_retries,
             chunk_size=self._chunk_size,
             retry=retry,
             **self._upload_kwargs,
@@ -436,6 +418,19 @@ class BlobWriter(io.BufferedIOBase):
         if not self._buffer.closed:
             self._upload_chunks_from_buffer(1)
         self._buffer.close()
+
+    def terminate(self):
+        """Cancel the ResumableUpload."""
+        if self._upload_and_transport:
+            upload, transport = self._upload_and_transport
+            transport.delete(upload.upload_url)
+        self._buffer.close()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if exc_type is not None:
+            self.terminate()
+        else:
+            self.close()
 
     @property
     def closed(self):
