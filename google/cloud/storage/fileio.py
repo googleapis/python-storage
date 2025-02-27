@@ -18,7 +18,6 @@ import io
 
 from google.api_core.exceptions import RequestRangeNotSatisfiable
 from google.cloud.storage.retry import DEFAULT_RETRY
-from google.cloud.storage.retry import DEFAULT_RETRY_IF_GENERATION_SPECIFIED
 from google.cloud.storage.retry import ConditionalRetryPolicy
 
 
@@ -89,6 +88,7 @@ class BlobReader(io.BufferedIOBase):
         configuration changes for Retry objects such as delays and deadlines
         are respected.
 
+    :type download_kwargs: dict
     :param download_kwargs:
         Keyword arguments to pass to the underlying API calls.
         The following arguments are supported:
@@ -98,9 +98,10 @@ class BlobReader(io.BufferedIOBase):
         - ``if_metageneration_match``
         - ``if_metageneration_not_match``
         - ``timeout``
+        - ``raw_download``
 
-        Note that download_kwargs are also applied to blob.reload(), if a reload
-        is needed during seek().
+        Note that download_kwargs (excluding ``raw_download``) are also applied to blob.reload(),
+        if a reload is needed during seek().
     """
 
     def __init__(self, blob, chunk_size=None, retry=DEFAULT_RETRY, **download_kwargs):
@@ -175,7 +176,10 @@ class BlobReader(io.BufferedIOBase):
         self._checkClosed()  # Raises ValueError if closed.
 
         if self._blob.size is None:
-            self._blob.reload(**self._download_kwargs)
+            reload_kwargs = {
+                k: v for k, v in self._download_kwargs.items() if k != "raw_download"
+            }
+            self._blob.reload(**reload_kwargs)
 
         initial_offset = self._pos + self._buffer.tell()
 
@@ -272,6 +276,7 @@ class BlobWriter(io.BufferedIOBase):
         configuration changes for Retry objects such as delays and deadlines
         are respected.
 
+    :type upload_kwargs: dict
     :param upload_kwargs:
         Keyword arguments to pass to the underlying API
         calls. The following arguments are supported:
@@ -291,7 +296,7 @@ class BlobWriter(io.BufferedIOBase):
         blob,
         chunk_size=None,
         ignore_flush=False,
-        retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+        retry=DEFAULT_RETRY,
         **upload_kwargs,
     ):
         for kwarg in upload_kwargs:

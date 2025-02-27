@@ -360,7 +360,6 @@ class ACL(object):
             client = self.client
         return client
 
-    @create_trace_span(name="Storage.ACL.reload")
     def reload(self, client=None, timeout=_DEFAULT_TIMEOUT, retry=DEFAULT_RETRY):
         """Reload the ACL data from Cloud Storage.
 
@@ -379,25 +378,26 @@ class ACL(object):
         :param retry:
             (Optional) How to retry the RPC. See: :ref:`configuring_retries`
         """
-        path = self.reload_path
-        client = self._require_client(client)
-        query_params = {}
+        with create_trace_span(name="Storage.ACL.reload"):
+            path = self.reload_path
+            client = self._require_client(client)
+            query_params = {}
 
-        if self.user_project is not None:
-            query_params["userProject"] = self.user_project
+            if self.user_project is not None:
+                query_params["userProject"] = self.user_project
 
-        self.entities.clear()
+            self.entities.clear()
 
-        found = client._get_resource(
-            path,
-            query_params=query_params,
-            timeout=timeout,
-            retry=retry,
-        )
-        self.loaded = True
+            found = client._get_resource(
+                path,
+                query_params=query_params,
+                timeout=timeout,
+                retry=retry,
+            )
+            self.loaded = True
 
-        for entry in found.get("items", ()):
-            self.add_entity(self.entity_from_dict(entry))
+            for entry in found.get("items", ()):
+                self.add_entity(self.entity_from_dict(entry))
 
     def _save(
         self,
@@ -486,7 +486,6 @@ class ACL(object):
 
         self.loaded = True
 
-    @create_trace_span(name="Storage.ACL.save")
     def save(
         self,
         acl=None,
@@ -536,26 +535,26 @@ class ACL(object):
         :param retry:
             (Optional) How to retry the RPC. See: :ref:`configuring_retries`
         """
-        if acl is None:
-            acl = self
-            save_to_backend = acl.loaded
-        else:
-            save_to_backend = True
+        with create_trace_span(name="Storage.ACL.save"):
+            if acl is None:
+                acl = self
+                save_to_backend = acl.loaded
+            else:
+                save_to_backend = True
 
-        if save_to_backend:
-            self._save(
-                acl,
-                None,
-                client,
-                if_generation_match=if_generation_match,
-                if_generation_not_match=if_generation_not_match,
-                if_metageneration_match=if_metageneration_match,
-                if_metageneration_not_match=if_metageneration_not_match,
-                timeout=timeout,
-                retry=retry,
-            )
+            if save_to_backend:
+                self._save(
+                    acl,
+                    None,
+                    client,
+                    if_generation_match=if_generation_match,
+                    if_generation_not_match=if_generation_not_match,
+                    if_metageneration_match=if_metageneration_match,
+                    if_metageneration_not_match=if_metageneration_not_match,
+                    timeout=timeout,
+                    retry=retry,
+                )
 
-    @create_trace_span(name="Storage.ACL.savePredefined")
     def save_predefined(
         self,
         predefined,
@@ -608,20 +607,20 @@ class ACL(object):
         :param retry:
             (Optional) How to retry the RPC. See: :ref:`configuring_retries`
         """
-        predefined = self.validate_predefined(predefined)
-        self._save(
-            None,
-            predefined,
-            client,
-            if_generation_match=if_generation_match,
-            if_generation_not_match=if_generation_not_match,
-            if_metageneration_match=if_metageneration_match,
-            if_metageneration_not_match=if_metageneration_not_match,
-            timeout=timeout,
-            retry=retry,
-        )
+        with create_trace_span(name="Storage.ACL.savePredefined"):
+            predefined = self.validate_predefined(predefined)
+            self._save(
+                None,
+                predefined,
+                client,
+                if_generation_match=if_generation_match,
+                if_generation_not_match=if_generation_not_match,
+                if_metageneration_match=if_metageneration_match,
+                if_metageneration_not_match=if_metageneration_not_match,
+                timeout=timeout,
+                retry=retry,
+            )
 
-    @create_trace_span(name="Storage.ACL.clear")
     def clear(
         self,
         client=None,
@@ -671,16 +670,17 @@ class ACL(object):
         :param retry:
             (Optional) How to retry the RPC. See: :ref:`configuring_retries`
         """
-        self.save(
-            [],
-            client=client,
-            if_generation_match=if_generation_match,
-            if_generation_not_match=if_generation_not_match,
-            if_metageneration_match=if_metageneration_match,
-            if_metageneration_not_match=if_metageneration_not_match,
-            timeout=timeout,
-            retry=retry,
-        )
+        with create_trace_span(name="Storage.ACL.clear"):
+            self.save(
+                [],
+                client=client,
+                if_generation_match=if_generation_match,
+                if_generation_not_match=if_generation_not_match,
+                if_metageneration_match=if_metageneration_match,
+                if_metageneration_not_match=if_metageneration_not_match,
+                timeout=timeout,
+                retry=retry,
+            )
 
 
 class BucketACL(ACL):
@@ -752,3 +752,185 @@ class ObjectACL(ACL):
     def user_project(self):
         """Compute the user project charged for API requests for this ACL."""
         return self.blob.user_project
+
+    def save(
+        self,
+        acl=None,
+        client=None,
+        if_generation_match=None,
+        if_generation_not_match=None,
+        if_metageneration_match=None,
+        if_metageneration_not_match=None,
+        timeout=_DEFAULT_TIMEOUT,
+        retry=DEFAULT_RETRY,
+    ):
+        """Save this ACL for the current object.
+
+        If :attr:`user_project` is set, bills the API request to that project.
+
+        :type acl: :class:`google.cloud.storage.acl.ACL`, or a compatible list.
+        :param acl: The ACL object to save.  If left blank, this will save
+                    current entries.
+
+        :type client: :class:`~google.cloud.storage.client.Client` or
+                      ``NoneType``
+        :param client: (Optional) The client to use.  If not passed, falls back
+                       to the ``client`` stored on the ACL's parent.
+
+        :type if_generation_match: long
+        :param if_generation_match:
+            (Optional) See :ref:`using-if-generation-match`
+
+        :type if_generation_not_match: long
+        :param if_generation_not_match:
+            (Optional) See :ref:`using-if-generation-not-match`
+
+        :type if_metageneration_match: long
+        :param if_metageneration_match:
+            (Optional) See :ref:`using-if-metageneration-match`
+
+        :type if_metageneration_not_match: long
+        :param if_metageneration_not_match:
+            (Optional) See :ref:`using-if-metageneration-not-match`
+
+        :type timeout: float or tuple
+        :param timeout:
+            (Optional) The amount of time, in seconds, to wait
+            for the server response.  See: :ref:`configuring_timeouts`
+
+        :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
+        :param retry:
+            (Optional) How to retry the RPC. See: :ref:`configuring_retries`
+        """
+        super().save(
+            acl=acl,
+            client=client,
+            if_generation_match=if_generation_match,
+            if_generation_not_match=if_generation_not_match,
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
+            timeout=timeout,
+            retry=retry,
+        )
+
+    def save_predefined(
+        self,
+        predefined,
+        client=None,
+        if_generation_match=None,
+        if_generation_not_match=None,
+        if_metageneration_match=None,
+        if_metageneration_not_match=None,
+        timeout=_DEFAULT_TIMEOUT,
+        retry=DEFAULT_RETRY,
+    ):
+        """Save this ACL for the current object using a predefined ACL.
+
+        If :attr:`user_project` is set, bills the API request to that project.
+
+        :type predefined: str
+        :param predefined: An identifier for a predefined ACL.  Must be one
+                           of the keys in :attr:`PREDEFINED_JSON_ACLS`
+                           or :attr:`PREDEFINED_XML_ACLS` (which will be
+                           aliased to the corresponding JSON name).
+                           If passed, `acl` must be None.
+
+        :type client: :class:`~google.cloud.storage.client.Client` or
+                      ``NoneType``
+        :param client: (Optional) The client to use.  If not passed, falls back
+                       to the ``client`` stored on the ACL's parent.
+
+        :type if_generation_match: long
+        :param if_generation_match:
+            (Optional) See :ref:`using-if-generation-match`
+
+        :type if_generation_not_match: long
+        :param if_generation_not_match:
+            (Optional) See :ref:`using-if-generation-not-match`
+
+        :type if_metageneration_match: long
+        :param if_metageneration_match:
+            (Optional) See :ref:`using-if-metageneration-match`
+
+        :type if_metageneration_not_match: long
+        :param if_metageneration_not_match:
+            (Optional) See :ref:`using-if-metageneration-not-match`
+
+        :type timeout: float or tuple
+        :param timeout:
+            (Optional) The amount of time, in seconds, to wait
+            for the server response.  See: :ref:`configuring_timeouts`
+
+        :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
+        :param retry:
+            (Optional) How to retry the RPC. See: :ref:`configuring_retries`
+        """
+        super().save_predefined(
+            predefined=predefined,
+            client=client,
+            if_generation_match=if_generation_match,
+            if_generation_not_match=if_generation_not_match,
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
+            timeout=timeout,
+            retry=retry,
+        )
+
+    def clear(
+        self,
+        client=None,
+        if_generation_match=None,
+        if_generation_not_match=None,
+        if_metageneration_match=None,
+        if_metageneration_not_match=None,
+        timeout=_DEFAULT_TIMEOUT,
+        retry=DEFAULT_RETRY,
+    ):
+        """Remove all ACL entries.
+
+        If :attr:`user_project` is set, bills the API request to that project.
+
+        Note that this won't actually remove *ALL* the rules, but it
+        will remove all the non-default rules.  In short, you'll still
+        have access to a bucket that you created even after you clear
+        ACL rules with this method.
+
+        :type client: :class:`~google.cloud.storage.client.Client` or
+                      ``NoneType``
+        :param client: (Optional) The client to use.  If not passed, falls back
+                       to the ``client`` stored on the ACL's parent.
+
+        :type if_generation_match: long
+        :param if_generation_match:
+            (Optional) See :ref:`using-if-generation-match`
+
+        :type if_generation_not_match: long
+        :param if_generation_not_match:
+            (Optional) See :ref:`using-if-generation-not-match`
+
+        :type if_metageneration_match: long
+        :param if_metageneration_match:
+            (Optional) See :ref:`using-if-metageneration-match`
+
+        :type if_metageneration_not_match: long
+        :param if_metageneration_not_match:
+            (Optional) See :ref:`using-if-metageneration-not-match`
+
+        :type timeout: float or tuple
+        :param timeout:
+            (Optional) The amount of time, in seconds, to wait
+            for the server response.  See: :ref:`configuring_timeouts`
+
+        :type retry: google.api_core.retry.Retry or google.cloud.storage.retry.ConditionalRetryPolicy
+        :param retry:
+            (Optional) How to retry the RPC. See: :ref:`configuring_retries`
+        """
+        super().clear(
+            client=client,
+            if_generation_match=if_generation_match,
+            if_generation_not_match=if_generation_not_match,
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
+            timeout=timeout,
+            retry=retry,
+        )

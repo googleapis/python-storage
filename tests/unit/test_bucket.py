@@ -1641,7 +1641,7 @@ class Test_Bucket(unittest.TestCase):
             expected_path,
             query_params=expected_query_params,
             timeout=self._get_default_timeout(),
-            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+            retry=DEFAULT_RETRY,
             _target_object=None,
         )
 
@@ -1664,7 +1664,7 @@ class Test_Bucket(unittest.TestCase):
             expected_path,
             query_params=expected_query_params,
             timeout=timeout,
-            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+            retry=DEFAULT_RETRY,
             _target_object=None,
         )
 
@@ -1717,7 +1717,7 @@ class Test_Bucket(unittest.TestCase):
             expected_path,
             query_params=expected_query_params,
             timeout=self._get_default_timeout(),
-            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+            retry=DEFAULT_RETRY,
             _target_object=None,
         )
 
@@ -1749,7 +1749,7 @@ class Test_Bucket(unittest.TestCase):
             if_metageneration_match=None,
             if_metageneration_not_match=None,
             timeout=timeout,
-            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+            retry=DEFAULT_RETRY,
         )
 
     def test_delete_blobs_w_generation_match_wrong_len(self):
@@ -1833,7 +1833,7 @@ class Test_Bucket(unittest.TestCase):
             if_metageneration_match=None,
             if_metageneration_not_match=None,
             timeout=self._get_default_timeout(),
-            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+            retry=DEFAULT_RETRY,
         )
         call_2 = mock.call(
             blob_name2,
@@ -1844,7 +1844,7 @@ class Test_Bucket(unittest.TestCase):
             if_metageneration_match=None,
             if_metageneration_not_match=None,
             timeout=self._get_default_timeout(),
-            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+            retry=DEFAULT_RETRY,
         )
         bucket.delete_blob.assert_has_calls([call_1, call_2])
 
@@ -1917,7 +1917,7 @@ class Test_Bucket(unittest.TestCase):
             if_metageneration_match=None,
             if_metageneration_not_match=None,
             timeout=self._get_default_timeout(),
-            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+            retry=DEFAULT_RETRY,
         )
         call_2 = mock.call(
             blob_name2,
@@ -1928,7 +1928,7 @@ class Test_Bucket(unittest.TestCase):
             if_metageneration_match=None,
             if_metageneration_not_match=None,
             timeout=self._get_default_timeout(),
-            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+            retry=DEFAULT_RETRY,
         )
         bucket.delete_blob.assert_has_calls([call_1, call_2])
 
@@ -1957,7 +1957,7 @@ class Test_Bucket(unittest.TestCase):
             if_metageneration_match=None,
             if_metageneration_not_match=None,
             timeout=self._get_default_timeout(),
-            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+            retry=DEFAULT_RETRY,
         )
         call_2 = mock.call(
             blob_name2,
@@ -1968,7 +1968,7 @@ class Test_Bucket(unittest.TestCase):
             if_metageneration_match=None,
             if_metageneration_not_match=None,
             timeout=self._get_default_timeout(),
-            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+            retry=DEFAULT_RETRY,
         )
         bucket.delete_blob.assert_has_calls([call_1, call_2])
 
@@ -2252,7 +2252,7 @@ class Test_Bucket(unittest.TestCase):
             expected_patch_data,
             query_params=expected_patch_query_params,
             timeout=self._get_default_timeout(),
-            retry=DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED,
+            retry=DEFAULT_RETRY,
         )
 
     def test_copy_blob_w_name_and_user_project(self):
@@ -2277,6 +2277,69 @@ class Test_Bucket(unittest.TestCase):
 
         expected_path = "/b/{}/o/{}/copyTo/b/{}/o/{}".format(
             source_name, blob_name, dest_name, new_name
+        )
+        expected_data = None
+        expected_query_params = {"userProject": user_project}
+        client._post_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY_IF_GENERATION_SPECIFIED,
+            _target_object=new_blob,
+        )
+
+    def test_move_blob_w_no_retry_timeout_and_generation_match(self):
+        source_name = "source"
+        blob_name = "blob-name"
+        new_name = "new_name"
+        api_response = {}
+        client = mock.Mock(spec=["_post_resource"])
+        client._post_resource.return_value = api_response
+        source = self._make_one(client=client, name=source_name)
+        blob = self._make_blob(source_name, blob_name)
+
+        new_blob = source.move_blob(
+            blob, new_name, if_generation_match=0, retry=None, timeout=30
+        )
+
+        self.assertIs(new_blob.bucket, source)
+        self.assertEqual(new_blob.name, new_name)
+
+        expected_path = "/b/{}/o/{}/moveTo/o/{}".format(
+            source_name, blob_name, new_name
+        )
+        expected_data = None
+        expected_query_params = {"ifGenerationMatch": 0}
+        client._post_resource.assert_called_once_with(
+            expected_path,
+            expected_data,
+            query_params=expected_query_params,
+            timeout=30,
+            retry=None,
+            _target_object=new_blob,
+        )
+
+    def test_move_blob_w_user_project(self):
+        source_name = "source"
+        blob_name = "blob-name"
+        new_name = "new_name"
+        user_project = "user-project-123"
+        api_response = {}
+        client = mock.Mock(spec=["_post_resource"])
+        client._post_resource.return_value = api_response
+        source = self._make_one(
+            client=client, name=source_name, user_project=user_project
+        )
+        blob = self._make_blob(source_name, blob_name)
+
+        new_blob = source.move_blob(blob, new_name)
+
+        self.assertIs(new_blob.bucket, source)
+        self.assertEqual(new_blob.name, new_name)
+
+        expected_path = "/b/{}/o/{}/moveTo/o/{}".format(
+            source_name, blob_name, new_name
         )
         expected_data = None
         expected_query_params = {"userProject": user_project}
