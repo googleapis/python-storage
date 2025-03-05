@@ -28,9 +28,9 @@ description = "Google Cloud Storage API client library"
 # 'Development Status :: 5 - Production/Stable'
 release_status = "Development Status :: 5 - Production/Stable"
 dependencies = [
-    "google-auth >= 2.26.1, < 3.0dev",
-    "google-api-core >= 2.15.0, <3.0.0dev",
-    "google-cloud-core >= 2.4.2, < 3.0dev",
+    "google-auth >= 2.26.1, < 3.0.0",
+    "google-api-core >= 2.15.0, <3.0.0",
+    "google-cloud-core >= 2.4.2, < 3.0.0",
     # The dependency "google-resumable-media" is no longer used. However, the
     # dependency is still included here to accommodate users who may be
     # importing exception classes from the google-resumable-media without
@@ -39,11 +39,11 @@ dependencies = [
     # google-resumable-media classes in their application can safely disregard
     # this dependency.
     "google-resumable-media >= 2.7.2",
-    "requests >= 2.18.0, < 3.0.0dev",
-    "google-crc32c >= 1.0, < 2.0dev",
+    "requests >= 2.18.0, < 3.0.0",
+    "google-crc32c >= 1.0, < 2.0.0",
 ]
 extras = {
-    "protobuf": ["protobuf<6.0.0dev"],
+    "protobuf": ["protobuf<7.0.0"],
     "tracing": [
         "opentelemetry-api >= 1.1.0",
     ],
