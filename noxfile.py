@@ -303,11 +303,10 @@ def docfx(session):
     )
 
 
-
 @nox.session(python=UNIT_TEST_PYTHON_VERSIONS[-1])
 @nox.parametrize(
     "protobuf_implementation",
-    [ "python", "upb", "cpp" ],
+    ["python", "upb", "cpp"],
 )
 def prerelease_deps(session, protobuf_implementation):
     """Run all tests with prerelease versions of dependencies installed."""
