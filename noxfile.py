@@ -314,6 +314,9 @@ def prerelease_deps(session, protobuf_implementation):
     if protobuf_implementation == "cpp" and session.python in ("3.11", "3.12", "3.13"):
         session.skip("cpp implementation is not supported in python 3.11+")
 
+    # Install all test dependencies
+    session.install("pytest", "pytest-cov", "brotli")
+
     # Install all dependencies
     session.install("-e", ".[protobuf, tracing]")
     # unit_deps_all = UNIT_TEST_STANDARD_DEPENDENCIES + UNIT_TEST_EXTERNAL_DEPENDENCIES
