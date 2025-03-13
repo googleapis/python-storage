@@ -39,10 +39,10 @@ nox.options.error_on_missing_interpreters = True
 nox.options.sessions = [
     "blacken",
     "conftest_retry",
-    "lint",
-    "lint_setup_py",
     "docfx",
     "docs",
+    "lint",
+    "lint_setup_py",
     "system",
     "unit",
     # cover must be last to avoid error `No data to report`
