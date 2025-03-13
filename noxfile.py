@@ -317,27 +317,6 @@ def prerelease_deps(session, protobuf_implementation):
     # Install all dependencies
     session.install("-e", ".[protobuf, tracing]")
 
-    # Because we test minimum dependency versions on the minimum Python
-    # version, the first version we test with in the unit tests sessions has a
-    # constraints file containing all dependencies and extras.
-    with open(
-        CURRENT_DIRECTORY
-        / "testing"
-        / f"constraints-{UNIT_TEST_PYTHON_VERSIONS[0]}.txt",
-        encoding="utf-8",
-    ) as constraints_file:
-        constraints_text = constraints_file.read()
-
-    # Ignore leading whitespace and comment lines.
-    constraints_deps = [
-        match.group(1)
-        for match in re.finditer(
-            r"^\s*(\S+)(?===\S+)", constraints_text, flags=re.MULTILINE
-        )
-    ]
-
-    session.install(*constraints_deps)
-
     prerel_deps = [
         "google-api-core",
         "google-auth",
