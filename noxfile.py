@@ -355,6 +355,9 @@ def prerelease_deps(session, protobuf_implementation):
         "google-resumable-media",
         "opentelemetry-api",
         "protobuf",
+        # for system tests
+        "google-cloud-pubsub",
+        "google-cloud-kms",
     ]
 
     package_namespaces = {
