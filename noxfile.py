@@ -306,13 +306,10 @@ def docfx(session):
 @nox.session(python=UNIT_TEST_PYTHON_VERSIONS[-1])
 @nox.parametrize(
     "protobuf_implementation",
-    ["python", "upb", "cpp"],
+    ["python", "upb"],
 )
 def prerelease_deps(session, protobuf_implementation):
     """Run all tests with prerelease versions of dependencies installed."""
-
-    if protobuf_implementation == "cpp" and session.python in ("3.11", "3.12", "3.13"):
-        session.skip("cpp implementation is not supported in python 3.11+")
 
     # Install all test dependencies
     session.install("mock", "pytest", "pytest-cov", "brotli")
