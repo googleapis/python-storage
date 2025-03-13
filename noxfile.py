@@ -316,12 +316,6 @@ def prerelease_deps(session, protobuf_implementation):
 
     # Install all dependencies
     session.install("-e", ".[protobuf, tracing]")
-    # unit_deps_all = UNIT_TEST_STANDARD_DEPENDENCIES + UNIT_TEST_EXTERNAL_DEPENDENCIES
-    # session.install(*unit_deps_all)
-    # system_deps_all = (
-    #     SYSTEM_TEST_STANDARD_DEPENDENCIES + SYSTEM_TEST_EXTERNAL_DEPENDENCIES
-    # )
-    # session.install(*system_deps_all)
 
     # Because we test minimum dependency versions on the minimum Python
     # version, the first version we test with in the unit tests sessions has a
