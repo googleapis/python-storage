@@ -39,7 +39,7 @@ dependencies = [
     # google-resumable-media classes in their application can safely disregard
     # this dependency.
     "google-resumable-media >= 2.7.2, < 3.0.0",
-    "requests >= 2.18.0, < 3.0.0",
+    "requests >= 2.22.0, < 3.0.0",
     "google-crc32c >= 1.1.3, < 2.0.0",
 ]
 extras = {
