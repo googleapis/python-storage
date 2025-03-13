@@ -323,6 +323,9 @@ def prerelease_deps(session, protobuf_implementation):
     # Install all test dependencies
     session.install("mock", "pytest", "pytest-cov", "brotli")
 
+    # Install dependencies needed for system tests
+    session.install("google-cloud-pubsub", "google-cloud-kms")
+
     # Install all dependencies
     session.install("-e", ".[protobuf, tracing]")
 
@@ -334,9 +337,6 @@ def prerelease_deps(session, protobuf_implementation):
         "google-resumable-media",
         "opentelemetry-api",
         "protobuf",
-        # for system tests
-        "google-cloud-pubsub",
-        "google-cloud-kms",
     ]
 
     package_namespaces = {
