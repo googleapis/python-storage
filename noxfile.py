@@ -324,7 +324,12 @@ def prerelease_deps(session, protobuf_implementation):
     session.install("mock", "pytest", "pytest-cov", "brotli")
 
     # Install dependencies needed for system tests
-    session.install("google-cloud-pubsub", "google-cloud-kms")
+    session.install(
+        "google-cloud-pubsub",
+        "google-cloud-kms",
+        "google-cloud-testutils",
+        "google-cloud-iam",
+    )
 
     # Install all dependencies
     session.install("-e", ".[protobuf, tracing]")
