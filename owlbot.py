@@ -48,6 +48,7 @@ s.move(
         "README.rst",
         ".kokoro/continuous/continuous.cfg",
         ".kokoro/presubmit/system-3.8.cfg",
+        ".kokoro/presubmit/prerelease-deps.cfg",
         ".kokoro/samples/python3.6", # remove python 3.6 support
         ".github/blunderbuss.yml", # blunderbuss assignment to python squad
         ".github/workflows", # exclude gh actions as credentials are needed for tests
