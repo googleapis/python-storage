@@ -26,12 +26,6 @@ common = gcp.CommonTemplates()
 templated_files = common.py_library(
     cov_level=100,
     split_system_tests=True,
-    system_test_external_dependencies=[
-        "google-cloud-iam",
-        "google-cloud-pubsub < 2.0.0",
-        # See: https://github.com/googleapis/python-storage/issues/226
-        "google-cloud-kms < 2.0dev",
-    ],
     intersphinx_dependencies={
         # python-requests url temporary change related to
         # https://github.com/psf/requests/issues/6140#issuecomment-1135071992

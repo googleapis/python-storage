@@ -169,7 +169,7 @@ def system(session):
     session.install(
         "google-cloud-testutils",
         "google-cloud-iam",
-        "google-cloud-pubsub < 2.0.0",
+        "google-cloud-pubsub",
         "google-cloud-kms < 2.0dev",
         "brotli",
         "-c",
