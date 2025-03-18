@@ -43,6 +43,7 @@ s.move(
         ".kokoro/continuous/continuous.cfg",
         ".kokoro/presubmit/system-3.8.cfg",
         ".kokoro/presubmit/prerelease-deps.cfg",
+        ".kokoro/continuous/prerelease-deps.cfg",
         ".github/blunderbuss.yml", # blunderbuss assignment to python squad
         ".github/workflows", # exclude gh actions as credentials are needed for tests
         ".github/release-please.yml", # special support for a python2 branch in this repo
@@ -77,12 +78,6 @@ s.replace(
     "omit =",
     """omit =
   .nox/*""")
-
-s.replace(
-    ".kokoro/release/common.cfg",
-    'value: "releasetool-publish-reporter-app,releasetool-publish-reporter-googleapis-installation,releasetool-publish-reporter-pem"',
-    'value: "releasetool-publish-reporter-app,releasetool-publish-reporter-googleapis-installation,releasetool-publish-reporter-pem, client-library-test-universe-domain-credential"'
-)
 
 python.py_samples(skip_readmes=True)
 
