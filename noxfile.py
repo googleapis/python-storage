@@ -170,7 +170,7 @@ def system(session):
         "google-cloud-testutils",
         "google-cloud-iam",
         "google-cloud-pubsub",
-        "google-cloud-kms < 2.0dev",
+        "google-cloud-kms",
         "brotli",
         "-c",
         constraints_path,
