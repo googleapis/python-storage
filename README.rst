@@ -8,6 +8,8 @@ allows world-wide storage and retrieval of any amount of data at any time. You c
 Cloud Storage for a range of scenarios including serving website content, storing data
 for archival and disaster recovery, or distributing large data objects to users via direct download.
 
+**NOTE**: `3.0 Major Version Notes`_ are available. Feedback welcome.
+
 A comprehensive list of changes in each version may be found in the `CHANGELOG`_.
 
 - `Product Documentation`_
@@ -36,10 +38,6 @@ Google APIs Client Libraries, in `Client Libraries Explained`_.
 .. _Storage Control Client: https://cloud.google.com/python/docs/reference/google-cloud-storage-control/latest
 .. _Storage Control API: https://cloud.google.com/storage/docs/reference/rpc/google.storage.control.v2
 .. _Client Libraries Explained: https://cloud.google.com/apis/docs/client-libraries-explained
-
-.. note::
-
-   `3.0 Major Version Notes`_ are available. Feedback welcome.
 
 
 Quick Start
