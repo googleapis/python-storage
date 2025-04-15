@@ -23,7 +23,7 @@ def run_quickstart():
     # Instantiates a client
     storage_client = storage.Client()
 
-    # The name for the new bucket
+    # The name for the new bucket; globally unique.
     bucket_name = "my-new-bucket"
 
     # Creates the new bucket
