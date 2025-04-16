@@ -14,26 +14,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# [START storage_list_buckets]
+
 import sys
+
+# [START storage_restore_soft_deleted_bucket]
+
 from google.cloud import storage
 
-
-def list_buckets(soft_deleted=False):
-    """Lists all buckets."""
-
+def restore_bucket(bucket_name, bucket_generation):
     storage_client = storage.Client()
-    buckets = storage_client.list_buckets(soft_deleted=soft_deleted, max_results=10)
-
-    for bucket in buckets:
-        print(bucket.name)
-
-
-# [END storage_list_buckets]
+    bucket = storage_client.restore_bucket(bucket_name=bucket_name, generation=bucket_generation)
+    print(f"ID: {bucket.id}")
+    print(f"Name: {bucket.name}")
+    print(f"Bucket Generation: {bucket.generation}")
 
 
 if __name__ == "__main__":
-    if len(sys.argv) == 2 and (sys.argv[1] == 'True' or sys.argv[1] == 'False'):
-        list_buckets(soft_deleted=sys.argv[1])
-    else:
-        list_buckets()
+    if len(sys.argv) != 3:
+        print("Wrong inputs!! Usage of script - \"python storage_restore_soft_deleted_bucket.py <bucket_name> <bucket_generation>\" ")
+        sys.exit(1)
+    restore_bucket(bucket_name=sys.argv[1], bucket_generation=sys.argv[2])
+
+# [END storage_restore_soft_deleted_bucket]
