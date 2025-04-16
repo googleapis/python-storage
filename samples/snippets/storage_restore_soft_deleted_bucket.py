@@ -21,6 +21,7 @@ import sys
 
 from google.cloud import storage
 
+
 def restore_bucket(bucket_name, bucket_generation):
     storage_client = storage.Client()
     bucket = storage_client.restore_bucket(bucket_name=bucket_name, generation=bucket_generation)
@@ -28,6 +29,7 @@ def restore_bucket(bucket_name, bucket_generation):
     print(f"Name: {bucket.name}")
     print(f"Bucket Generation: {bucket.generation}")
 
+# [END storage_restore_soft_deleted_bucket]
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
@@ -35,4 +37,4 @@ if __name__ == "__main__":
         sys.exit(1)
     restore_bucket(bucket_name=sys.argv[1], bucket_generation=sys.argv[2])
 
-# [END storage_restore_soft_deleted_bucket]
+

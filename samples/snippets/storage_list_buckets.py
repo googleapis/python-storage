@@ -14,8 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# [START storage_list_buckets]
 import sys
+
+# [START storage_list_buckets]
+
 from google.cloud import storage
 
 

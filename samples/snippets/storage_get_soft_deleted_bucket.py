@@ -41,8 +41,7 @@ def get_soft_deleted_bucket(bucket_name, generation):
     print(f"Soft Delete time: {bucket.soft_delete_time}")
     print(f"Hard Delete Time : {bucket.hard_delete_time}")
 
+# [END storage_get_soft_deleted_bucket]
 
 if __name__ == "__main__":
     get_soft_deleted_bucket(bucket_name=sys.argv[1], generation=sys.argv[2])
-
-# [END storage_get_soft_deleted_bucket]
