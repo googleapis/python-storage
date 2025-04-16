@@ -25,7 +25,7 @@ def list_buckets(soft_deleted=False):
     """Lists all buckets."""
 
     storage_client = storage.Client()
-    buckets = storage_client.list_buckets(soft_deleted=soft_deleted, max_results=10)
+    buckets = storage_client.list_buckets(soft_deleted=soft_deleted)
 
     for bucket in buckets:
         print(bucket.name)
