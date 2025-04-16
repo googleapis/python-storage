@@ -29,6 +29,7 @@ def restore_bucket(bucket_name, bucket_generation):
     print(f"Name: {bucket.name}")
     print(f"Bucket Generation: {bucket.generation}")
 
+
 # [END storage_restore_soft_deleted_bucket]
 
 if __name__ == "__main__":
@@ -36,5 +37,3 @@ if __name__ == "__main__":
         print("Wrong inputs!! Usage of script - \"python storage_restore_soft_deleted_bucket.py <bucket_name> <bucket_generation>\" ")
         sys.exit(1)
     restore_bucket(bucket_name=sys.argv[1], bucket_generation=sys.argv[2])
-
-
