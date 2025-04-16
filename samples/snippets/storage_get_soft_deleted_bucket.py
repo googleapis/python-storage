@@ -21,6 +21,7 @@ import sys
 
 from google.cloud import storage
 
+
 def get_soft_deleted_bucket(bucket_name, generation):
     """Prints out a soft-delted bucket's metadata.
 
@@ -30,7 +31,7 @@ def get_soft_deleted_bucket(bucket_name, generation):
 
         generation:
             The generation of the bucket.
-    
+
     """
     storage_client = storage.Client()
     bucket = storage_client.get_bucket(bucket_name, soft_deleted=True, generation=generation)
