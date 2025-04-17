@@ -214,6 +214,7 @@ def test_list_soft_deleted_buckets(test_soft_deleted_bucket, capsys):
     out, _ = capsys.readouterr()
     assert test_soft_deleted_bucket.name in out
 
+
 def test_list_blobs(test_blob, capsys):
     storage_list_files.list_blobs(test_blob.bucket.name)
     out, _ = capsys.readouterr()
@@ -225,10 +226,12 @@ def test_bucket_metadata(test_bucket, capsys):
     out, _ = capsys.readouterr()
     assert test_bucket.name in out
 
+
 def test_get_soft_deleted_bucket(test_soft_deleted_bucket, capsys):
     storage_get_soft_deleted_bucket.get_soft_deleted_bucket(test_soft_deleted_bucket.name, test_soft_deleted_bucket.generation)
     out, _ = capsys.readouterr()
     assert test_soft_deleted_bucket.name in out
+
 
 def test_restore_soft_deleted_bucket(test_soft_deleted_bucket, capsys):
     storage_restore_soft_deleted_bucket.restore_bucket(test_soft_deleted_bucket.name, test_soft_deleted_bucket.generation)
