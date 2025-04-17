@@ -132,6 +132,7 @@ def test_bucket():
     yield bucket
     bucket.delete(force=True)
 
+
 @pytest.fixture(scope="module")
 def test_soft_deleted_bucket():
     """Yields a soft-deleted bucket."""

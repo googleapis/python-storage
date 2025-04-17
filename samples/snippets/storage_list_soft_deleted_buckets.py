@@ -14,8 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys
-
 # [START storage_list_soft_deleted_buckets]
 
 from google.cloud import storage
