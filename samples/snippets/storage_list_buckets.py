@@ -14,28 +14,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys
-
-# [START storage_list_files]
+# [START storage_list_buckets]
 from google.cloud import storage
 
 
-def list_blobs(bucket_name):
-    """Lists all the blobs in the bucket."""
-    # bucket_name = "your-bucket-name"
+def list_buckets():
+    """Lists all buckets."""
 
     storage_client = storage.Client()
+    buckets = storage_client.list_buckets()
 
-    # Note: Client.list_blobs requires at least package version 1.17.0.
-    blobs = storage_client.list_blobs(bucket_name)
-
-    # Note: The call returns a response only when the iterator is consumed.
-    for blob in blobs:
-        print(blob.name)
+    for bucket in buckets:
+        print(bucket.name)
 
 
-# [END storage_list_files]
+# [END storage_list_buckets]
 
 
 if __name__ == "__main__":
-    list_blobs(bucket_name=sys.argv[1])
+    list_buckets()
+
