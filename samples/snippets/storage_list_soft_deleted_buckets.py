@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2019 Google Inc. All Rights Reserved.
+# Copyright 2025 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -16,26 +16,23 @@
 
 import sys
 
-# [START storage_list_files]
+# [START storage_list_soft_deleted_buckets]
+
 from google.cloud import storage
 
 
-def list_blobs(bucket_name):
-    """Lists all the blobs in the bucket."""
-    # bucket_name = "your-bucket-name"
+def list_soft_deleted_buckets():
+    """Lists all buckets."""
 
     storage_client = storage.Client()
+    buckets = storage_client.list_buckets(soft_deleted=True)
 
-    # Note: Client.list_blobs requires at least package version 1.17.0.
-    blobs = storage_client.list_blobs(bucket_name)
-
-    # Note: The call returns a response only when the iterator is consumed.
-    for blob in blobs:
-        print(blob.name)
+    for bucket in buckets:
+        print(bucket.name)
 
 
-# [END storage_list_files]
+# [END storage_list_soft_deleted_buckets]
 
 
 if __name__ == "__main__":
-    list_blobs(bucket_name=sys.argv[1])
+    list_soft_deleted_buckets()
