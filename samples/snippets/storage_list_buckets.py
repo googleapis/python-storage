@@ -16,26 +16,27 @@
 
 import sys
 
-# [START storage_list_buckets]
-
+# [START storage_list_files]
 from google.cloud import storage
 
 
-def list_buckets(soft_deleted=False):
-    """Lists all buckets."""
+def list_blobs(bucket_name):
+    """Lists all the blobs in the bucket."""
+    # bucket_name = "your-bucket-name"
 
     storage_client = storage.Client()
-    buckets = storage_client.list_buckets(soft_deleted=soft_deleted)
 
-    for bucket in buckets:
-        print(bucket.name)
+    # Note: Client.list_blobs requires at least package version 1.17.0.
+    blobs = storage_client.list_blobs(bucket_name)
+
+    # Note: The call returns a response only when the iterator is consumed.
+    for blob in blobs:
+        print(blob.name)
 
 
-# [END storage_list_buckets]
+# [END storage_list_files]
 
 
 if __name__ == "__main__":
-    if len(sys.argv) == 2 and (sys.argv[1] == 'True' or sys.argv[1] == 'False'):
-        list_buckets(soft_deleted=sys.argv[1])
-    else:
-        list_buckets()
+    list_blobs(bucket_name=sys.argv[1])
+

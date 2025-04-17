@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2019 Google Inc. All Rights Reserved.
+# Copyright 2025 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@ def get_soft_deleted_bucket(bucket_name, generation):
 
     Args:
         bucket: str
-            The bucket resource to pass or name to create.
+            The name of the bucket to get.
 
         generation:
             The generation of the bucket.
