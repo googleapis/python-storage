@@ -33,4 +33,3 @@ def list_buckets():
 
 if __name__ == "__main__":
     list_buckets()
-
