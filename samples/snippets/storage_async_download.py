@@ -27,6 +27,8 @@ import sys
 async def async_download_blobs(bucket_name):
     """Downloads a number of files in parallel from the bucket;
         assuming files with prefix `async_sample_blob_%d` exits in bucket."""
+    # The ID of your GCS bucket
+    # bucket_name = "your-bucket-name"
     import asyncio
     from google.cloud import storage
 
