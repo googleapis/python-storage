@@ -42,14 +42,13 @@ async def async_download_blobs(bucket_name):
     for x in range(count):
         blob_name = f"async_sample_blob_{x}"
         blob = bucket.blob(blob_name)
-        print('yo!!', blob_name)
         # The first arg, None, tells it to use the default loops executor
         tasks.append(loop.run_in_executor(None, blob.download_as_bytes))
 
     # If the method returns a value (such as download_as_string), gather will return the values
     contents = await asyncio.gather(*tasks)
     for x in range(count):
-        print(f"Downloaded storage object async_sample_blob_{x} from bucket {bucket_name} as the following bytes object: {contents[x]}")
+        print(f"Downloaded storage object async_sample_blob_{x} , with contents: {contents[x]}")
 
 
 # [END storage_async_download]
