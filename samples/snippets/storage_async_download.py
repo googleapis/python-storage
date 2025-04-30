@@ -66,5 +66,5 @@ if __name__ == "__main__":
         help='Example: -f file1.txt or --file_name my_fav.mp4 . It can be used multiple times.'
     )
     args = parser.parse_args()
-    
+
     asyncio.run(async_download_blobs(args.bucket_name, *args.file_names))
