@@ -15,20 +15,23 @@
 # limitations under the License.
 
 import asyncio
-import sys
-
+import argparse
 
 """Sample that asynchronously downloads multiple files from GCS to application's memory.
 """
 
 
 # [START storage_async_download]
-# This sample can be run by calling `async.run(async_download_blobs('bucket_name'))`
-async def async_download_blobs(bucket_name):
-    """Downloads a number of files in parallel from the bucket;
-        assuming files with prefix `async_sample_blob_%d` exits in bucket."""
-    # The ID of your GCS bucket
+# This sample can be run by calling `async.run(async_download_blobs('bucket_name', ['file1', 'file2']))`
+async def async_download_blobs(bucket_name, *file_names):
+    """Downloads a number of files in parallel from the bucket.
+    """
+    # The ID of your GCS bucket.
     # bucket_name = "your-bucket-name"
+
+    # The list of files names to download, these files should be present in bucket.
+    # file_names = ["myfile1", "myfile2"]
+
     import asyncio
     from google.cloud import storage
 
@@ -38,23 +41,30 @@ async def async_download_blobs(bucket_name):
     loop = asyncio.get_running_loop()
 
     tasks = []
-    count = 3
-    for x in range(count):
-        blob_name = f"async_sample_blob_{x}"
-        blob = bucket.blob(blob_name)
+    for file_name in file_names:
+        blob = bucket.blob(file_name)
         # The first arg, None, tells it to use the default loops executor
         tasks.append(loop.run_in_executor(None, blob.download_as_bytes))
 
     # If the method returns a value (such as download_as_bytes), gather will return the values
     _ = await asyncio.gather(*tasks)
-    for x in range(count):
-        print(f"Downloaded storage object async_sample_blob_{x}")
+    for i, file_name in enumerate(file_names):
+        print(f"Downloaded storage object {file_name}")
 
 
 # [END storage_async_download]
 
 
 if __name__ == "__main__":
-    asyncio.run(async_download_blobs(
-        bucket_name=sys.argv[1]
-    ))
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-b', '--bucket_name', type=str, dest='bucket_name', help='provide the name of the GCS bucket')
+    parser.add_argument(
+        '-f', '--file_name',
+        action='append',
+        type=str,
+        dest='file_names',
+        help='Example: -f file1.txt or --file_name my_fav.mp4 . It can be used multiple times.'
+    )
+    args = parser.parse_args()
+    
+    asyncio.run(async_download_blobs(args.bucket_name, *args.file_names))

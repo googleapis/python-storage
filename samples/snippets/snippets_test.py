@@ -275,7 +275,7 @@ def test_async_download(test_bucket, capsys):
         blob = test_bucket.blob(source)
         blob.upload_from_string(source)
 
-    asyncio.run(storage_async_download.async_download_blobs(test_bucket.name))
+    asyncio.run(storage_async_download.async_download_blobs(test_bucket.name, *source_files))
     out, _ = capsys.readouterr()
     for x in range(object_count):
         assert f"Downloaded storage object async_sample_blob_{x}" in out
