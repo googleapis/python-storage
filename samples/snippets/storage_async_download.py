@@ -46,9 +46,9 @@ async def async_download_blobs(bucket_name):
         tasks.append(loop.run_in_executor(None, blob.download_as_bytes))
 
     # If the method returns a value (such as download_as_bytes), gather will return the values
-    contents = await asyncio.gather(*tasks)
+    _ = await asyncio.gather(*tasks)
     for x in range(count):
-        print(f"Downloaded storage object async_sample_blob_{x} , with contents: {contents[x]}")
+        print(f"Downloaded storage object async_sample_blob_{x}")
 
 
 # [END storage_async_download]
