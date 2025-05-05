@@ -48,7 +48,7 @@ async def async_download_blobs(bucket_name, *file_names):
 
     # If the method returns a value (such as download_as_bytes), gather will return the values
     _ = await asyncio.gather(*tasks)
-    for i, file_name in enumerate(file_names):
+    for file_name in file_names:
         print(f"Downloaded storage object {file_name}")
 
 
