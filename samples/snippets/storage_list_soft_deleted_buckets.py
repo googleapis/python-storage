@@ -20,7 +20,7 @@ from google.cloud import storage
 
 
 def list_soft_deleted_buckets():
-    """Lists all buckets."""
+    """Lists all soft-deleted buckets."""
 
     storage_client = storage.Client()
     buckets = storage_client.list_buckets(soft_deleted=True)

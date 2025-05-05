@@ -23,10 +23,10 @@ from google.cloud import storage
 
 
 def get_soft_deleted_bucket(bucket_name, generation):
-    """Prints out a soft-delted bucket's metadata.
+    """Prints out a soft-deleted bucket's metadata.
 
     Args:
-        bucket: str
+        bucket_name: str
             The name of the bucket to get.
 
         generation:

@@ -25,8 +25,7 @@ from google.cloud import storage
 def restore_bucket(bucket_name, bucket_generation):
     storage_client = storage.Client()
     bucket = storage_client.restore_bucket(bucket_name=bucket_name, generation=bucket_generation)
-    print(f"ID: {bucket.id}")
-    print(f"Name: {bucket.name}")
+    print(f"Soft-deleted bucket {bucket.name} with ID: {bucket.id} was restored.")
     print(f"Bucket Generation: {bucket.generation}")
 
 
