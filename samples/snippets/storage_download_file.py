@@ -20,7 +20,7 @@ import sys
 from google.cloud import storage
 
 
-def download_blob(bucket_name, source_blob_name, destination_file_name):
+def download_blob(project_id, bucket_name, source_blob_name, destination_file_name):
     """Downloads a blob from the bucket."""
     # The ID of your GCS bucket
     # bucket_name = "your-bucket-name"
@@ -31,8 +31,10 @@ def download_blob(bucket_name, source_blob_name, destination_file_name):
     # The path to which the file should be downloaded
     # destination_file_name = "local/path/to/file"
 
-    storage_client = storage.Client()
+    # storage.Client 
+    #project_id: The project id of your Google Cloud project.
 
+    storage_client = storage.Client(project=project_id)
     bucket = storage_client.bucket(bucket_name)
 
     # Construct a client side representation of a blob.
@@ -53,7 +55,8 @@ def download_blob(bucket_name, source_blob_name, destination_file_name):
 
 if __name__ == "__main__":
     download_blob(
-        bucket_name=sys.argv[1],
-        source_blob_name=sys.argv[2],
-        destination_file_name=sys.argv[3],
+        project_id=sys.argv[1]
+        bucket_name=sys.argv[2],
+        source_blob_name=sys.argv[3],
+        destination_file_name=sys.argv[4],
     )
