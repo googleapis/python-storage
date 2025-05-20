@@ -14,11 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import datetime
 import sys
 
 from google.cloud import storage
-from google.cloud.storage.bucket import SoftDeletePolicy
 
 # [START storage_set_soft_delete_policy]
 

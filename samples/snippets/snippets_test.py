@@ -958,7 +958,7 @@ def test_storage_get_soft_delete_policy(test_soft_delete_enabled_bucket, capsys)
     storage_get_soft_delete_policy.get_soft_delete_policy(bucket_name)
     out, _ = capsys.readouterr()
     assert f"Soft-delete policy for {bucket_name}" in out
-    assert f"Object soft-delete policy is enabled" in out
+    assert "Object soft-delete policy is enabled" in out
     assert "Object retention duration: " in out
     assert "Policy effective time: " in out
 
@@ -968,7 +968,7 @@ def test_storage_get_soft_delete_policy(test_soft_delete_enabled_bucket, capsys)
     storage_get_soft_delete_policy.get_soft_delete_policy(bucket_name)
     out, _ = capsys.readouterr()
     assert f"Soft-delete policy for {bucket_name}" in out
-    assert f"Object soft-delete policy is disabled" in out
+    assert "Object soft-delete policy is disabled" in out
 
 
 def test_storage_set_soft_delete_policy(test_soft_delete_enabled_bucket, capsys):
