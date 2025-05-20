@@ -30,7 +30,10 @@ def get_soft_delete_policy(bucket_name):
     bucket.reload()
 
     print(f"Soft-delete policy for {bucket_name}")
-    if bucket.soft_delete_policy and bucket.soft_delete_policy.retention_duration_seconds:
+    if (
+        bucket.soft_delete_policy
+        and bucket.soft_delete_policy.retention_duration_seconds
+    ):
         print(f"Object soft-delete policy is enabled")
         print(
             f"Object retention duration: {bucket.soft_delete_policy.retention_duration_seconds} seconds"
