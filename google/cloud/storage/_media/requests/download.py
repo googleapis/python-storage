@@ -170,7 +170,7 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
                         checksum_type=self.checksum.upper(),
                     )
                     msg += content_length_msg
-                    raise common.DataCorruption(response, msg)
+                    raise DataCorruption(response, msg)
 
     def consume(
         self,
@@ -385,7 +385,7 @@ class RawDownload(_request_helpers.RawRequestsMixin, _download.Download):
                         checksum_type=self.checksum.upper(),
                     )
                     msg += content_length_msg
-                    raise common.DataCorruption(response, msg)
+                    raise DataCorruption(response, msg)
 
 
     def consume(
