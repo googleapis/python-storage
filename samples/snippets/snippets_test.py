@@ -163,7 +163,9 @@ def test_soft_delete_enabled_bucket():
     # Soft-delete retention for 7 days (minimum allowed by API)
     bucket.soft_delete_policy.retention_duration_seconds = 7 * 24 * 60 * 60
     # Soft-delete requires a region
-    bucket.create(location="US")
+    bucket.create(location="US-CENTRAL1")
+    time.sleep(2)  # Let change propagate as needed
+    bucket.reload()
     yield bucket
     bucket.delete(force=True)
 
