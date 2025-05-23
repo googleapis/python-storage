@@ -164,8 +164,20 @@ def test_soft_delete_enabled_bucket():
     bucket.soft_delete_policy.retention_duration_seconds = 7 * 24 * 60 * 60
     # Soft-delete requires a region
     bucket.create(location="US-CENTRAL1")
-    time.sleep(2)  # Let change propagate as needed
-    bucket.reload()
+    # Wait until soft-delete policy is available (max 60 seconds)
+    max_wait = 60
+    elapsed = 0
+    while elapsed < max_wait:
+        bucket.reload()
+        if (
+            bucket.soft_delete_policy
+            and bucket.soft_delete_policy.retention_duration_seconds
+        ):
+            break
+        time.sleep(2)
+        elapsed += 2
+    else:
+        raise TimeoutError("Soft-delete policy did not propagate in time.")
     yield bucket
     bucket.delete(force=True)
 
