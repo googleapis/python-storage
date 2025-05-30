@@ -153,7 +153,7 @@ def test_soft_deleted_bucket():
     yield bucket
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 def test_soft_delete_enabled_bucket():
     """Yields a bucket with soft-delete enabled that is deleted after the test completes."""
     bucket = None
@@ -164,20 +164,6 @@ def test_soft_delete_enabled_bucket():
     bucket.soft_delete_policy.retention_duration_seconds = 7 * 24 * 60 * 60
     # Soft-delete requires a region
     bucket.create(location="US-CENTRAL1")
-    # Wait until soft-delete policy is available (max 60 seconds)
-    max_wait = 60
-    elapsed = 0
-    while elapsed < max_wait:
-        bucket.reload()
-        if (
-            bucket.soft_delete_policy
-            and bucket.soft_delete_policy.retention_duration_seconds
-        ):
-            break
-        time.sleep(2)
-        elapsed += 2
-    else:
-        raise TimeoutError("Soft-delete policy did not propagate in time.")
     yield bucket
     bucket.delete(force=True)
 
