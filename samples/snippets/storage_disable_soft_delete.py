@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2025 Google Inc. All Rights Reserved.
+# Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -16,9 +16,8 @@
 
 import sys
 
-from google.cloud import storage
-
 # [START storage_disable_soft_delete]
+from google.cloud import storage
 
 
 def disable_soft_delete(bucket_name):

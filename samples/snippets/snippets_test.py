@@ -979,7 +979,7 @@ def test_storage_set_soft_delete_policy(test_soft_delete_enabled_bucket, capsys)
     )
     out, _ = capsys.readouterr()
     assert (
-        f"Object soft-delete duration is updated to {retention_duration_seconds} seconds in the bucket {bucket_name}"
+        f"Soft delete policy for bucket {bucket_name} was set to {retention_duration_seconds} seconds retention period"
         in out
     )
 
@@ -1030,7 +1030,7 @@ def test_storage_restore_soft_deleted_object(test_soft_delete_enabled_bucket, ca
     )
     out, _ = capsys.readouterr()
     assert (
-        f"Soft-deleted object {blob_name} with generation {blob_generation} is restored in the bucket {bucket_name}"
+        f"Soft-deleted object {blob_name} is restored in the bucket {bucket_name}"
         in out
     )
 

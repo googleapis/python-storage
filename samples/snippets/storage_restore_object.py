@@ -17,9 +17,8 @@
 
 import sys
 
-from google.cloud import storage
-
 # [START storage_restore_object]
+from google.cloud import storage
 
 
 def restore_soft_deleted_object(bucket_name, blob_name, blob_generation):
@@ -31,11 +30,12 @@ def restore_soft_deleted_object(bucket_name, blob_name, blob_generation):
     storage_client = storage.Client()
     bucket = storage_client.bucket(bucket_name)
 
-    # Function will override the object if it already exists.
+    # Restore function will override if a live object already
+    # exists with the same name.
     bucket.restore_blob(blob_name, generation=blob_generation)
 
     print(
-        f"Soft-deleted object {blob_name} with generation {blob_generation} is restored in the bucket {bucket_name}"
+        f"Soft-deleted object {blob_name} is restored in the bucket {bucket_name}"
     )
 
 

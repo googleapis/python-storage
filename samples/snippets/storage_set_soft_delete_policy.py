@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2025 Google Inc. All Rights Reserved.
+# Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -16,9 +16,8 @@
 
 import sys
 
-from google.cloud import storage
-
 # [START storage_set_soft_delete_policy]
+from google.cloud import storage
 
 
 def set_soft_delete_policy(bucket_name, duration_in_seconds):
@@ -33,7 +32,7 @@ def set_soft_delete_policy(bucket_name, duration_in_seconds):
     bucket.patch()
 
     print(
-        f"Object soft-delete duration is updated to {duration_in_seconds} seconds in the bucket {bucket_name}"
+        f"Soft delete policy for bucket {bucket_name} was set to {duration_in_seconds} seconds retention period"
     )
 
 

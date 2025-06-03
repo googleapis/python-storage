@@ -16,9 +16,8 @@
 
 import sys
 
-from google.cloud import storage
-
 # [START storage_list_soft_deleted_object_versions]
+from google.cloud import storage
 
 
 def list_soft_deleted_object_versions(bucket_name, blob_name):

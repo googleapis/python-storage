@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2025 Google Inc. All Rights Reserved.
+# Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -16,9 +16,8 @@
 
 import sys
 
-from google.cloud import storage
-
 # [START storage_get_soft_delete_policy]
+from google.cloud import storage
 
 
 def get_soft_delete_policy(bucket_name):
@@ -26,8 +25,7 @@ def get_soft_delete_policy(bucket_name):
     # bucket_name = "your-bucket-name"
 
     storage_client = storage.Client()
-    bucket = storage_client.bucket(bucket_name)
-    bucket.reload()
+    bucket = storage_client.get_bucket(bucket_name)
 
     print(f"Soft-delete policy for {bucket_name}")
     if (
