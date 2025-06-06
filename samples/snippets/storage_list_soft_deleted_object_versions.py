@@ -26,8 +26,6 @@ def list_soft_deleted_object_versions(bucket_name, blob_name):
     # blob_name = "your-object-name"
 
     storage_client = storage.Client()
-
-    # Note: Client.list_blobs requires at least package version 1.17.0.
     blobs = storage_client.list_blobs(bucket_name, prefix=blob_name, soft_deleted=True)
 
     # Note: The call returns a response only when the iterator is consumed.
