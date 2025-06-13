@@ -51,6 +51,7 @@ docs.metadata
 # Virtual environment
 env/
 venv/
+sdk-env/
 
 # Test logs
 coverage.xml
@@ -62,3 +63,6 @@ system_tests/local_test_setup
 # Make sure a generated file isn't accidentally committed.
 pylintrc
 pylintrc.test
+
+# Local python version
+.python-version
