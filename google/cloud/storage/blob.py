@@ -987,6 +987,7 @@ class Blob(_PropertyMixin):
         timeout=_DEFAULT_TIMEOUT,
         checksum="auto",
         retry=DEFAULT_RETRY,
+        single_shot_download=False,
     ):
         """Perform a download without any error handling.
 
@@ -1047,6 +1048,10 @@ class Blob(_PropertyMixin):
             See the retry.py source code and docstrings in this package
             (google.cloud.storage.retry) for information on retry types and how
             to configure them.
+
+        :type single_shot_download: bool
+        :param single_shot_download:
+            (Optional) If true, download the object in a single request.
         """
 
         extra_attributes = {
@@ -1054,6 +1059,7 @@ class Blob(_PropertyMixin):
             "download.chunk_size": f"{self.chunk_size}",
             "download.raw_download": raw_download,
             "upload.checksum": f"{checksum}",
+            "download.single_shot_download": single_shot_download,
         }
         args = {"timeout": timeout}
 
@@ -1073,6 +1079,7 @@ class Blob(_PropertyMixin):
                 end=end,
                 checksum=checksum,
                 retry=retry,
+                single_shot_download=single_shot_download,
             )
             with create_trace_span(
                 name=f"Storage.{download_class}/consume",
@@ -1127,6 +1134,7 @@ class Blob(_PropertyMixin):
         timeout=_DEFAULT_TIMEOUT,
         checksum="auto",
         retry=DEFAULT_RETRY,
+        single_shot_download=False,
     ):
         """Download the contents of this blob into a file-like object.
 
@@ -1222,6 +1230,10 @@ class Blob(_PropertyMixin):
             (google.cloud.storage.retry) for information on retry types and how
             to configure them.
 
+        :type single_shot_download: bool
+        :param single_shot_download:
+            (Optional) If true, download the object in a single request.
+
         :raises: :class:`google.cloud.exceptions.NotFound`
         """
         with create_trace_span(name="Storage.Blob.downloadToFile"):
@@ -1240,6 +1252,7 @@ class Blob(_PropertyMixin):
                 timeout=timeout,
                 checksum=checksum,
                 retry=retry,
+                single_shot_download=single_shot_download,
             )
 
     def _handle_filename_and_download(self, filename, *args, **kwargs):
@@ -1285,6 +1298,7 @@ class Blob(_PropertyMixin):
         timeout=_DEFAULT_TIMEOUT,
         checksum="auto",
         retry=DEFAULT_RETRY,
+        single_shot_download=False,
     ):
         """Download the contents of this blob into a named file.
 
@@ -1370,6 +1384,10 @@ class Blob(_PropertyMixin):
             (google.cloud.storage.retry) for information on retry types and how
             to configure them.
 
+        :type single_shot_download: bool
+        :param single_shot_download:
+            (Optional) If true, download the object in a single request.
+
         :raises: :class:`google.cloud.exceptions.NotFound`
         """
         with create_trace_span(name="Storage.Blob.downloadToFilename"):
@@ -1388,6 +1406,7 @@ class Blob(_PropertyMixin):
                 timeout=timeout,
                 checksum=checksum,
                 retry=retry,
+                single_shot_download=single_shot_download,
             )
 
     def download_as_bytes(
@@ -1405,6 +1424,7 @@ class Blob(_PropertyMixin):
         timeout=_DEFAULT_TIMEOUT,
         checksum="auto",
         retry=DEFAULT_RETRY,
+        single_shot_download=False,
     ):
         """Download the contents of this blob as a bytes object.
 
@@ -1484,6 +1504,10 @@ class Blob(_PropertyMixin):
             (google.cloud.storage.retry) for information on retry types and how
             to configure them.
 
+        :type single_shot_download: bool
+        :param single_shot_download:
+            (Optional) If true, download the object in a single request.
+
         :rtype: bytes
         :returns: The data stored in this blob.
 
@@ -1507,6 +1531,7 @@ class Blob(_PropertyMixin):
                 timeout=timeout,
                 checksum=checksum,
                 retry=retry,
+                single_shot_download=single_shot_download,
             )
             return string_buffer.getvalue()
 
@@ -1524,6 +1549,7 @@ class Blob(_PropertyMixin):
         if_metageneration_not_match=None,
         timeout=_DEFAULT_TIMEOUT,
         retry=DEFAULT_RETRY,
+        single_shot_download=False,
     ):
         """(Deprecated) Download the contents of this blob as a bytes object.
 
@@ -1594,6 +1620,10 @@ class Blob(_PropertyMixin):
             (google.cloud.storage.retry) for information on retry types and how
             to configure them.
 
+        :type single_shot_download: bool
+        :param single_shot_download:
+            (Optional) If true, download the object in a single request.
+
         :rtype: bytes
         :returns: The data stored in this blob.
 
@@ -1616,6 +1646,7 @@ class Blob(_PropertyMixin):
                 if_metageneration_not_match=if_metageneration_not_match,
                 timeout=timeout,
                 retry=retry,
+                single_shot_download=single_shot_download,
             )
 
     def download_as_text(
@@ -1633,6 +1664,7 @@ class Blob(_PropertyMixin):
         if_metageneration_not_match=None,
         timeout=_DEFAULT_TIMEOUT,
         retry=DEFAULT_RETRY,
+        single_shot_download=False,
     ):
         """Download the contents of this blob as text (*not* bytes).
 
@@ -1705,6 +1737,10 @@ class Blob(_PropertyMixin):
             (google.cloud.storage.retry) for information on retry types and how
             to configure them.
 
+        :type single_shot_download: bool
+        :param single_shot_download:
+            (Optional) If true, download the object in a single request.
+
         :rtype: text
         :returns: The data stored in this blob, decoded to text.
         """
@@ -1722,6 +1758,7 @@ class Blob(_PropertyMixin):
                 if_metageneration_not_match=if_metageneration_not_match,
                 timeout=timeout,
                 retry=retry,
+                single_shot_download=single_shot_download,
             )
 
             if encoding is not None:
@@ -4019,6 +4056,7 @@ class Blob(_PropertyMixin):
         For downloads only, the following additional arguments are supported:
 
         - ``raw_download``
+        - ``single_shot_download``
 
         For uploads only, the following additional arguments are supported:
 
@@ -4209,6 +4247,7 @@ class Blob(_PropertyMixin):
         timeout=_DEFAULT_TIMEOUT,
         checksum="auto",
         retry=DEFAULT_RETRY,
+        single_shot_download=False,
         command=None,
     ):
         """Download the contents of a blob object into a file-like object.
@@ -4294,6 +4333,10 @@ class Blob(_PropertyMixin):
             (google.cloud.storage.retry) for information on retry types and how
             to configure them.
 
+        :type single_shot_download: bool
+        :param single_shot_download:
+            (Optional) If true, download the object in a single request.
+
         :type command: str
         :param command:
             (Optional) Information about which interface for download was used,
@@ -4349,6 +4392,7 @@ class Blob(_PropertyMixin):
                 timeout=timeout,
                 checksum=checksum,
                 retry=retry,
+                single_shot_download=single_shot_download,
             )
         except InvalidResponse as exc:
             _raise_from_invalid_response(exc)

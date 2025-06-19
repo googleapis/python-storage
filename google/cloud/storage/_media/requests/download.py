@@ -132,13 +132,22 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
             # the stream is indeed compressed, this will delegate the checksum
             # object to the decoder and return a _DoNothingHash here.
             local_checksum_object = _add_decoder(response.raw, checksum_object)
-            body_iter = response.iter_content(
-                chunk_size=_request_helpers._SINGLE_GET_CHUNK_SIZE, decode_unicode=False
-            )
-            for chunk in body_iter:
-                self._stream.write(chunk)
-                self._bytes_downloaded += len(chunk)
-                local_checksum_object.update(chunk)
+
+            if self._single_shot_download:
+                # This is useful for smaller files, or when the user wants to
+                # download the entire file in one go.
+                content = response.content
+                self._stream.write(content)
+                self._bytes_downloaded += len(content)
+                local_checksum_object.update(content)
+            else:
+                body_iter = response.iter_content(
+                    chunk_size=_request_helpers._SINGLE_GET_CHUNK_SIZE, decode_unicode=False
+                )
+                for chunk in body_iter:
+                    self._stream.write(chunk)
+                    self._bytes_downloaded += len(chunk)
+                    local_checksum_object.update(chunk)
 
         # Don't validate the checksum for partial responses.
         if (
@@ -345,14 +354,22 @@ class RawDownload(_request_helpers.RawRequestsMixin, _download.Download):
             checksum_object = self._checksum_object
 
         with response:
-            body_iter = response.raw.stream(
-                _request_helpers._SINGLE_GET_CHUNK_SIZE, decode_content=False
-            )
-            for chunk in body_iter:
-                self._stream.write(chunk)
-                self._bytes_downloaded += len(chunk)
-                checksum_object.update(chunk)
-            response._content_consumed = True
+            if self._single_shot_download:
+                # This is useful for smaller files, or when the user wants to
+                # download the entire file in one go.
+                content = response.raw.read()
+                self._stream.write(content)
+                self._bytes_downloaded += len(content)
+                checksum_object.update(content)
+            else:
+                body_iter = response.raw.stream(
+                    _request_helpers._SINGLE_GET_CHUNK_SIZE, decode_content=False
+                )
+                for chunk in body_iter:
+                    self._stream.write(chunk)
+                    self._bytes_downloaded += len(chunk)
+                    checksum_object.update(chunk)
+                response._content_consumed = True
 
         # Don't validate the checksum for partial responses.
         if (

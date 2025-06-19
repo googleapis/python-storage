@@ -169,6 +169,7 @@ class Download(DownloadBase):
         headers=None,
         checksum="auto",
         retry=DEFAULT_RETRY,
+        single_shot_download=False,
     ):
         super(Download, self).__init__(
             media_url, stream=stream, start=start, end=end, headers=headers, retry=retry
@@ -182,6 +183,7 @@ class Download(DownloadBase):
         self._expected_checksum = None
         self._checksum_object = None
         self._object_generation = None
+        self._single_shot_download = single_shot_download
 
     def _prepare_request(self):
         """Prepare the contents of an HTTP request.
