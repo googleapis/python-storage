@@ -179,11 +179,11 @@ class Download(DownloadBase):
             self.checksum = (
                 "crc32c" if _helpers._is_crc32c_available_and_fast() else "md5"
             )
+        self.single_shot_download = single_shot_download
         self._bytes_downloaded = 0
         self._expected_checksum = None
         self._checksum_object = None
         self._object_generation = None
-        self._single_shot_download = single_shot_download
 
     def _prepare_request(self):
         """Prepare the contents of an HTTP request.
