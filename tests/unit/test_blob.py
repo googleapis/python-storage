@@ -1593,7 +1593,12 @@ class Test_Blob(unittest.TestCase):
             )
 
     def _download_to_file_helper(
-        self, use_chunks, raw_download, timeout=None, single_shot_download=False, **extra_kwargs
+        self,
+        use_chunks,
+        raw_download,
+        timeout=None,
+        single_shot_download=False,
+        **extra_kwargs,
     ):
         blob_name = "blob-name"
         client = self._make_client()
@@ -1618,9 +1623,16 @@ class Test_Blob(unittest.TestCase):
 
         with mock.patch.object(blob, "_prep_and_do_download"):
             if raw_download:
-                blob.download_to_file(file_obj, raw_download=True, single_shot_download=single_shot_download, **extra_kwargs)
+                blob.download_to_file(
+                    file_obj,
+                    raw_download=True,
+                    single_shot_download=single_shot_download,
+                    **extra_kwargs,
+                )
             else:
-                blob.download_to_file(file_obj, single_shot_download=single_shot_download, **extra_kwargs)
+                blob.download_to_file(
+                    file_obj, single_shot_download=single_shot_download, **extra_kwargs
+                )
 
             expected_retry = extra_kwargs.get("retry", DEFAULT_RETRY)
             blob._prep_and_do_download.assert_called_once_with(
@@ -1651,16 +1663,24 @@ class Test_Blob(unittest.TestCase):
         self._download_to_file_helper(use_chunks=True, raw_download=False)
 
     def test_download_to_file_wo_single_shot_download_wo_raw(self):
-        self._download_to_file_helper(use_chunks=False, raw_download=False, single_shot_download=False)
+        self._download_to_file_helper(
+            use_chunks=False, raw_download=False, single_shot_download=False
+        )
 
     def test_download_to_file_w_single_shot_download_wo_raw(self):
-        self._download_to_file_helper(use_chunks=False, raw_download=False, single_shot_download=True)
+        self._download_to_file_helper(
+            use_chunks=False, raw_download=False, single_shot_download=True
+        )
 
     def test_download_to_file_wo_single_shot_download_w_raw(self):
-        self._download_to_file_helper(use_chunks=False, raw_download=True, single_shot_download=False)
+        self._download_to_file_helper(
+            use_chunks=False, raw_download=True, single_shot_download=False
+        )
 
     def test_download_to_file_w_single_shot_download_w_raw(self):
-        self._download_to_file_helper(use_chunks=False, raw_download=True, single_shot_download=True)
+        self._download_to_file_helper(
+            use_chunks=False, raw_download=True, single_shot_download=True
+        )
 
     def test_download_to_file_wo_chunks_w_raw(self):
         self._download_to_file_helper(use_chunks=False, raw_download=True)
@@ -1912,7 +1932,9 @@ class Test_Blob(unittest.TestCase):
             stream = blob._prep_and_do_download.mock_calls[0].args[0]
             self.assertEqual(stream.name, filename)
 
-    def _download_as_bytes_helper(self, raw_download, timeout=None, single_shot_download=False, **extra_kwargs):
+    def _download_as_bytes_helper(
+        self, raw_download, timeout=None, single_shot_download=False, **extra_kwargs
+    ):
         blob_name = "blob-name"
         client = self._make_client()
         bucket = _Bucket(client)
@@ -1922,12 +1944,17 @@ class Test_Blob(unittest.TestCase):
             if timeout is None:
                 expected_timeout = self._get_default_timeout()
                 fetched = blob.download_as_bytes(
-                    raw_download=raw_download, single_shot_download=single_shot_download, **extra_kwargs
+                    raw_download=raw_download,
+                    single_shot_download=single_shot_download,
+                    **extra_kwargs,
                 )
             else:
                 expected_timeout = timeout
                 fetched = blob.download_as_bytes(
-                    raw_download=raw_download, timeout=timeout, single_shot_download=single_shot_download, **extra_kwargs
+                    raw_download=raw_download,
+                    timeout=timeout,
+                    single_shot_download=single_shot_download,
+                    **extra_kwargs,
                 )
             self.assertEqual(fetched, b"")
 
@@ -2031,10 +2058,14 @@ class Test_Blob(unittest.TestCase):
         self._download_as_bytes_helper(raw_download=False, timeout=9.58)
 
     def test_download_as_bytes_wo_single_shot_download(self):
-        self._download_as_bytes_helper(raw_download=False, retry=None, single_shot_download=False)
+        self._download_as_bytes_helper(
+            raw_download=False, retry=None, single_shot_download=False
+        )
 
     def test_download_as_bytes_w_single_shot_download(self):
-        self._download_as_bytes_helper(raw_download=False, retry=None, single_shot_download=True)
+        self._download_as_bytes_helper(
+            raw_download=False, retry=None, single_shot_download=True
+        )
 
     def _download_as_text_helper(
         self,

@@ -142,7 +142,8 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
                 local_checksum_object.update(content)
             else:
                 body_iter = response.iter_content(
-                    chunk_size=_request_helpers._SINGLE_GET_CHUNK_SIZE, decode_unicode=False
+                    chunk_size=_request_helpers._SINGLE_GET_CHUNK_SIZE,
+                    decode_unicode=False,
                 )
                 for chunk in body_iter:
                     self._stream.write(chunk)

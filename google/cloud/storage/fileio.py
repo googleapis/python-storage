@@ -179,7 +179,9 @@ class BlobReader(io.BufferedIOBase):
 
         if self._blob.size is None:
             reload_kwargs = {
-                k: v for k, v in self._download_kwargs.items() if (k != "raw_download" and k != "single_shot_download")
+                k: v
+                for k, v in self._download_kwargs.items()
+                if (k != "raw_download" and k != "single_shot_download")
             }
             self._blob.reload(**reload_kwargs)
 

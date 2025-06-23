@@ -216,7 +216,9 @@ class TestDownload(object):
     @pytest.mark.parametrize("checksum", ["auto", "md5", "crc32c", None])
     def test__write_to_stream_single_shot_download(self, checksum):
         stream = io.BytesIO()
-        download = download_mod.Download(EXAMPLE_URL, stream=stream, checksum=checksum, single_shot_download=True)
+        download = download_mod.Download(
+            EXAMPLE_URL, stream=stream, checksum=checksum, single_shot_download=True
+        )
 
         chunk1 = b"all at once!"
         response = _mock_response(chunks=[chunk1], headers={})
@@ -711,7 +713,9 @@ class TestRawDownload(object):
 
     def test__write_to_stream_single_shot_download(self):
         stream = io.BytesIO()
-        download = download_mod.RawDownload(EXAMPLE_URL, stream=stream, single_shot_download=True)
+        download = download_mod.RawDownload(
+            EXAMPLE_URL, stream=stream, single_shot_download=True
+        )
 
         chunk1 = b"all at once, raw!"
         response = _mock_raw_response(chunks=[chunk1], headers={})
