@@ -139,7 +139,10 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
                 content = response.raw.read()
                 self._stream.write(content)
                 self._bytes_downloaded += len(content)
-                local_checksum_object.update(content)
+                if isinstance(local_checksum_object, _helpers._DoNothingHash):
+                    checksum_object.update(content)
+                else:
+                    local_checksum_object.update(content)
                 response._content_consumed = True
             else:
                 body_iter = response.iter_content(
