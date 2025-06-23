@@ -286,6 +286,21 @@ class TestDownload(object):
             assert self._read_response_content(response) == actual_contents
             check_tombstoned(download, authorized_transport)
 
+    @pytest.mark.parametrize("checksum", ["auto", "md5", "crc32c", None])
+    def test_single_shot_download_full(self, add_files, authorized_transport, checksum):
+        for info in ALL_FILES:
+            actual_contents = self._get_contents(info)
+            blob_name = get_blob_name(info)
+
+            # Create the actual download object.
+            media_url = utils.DOWNLOAD_URL_TEMPLATE.format(blob_name=blob_name)
+            download = self._make_one(media_url, checksum=checksum, single_shot_download=True)
+            # Consume the resource with single_shot_download enabled.
+            response = download.consume(authorized_transport)
+            assert response.status_code == http.client.OK
+            assert self._read_response_content(response) == actual_contents
+            check_tombstoned(download, authorized_transport)
+
     def test_download_to_stream(self, add_files, authorized_transport):
         for info in ALL_FILES:
             actual_contents = self._get_contents(info)
