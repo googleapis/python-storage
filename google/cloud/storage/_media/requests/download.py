@@ -136,13 +136,10 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
             if self.single_shot_download:
                 # This is useful for smaller files, or when the user wants to
                 # download the entire file in one go.
-                content = response.raw.read()
+                content = response.raw.read(decode_content=True)
                 self._stream.write(content)
                 self._bytes_downloaded += len(content)
-                if isinstance(local_checksum_object, _helpers._DoNothingHash):
-                    checksum_object.update(content)
-                else:
-                    local_checksum_object.update(content)
+                local_checksum_object.update(content)
                 response._content_consumed = True
             else:
                 body_iter = response.iter_content(
@@ -697,6 +694,23 @@ def _add_decoder(response_raw, checksum):
         return _helpers._DoNothingHash()
     else:
         return checksum
+
+
+# def _get_decoded_content(raw_content):
+#     """Get the decoded content from a raw response.
+
+#     Args:
+#         raw_content (bytes): The raw bytes from the response.
+
+#     Returns:
+#         bytes: The decoded bytes from ``raw_content``.
+#     """
+#     # If the content is gzip-encoded, decode it.
+#     if raw_content.headers.get("content-encoding", "").lower() == "gzip":
+#         return raw_content.read(decode_content=True)
+#     else:
+#         return raw_content.read()  # type: ignore
+
 
 
 class _GzipDecoder(urllib3.response.GzipDecoder):
