@@ -230,7 +230,7 @@ class TestDownload(object):
 
         response.__enter__.assert_called_once_with()
         response.__exit__.assert_called_once_with(None, None, None)
-        response.raw.read.assert_called_once_with()
+        response.raw.read.assert_called_once_with(decode_content=True)
 
     def _consume_helper(
         self,
@@ -1370,7 +1370,7 @@ def _mock_response(status_code=http.client.OK, chunks=None, headers=None):
         response.__enter__.return_value = response
         response.__exit__.return_value = None
         response.iter_content.return_value = iter(chunks)
-        response.raw.read = mock.Mock(return_value=b"".join(chunks))
+        response.raw.read = mock.Mock(side_effect=lambda *args, **kwargs: b"".join(chunks))
         return response
     else:
         return mock.Mock(
