@@ -696,23 +696,6 @@ def _add_decoder(response_raw, checksum):
         return checksum
 
 
-# def _get_decoded_content(raw_content):
-#     """Get the decoded content from a raw response.
-
-#     Args:
-#         raw_content (bytes): The raw bytes from the response.
-
-#     Returns:
-#         bytes: The decoded bytes from ``raw_content``.
-#     """
-#     # If the content is gzip-encoded, decode it.
-#     if raw_content.headers.get("content-encoding", "").lower() == "gzip":
-#         return raw_content.read(decode_content=True)
-#     else:
-#         return raw_content.read()  # type: ignore
-
-
-
 class _GzipDecoder(urllib3.response.GzipDecoder):
     """Custom subclass of ``urllib3`` decoder for ``gzip``-ed bytes.
 
