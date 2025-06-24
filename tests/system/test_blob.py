@@ -1156,7 +1156,6 @@ def test_blob_download_as_bytes_single_shot_download(
 ):
     blob_name = f"download-single-shot-{uuid.uuid4().hex}"
     info = file_data["simple"]
-    payload = None
     with open(info["path"], "rb") as f:
         payload = f.read()
 

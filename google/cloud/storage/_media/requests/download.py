@@ -133,9 +133,9 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
             # object to the decoder and return a _DoNothingHash here.
             local_checksum_object = _add_decoder(response.raw, checksum_object)
 
+            # This is useful for smaller files, or when the user wants to
+            # download the entire file in one go.
             if self.single_shot_download:
-                # This is useful for smaller files, or when the user wants to
-                # download the entire file in one go.
                 content = response.raw.read(decode_content=True)
                 self._stream.write(content)
                 self._bytes_downloaded += len(content)
@@ -356,9 +356,9 @@ class RawDownload(_request_helpers.RawRequestsMixin, _download.Download):
             checksum_object = self._checksum_object
 
         with response:
+            # This is useful for smaller files, or when the user wants to
+            # download the entire file in one go.
             if self.single_shot_download:
-                # This is useful for smaller files, or when the user wants to
-                # download the entire file in one go.
                 content = response.raw.read()
                 self._stream.write(content)
                 self._bytes_downloaded += len(content)
