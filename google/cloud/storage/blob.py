@@ -1053,7 +1053,7 @@ class Blob(_PropertyMixin):
         :param single_shot_download:
             (Optional) If true, download the object in a single request.
             Caution: Enabling this will increase the memory overload for your application.
-            Please enable this as per your user use case.
+            Please enable this as per your use case.
         """
 
         extra_attributes = {
@@ -1236,7 +1236,7 @@ class Blob(_PropertyMixin):
         :param single_shot_download:
             (Optional) If true, download the object in a single request.
             Caution: Enabling this will increase the memory overload for your application.
-            Please enable this as per your user use case.
+            Please enable this as per your use case.
 
         :raises: :class:`google.cloud.exceptions.NotFound`
         """
@@ -1392,7 +1392,7 @@ class Blob(_PropertyMixin):
         :param single_shot_download:
             (Optional) If true, download the object in a single request.
             Caution: Enabling this will increase the memory overload for your application.
-            Please enable this as per your user use case.
+            Please enable this as per your use case.
 
         :raises: :class:`google.cloud.exceptions.NotFound`
         """
@@ -1514,7 +1514,7 @@ class Blob(_PropertyMixin):
         :param single_shot_download:
             (Optional) If true, download the object in a single request.
             Caution: Enabling this will increase the memory overload for your application.
-            Please enable this as per your user use case.
+            Please enable this as per your use case.
 
         :rtype: bytes
         :returns: The data stored in this blob.
@@ -1632,7 +1632,7 @@ class Blob(_PropertyMixin):
         :param single_shot_download:
             (Optional) If true, download the object in a single request.
             Caution: Enabling this will increase the memory overload for your application.
-            Please enable this as per your user use case.
+            Please enable this as per your use case.
 
         :rtype: bytes
         :returns: The data stored in this blob.
@@ -1751,7 +1751,7 @@ class Blob(_PropertyMixin):
         :param single_shot_download:
             (Optional) If true, download the object in a single request.
             Caution: Enabling this will increase the memory overload for your application.
-            Please enable this as per your user use case.
+            Please enable this as per your use case.
 
         :rtype: text
         :returns: The data stored in this blob, decoded to text.
@@ -4349,7 +4349,7 @@ class Blob(_PropertyMixin):
         :param single_shot_download:
             (Optional) If true, download the object in a single request.
             Caution: Enabling this will increase the memory overload for your application.
-            Please enable this as per your user use case.
+            Please enable this as per your use case.
 
         :type command: str
         :param command:
