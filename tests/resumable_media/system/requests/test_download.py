@@ -323,7 +323,8 @@ class TestDownload(object):
             assert stream.getvalue() == actual_contents
             check_tombstoned(download, authorized_transport)
 
-    def test_single_shot_download_to_stream(self, add_files, authorized_transport):
+    @pytest.mark.parametrize("checksum", ["auto", "md5", "crc32c", None])
+    def test_single_shot_download_to_stream(self, add_files, authorized_transport, checksum):
         for info in ALL_FILES:
             actual_contents = self._get_contents(info)
             blob_name = get_blob_name(info)
@@ -332,7 +333,7 @@ class TestDownload(object):
             media_url = utils.DOWNLOAD_URL_TEMPLATE.format(blob_name=blob_name)
             stream = io.BytesIO()
             download = self._make_one(
-                media_url, stream=stream, single_shot_download=True
+                media_url, checksum=checksum, stream=stream, single_shot_download=True
             )
             # Consume the resource with single_shot_download enabled.
             response = download.consume(authorized_transport)

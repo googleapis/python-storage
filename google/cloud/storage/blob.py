@@ -1081,6 +1081,9 @@ class Blob(_PropertyMixin):
                 end=end,
                 checksum=checksum,
                 retry=retry,
+                # NOTE: single_shot_download is only supported in Download and RawDownload
+                # classes, i.e., when chunk_size is set to None (the default value). It is
+                # not supported for chunked downloads.
                 single_shot_download=single_shot_download,
             )
             with create_trace_span(

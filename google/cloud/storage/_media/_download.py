@@ -140,7 +140,7 @@ class Download(DownloadBase):
             ``start`` to the end of the media.
         headers (Optional[Mapping[str, str]]): Extra headers that should
             be sent with the request, e.g. headers for encrypted data.
-        checksum Optional([str]): The type of checksum to compute to verify
+        checksum (Optional[str]): The type of checksum to compute to verify
             the integrity of the object. The response headers must contain
             a checksum of the requested type. If the headers lack an
             appropriate checksum (for instance in the case of transcoded or
@@ -157,6 +157,9 @@ class Download(DownloadBase):
             See the retry.py source code and docstrings in this package
             (google.cloud.storage.retry) for information on retry types and how
             to configure them.
+        single_shot_download (Optional[bool]): If true, download the object in a single request.
+            Caution: Enabling this will increase the memory overload for your application.
+            Please enable this as per your use case.
 
     """
 
