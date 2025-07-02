@@ -44,7 +44,15 @@ nox.options.sessions = [
     "lint",
     "lint_setup_py",
     "system",
-    "unit",
+    # Exclude unit-3.7/unit-3.8 from testing since there is
+    # no patch for setuptools for CVE-2025-47273/CVE-2024-6345.
+    #"unit-3.7",
+    #"unit-3.8",
+    "unit-3.9",
+    "unit-3.10",
+    "unit-3.11",
+    "unit-3.12",
+    "unit-3.13",
     # cover must be last to avoid error `No data to report`
     "cover",
 ]
