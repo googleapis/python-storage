@@ -44,10 +44,8 @@ nox.options.sessions = [
     "lint",
     "lint_setup_py",
     "system",
-    # Exclude unit-3.7/unit-3.8 from testing since there is
-    # no patch for setuptools for CVE-2025-47273/CVE-2024-6345.
-    #"unit-3.7",
-    #"unit-3.8",
+    # TODO(https://github.com/googleapis/python-storage/issues/1499):
+    # Remove or restore testing for Python 3.7/3.8
     "unit-3.9",
     "unit-3.10",
     "unit-3.11",
