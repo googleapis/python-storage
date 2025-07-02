@@ -35,10 +35,6 @@ CURRENT_DIRECTORY = pathlib.Path(__file__).parent.absolute()
 
 # Error if a python version is missing
 nox.options.error_on_missing_interpreters = True
-# Use venv backend which doesn't include bundled setuptools
-# for CVE-2025-47273, CVE-2024-6345.
-# See https://github.com/python/cpython/issues/135374
-nox.options.default_venv_backend = 'venv'
 
 nox.options.sessions = [
     "blacken",
