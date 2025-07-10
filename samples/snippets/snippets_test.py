@@ -1042,7 +1042,7 @@ def test_storage_restore_soft_deleted_object(test_soft_delete_enabled_bucket, ca
 def test_move_object(test_blob):
     bucket = test_blob.bucket
     try:
-        test_bucket_create.delete_blob("test_move_blob_atomic")
+        bucket.delete_blob("test_move_blob_atomic")
     except google.cloud.exceptions.NotFound:
         print(f"test_move_blob_atomic not found in bucket {bucket.name}")
 
