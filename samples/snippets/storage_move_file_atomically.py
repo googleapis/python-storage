@@ -19,6 +19,7 @@ import sys
 # [START storage_move_object]
 from google.cloud import storage
 
+
 def move_object(bucket_name, blob_name, new_blob_name):
     """Moves a blob to a new name within the same bucket using the move API."""
     # The ID of your GCS bucket
@@ -41,6 +42,7 @@ def move_object(bucket_name, blob_name, new_blob_name):
     )
 
     print(f"Blob {blob_to_move.name} has been moved to {moved_blob.name}.")
+
 
 # [END storage_move_object]
 
