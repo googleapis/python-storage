@@ -1039,6 +1039,7 @@ def test_storage_restore_soft_deleted_object(test_soft_delete_enabled_bucket, ca
     blob = test_soft_delete_enabled_bucket.get_blob(blob_name)
     assert blob is not None
 
+
 def test_move_object(test_blob):
     bucket = test_blob.bucket
     try:
@@ -1054,4 +1055,3 @@ def test_move_object(test_blob):
 
     assert bucket.get_blob("test_move_blob_atomic") is not None
     assert bucket.get_blob(test_blob.name) is None
-
