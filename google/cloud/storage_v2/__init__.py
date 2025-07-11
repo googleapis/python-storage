@@ -55,6 +55,8 @@ from .types.storage import MoveObjectRequest
 from .types.storage import Object
 from .types.storage import ObjectAccessControl
 from .types.storage import ObjectChecksums
+from .types.storage import ObjectContexts
+from .types.storage import ObjectCustomContextPayload
 from .types.storage import ObjectRangeData
 from .types.storage import Owner
 from .types.storage import ProjectTeam
@@ -112,6 +114,8 @@ __all__ = (
     "Object",
     "ObjectAccessControl",
     "ObjectChecksums",
+    "ObjectContexts",
+    "ObjectCustomContextPayload",
     "ObjectRangeData",
     "Owner",
     "ProjectTeam",

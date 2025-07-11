@@ -6476,6 +6476,7 @@ def test_list_objects_non_empty_request_with_auto_populated_field():
         lexicographic_start="lexicographic_start_value",
         lexicographic_end="lexicographic_end_value",
         match_glob="match_glob_value",
+        filter="filter_value",
     )
 
     # Mock the actual call within the gRPC stub, and fake the request.
@@ -6494,6 +6495,7 @@ def test_list_objects_non_empty_request_with_auto_populated_field():
             lexicographic_start="lexicographic_start_value",
             lexicographic_end="lexicographic_end_value",
             match_glob="match_glob_value",
+            filter="filter_value",
         )
 
 

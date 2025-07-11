@@ -76,6 +76,8 @@ __protobuf__ = proto.module(
         "BucketAccessControl",
         "ChecksummedData",
         "ObjectChecksums",
+        "ObjectCustomContextPayload",
+        "ObjectContexts",
         "CustomerEncryption",
         "Object",
         "ObjectAccessControl",
@@ -2121,6 +2123,10 @@ class ListObjectsRequest(proto.Message):
             this glob pattern. See `List Objects Using
             Glob <https://cloud.google.com/storage/docs/json_api/v1/objects/list#list-objects-and-prefixes-using-glob>`__
             for the full syntax.
+        filter (str):
+            Optional. Filter the returned objects. Currently only
+            supported for the ``contexts`` field. If ``delimiter`` is
+            set, the returned ``prefixes`` are exempt from this filter.
     """
 
     parent: str = proto.Field(
@@ -2176,6 +2182,10 @@ class ListObjectsRequest(proto.Message):
     match_glob: str = proto.Field(
         proto.STRING,
         number=14,
+    )
+    filter: str = proto.Field(
+        proto.STRING,
+        number=15,
     )
 
 
@@ -4287,6 +4297,52 @@ class ObjectChecksums(proto.Message):
     )
 
 
+class ObjectCustomContextPayload(proto.Message):
+    r"""The payload of a single user-defined object context.
+
+    Attributes:
+        value (str):
+            Required. The value of the object context.
+        create_time (google.protobuf.timestamp_pb2.Timestamp):
+            Output only. The time at which the object
+            context was created.
+        update_time (google.protobuf.timestamp_pb2.Timestamp):
+            Output only. The time at which the object
+            context was last updated.
+    """
+
+    value: str = proto.Field(
+        proto.STRING,
+        number=1,
+    )
+    create_time: timestamp_pb2.Timestamp = proto.Field(
+        proto.MESSAGE,
+        number=2,
+        message=timestamp_pb2.Timestamp,
+    )
+    update_time: timestamp_pb2.Timestamp = proto.Field(
+        proto.MESSAGE,
+        number=3,
+        message=timestamp_pb2.Timestamp,
+    )
+
+
+class ObjectContexts(proto.Message):
+    r"""All contexts of an object grouped by type.
+
+    Attributes:
+        custom (MutableMapping[str, google.cloud.storage_v2.types.ObjectCustomContextPayload]):
+            Optional. User-defined object contexts.
+    """
+
+    custom: MutableMapping[str, "ObjectCustomContextPayload"] = proto.MapField(
+        proto.STRING,
+        proto.MESSAGE,
+        number=1,
+        message="ObjectCustomContextPayload",
+    )
+
+
 class CustomerEncryption(proto.Message):
     r"""Describes the Customer-Supplied Encryption Key mechanism used
     to store an Object's data at rest.
@@ -4449,6 +4505,12 @@ class Object(proto.Message):
         metadata (MutableMapping[str, str]):
             Optional. User-provided metadata, in
             key/value pairs.
+        contexts (google.cloud.storage_v2.types.ObjectContexts):
+            Optional. User-defined or system-defined
+            object contexts. Each object context is a
+            key-payload pair, where the key provides the
+            identification and the payload holds the
+            associated value and additional metadata.
         event_based_hold (bool):
             Whether an object is under event-based hold. An event-based
             hold is a way to force the retention of an object until
@@ -4652,6 +4714,11 @@ class Object(proto.Message):
         proto.STRING,
         proto.STRING,
         number=22,
+    )
+    contexts: "ObjectContexts" = proto.Field(
+        proto.MESSAGE,
+        number=38,
+        message="ObjectContexts",
     )
     event_based_hold: bool = proto.Field(
         proto.BOOL,
