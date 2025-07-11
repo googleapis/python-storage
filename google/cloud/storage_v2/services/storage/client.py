@@ -63,7 +63,7 @@ except ImportError:  # pragma: NO COVER
 
 _LOGGER = std_logging.getLogger(__name__)
 
-from google.cloud.storage_v2.services.storage import pagers
+from .services.storage import pagers
 from google.cloud.storage_v2.types import storage
 from google.iam.v1 import iam_policy_pb2  # type: ignore
 from google.iam.v1 import policy_pb2  # type: ignore
