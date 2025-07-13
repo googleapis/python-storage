@@ -31,14 +31,13 @@ for library in s.get_staging_dirs(default_version):
     # ----------------------------------------------------------------------------
     # A comprehensive fix for circular import errors in generated code.
     #
-    # This script finds all generated Python files and corrects the faulty
-    # absolute imports to be relative imports. This is the standard pattern
-    # for fixing this type of code generator issue.
+    # This script finds all generated Python files in the client library
+    # (but not the tests) and corrects the faulty absolute imports to be
+    # relative imports.
     # ----------------------------------------------------------------------------
-    files = list(library.glob("google/cloud/storage_v2/**/*.py"))
-    files.extend(library.glob("tests/unit/gapic/storage_v2/**/*.py"))
+    files_to_fix = list(library.glob("google/cloud/storage_v2/**/*.py"))
 
-    for f in files:
+    for f in files_to_fix:
         s.replace(
             f,
             "from google.cloud.storage_v2 import enums",
@@ -62,7 +61,7 @@ for library in s.get_staging_dirs(default_version):
         "from . import gapic_version as package_version",
     )
 
-    # Now, move the corrected files.
+    # Now, move all the staged files.
     s.move(
         [library],
         excludes=[

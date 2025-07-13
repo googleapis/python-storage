@@ -47,10 +47,10 @@ from google.api_core import path_template
 from google.api_core import retry as retries
 from google.auth import credentials as ga_credentials
 from google.auth.exceptions import MutualTLSChannelError
-from .services.storage import StorageAsyncClient
-from .services.storage import StorageClient
-from .services.storage import pagers
-from .services.storage import transports
+from google.cloud.storage_v2.services.storage import StorageAsyncClient
+from google.cloud.storage_v2.services.storage import StorageClient
+from google.cloud.storage_v2.services.storage import pagers
+from google.cloud.storage_v2.services.storage import transports
 from google.cloud.storage_v2.types import storage
 from google.iam.v1 import iam_policy_pb2  # type: ignore
 from google.iam.v1 import options_pb2  # type: ignore
