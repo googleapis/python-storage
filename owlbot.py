@@ -27,41 +27,37 @@ from synthtool.languages import python
 # Load the default version defined in .repo-metadata.json.
 default_version = json.load(open(".repo-metadata.json", "rt")).get("default_version")
 
+import re
+
 for library in s.get_staging_dirs(default_version):
     # ----------------------------------------------------------------------------
-    # A comprehensive fix for circular import errors in generated code.
-    #
-    # This script finds all generated Python files in the client library
-    # (but not the tests) and corrects the faulty absolute imports to be
-    # relative imports.
+    # A multi-part fix for systemic code generator issues.
     # ----------------------------------------------------------------------------
-    files_to_fix = list(library.glob("google/cloud/storage_v2/**/*.py"))
 
-    for f in files_to_fix:
-        s.replace(
-            f,
-            "from google.cloud.storage_v2 import enums",
-            "from . import enums",
-        )
-        s.replace(
-            f,
-            "from google.cloud.storage_v2 import types",
-            "from . import types",
-        )
-        s.replace(
-            f,
-            "from google.cloud.storage_v2.services",
-            "from .services",
-        )
+    # Part 1: Fix the circular import by moving the gapic_version import
+    # to the top of __init__.py. This ensures the version is available
+    # before any sub-modules that depend on it are imported.
+    init_py = library / "google/cloud/storage_v2/__init__.py"
+    text = init_py.read_text()
+    match = re.search(r"^\s*from \..*gapic_version.*$", text, re.MULTILINE)
+    if match:
+        version_import_line = match.group(0)
+        # Remove the line from its original position
+        text = text.replace(version_import_line, "")
+        # Prepend the line to the top of the file
+        text = f"{version_import_line}\n{text}"
+        init_py.write_text(text)
 
-    # Also correct the specific import in the top-level __init__.py
-    s.replace(
-        library / "google/cloud/storage_v2/__init__.py",
-        "from google.cloud.storage_v2 import gapic_version as package_version",
-        "from . import gapic_version as package_version",
-    )
+    # Part 2: Fix all other internal imports to be relative. This is a
+    # standard best practice to prevent other potential import issues.
+    source_files = list(library.glob("google/cloud/storage_v2/**/*.py"))
+    for f in source_files:
+        s.replace(f, "from google.cloud.storage_v2 import enums", "from . import enums")
+        s.replace(f, "from google.cloud.storage_v2 import types", "from . import types")
+        s.replace(f, "from google.cloud.storage_v2.services", "from .services")
 
-    # Now, move all the staged files.
+
+    # Now, move the corrected files into the repository.
     s.move(
         [library],
         excludes=[
