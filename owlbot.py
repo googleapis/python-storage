@@ -29,21 +29,16 @@ default_version = json.load(open(".repo-metadata.json", "rt")).get("default_vers
 
 for library in s.get_staging_dirs(default_version):
     # ----------------------------------------------------------------------------
-    # Fixes issues in generated .py files
+    # A comprehensive fix for circular import errors in generated code.
+    #
+    # This script finds all generated Python files and corrects the faulty
+    # absolute imports to be relative imports. This is the standard pattern
+    # for fixing this type of code generator issue.
     # ----------------------------------------------------------------------------
+    files = list(library.glob("google/cloud/storage_v2/**/*.py"))
+    files.extend(library.glob("tests/unit/gapic/storage_v2/**/*.py"))
 
-    # Fix 1: Correct the absolute import in the top-level __init__.py.
-    # This is a known issue where the generator creates an import from the wrong
-    # parent package, instead of the correct versioned subpackage.
-    s.replace(
-        library / "google/cloud/storage_v2/__init__.py",
-        "from google.cloud.storage import gapic_version as package_version",
-        "from google.cloud.storage_v2 import gapic_version as package_version",
-    )
-
-    # Fix 2: Change the absolute imports of other sub-modules to relative imports.
-    # This prevents circular import errors deeper in the package.
-    for f in library.glob("google/cloud/storage_v2/**/*.py"):
+    for f in files:
         s.replace(
             f,
             "from google.cloud.storage_v2 import enums",
@@ -59,6 +54,13 @@ for library in s.get_staging_dirs(default_version):
             "from google.cloud.storage_v2.services",
             "from .services",
         )
+
+    # Also correct the specific import in the top-level __init__.py
+    s.replace(
+        library / "google/cloud/storage_v2/__init__.py",
+        "from google.cloud.storage_v2 import gapic_version as package_version",
+        "from . import gapic_version as package_version",
+    )
 
     # Now, move the corrected files.
     s.move(
