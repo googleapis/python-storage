@@ -109,6 +109,7 @@ def default(session, install_extras=True):
         "grpcio",
         "grpcio-status",
         "proto-plus",
+        "googleapis-common-protos",
         "-c",
         constraints_path,
     )
