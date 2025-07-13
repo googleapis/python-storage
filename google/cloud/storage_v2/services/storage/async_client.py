@@ -48,7 +48,7 @@ try:
 except AttributeError:  # pragma: NO COVER
     OptionalRetry = Union[retries.AsyncRetry, object, None]  # type: ignore
 
-from .services.storage import pagers
+from google.cloud.storage_v2.services.storage import pagers
 from google.cloud.storage_v2.types import storage
 from google.iam.v1 import iam_policy_pb2  # type: ignore
 from google.iam.v1 import policy_pb2  # type: ignore

@@ -44,14 +44,6 @@ for library in s.get_staging_dirs(default_version):
         "from google.cloud.storage_v2 import gapic_version as package_version",
     )
 
-    # Part 2: Systematically fix all other internal imports to be relative.
-    # This is a standard best practice to prevent other potential import issues.
-    source_files = list(library.glob("google/cloud/storage_v2/**/*.py"))
-    for f in source_files:
-        s.replace(f, "from google.cloud.storage_v2 import enums", "from . import enums")
-        s.replace(f, "from google.cloud.storage_v2 import types", "from . import types")
-        s.replace(f, "from google.cloud.storage_v2.services", "from .services")
-
     # Now, move the corrected files into the repository.
     s.move(
         [library],
