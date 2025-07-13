@@ -15,6 +15,7 @@
 """This script is used to synthesize generated parts of this library."""
 
 import json
+from pathlib import Path
 
 import synthtool as s
 from synthtool import gcp
@@ -27,41 +28,34 @@ from synthtool.languages import python
 # Load the default version defined in .repo-metadata.json.
 default_version = json.load(open(".repo-metadata.json", "rt")).get("default_version")
 
-import re
+# In owlbot.py
 
 for library in s.get_staging_dirs(default_version):
     # ----------------------------------------------------------------------------
-    # A multi-part fix for systemic code generator issues.
+    # A multi-part, definitive fix for systemic code generator issues.
     # ----------------------------------------------------------------------------
 
-    # Part 1: Fix the circular import by moving the gapic_version import
-    # to the top of __init__.py. This ensures the version is available
-    # before any sub-modules that depend on it are imported.
-    init_py = library / "google/cloud/storage_v2/__init__.py"
-    text = init_py.read_text()
-    match = re.search(r"^\s*from \..*gapic_version.*$", text, re.MULTILINE)
-    if match:
-        version_import_line = match.group(0)
-        # Remove the line from its original position
-        text = text.replace(version_import_line, "")
-        # Prepend the line to the top of the file
-        text = f"{version_import_line}\n{text}"
-        init_py.write_text(text)
+    # Part 1: Fix the primary circular import in __init__.py.
+    # The generator incorrectly imports from the parent `storage` package.
+    # This replaces it with an import from the correct `storage_v2` subpackage.
+    s.replace(
+        library / "google/cloud/storage_v2/__init__.py",
+        "from google.cloud.storage import gapic_version as package_version",
+        "from google.cloud.storage_v2 import gapic_version as package_version",
+    )
 
-    # Part 2: Fix all other internal imports to be relative. This is a
-    # standard best practice to prevent other potential import issues.
+    # Part 2: Systematically fix all other internal imports to be relative.
+    # This is a standard best practice to prevent other potential import issues.
     source_files = list(library.glob("google/cloud/storage_v2/**/*.py"))
     for f in source_files:
         s.replace(f, "from google.cloud.storage_v2 import enums", "from . import enums")
         s.replace(f, "from google.cloud.storage_v2 import types", "from . import types")
         s.replace(f, "from google.cloud.storage_v2.services", "from .services")
 
-
     # Now, move the corrected files into the repository.
     s.move(
         [library],
         excludes=[
-            "**/gapic_version.py",
             "docs/**/*",
             "scripts/fixup*.py",
             "setup.py",
@@ -140,4 +134,5 @@ python.py_samples(skip_readmes=True)
 
 # Use a python runtime which is available in the owlbot post processor here
 # https://github.com/googleapis/synthtool/blob/master/docker/owlbot/python/Dockerfile
-s.shell.run(["nox", "-s", "blacken-3.10"], hide_output=False)
+for noxfile in Path(".").glob("**/noxfile.py"):
+    s.shell.run(["nox", "-s", "blacken-3.10"], hide_output=False)
