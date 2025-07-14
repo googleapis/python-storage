@@ -105,6 +105,7 @@ def default(session, install_extras=True):
         "mock",
         "pytest",
         "pytest-cov",
+        "pytest-asyncio",
         "brotli",
         "grpcio",
         "grpcio-status",
