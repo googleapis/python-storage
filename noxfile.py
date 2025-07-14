@@ -110,6 +110,7 @@ def default(session, install_extras=True):
         "grpcio-status",
         "proto-plus",
         "googleapis-common-protos",
+        "google-cloud-iam",
         "-c",
         constraints_path,
     )
