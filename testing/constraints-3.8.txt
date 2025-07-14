@@ -5,4 +5,3 @@ google-api-core
 proto-plus
 protobuf
 grpc-google-iam-v1
-googleapis-common-protos==1.63.2
