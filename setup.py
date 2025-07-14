@@ -41,7 +41,6 @@ dependencies = [
     "google-resumable-media >= 2.7.2, < 3.0.0",
     "requests >= 2.22.0, < 3.0.0",
     "google-crc32c >= 1.1.3, < 2.0.0",
-    "google-iam-v1 >= 0.14.0",
 ]
 extras = {
     "protobuf": ["protobuf >= 3.20.2, < 7.0.0"],
