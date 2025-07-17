@@ -20,15 +20,15 @@ import sys
 from google.cloud import storage
 
 
-def move_object(bucket_name, blob_name, new_blob_name):
+def move_object(bucket_name: str, blob_name: str, new_blob_name: str) -> None:
     """Moves a blob to a new name within the same bucket using the move API."""
-    # The ID of your GCS bucket
+    # The name of your GCS bucket
     # bucket_name = "your-bucket-name"
 
-    # The ID of your GCS object to move
+    # The name of your GCS object to move
     # blob_name = "your-file-name"
 
-    # The new ID of the GCS object
+    # The new name of the GCS object
     # new_blob_name = "new-file-name"
 
     storage_client = storage.Client()
