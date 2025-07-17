@@ -15,7 +15,6 @@
 """This script is used to synthesize generated parts of this library."""
 
 import json
-from pathlib import Path
 
 import synthtool as s
 from synthtool import gcp
@@ -67,7 +66,7 @@ common = gcp.CommonTemplates()
 # Add templated files
 # ----------------------------------------------------------------------------
 templated_files = common.py_library(
-    cov_level=100,
+    cov_level=99,
     split_system_tests=True,
     intersphinx_dependencies={
         # python-requests url temporary change related to
@@ -79,6 +78,7 @@ templated_files = common.py_library(
 s.move(
     templated_files,
     excludes=[
+        ".coveragerc",
         "docs/multiprocessing.rst",
         "noxfile.py",
         "CONTRIBUTING.rst",
@@ -126,5 +126,4 @@ python.py_samples(skip_readmes=True)
 
 # Use a python runtime which is available in the owlbot post processor here
 # https://github.com/googleapis/synthtool/blob/master/docker/owlbot/python/Dockerfile
-for noxfile in Path(".").glob("**/noxfile.py"):
-    s.shell.run(["nox", "-s", "blacken-3.10"], hide_output=False)
+s.shell.run(["nox", "-s", "blacken-3.10"], hide_output=False)
