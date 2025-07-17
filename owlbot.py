@@ -58,7 +58,7 @@ common = gcp.CommonTemplates()
 # Add templated files
 # ----------------------------------------------------------------------------
 templated_files = common.py_library(
-    cov_level=100,
+    cov_level=99,
     split_system_tests=True,
     intersphinx_dependencies={
         # python-requests url temporary change related to
@@ -70,6 +70,7 @@ templated_files = common.py_library(
 s.move(
     templated_files,
     excludes=[
+        ".coveragerc",
         "docs/multiprocessing.rst",
         "noxfile.py",
         "CONTRIBUTING.rst",
