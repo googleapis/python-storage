@@ -4,6 +4,13 @@
 
 [1]: https://pypi.org/project/google-cloud-storage/#history
 
+## [3.2.1](https://github.com/googleapis/python-storage/compare/v3.2.0...v3.2.1) (2025-07-18)
+
+
+### Documentation
+
+* Update the documentation of move_blob function ([#1507](https://github.com/googleapis/python-storage/issues/1507)) ([72252e9](https://github.com/googleapis/python-storage/commit/72252e940909ce2e3da9cfd80f5b7b43a026f45c))
+
 ## [3.2.0](https://github.com/googleapis/python-storage/compare/v3.1.1...v3.2.0) (2025-07-04)
 
 
