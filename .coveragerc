@@ -6,6 +6,7 @@ show_missing = True
 omit =
   .nox/*
   .nox/*
+  .nox/*
     google/cloud/storage/__init__.py
     google/cloud/storage/gapic_version.py
 exclude_lines =
