@@ -17,7 +17,11 @@ import pytest
 
 from google.api_core import exceptions
 from . import _helpers
-
+from google.cloud.storage.ip_filter import (
+    IPFilter,
+    PublicNetworkSource,
+    VpcNetworkSource,
+)
 
 def test_bucket_create_w_alt_storage_class(storage_client, buckets_to_delete):
     from google.cloud.storage import constants
@@ -1299,3 +1303,104 @@ def test_new_bucket_with_hierarchical_namespace(
     bucket = storage_client.create_bucket(bucket_obj)
     buckets_to_delete.append(bucket)
     assert bucket.hierarchical_namespace_enabled is True
+
+def test_bucket_ip_filter_lifecycle(storage_client, buckets_to_delete):
+    """Test the full lifecycle of an IP filter on a bucket."""
+    bucket_name = _helpers.unique_name("ip-filter-lifecycle")
+    bucket = _helpers.retry_429_503(storage_client.create_bucket)(bucket_name)
+    buckets_to_delete.append(bucket)
+
+    # 1. Verify IP filter is None on a new bucket.
+    assert bucket.ip_filter is None
+
+    # 2. Enable with a public network source.
+    # This corresponds to the "Enable IP filter" use case.
+    ip_filter = IPFilter()
+    ip_filter.mode = "Enabled"
+    ip_filter.public_network_source = PublicNetworkSource(
+        allowed_ip_cidr_ranges=["203.0.113.10/32"]
+    )
+    bucket.ip_filter = ip_filter
+    bucket.patch()
+
+    # Reload from server and verify the configuration.
+    # This corresponds to the "Get Bucket with Ip Filter" test case.
+    bucket.reload()
+    reloaded_filter = bucket.ip_filter
+    assert reloaded_filter is not None
+    assert reloaded_filter.mode == "Enabled"
+    assert reloaded_filter.public_network_source is not None
+    assert reloaded_filter.public_network_source.allowed_ip_cidr_ranges == [
+        "203.0.113.10/32"
+    ]
+
+    # 3. Update to add a VPC network source.
+    # This corresponds to the "Update IP filter rules" use case.
+    ip_filter.vpc_network_sources.append(
+        VpcNetworkSource(
+            network=f"projects/{storage_client.project}/global/networks/default",
+            allowed_ip_cidr_ranges=["10.0.0.0/8"],
+        )
+    )
+    bucket.ip_filter = ip_filter
+    bucket.patch()
+
+    # Reload and verify both public and VPC sources are present.
+    bucket.reload()
+    reloaded_filter = bucket.ip_filter
+    assert len(reloaded_filter.vpc_network_sources) == 1
+    assert (
+        reloaded_filter.vpc_network_sources[0].network
+        == f"projects/{storage_client.project}/global/networks/default"
+    )
+
+    # 4. List buckets and verify the summarized filter status.
+    # This corresponds to the "List Buckets with Ip Filter" test case.
+    buckets = list(storage_client.list_buckets(prefix=bucket_name))
+    found_bucket = next((b for b in buckets if b.name == bucket_name), None)
+    assert found_bucket is not None
+    summarized_filter = found_bucket.ip_filter
+    assert summarized_filter is not None
+    assert summarized_filter.mode == "Enabled"
+    # Verify that detailed fields are not present in the list view.
+    assert summarized_filter.public_network_source is None
+    assert summarized_filter.vpc_network_sources == []
+
+    # 5. Disable the IP filter.
+    # This corresponds to the "Disable IP filter" use case.
+    ip_filter.mode = "Disabled"
+    ip_filter.public_network_source = None
+    ip_filter.vpc_network_sources = []
+    bucket.ip_filter = ip_filter
+    bucket.patch()
+
+    # Reload and verify the filter is disabled.
+    bucket.reload()
+    reloaded_filter = bucket.ip_filter
+    assert reloaded_filter.mode == "Disabled"
+    assert reloaded_filter.public_network_source is None
+    assert reloaded_filter.vpc_network_sources == []
+
+
+def test_create_bucket_with_ip_filter(storage_client, buckets_to_delete):
+    """Test creating a bucket with an IP filter configuration."""
+    bucket_name = _helpers.unique_name("ip-filter-create")
+    ip_filter = IPFilter()
+    ip_filter.mode = "Enabled"
+    ip_filter.public_network_source = PublicNetworkSource(
+        allowed_ip_cidr_ranges=["192.0.2.0/24"]
+    )
+
+    bucket = storage_client.bucket(bucket_name)
+    bucket.ip_filter = ip_filter
+    _helpers.retry_429_503(bucket.create)()
+    buckets_to_delete.append(bucket)
+
+    bucket.reload()
+    reloaded_filter = bucket.ip_filter
+    assert reloaded_filter is not None
+    assert reloaded_filter.mode == "Enabled"
+    assert (
+        reloaded_filter.public_network_source.allowed_ip_cidr_ranges
+        == ["192.0.2.0/24"]
+    )
