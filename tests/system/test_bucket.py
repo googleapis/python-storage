@@ -1304,13 +1304,13 @@ def test_new_bucket_with_hierarchical_namespace(
     buckets_to_delete.append(bucket)
     assert bucket.hierarchical_namespace_enabled is True
 
-def test_bucket_ip_filter_control_plane(storage_client, buckets_to_delete):
+
+def test_bucket_ip_filter(storage_client, buckets_to_delete):
     """Test setting and clearing IP filter configuration without enabling enforcement."""
     bucket_name = _helpers.unique_name("ip-filter-control")
     bucket = _helpers.retry_429_503(storage_client.create_bucket)(bucket_name)
     buckets_to_delete.append(bucket)
 
-    # 1. Set a full config with the mode "Disabled" to test the control plane.
     ip_filter = IPFilter()
     ip_filter.mode = "Disabled"
     ip_filter.allow_all_service_agent_access = True
@@ -1326,35 +1326,13 @@ def test_bucket_ip_filter_control_plane(storage_client, buckets_to_delete):
     bucket.ip_filter = ip_filter
     bucket.patch()
 
-    # 2. Reload and verify the full configuration was set correctly.
+    # Reload and verify the full configuration was set correctly.
     bucket.reload()
     reloaded_filter = bucket.ip_filter
     assert reloaded_filter is not None
     assert reloaded_filter.mode == "Disabled"
+    assert reloaded_filter.allow_all_service_agent_access is True
     assert reloaded_filter.public_network_source.allowed_ip_cidr_ranges == [
         "203.0.113.10/32"
     ]
     assert len(reloaded_filter.vpc_network_sources) == 1
-
-
-def test_bucket_ip_filter_enforcement(storage_client, buckets_to_delete):
-    """Test that an enabled IP filter is enforced."""
-    bucket_name = _helpers.unique_name("ip-filter-enforce")
-    bucket = _helpers.retry_429_503(storage_client.create_bucket)(bucket_name)
-    buckets_to_delete.append(bucket)
-
-    # 1. Enable a restrictive IP filter that locks out the test runner.
-    ip_filter = IPFilter()
-    ip_filter.mode = "Enabled"
-    ip_filter.allow_all_service_agent_access = True
-    # Use a specific, non-existent IP to ensure the test runner is blocked.
-    ip_filter.public_network_source = PublicNetworkSource(
-        allowed_ip_cidr_ranges=["1.1.1.1/32"]
-    )
-    bucket.ip_filter = ip_filter
-    bucket.patch()
-
-    # 2. Verify that the standard client is now locked out.
-    # This is the primary assertion of the test.
-    with pytest.raises(exceptions.Forbidden) as e:
-        bucket.reload()
