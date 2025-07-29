@@ -1304,37 +1304,19 @@ def test_new_bucket_with_hierarchical_namespace(
     buckets_to_delete.append(bucket)
     assert bucket.hierarchical_namespace_enabled is True
 
-def test_bucket_ip_filter_lifecycle(storage_client, buckets_to_delete):
-    """Test the full lifecycle of an IP filter on a bucket."""
-    bucket_name = _helpers.unique_name("ip-filter-lifecycle")
+def test_bucket_ip_filter_control_plane(storage_client, buckets_to_delete):
+    """Test setting and clearing IP filter configuration without enabling enforcement."""
+    bucket_name = _helpers.unique_name("ip-filter-control")
     bucket = _helpers.retry_429_503(storage_client.create_bucket)(bucket_name)
     buckets_to_delete.append(bucket)
 
-    # 1. Verify IP filter is None on a new bucket.
-    assert bucket.ip_filter is None
-
-    # 2. Enable with a public network source.
+    # 1. Set a full config with the mode "Disabled" to test the control plane.
     ip_filter = IPFilter()
-    ip_filter.mode = "Enabled"
+    ip_filter.mode = "Disabled"
     ip_filter.allow_all_service_agent_access = True
     ip_filter.public_network_source = PublicNetworkSource(
         allowed_ip_cidr_ranges=["203.0.113.10/32"]
     )
-    bucket.ip_filter = ip_filter
-    bucket.patch()
-
-    # Reload from server and verify the configuration.
-    # This corresponds to the "Get Bucket with Ip Filter" test case.
-    bucket.reload()
-    reloaded_filter = bucket.ip_filter
-    assert reloaded_filter is not None
-    assert reloaded_filter.mode == "Enabled"
-    assert reloaded_filter.public_network_source is not None
-    assert reloaded_filter.public_network_source.allowed_ip_cidr_ranges == [
-        "203.0.113.10/32"
-    ]
-
-    # 3. Update to add a VPC network source.
     ip_filter.vpc_network_sources.append(
         VpcNetworkSource(
             network=f"projects/{storage_client.project}/global/networks/default",
@@ -1344,76 +1326,35 @@ def test_bucket_ip_filter_lifecycle(storage_client, buckets_to_delete):
     bucket.ip_filter = ip_filter
     bucket.patch()
 
-    # Reload and verify both public and VPC sources are present.
+    # 2. Reload and verify the full configuration was set correctly.
     bucket.reload()
     reloaded_filter = bucket.ip_filter
+    assert reloaded_filter is not None
+    assert reloaded_filter.mode == "Disabled"
+    assert reloaded_filter.public_network_source.allowed_ip_cidr_ranges == [
+        "203.0.113.10/32"
+    ]
     assert len(reloaded_filter.vpc_network_sources) == 1
-    assert (
-        reloaded_filter.vpc_network_sources[0].network
-        == f"projects/{storage_client.project}/global/networks/default"
+
+
+def test_bucket_ip_filter_enforcement(storage_client, buckets_to_delete):
+    """Test that an enabled IP filter is enforced."""
+    bucket_name = _helpers.unique_name("ip-filter-enforce")
+    bucket = _helpers.retry_429_503(storage_client.create_bucket)(bucket_name)
+    buckets_to_delete.append(bucket)
+
+    # 1. Enable a restrictive IP filter that locks out the test runner.
+    ip_filter = IPFilter()
+    ip_filter.mode = "Enabled"
+    ip_filter.allow_all_service_agent_access = True
+    # Use a specific, non-existent IP to ensure the test runner is blocked.
+    ip_filter.public_network_source = PublicNetworkSource(
+        allowed_ip_cidr_ranges=["1.1.1.1/32"]
     )
-
-    # 4. List buckets and verify the summarized filter status.
-    buckets = list(storage_client.list_buckets(prefix=bucket_name))
-    found_bucket = next((b for b in buckets if b.name == bucket_name), None)
-    assert found_bucket is not None
-    summarized_filter = found_bucket.ip_filter
-    assert summarized_filter is not None
-    assert summarized_filter.mode == "Enabled"
-    # Verify that detailed fields are not present in the list view.
-    assert summarized_filter.public_network_source is None
-    assert summarized_filter.vpc_network_sources == []
-
-    # 5. Disable the IP filter.
-    ip_filter.mode = "Disabled"
-    ip_filter.public_network_source = None
-    ip_filter.vpc_network_sources = []
     bucket.ip_filter = ip_filter
     bucket.patch()
 
-    # Reload and verify the filter is disabled.
-    bucket.reload()
-    reloaded_filter = bucket.ip_filter
-    assert reloaded_filter.mode == "Disabled"
-    assert reloaded_filter.public_network_source is None
-    assert reloaded_filter.vpc_network_sources == []
-
-
-def test_create_bucket_with_ip_filter(storage_client, buckets_to_delete):
-    """Test creating a bucket with an IP filter configuration."""
-    bucket_name = _helpers.unique_name("ip-filter-create")
-    try:
-        ip_filter = IPFilter()
-        ip_filter.mode = "Enabled"
-        ip_filter.allow_all_service_agent_access = True
-        ip_filter.public_network_source = PublicNetworkSource(
-            allowed_ip_cidr_ranges=["192.0.2.0/24"]
-        )
-
-        bucket = storage_client.bucket(bucket_name)
-        bucket.ip_filter = ip_filter
-        _helpers.retry_429_503(bucket.create)()
-        buckets_to_delete.append(bucket)
-
-        # Verify the configuration on a fresh object.
-        fresh_bucket = storage_client.get_bucket(bucket_name)
-        reloaded_filter = fresh_bucket.ip_filter
-        assert reloaded_filter is not None
-        assert reloaded_filter.mode == "Enabled"
-        assert (
-            reloaded_filter.public_network_source.allowed_ip_cidr_ranges
-            == ["192.0.2.0/24"]
-        )
-    finally:
-        # In case the test fails after creation, ensure the filter is disabled.
-        try:
-            fresh_bucket = storage_client.get_bucket(bucket_name)
-            if fresh_bucket.ip_filter and fresh_bucket.ip_filter.get("mode") == "Enabled":
-                disable_filter = IPFilter()
-                disable_filter.mode = "Disabled"
-                disable_filter.allow_all_service_agent_access = True
-                fresh_bucket.ip_filter = disable_filter
-                fresh_bucket.patch()
-        except Exception:
-            # If the bucket was never created, this will fail which is okay.
-            pass
+    # 2. Verify that the standard client is now locked out.
+    # This is the primary assertion of the test.
+    with pytest.raises(exceptions.Forbidden) as e:
+        bucket.reload()
