@@ -118,6 +118,9 @@ class IPFilter:
              resource[_VPC_NETWORK_SOURCES] = [
                 vns._to_api_resource() for vns in self.vpc_network_sources
             ]
-        if self.allow_all_service_agent_access is not None:
-             resource[_ALLOW_ALL_SERVICE_AGENT_ACCESS] = self.allow_all_service_agent_access
+        resource[_ALLOW_ALL_SERVICE_AGENT_ACCESS] = (
+            self.allow_all_service_agent_access
+            if self.allow_all_service_agent_access is not None
+            else False
+        )
         return resource
