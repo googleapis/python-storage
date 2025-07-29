@@ -4641,7 +4641,7 @@ class Test_Bucket(unittest.TestCase):
         bucket.ip_filter = ip_filter
 
         self.assertIn(_IP_FILTER_PROPERTY, bucket._changes)
-        self.assertEqual(bucket._properties[_IP_FILTER_PROPERTY], {"mode": "Enabled", "vpcNetworkSources": []})
+        self.assertEqual(bucket._properties[_IP_FILTER_PROPERTY], {"mode": "Enabled", "vpcNetworkSources": [], 'allowAllServiceAgentAccess': False})
 
     def test_ip_filter_setter_w_none(self):
         """Test clearing the ip_filter by setting it to None."""
