@@ -14,20 +14,24 @@
 
 import unittest
 
+
 class TestIPFilterHelpers(unittest.TestCase):
     @staticmethod
     def _get_public_network_source_class():
         from google.cloud.storage.ip_filter import PublicNetworkSource
+
         return PublicNetworkSource
 
     @staticmethod
     def _get_vpc_network_source_class():
         from google.cloud.storage.ip_filter import VpcNetworkSource
+
         return VpcNetworkSource
 
     @staticmethod
     def _get_ip_filter_class():
         from google.cloud.storage.ip_filter import IPFilter
+
         return IPFilter
 
     def test_public_network_source_serialization(self):

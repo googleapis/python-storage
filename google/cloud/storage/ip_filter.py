@@ -22,6 +22,8 @@ _VPC_NETWORK_SOURCES = "vpcNetworkSources"
 _ALLOWED_IP_CIDR_RANGES = "allowedIpCidrRanges"
 _NETWORK = "network"
 _ALLOW_ALL_SERVICE_AGENT_ACCESS = "allowAllServiceAgentAccess"
+_ALLOW_CROSS_ORG_VPCS = "allowCrossOrgVpcs"
+
 
 class PublicNetworkSource:
     """Represents a public network source for a GCS Bucket IP Filter.
@@ -52,7 +54,9 @@ class VpcNetworkSource:
                                    from this VPC.
     """
 
-    def __init__(self, network: str, allowed_ip_cidr_ranges: Optional[List[str]] = None):
+    def __init__(
+        self, network: str, allowed_ip_cidr_ranges: Optional[List[str]] = None
+    ):
         self.network = network
         self.allowed_ip_cidr_ranges = allowed_ip_cidr_ranges or []
 
@@ -71,18 +75,25 @@ class IPFilter:
     assigned to a bucket's ``ip_filter`` property.
     """
 
+    """
+    Attributes:
+        mode (str): Required. The mode of the IP filter. Can be "Enabled" or "Disabled".
+        allow_all_service_agent_access (bool): Required. If True, allows Google
+            Cloud service agents to bypass the IP filter.
+        public_network_source (PublicNetworkSource): (Optional) The configuration
+            for requests from the public internet.
+        vpc_network_sources (list(VpcNetworkSource)): (Optional) A list of
+            configurations for requests from VPC networks.
+        allow_cross_org_vpcs (bool): (Optional) If True, allows VPCs from
+            other organizations to be used in the configuration.
+    """
+
     def __init__(self):
         self.mode: Optional[str] = None
-        """str: The mode of the IP filter. Can be "Enabled" or "Disabled"."""
-
         self.public_network_source: Optional[PublicNetworkSource] = None
-        """(Optional) :class:`PublicNetworkSource`: The configuration for public sources."""
-
         self.vpc_network_sources: List[VpcNetworkSource] = []
-        """(Optional) list of :class:`VpcNetworkSource`: Configurations for VPC sources."""
-
         self.allow_all_service_agent_access: Optional[bool] = None
-        """(Optional) bool: If True, allows GCS service agents to bypass the filter."""
+        self.allow_cross_org_vpcs: Optional[bool] = None
 
     @classmethod
     def _from_api_resource(cls, resource: Dict[str, Any]) -> "IPFilter":
@@ -90,37 +101,43 @@ class IPFilter:
         ip_filter = cls()
         ip_filter.mode = resource.get(_MODE)
         ip_filter.allow_all_service_agent_access = resource.get(
-            _ALLOW_ALL_SERVICE_AGENT_ACCESS
+            _ALLOW_ALL_SERVICE_AGENT_ACCESS, None
         )
 
-        pns_res = resource.get(_PUBLIC_NETWORK_SOURCE)
-        if pns_res:
+        public_network_source_data = resource.get(_PUBLIC_NETWORK_SOURCE, None)
+        if public_network_source_data:
             ip_filter.public_network_source = PublicNetworkSource(
-                allowed_ip_cidr_ranges=pns_res.get(_ALLOWED_IP_CIDR_RANGES)
+                allowed_ip_cidr_ranges=public_network_source_data.get(
+                    _ALLOWED_IP_CIDR_RANGES, []
+                )
             )
 
         vns_res_list = resource.get(_VPC_NETWORK_SOURCES, [])
         ip_filter.vpc_network_sources = [
             VpcNetworkSource(
                 network=vns.get(_NETWORK),
-                allowed_ip_cidr_ranges=vns.get(_ALLOWED_IP_CIDR_RANGES),
+                allowed_ip_cidr_ranges=vns.get(_ALLOWED_IP_CIDR_RANGES, []),
             )
             for vns in vns_res_list
         ]
+        ip_filter.allow_cross_org_vpcs = resource.get(_ALLOW_CROSS_ORG_VPCS, None)
         return ip_filter
 
     def _to_api_resource(self) -> Dict[str, Any]:
         """Serializes this object to a dictionary for API requests."""
-        resource = {_MODE: self.mode}
+        resource = {
+            _MODE: self.mode,
+            _ALLOW_ALL_SERVICE_AGENT_ACCESS: self.allow_all_service_agent_access,
+        }
+
         if self.public_network_source:
-            resource[_PUBLIC_NETWORK_SOURCE] = self.public_network_source._to_api_resource()
+            resource[
+                _PUBLIC_NETWORK_SOURCE
+            ] = self.public_network_source._to_api_resource()
         if self.vpc_network_sources is not None:
-             resource[_VPC_NETWORK_SOURCES] = [
+            resource[_VPC_NETWORK_SOURCES] = [
                 vns._to_api_resource() for vns in self.vpc_network_sources
             ]
-        resource[_ALLOW_ALL_SERVICE_AGENT_ACCESS] = (
-            self.allow_all_service_agent_access
-            if self.allow_all_service_agent_access is not None
-            else False
-        )
+        if self.allow_cross_org_vpcs is not None:
+            resource[_ALLOW_CROSS_ORG_VPCS] = self.allow_cross_org_vpcs
         return resource
