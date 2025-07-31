@@ -132,7 +132,9 @@ class UploadBase(object):
         # Tombstone the current upload so it cannot be used again (in either
         # failure or success).
         self._finished = True
-        _helpers.require_status_code(response, (http.client.OK,), self._get_status_code)
+        _helpers.require_status_code(
+            response, (http.client.OK,), self._get_status_code
+        )
 
     @staticmethod
     def _get_status_code(response):
@@ -285,8 +287,12 @@ class MultipartUpload(UploadBase):
         upload_url (str): The URL where the content will be uploaded.
     """
 
-    def __init__(self, upload_url, headers=None, checksum="auto", retry=DEFAULT_RETRY):
-        super(MultipartUpload, self).__init__(upload_url, headers=headers, retry=retry)
+    def __init__(
+        self, upload_url, headers=None, checksum="auto", retry=DEFAULT_RETRY
+    ):
+        super(MultipartUpload, self).__init__(
+            upload_url, headers=headers, retry=retry
+        )
         self._checksum_type = checksum
         if self._checksum_type == "auto":
             self._checksum_type = (
@@ -335,8 +341,13 @@ class MultipartUpload(UploadBase):
         checksum_object = _helpers._get_checksum_object(self._checksum_type)
         if checksum_object is not None:
             checksum_object.update(data)
-            actual_checksum = _helpers.prepare_checksum_digest(checksum_object.digest())
+            actual_checksum = _helpers.prepare_checksum_digest(
+                checksum_object.digest()
+            )
+            assert actual_checksum == metadata["crc32c"]
+
             metadata_key = _helpers._get_metadata_key(self._checksum_type)
+            print("this is the metadata_key", metadata_key)
             metadata[metadata_key] = actual_checksum
 
         content, multipart_boundary = construct_multipart_request(
@@ -411,9 +422,16 @@ class ResumableUpload(UploadBase):
     """
 
     def __init__(
-        self, upload_url, chunk_size, checksum="auto", headers=None, retry=DEFAULT_RETRY
+        self,
+        upload_url,
+        chunk_size,
+        checksum="auto",
+        headers=None,
+        retry=DEFAULT_RETRY,
     ):
-        super(ResumableUpload, self).__init__(upload_url, headers=headers, retry=retry)
+        super(ResumableUpload, self).__init__(
+            upload_url, headers=headers, retry=retry
+        )
         if chunk_size % UPLOAD_CHUNK_SIZE != 0:
             raise ValueError(
                 "{} KB must divide chunk size".format(UPLOAD_CHUNK_SIZE / 1024)
@@ -472,7 +490,12 @@ class ResumableUpload(UploadBase):
         return self._total_bytes
 
     def _prepare_initiate_request(
-        self, stream, metadata, content_type, total_bytes=None, stream_final=True
+        self,
+        stream,
+        metadata,
+        content_type,
+        total_bytes=None,
+        stream_final=True,
     ):
         """Prepare the contents of HTTP request to initiate upload.
 
@@ -521,7 +544,10 @@ class ResumableUpload(UploadBase):
         # Signed URL requires content type set directly - not through x-upload-content-type
         parse_result = urllib.parse.urlparse(self.upload_url)
         parsed_query = urllib.parse.parse_qs(parse_result.query)
-        if "x-goog-signature" in parsed_query or "X-Goog-Signature" in parsed_query:
+        if (
+            "x-goog-signature" in parsed_query
+            or "X-Goog-Signature" in parsed_query
+        ):
             # Deconstruct **self._headers first so that content type defined here takes priority
             headers = {**self._headers, _CONTENT_TYPE_HEADER: content_type}
         else:
@@ -566,9 +592,16 @@ class ResumableUpload(UploadBase):
             self._get_status_code,
             callback=self._make_invalid,
         )
+        # print()
         self._resumable_url = _helpers.header_required(
             response, "location", self._get_headers
         )
+        print("*" * 50)
+        print(
+            "this is the response of initiate RU",
+            self._resumable_url,
+        )
+        print("*" * 50)
 
     def initiate(
         self,
@@ -691,7 +724,9 @@ class ResumableUpload(UploadBase):
             return
 
         if not self._checksum_object:
-            self._checksum_object = _helpers._get_checksum_object(self._checksum_type)
+            self._checksum_object = _helpers._get_checksum_object(
+                self._checksum_type
+            )
 
         if start_byte < self._bytes_checksummed:
             offset = self._bytes_checksummed - start_byte
@@ -789,7 +824,9 @@ class ResumableUpload(UploadBase):
         if remote_checksum is None:
             raise InvalidResponse(
                 response,
-                _UPLOAD_METADATA_NO_APPROPRIATE_CHECKSUM_MESSAGE.format(metadata_key),
+                _UPLOAD_METADATA_NO_APPROPRIATE_CHECKSUM_MESSAGE.format(
+                    metadata_key
+                ),
                 self._get_headers(response),
             )
         local_checksum = _helpers.prepare_checksum_digest(
@@ -955,7 +992,12 @@ class XMLMPUContainer(UploadBase):
     """
 
     def __init__(
-        self, upload_url, filename, headers=None, upload_id=None, retry=DEFAULT_RETRY
+        self,
+        upload_url,
+        filename,
+        headers=None,
+        upload_id=None,
+        retry=DEFAULT_RETRY,
     ):
         super().__init__(upload_url, headers=headers, retry=retry)
         self._filename = filename
@@ -1040,9 +1082,13 @@ class XMLMPUContainer(UploadBase):
 
         .. _sans-I/O: https://sans-io.readthedocs.io/
         """
-        _helpers.require_status_code(response, (http.client.OK,), self._get_status_code)
+        _helpers.require_status_code(
+            response, (http.client.OK,), self._get_status_code
+        )
         root = ElementTree.fromstring(response.text)
-        self._upload_id = root.find(_S3_COMPAT_XML_NAMESPACE + _UPLOAD_ID_NODE).text
+        self._upload_id = root.find(
+            _S3_COMPAT_XML_NAMESPACE + _UPLOAD_ID_NODE
+        ).text
 
     def initiate(
         self,
@@ -1089,11 +1135,15 @@ class XMLMPUContainer(UploadBase):
         if self.upload_id is None:
             raise ValueError("This upload has not yet been initiated.")
 
-        final_query = _MPU_FINAL_QUERY_TEMPLATE.format(upload_id=self._upload_id)
+        final_query = _MPU_FINAL_QUERY_TEMPLATE.format(
+            upload_id=self._upload_id
+        )
         finalize_url = self.upload_url + final_query
         final_xml_root = ElementTree.Element("CompleteMultipartUpload")
         for part_number, etag in self._parts.items():
-            part = ElementTree.SubElement(final_xml_root, "Part")  # put in a loop
+            part = ElementTree.SubElement(
+                final_xml_root, "Part"
+            )  # put in a loop
             ElementTree.SubElement(part, "PartNumber").text = str(part_number)
             ElementTree.SubElement(part, "ETag").text = etag
         payload = ElementTree.tostring(final_xml_root)
@@ -1116,7 +1166,9 @@ class XMLMPUContainer(UploadBase):
         .. _sans-I/O: https://sans-io.readthedocs.io/
         """
 
-        _helpers.require_status_code(response, (http.client.OK,), self._get_status_code)
+        _helpers.require_status_code(
+            response, (http.client.OK,), self._get_status_code
+        )
         self._finished = True
 
     def finalize(
@@ -1159,7 +1211,9 @@ class XMLMPUContainer(UploadBase):
         if self.upload_id is None:
             raise ValueError("This upload has not yet been initiated.")
 
-        cancel_query = _MPU_FINAL_QUERY_TEMPLATE.format(upload_id=self._upload_id)
+        cancel_query = _MPU_FINAL_QUERY_TEMPLATE.format(
+            upload_id=self._upload_id
+        )
         cancel_url = self.upload_url + cancel_query
         return _DELETE, cancel_url, None, self._headers
 
@@ -1346,7 +1400,9 @@ class XMLMPUPart(UploadBase):
             f.seek(self._start)
             payload = f.read(self._end - self._start)
 
-        self._checksum_object = _helpers._get_checksum_object(self._checksum_type)
+        self._checksum_object = _helpers._get_checksum_object(
+            self._checksum_type
+        )
         if self._checksum_object is not None:
             self._checksum_object.update(payload)
 
@@ -1429,7 +1485,9 @@ class XMLMPUPart(UploadBase):
             metadata_key = _helpers._get_metadata_key(self._checksum_type)
             raise InvalidResponse(
                 response,
-                _UPLOAD_METADATA_NO_APPROPRIATE_CHECKSUM_MESSAGE.format(metadata_key),
+                _UPLOAD_METADATA_NO_APPROPRIATE_CHECKSUM_MESSAGE.format(
+                    metadata_key
+                ),
                 self._get_headers(response),
             )
         local_checksum = _helpers.prepare_checksum_digest(

@@ -255,7 +255,9 @@ class LifecycleRuleConditions(dict):
             conditions["daysSinceNoncurrentTime"] = days_since_noncurrent_time
 
         if noncurrent_time_before is not None:
-            conditions["noncurrentTimeBefore"] = noncurrent_time_before.isoformat()
+            conditions["noncurrentTimeBefore"] = (
+                noncurrent_time_before.isoformat()
+            )
 
         if matches_prefix is not None:
             conditions["matchesPrefix"] = matches_prefix
@@ -384,7 +386,10 @@ class LifecycleRuleSetStorageClass(dict):
     def __init__(self, storage_class, **kw):
         conditions = LifecycleRuleConditions(**kw)
         rule = {
-            "action": {"type": "SetStorageClass", "storageClass": storage_class},
+            "action": {
+                "type": "SetStorageClass",
+                "storageClass": storage_class,
+            },
             "condition": dict(conditions),
         }
         super().__init__(rule)
@@ -482,15 +487,21 @@ class IAMConfiguration(dict):
             if uniform_bucket_level_access_enabled is not _default:
                 raise ValueError(_UBLA_BPO_ENABLED_MESSAGE)
 
-            warnings.warn(_BPO_ENABLED_MESSAGE, DeprecationWarning, stacklevel=2)
+            warnings.warn(
+                _BPO_ENABLED_MESSAGE, DeprecationWarning, stacklevel=2
+            )
             uniform_bucket_level_access_enabled = bucket_policy_only_enabled
 
         if bucket_policy_only_locked_time is not _default:
             if uniform_bucket_level_access_locked_time is not _default:
                 raise ValueError(_UBLA_BPO_LOCK_TIME_MESSAGE)
 
-            warnings.warn(_BPO_LOCK_TIME_MESSAGE, DeprecationWarning, stacklevel=2)
-            uniform_bucket_level_access_locked_time = bucket_policy_only_locked_time
+            warnings.warn(
+                _BPO_LOCK_TIME_MESSAGE, DeprecationWarning, stacklevel=2
+            )
+            uniform_bucket_level_access_locked_time = (
+                bucket_policy_only_locked_time
+            )
 
         if uniform_bucket_level_access_enabled is _default:
             uniform_bucket_level_access_enabled = False
@@ -505,8 +516,8 @@ class IAMConfiguration(dict):
             "publicAccessPrevention": public_access_prevention,
         }
         if uniform_bucket_level_access_locked_time is not _default:
-            data["uniformBucketLevelAccess"]["lockedTime"] = _datetime_to_rfc3339(
-                uniform_bucket_level_access_locked_time
+            data["uniformBucketLevelAccess"]["lockedTime"] = (
+                _datetime_to_rfc3339(uniform_bucket_level_access_locked_time)
             )
         super(IAMConfiguration, self).__init__(data)
         self._bucket = bucket
@@ -834,7 +845,9 @@ class Bucket(_PropertyMixin):
         :rtype: :class:`google.cloud.storage.bucket.Bucket`
         :returns: The bucket object created.
         """
-        warnings.warn(_FROM_STRING_MESSAGE, PendingDeprecationWarning, stacklevel=2)
+        warnings.warn(
+            _FROM_STRING_MESSAGE, PendingDeprecationWarning, stacklevel=2
+        )
         return Bucket.from_uri(uri=uri, client=client)
 
     def blob(
@@ -844,6 +857,7 @@ class Bucket(_PropertyMixin):
         encryption_key=None,
         kms_key_name=None,
         generation=None,
+        crc32c_checksum=None,
     ):
         """Factory constructor for blob object.
 
@@ -881,6 +895,7 @@ class Bucket(_PropertyMixin):
             encryption_key=encryption_key,
             kms_key_name=kms_key_name,
             generation=generation,
+            crc32c_checksum=crc32c_checksum,
         )
 
     def notification(
@@ -1910,7 +1925,9 @@ class Bucket(_PropertyMixin):
             if_generation_match = iter(if_generation_match or [])
             if_generation_not_match = iter(if_generation_not_match or [])
             if_metageneration_match = iter(if_metageneration_match or [])
-            if_metageneration_not_match = iter(if_metageneration_not_match or [])
+            if_metageneration_not_match = iter(
+                if_metageneration_not_match or []
+            )
 
             for blob in blobs:
                 try:
@@ -1918,15 +1935,21 @@ class Bucket(_PropertyMixin):
                     generation = None
                     if not isinstance(blob_name, str):
                         blob_name = blob.name
-                        generation = blob.generation if preserve_generation else None
+                        generation = (
+                            blob.generation if preserve_generation else None
+                        )
 
                     self.delete_blob(
                         blob_name,
                         client=client,
                         generation=generation,
                         if_generation_match=next(if_generation_match, None),
-                        if_generation_not_match=next(if_generation_not_match, None),
-                        if_metageneration_match=next(if_metageneration_match, None),
+                        if_generation_not_match=next(
+                            if_generation_not_match, None
+                        ),
+                        if_metageneration_match=next(
+                            if_metageneration_match, None
+                        ),
                         if_metageneration_not_match=next(
                             if_metageneration_not_match, None
                         ),
@@ -2492,7 +2515,9 @@ class Bucket(_PropertyMixin):
         :rtype: list of dictionaries
         :returns: A sequence of mappings describing each CORS policy.
         """
-        return [copy.deepcopy(policy) for policy in self._properties.get("cors", ())]
+        return [
+            copy.deepcopy(policy) for policy in self._properties.get("cors", ())
+        ]
 
     @cors.setter
     def cors(self, entries):
@@ -2591,7 +2616,9 @@ class Bucket(_PropertyMixin):
         # so that a future .patch() call can do the correct thing.
         existing = set([k for k in self.labels.keys()])
         incoming = set([k for k in mapping.keys()])
-        self._label_removals = self._label_removals.union(existing.difference(incoming))
+        self._label_removals = self._label_removals.union(
+            existing.difference(incoming)
+        )
         mapping = {k: str(v) for k, v in mapping.items()}
 
         # Actually update the labels on the object.
@@ -2679,7 +2706,9 @@ class Bucket(_PropertyMixin):
             elif action_type == "SetStorageClass":
                 yield LifecycleRuleSetStorageClass.from_api_repr(rule)
             elif action_type == "AbortIncompleteMultipartUpload":
-                yield LifecycleRuleAbortIncompleteMultipartUpload.from_api_repr(rule)
+                yield LifecycleRuleAbortIncompleteMultipartUpload.from_api_repr(
+                    rule
+                )
             else:
                 warnings.warn(
                     "Unknown lifecycle rule type received: {}. Please upgrade to the latest version of google-cloud-storage.".format(
@@ -2794,7 +2823,9 @@ class Bucket(_PropertyMixin):
             valid before the bucket is created. Instead, pass the location
             to `Bucket.create`.
         """
-        warnings.warn(_LOCATION_SETTER_MESSAGE, DeprecationWarning, stacklevel=2)
+        warnings.warn(
+            _LOCATION_SETTER_MESSAGE, DeprecationWarning, stacklevel=2
+        )
         self._location = value
 
     @property
@@ -2809,7 +2840,9 @@ class Bucket(_PropertyMixin):
         or if the bucket is not a dual-regions bucket.
         :rtype: list of str or ``NoneType``
         """
-        custom_placement_config = self._properties.get("customPlacementConfig", {})
+        custom_placement_config = self._properties.get(
+            "customPlacementConfig", {}
+        )
         return custom_placement_config.get("dataLocations")
 
     @property
@@ -3251,7 +3284,10 @@ class Bucket(_PropertyMixin):
         :type not_found_page: str
         :param not_found_page: The file to use when a page isn't found.
         """
-        data = {"mainPageSuffix": main_page_suffix, "notFoundPage": not_found_page}
+        data = {
+            "mainPageSuffix": main_page_suffix,
+            "notFoundPage": not_found_page,
+        }
         self._patch_property("website", data)
 
     def disable_website(self):
@@ -3314,7 +3350,9 @@ class Bucket(_PropertyMixin):
                 query_params["userProject"] = self.user_project
 
             if requested_policy_version is not None:
-                query_params["optionsRequestedPolicyVersion"] = requested_policy_version
+                query_params["optionsRequestedPolicyVersion"] = (
+                    requested_policy_version
+                )
 
             info = client._get_resource(
                 f"{self.path}/iam",
@@ -3383,7 +3421,11 @@ class Bucket(_PropertyMixin):
             return Policy.from_api_repr(info)
 
     def test_iam_permissions(
-        self, permissions, client=None, timeout=_DEFAULT_TIMEOUT, retry=DEFAULT_RETRY
+        self,
+        permissions,
+        client=None,
+        timeout=_DEFAULT_TIMEOUT,
+        retry=DEFAULT_RETRY,
     ):
         """API call:  test permissions
 
@@ -3653,7 +3695,9 @@ class Bucket(_PropertyMixin):
         _signing.ensure_signed_credentials(credentials)
 
         if expiration is None:
-            expiration = _NOW(_UTC).replace(tzinfo=None) + datetime.timedelta(hours=1)
+            expiration = _NOW(_UTC).replace(tzinfo=None) + datetime.timedelta(
+                hours=1
+            )
 
         conditions = conditions + [{"bucket": self.name}]
 
@@ -3665,7 +3709,9 @@ class Bucket(_PropertyMixin):
         encoded_policy_document = base64.b64encode(
             json.dumps(policy_document).encode("utf-8")
         )
-        signature = base64.b64encode(credentials.sign_bytes(encoded_policy_document))
+        signature = base64.b64encode(
+            credentials.sign_bytes(encoded_policy_document)
+        )
 
         fields = {
             "bucket": self.name,
@@ -3869,7 +3915,9 @@ class Bucket(_PropertyMixin):
             resource = f"/{self.name}"
 
         if credentials is None:
-            client = self._require_client(client)  # May be redundant, but that's ok.
+            client = self._require_client(
+                client
+            )  # May be redundant, but that's ok.
             credentials = client._credentials
 
         if version == "v2":
@@ -3999,4 +4047,6 @@ def _raise_if_len_differs(expected_len, **generation_match_args):
     """
     for name, value in generation_match_args.items():
         if value is not None and len(value) != expected_len:
-            raise ValueError(f"'{name}' length must be the same as 'blobs' length")
+            raise ValueError(
+                f"'{name}' length must be the same as 'blobs' length"
+            )
