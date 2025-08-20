@@ -87,7 +87,7 @@ class Test_Blob(unittest.TestCase):
     def test_ctor_with_encoded_unicode(self):
         blob_name = b"wet \xe2\x9b\xb5"
         blob = self._make_one(blob_name, bucket=None)
-        unicode_name = "wet \N{SAILBOAT}"
+        unicode_name = "wet \N{sailboat}"
         self.assertNotIsInstance(blob.name, bytes)
         self.assertIsInstance(blob.name, str)
         self.assertEqual(blob.name, unicode_name)
@@ -423,7 +423,7 @@ class Test_Blob(unittest.TestCase):
         self.assertEqual(blob.public_url, "https://storage.googleapis.com/name/foo~bar")
 
     def test_public_url_with_non_ascii(self):
-        blob_name = "winter \N{SNOWMAN}"
+        blob_name = "winter \N{snowman}"
         bucket = _Bucket()
         blob = self._make_one(blob_name, bucket=bucket)
         expected_url = "https://storage.googleapis.com/name/winter%20%E2%98%83"
@@ -2238,7 +2238,7 @@ class Test_Blob(unittest.TestCase):
         )
 
     def test_download_as_text_w_non_ascii_w_explicit_encoding(self):
-        expected_value = "\x0aFe"
+        expected_value = "\x0AFe"
         encoding = "utf-16"
         charset = "latin1"
         payload = expected_value.encode(encoding)
@@ -2251,7 +2251,7 @@ class Test_Blob(unittest.TestCase):
         )
 
     def test_download_as_text_w_non_ascii_wo_explicit_encoding_w_charset(self):
-        expected_value = "\x0aFe"
+        expected_value = "\x0AFe"
         charset = "utf-16"
         payload = expected_value.encode(charset)
         self._download_as_text_helper(
@@ -3728,11 +3728,11 @@ class Test_Blob(unittest.TestCase):
         self._upload_from_string_helper(data)
 
     def test_upload_from_string_w_text(self):
-        data = "\N{SNOWMAN} \N{SAILBOAT}"
+        data = "\N{snowman} \N{sailboat}"
         self._upload_from_string_helper(data)
 
     def test_upload_from_string_w_text_w_retry(self):
-        data = "\N{SNOWMAN} \N{SAILBOAT}"
+        data = "\N{snowman} \N{sailboat}"
         self._upload_from_string_helper(data, retry=DEFAULT_RETRY)
 
     def _create_resumable_upload_session_helper(
@@ -6139,7 +6139,7 @@ class Test__quote(unittest.TestCase):
         return _quote(*args, **kw)
 
     def test_bytes(self):
-        quoted = self._call_fut(b"\xde\xad\xbe\xef")
+        quoted = self._call_fut(b"\xDE\xAD\xBE\xEF")
         self.assertEqual(quoted, "%DE%AD%BE%EF")
 
     def test_unicode(self):
