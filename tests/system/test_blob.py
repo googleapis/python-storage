@@ -426,7 +426,6 @@ def test_blob_acl_w_metageneration_match(
     # Exercise blob ACL with metageneration/generation match
     acl = blob.acl
     acl.domain("google.com").grant_read()
-    # blob.reload()
 
     with pytest.raises(exceptions.PreconditionFailed):
         acl.save(if_metageneration_match=wrong_metageneration_number)
@@ -435,7 +434,6 @@ def test_blob_acl_w_metageneration_match(
     acl.save(if_metageneration_match=blob.metageneration)
 
     assert "READER" in acl.domain("google.com").get_roles()
-    # blob.reload()
     acl.domain("google.com").revoke_read()
 
     with pytest.raises(exceptions.PreconditionFailed):
