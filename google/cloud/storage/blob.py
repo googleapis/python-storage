@@ -238,7 +238,6 @@ class Blob(_PropertyMixin):
             self._properties["generation"] = generation
 
         if crc32c_checksum is not None:
-            print("adding checksum")
             self._properties["crc32c"] = crc32c_checksum
 
     @property
@@ -2006,15 +2005,11 @@ class Blob(_PropertyMixin):
         if "metadata" in self._properties and "metadata" not in self._changes:
             self._changes.add("metadata")
 
-        # self._changes.add("crc32c")
         info = self._get_upload_arguments(client, content_type, command=command)
         headers, object_metadata, content_type = info
 
         if "crc32c" in self._properties:
             object_metadata["crc32c"] = self._properties["crc32c"]
-        print("*" * 50)
-        print("object metadata here in MPU JSON - ", object_metadata)
-        print("*" * 50)
 
         hostname = _get_host_name(client._connection)
         base_url = _MULTIPART_URL_TEMPLATE.format(
@@ -2206,7 +2201,6 @@ class Blob(_PropertyMixin):
         transport = self._get_transport(client)
         if "metadata" in self._properties and "metadata" not in self._changes:
             self._changes.add("metadata")
-        # self._changes.add("crc32c")
         info = self._get_upload_arguments(client, content_type, command=command)
         headers, object_metadata, content_type = info
         if extra_headers is not None:
@@ -2214,10 +2208,6 @@ class Blob(_PropertyMixin):
 
         if "crc32c" in self._properties:
             object_metadata["crc32c"] = self._properties["crc32c"]
-
-        print("*" * 50)
-        print("object metadata here in IRU - ", object_metadata)
-        print("*" * 50)
 
         hostname = _get_host_name(client._connection)
         base_url = _RESUMABLE_URL_TEMPLATE.format(
@@ -2413,9 +2403,7 @@ class Blob(_PropertyMixin):
             while not upload.finished:
                 try:
                     response = upload.transmit_next_chunk(transport, timeout=timeout)
-
                 except DataCorruption:
-                    print("Data corruption detected during resumable upload.")
                     # Attempt to delete the corrupted object.
                     self.delete()
                     raise
@@ -2547,7 +2535,6 @@ class Blob(_PropertyMixin):
             }
             retry = retry.get_retry_policy_if_conditions_met(query_params=query_params)
 
-        # if not (size is not None and size <= _MAX_MULTIPART_SIZE):
         if size is not None and size <= _MAX_MULTIPART_SIZE:
             response = self._do_multipart_upload(
                 client,

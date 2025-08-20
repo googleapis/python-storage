@@ -336,9 +336,7 @@ class MultipartUpload(UploadBase):
         if checksum_object is not None:
             checksum_object.update(data)
             actual_checksum = _helpers.prepare_checksum_digest(checksum_object.digest())
-
             metadata_key = _helpers._get_metadata_key(self._checksum_type)
-            print("this is the metadata_key", metadata_key)
             metadata[metadata_key] = actual_checksum
 
         content, multipart_boundary = construct_multipart_request(
@@ -578,16 +576,9 @@ class ResumableUpload(UploadBase):
             self._get_status_code,
             callback=self._make_invalid,
         )
-        # print()
         self._resumable_url = _helpers.header_required(
             response, "location", self._get_headers
         )
-        print("*" * 50)
-        print(
-            "this is the response of initiate RU",
-            self._resumable_url,
-        )
-        print("*" * 50)
 
     def initiate(
         self,
