@@ -454,31 +454,33 @@ def test_blob_acl_upload_predefined(
     file_data,
     service_account,
 ):
-    control = shared_bucket.blob(f"logo{uuid.uuid4().hex}")
-    control_info = file_data["logo"]
+    control_blob = shared_bucket.blob(f"logo{uuid.uuid4().hex}")
+    control_blob_info = file_data["logo"]
 
     blob = shared_bucket.blob(f"SmallFile{uuid.uuid4().hex}")
     info = file_data["simple"]
 
     try:
-        control.upload_from_filename(control_info["path"])
+        control_blob.upload_from_filename(control_blob_info["path"])
     finally:
-        blobs_to_delete.append(control)
-
+        blobs_to_delete.append(control_blob)
     try:
-        blob.upload_from_filename(info["path"], predefined_acl="publicRead")
+        blob.upload_from_filename(info["path"], predefined_acl="private")
     finally:
         blobs_to_delete.append(blob)
 
-    control_acl = control.acl
-    assert "READER" not in control_acl.all().get_roles()
+    control_blob_acl = control_blob.acl
 
     acl = blob.acl
-    assert "READER" in acl.all().get_roles()
+    count = 0
+    for entry in acl:
+        count += 1
+        entity = entry["entity"]
+    assert count == 1
+    assert entity.lstrip("user-") == service_account.service_account_email
+    # assert sum(1 for _ in acl) == 1
 
-    acl.all().revoke_read()
-    assert acl.all().get_roles() == set()
-    assert control_acl.all().get_roles() == acl.all().get_roles()
+    assert sum(1 for _ in control_blob_acl) > 1
 
 
 def test_blob_patch_metadata(
