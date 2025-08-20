@@ -409,7 +409,6 @@ def test_blob_acl_w_user_project(
     assert not acl.has_entity("allUsers")
 
 
-# error
 def test_blob_acl_w_metageneration_match(
     shared_bucket,
     blobs_to_delete,
@@ -447,7 +446,6 @@ def test_blob_acl_w_metageneration_match(
     assert "READER" not in acl.domain("google.com").get_roles()
 
 
-# error
 def test_blob_acl_upload_predefined(
     shared_bucket,
     blobs_to_delete,
@@ -478,7 +476,6 @@ def test_blob_acl_upload_predefined(
         entity = entry["entity"]
     assert count == 1
     assert entity.lstrip("user-") == service_account.service_account_email
-    # assert sum(1 for _ in acl) == 1
 
     assert sum(1 for _ in control_blob_acl) > 1
 
