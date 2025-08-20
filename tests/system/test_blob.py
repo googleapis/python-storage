@@ -409,6 +409,7 @@ def test_blob_acl_w_user_project(
     assert not acl.has_entity("allUsers")
 
 
+# error
 def test_blob_acl_w_metageneration_match(
     shared_bucket,
     blobs_to_delete,
@@ -425,28 +426,28 @@ def test_blob_acl_w_metageneration_match(
 
     # Exercise blob ACL with metageneration/generation match
     acl = blob.acl
-    blob.reload()
+    acl.domain("google.com").grant_read()
+    # blob.reload()
 
     with pytest.raises(exceptions.PreconditionFailed):
-        acl.save_predefined(
-            "publicRead", if_metageneration_match=wrong_metageneration_number
-        )
-        assert "READER" not in acl.all().get_roles()
+        acl.save(if_metageneration_match=wrong_metageneration_number)
+        assert "READER" not in acl.domain("google.com").get_roles()
 
-    acl.save_predefined("publicRead", if_metageneration_match=blob.metageneration)
-    assert "READER" in acl.all().get_roles()
+    acl.save(if_metageneration_match=blob.metageneration)
 
-    blob.reload()
-    del acl.entities["allUsers"]
+    assert "READER" in acl.domain("google.com").get_roles()
+    # blob.reload()
+    acl.domain("google.com").revoke_read()
 
     with pytest.raises(exceptions.PreconditionFailed):
         acl.save(if_generation_match=wrong_generation_number)
-        assert acl.has_entity("allUsers")
+        assert "READER" in acl.domain("google.com").get_roles()
 
     acl.save(if_generation_match=blob.generation)
-    assert not acl.has_entity("allUsers")
+    assert "READER" not in acl.domain("google.com").get_roles()
 
 
+# error
 def test_blob_acl_upload_predefined(
     shared_bucket,
     blobs_to_delete,
