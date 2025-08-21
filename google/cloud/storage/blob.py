@@ -141,8 +141,8 @@ _GS_URL_REGEX_PATTERN = re.compile(
     r"(?P<scheme>gs)://(?P<bucket_name>[a-z0-9_.-]+)/(?P<object_name>.+)"
 )
 
-_DEFAULT_CHUNKSIZE = 104857600  # 1024 * 1024 B * 100 = 100 MB
-_MAX_MULTIPART_SIZE = 8388608  # 8 MB
+_DEFAULT_CHUNKSIZE = 104857600  # 1024 * 1024 B * 100 = 100 MiB
+_MAX_MULTIPART_SIZE = 8388608  # 8 MiB
 
 _logger = logging.getLogger(__name__)
 
@@ -180,6 +180,14 @@ class Blob(_PropertyMixin):
     :type generation: long
     :param generation:
         (Optional) If present, selects a specific revision of this object.
+
+    :type crc32c_checksum: str
+    :param crc32c_checksum:
+            (Optional) If set, the CRC32C checksum of the blob's content.
+            CRC32c checksum, as described in RFC 4960, Appendix B; encoded using
+            base64 in big-endian byte order. See
+            Apenndix B: https://datatracker.ietf.org/doc/html/rfc4960#appendix-B
+            base64: https://datatracker.ietf.org/doc/html/rfc4648#section-4
     """
 
     _chunk_size = None  # Default value for each instance.

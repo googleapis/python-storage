@@ -876,6 +876,7 @@ class Bucket(_PropertyMixin):
         :type generation: long
         :param generation: (Optional) If present, selects a specific revision of
                            this object.
+
         :type crc32c_checksum: str
         :param crc32c_checksum:
             (Optional) If set, the CRC32C checksum of the blob's content.
