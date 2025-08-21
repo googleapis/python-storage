@@ -1387,16 +1387,10 @@ class XMLMPUPart(UploadBase):
 
         .. _sans-I/O: https://sans-io.readthedocs.io/
         """
-        try:
-            _helpers.require_status_code(
-                response,
-                (http.client.OK,),
-                self._get_status_code,
-            )
-        except InvalidResponse as invalid_response:
-
-            # If an invalid response is received, for XMLMPUPart, there could be a
-            # possible checksum mismatch, so we check for that and raise.
+        # Data corruption errors shouldn't be considered as invalid responses,
+        # So we handle them earlier than call to `_helpers.require_status_code`.
+        # If the response is 400, we check for data corruption errors.
+        if response.status_code == 400:
             root = ElementTree.fromstring(response.text)
             error_code = root.find("Code").text
             error_message = root.find("Message").text
@@ -1415,8 +1409,12 @@ class XMLMPUPart(UploadBase):
                         error_details=error_details,
                     ),
                 )
-            else:
-                raise invalid_response
+
+        _helpers.require_status_code(
+            response,
+            (http.client.OK,),
+            self._get_status_code,
+        )
 
         self._validate_checksum(response)
 
