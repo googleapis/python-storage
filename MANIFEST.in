@@ -23,3 +23,5 @@ global-exclude __pycache__
 
 # Exclude scripts for samples readmegen
 prune scripts/readme-gen
+
+include google/cloud/storage/py.typed
