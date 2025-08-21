@@ -20,9 +20,7 @@ import sys
 from google.cloud import storage
 
 
-def upload_blob(
-    bucket_name, source_file_name, destination_blob_name, user_provided_checksum
-):
+def upload_blob(bucket_name, source_file_name, destination_blob_name):
     """Uploads a file to the bucket."""
     # The ID of your GCS bucket
     # bucket_name = "your-bucket-name"
@@ -33,10 +31,7 @@ def upload_blob(
 
     storage_client = storage.Client()
     bucket = storage_client.bucket(bucket_name)
-    # blob = bucket.blob(destination_blob_name)  # , crc32c_checksum="5MzJCA==")
-    blob = bucket.blob(
-        destination_blob_name, crc32c_checksum=user_provided_checksum
-    )
+    blob = bucket.blob(destination_blob_name)
 
     # Optional: set a generation-match precondition to avoid potential race conditions
     # and data corruptions. The request to upload is aborted if the object's
@@ -60,5 +55,4 @@ if __name__ == "__main__":
         bucket_name=sys.argv[1],
         source_file_name=sys.argv[2],
         destination_blob_name=sys.argv[3],
-        user_provided_checksum=sys.argv[4] if len(sys.argv) > 4 else None,
     )
