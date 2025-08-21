@@ -1387,11 +1387,36 @@ class XMLMPUPart(UploadBase):
 
         .. _sans-I/O: https://sans-io.readthedocs.io/
         """
-        _helpers.require_status_code(
-            response,
-            (http.client.OK,),
-            self._get_status_code,
-        )
+        try:
+            _helpers.require_status_code(
+                response,
+                (http.client.OK,),
+                self._get_status_code,
+            )
+        except InvalidResponse as invalid_response:
+
+            # If an invalid response is received, for XMLMPUPart, there could be a
+            # possible checksum mismatch, so we check for that and raise.
+            root = ElementTree.fromstring(response.text)
+            error_code = root.find("Code").text
+            error_message = root.find("Message").text
+            error_details = root.find("Details").text
+            if error_code in ["InvalidDigest", "BadDigest", "CrcMismatch"]:
+                raise DataCorruption(
+                    response,
+                    (
+                        "Checksum mismatch: checksum calculated by client and"
+                        " server did not match. Error code: {error_code},"
+                        " Error message: {error_message},"
+                        " Error details: {error_details}"
+                    ).format(
+                        error_code=error_code,
+                        error_message=error_message,
+                        error_details=error_details,
+                    ),
+                )
+            else:
+                raise invalid_response
 
         self._validate_checksum(response)
 
