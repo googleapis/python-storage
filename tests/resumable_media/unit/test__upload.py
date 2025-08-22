@@ -53,7 +53,6 @@ CHECKSUM_MISMATCH_ERROR_MSG_XML_TEMPLATE = """<?xml version='1.0' encoding='UTF-
     <Message>The MD5 you specified in Content-MD5 or x-goog-hash was invalid.</Message>
     <Details>Invalid MD5 value: dfdfdfd==</Details>
 </Error>"""
-
 INVALID_MD5_XML_RESPONSE = CHECKSUM_MISMATCH_ERROR_MSG_XML_TEMPLATE.format(
     ERROR_CODE="InvalidDigest"
 )
