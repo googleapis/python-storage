@@ -428,7 +428,6 @@ def test_mpu_part_with_md5_enabled(filename):
     transport.request.assert_called_once_with(
         "PUT",
         f"{part.upload_url}?partNumber={part.part_number}&uploadId={UPLOAD_ID}",
-        # "https://test-project.storage.googleapis.com/test-bucket?partNumber=1&uploadId=VXBsb2FkIElEIGZvciBlbHZpbmcncyBteS1tb3ZpZS5tMnRzIHVwbG9hZA",
         data=FILE_DATA[part.start : part.end],
         headers={"X-Goog-Hash": f"md5={MD5_HASH_OF_FIRST_PART}"},
         timeout=(DEFAULT_CONNECT_TIMEOUT, DEFAULT_READ_TIMEOUT),
@@ -459,7 +458,6 @@ def test_mpu_part_with_crc32c_enabled(filename):
     transport.request.assert_called_once_with(
         "PUT",
         f"{part.upload_url}?partNumber={part.part_number}&uploadId={UPLOAD_ID}",
-        # "https://test-project.storage.googleapis.com/test-bucket?partNumber=1&uploadId=VXBsb2FkIElEIGZvciBlbHZpbmcncyBteS1tb3ZpZS5tMnRzIHVwbG9hZA",
         data=FILE_DATA[part.start : part.end],
         headers={"X-Goog-Hash": f"crc32c={CRC32C_HASH_OF_FIRST_PART}"},
         timeout=(DEFAULT_CONNECT_TIMEOUT, DEFAULT_READ_TIMEOUT),
