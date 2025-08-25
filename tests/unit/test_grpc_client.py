@@ -16,6 +16,7 @@ import unittest
 from unittest import mock
 from google.auth import credentials as auth_credentials
 
+
 class TestGrpcClient(unittest.TestCase):
     @mock.patch("google.cloud.client.ClientWithProject.__init__")
     @mock.patch("google.cloud.storage_v2.StorageClient")
@@ -84,7 +85,6 @@ class TestGrpcClient(unittest.TestCase):
             attempt_direct_path=True
         )
 
-
     @mock.patch("google.cloud.storage.grpc_client.ClientWithProject")
     @mock.patch("google.cloud.storage_v2.StorageClient")
     def test_constructor_handles_api_key(self, mock_storage_client, mock_base_client):
@@ -100,9 +100,7 @@ class TestGrpcClient(unittest.TestCase):
 
         # Instantiate with just the api_key.
         grpc_client.GrpcClient(
-            project="test-project",
-            credentials=mock_creds,
-            api_key="test-api-key"
+            project="test-project", credentials=mock_creds, api_key="test-api-key"
         )
 
         # Assert that the GAPIC client was called with client_options
