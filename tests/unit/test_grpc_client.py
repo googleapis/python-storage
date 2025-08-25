@@ -19,7 +19,7 @@ from google.auth import credentials as auth_credentials
 class TestGrpcClient(unittest.TestCase):
     @mock.patch("google.cloud.client.ClientWithProject.__init__")
     @mock.patch("google.cloud.storage_v2.StorageClient")
-    def test_constructor_passes_options_correctly(
+    def test_constructor_defaults_and_options(
         self, mock_storage_client, mock_base_client
     ):
         from google.cloud.storage import grpc_client
@@ -45,10 +45,10 @@ class TestGrpcClient(unittest.TestCase):
             project="test-project", credentials=mock_creds
         )
 
-        # 2. Assert DirectPath was configured.
+        # 2. Assert DirectPath is OFF by default.
         mock_storage_client.get_transport_class.assert_called_once_with("grpc")
         mock_transport_cls.create_channel.assert_called_once_with(
-            attempt_direct_path=True
+            attempt_direct_path=False
         )
 
         # 3. Assert the GAPIC client was created with the correct options.
@@ -60,6 +60,30 @@ class TestGrpcClient(unittest.TestCase):
 
         # 4. Assert the client instance holds the mocked GAPIC client.
         self.assertIs(client._grpc_client, mock_storage_client.return_value)
+
+    @mock.patch("google.cloud.storage.grpc_client.ClientWithProject")
+    @mock.patch("google.cloud.storage_v2.StorageClient")
+    def test_constructor_can_enable_direct_path(
+        self, mock_storage_client, mock_base_client
+    ):
+        from google.cloud.storage import grpc_client
+
+        mock_transport_cls = mock.MagicMock()
+        mock_storage_client.get_transport_class.return_value = mock_transport_cls
+        mock_creds = mock.Mock(spec=auth_credentials.Credentials)
+        mock_base_instance = mock_base_client.return_value
+        mock_base_instance._credentials = mock_creds
+
+        grpc_client.GrpcClient(
+            project="test-project",
+            credentials=mock_creds,
+            attempt_direct_path=True,
+        )
+
+        mock_transport_cls.create_channel.assert_called_once_with(
+            attempt_direct_path=True
+        )
+
 
     @mock.patch("google.cloud.storage.grpc_client.ClientWithProject")
     @mock.patch("google.cloud.storage_v2.StorageClient")
