@@ -536,7 +536,7 @@ def _base64_md5hash(buffer_object):
     :rtype: str
     :returns: A base64 encoded digest of the MD5 hash.
     """
-    hash_obj = md5()
+    hash_obj = md5(usedforsecurity=False)
     _write_buffer_to_hash(buffer_object, hash_obj)
     digest_bytes = hash_obj.digest()
     return base64.b64encode(digest_bytes)
