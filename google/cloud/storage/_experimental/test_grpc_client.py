@@ -23,7 +23,7 @@ class TestGrpcClient(unittest.TestCase):
     def test_constructor_defaults_and_options(
         self, mock_storage_client, mock_base_client
     ):
-        from google.cloud.storage import grpc_client
+        from google.cloud.storage._experimental import grpc_client
 
         mock_transport_cls = mock.MagicMock()
         mock_storage_client.get_transport_class.return_value = mock_transport_cls
@@ -67,7 +67,7 @@ class TestGrpcClient(unittest.TestCase):
     def test_constructor_can_enable_direct_path(
         self, mock_storage_client, mock_base_client
     ):
-        from google.cloud.storage import grpc_client
+        from google.cloud.storage._experimental import grpc_client
 
         mock_transport_cls = mock.MagicMock()
         mock_storage_client.get_transport_class.return_value = mock_transport_cls
@@ -88,7 +88,7 @@ class TestGrpcClient(unittest.TestCase):
     @mock.patch("google.cloud.storage.grpc_client.ClientWithProject")
     @mock.patch("google.cloud.storage_v2.StorageClient")
     def test_constructor_handles_api_key(self, mock_storage_client, mock_base_client):
-        from google.cloud.storage import grpc_client
+        from google.cloud.storage._experimental import grpc_client
 
         mock_transport_cls = mock.MagicMock()
         mock_storage_client.get_transport_class.return_value = mock_transport_cls
