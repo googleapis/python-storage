@@ -50,6 +50,13 @@ class GrpcClient(ClientWithProject):
         (Optional) An API key. Mutually exclusive with any other credentials.
         This parameter is an alias for setting `client_options.api_key` and
         will supersede any API key set in the `client_options` parameter.
+
+    :type attempt_direct_path: bool
+    :param attempt_direct_path:
+        (Optional) Whether to attempt to use DirectPath for gRPC connections.
+        This provides a direct, unproxied connection to GCS for lower latency
+        and higher throughput, and is highly recommended when running on Google
+        Cloud infrastructure. Defaults to ``False``.
     """
 
     def __init__(
@@ -60,6 +67,7 @@ class GrpcClient(ClientWithProject):
         client_options=None,
         *,
         api_key=None,
+        attempt_direct_path=False,
     ):
         super(GrpcClient, self).__init__(project=project, credentials=credentials)
 
@@ -75,18 +83,17 @@ class GrpcClient(ClientWithProject):
             credentials=credentials,
             client_info=client_info,
             client_options=client_options,
+            attempt_direct_path=attempt_direct_path,
         )
 
 
     def _create_gapic_client(
-        self, credentials=None, client_info=None, client_options=None
+        self, credentials=None, client_info=None, client_options=None, attempt_direct_path=False
     ):
         """Creates and configures the low-level GAPIC `storage_v2` client."""
         transport_cls = storage_v2.StorageClient.get_transport_class("grpc")
 
-        # Create a gRPC channel, explicitly enabling DirectPath. This is a
-        # key performance feature for Fastbyte and bidi operations.
-        channel = transport_cls.create_channel(attempt_direct_path=True)
+        channel = transport_cls.create_channel(attempt_direct_path=attempt_direct_path)
 
         transport = transport_cls(credentials=credentials, channel=channel)
 
