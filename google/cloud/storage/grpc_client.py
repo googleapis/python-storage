@@ -16,9 +16,9 @@
 
 from google.cloud.client import ClientWithProject
 from google.cloud import storage_v2
-from google.api_core import client_options as client_options_lib
 
 _marker = object()
+
 
 class GrpcClient(ClientWithProject):
     """A client for interacting with Google Cloud Storage using the gRPC API.
@@ -86,9 +86,12 @@ class GrpcClient(ClientWithProject):
             attempt_direct_path=attempt_direct_path,
         )
 
-
     def _create_gapic_client(
-        self, credentials=None, client_info=None, client_options=None, attempt_direct_path=False
+        self,
+        credentials=None,
+        client_info=None,
+        client_options=None,
+        attempt_direct_path=False,
     ):
         """Creates and configures the low-level GAPIC `storage_v2` client."""
         transport_cls = storage_v2.StorageClient.get_transport_class("grpc")
@@ -103,4 +106,3 @@ class GrpcClient(ClientWithProject):
             client_info=client_info,
             client_options=client_options,
         )
-
