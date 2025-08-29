@@ -62,7 +62,7 @@ class TestGrpcClient(unittest.TestCase):
         # 4. Assert the client instance holds the mocked GAPIC client.
         self.assertIs(client._grpc_client, mock_storage_client.return_value)
 
-    @mock.patch("google.cloud.storage.grpc_client.ClientWithProject")
+    @mock.patch("google.cloud.storage._experimental.grpc_client.ClientWithProject")
     @mock.patch("google.cloud.storage_v2.StorageClient")
     def test_constructor_can_enable_direct_path(
         self, mock_storage_client, mock_base_client
@@ -85,7 +85,7 @@ class TestGrpcClient(unittest.TestCase):
             attempt_direct_path=True
         )
 
-    @mock.patch("google.cloud.storage.grpc_client.ClientWithProject")
+    @mock.patch("google.cloud.storage._experimental.grpc_client.ClientWithProject")
     @mock.patch("google.cloud.storage_v2.StorageClient")
     def test_constructor_handles_api_key(self, mock_storage_client, mock_base_client):
         from google.cloud.storage._experimental import grpc_client
