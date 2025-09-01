@@ -9,7 +9,7 @@
 
 ### Bug Fixes
 
-* Send entire object checksum at "initiate a resumable upload session" ([#1525](https://github.com/googleapis/python-storage/issues/1525)) ([a8109e0](https://github.com/googleapis/python-storage/commit/a8109e0d02c62542f1bea20373b53864fb776caa))
+* Provide option to user to set entire object checksum at "initiate a resumable upload session" and send the same ([#1525](https://github.com/googleapis/python-storage/issues/1525)) ([a8109e0](https://github.com/googleapis/python-storage/commit/a8109e0d02c62542f1bea20373b53864fb776caa))
 * Send part's checksum for XML MPU part upload ([#1529](https://github.com/googleapis/python-storage/issues/1529)) ([2ad77c7](https://github.com/googleapis/python-storage/commit/2ad77c7d949e84c515c051a0fd4b37b822788dd8))
 
 ## [3.3.0](https://github.com/googleapis/python-storage/compare/v3.2.0...v3.3.0) (2025-08-05)
