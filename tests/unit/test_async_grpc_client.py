@@ -18,7 +18,7 @@ from google.auth import credentials as auth_credentials
 
 
 class TestAsyncGrpcClient(unittest.TestCase):
-    @mock.patch("google.cloud.storage_v2.StorageAsyncClient")
+    @mock.patch("google.cloud.storage_v2._experimental.StorageAsyncClient")
     def test_constructor_defaults_to_cloudpath(self, mock_async_storage_client):
         from google.cloud.storage._experimental import async_grpc_client
 
@@ -32,7 +32,7 @@ class TestAsyncGrpcClient(unittest.TestCase):
             credentials=mock_creds, attempt_direct_path=False
         )
 
-    @mock.patch("google.cloud.storage_v2.StorageAsyncClient")
+    @mock.patch("google.cloud.storage_v2._experimental.StorageAsyncClient")
     def test_constructor_respects_directpath_true(self, mock_async_storage_client):
         from google.cloud.storage._experimental import async_grpc_client
 
