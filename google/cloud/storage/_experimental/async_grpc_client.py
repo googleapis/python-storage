@@ -65,11 +65,9 @@ class AsyncGrpcClient:
         transport_cls = storage_v2.StorageAsyncClient.get_transport_class(
             "grpc_asyncio"
         )
+        channel = transport_cls.create_channel(attempt_direct_path=True)
 
-        transport = transport_cls(
-            credentials=credentials,
-            attempt_direct_path=attempt_direct_path,
-        )
+        transport = transport_cls(channel=channel)
 
         return storage_v2.StorageAsyncClient(
             credentials=credentials,

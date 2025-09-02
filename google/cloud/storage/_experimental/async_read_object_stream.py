@@ -6,6 +6,8 @@ import asyncio
 import argparse
 from async_grpc_client import AsyncGrpcClient
 from google.cloud import _storage_v2 as storage_v2
+import random
+from typing import List
 
 
 """
@@ -13,13 +15,13 @@ Mrr_generic(bucket, obj,gen=None, read_handle=None)
 mrr = Mrr(bucket, obj, gen)
 
 mrr = Mrr(bucket, obj)
-mrr = Mrr.create_from(bucket, obj)
+mrr = Mrr.create_from(client, bucket, obj)
         Mrr_generic(bucket, obj,gen=None, read_handle=None)
             * set attributes
             * instantiate read_object_strea
     * async stream.open
 mrr = Mrr(read_handle)
-mrr = 
+mrr.download_ranges([(range_start, range_end, buf)])
 
 """
 
@@ -39,7 +41,6 @@ class AsynReadObjectStream(AsyncAbstractObjectStream):
             generation_number=generation_number,
         )
         self.client = client
-        j
         self.bucket_name = bucket_name
         self._full_bucket_name = f"projects/_/buckets/{bucket_name}"
         self.object_name = object_name
@@ -49,7 +50,7 @@ class AsynReadObjectStream(AsyncAbstractObjectStream):
         # can this interface be changed tmrw ? (not accounting for that)
         # self.rpc = self.client.get_bidi_rpc_str_str_mc()  # expose this func in GAPIC
         self.rpc = self.client._client._transport._wrapped_methods[
-            self._client._transport.bidi_read_object
+            self.client._client._transport.bidi_read_object
         ]
         first_bidi_read_req = storage_v2.BidiReadObjectRequest(
             read_object_spec=storage_v2.BidiReadObjectSpec(
@@ -77,7 +78,7 @@ class AsynReadObjectStream(AsyncAbstractObjectStream):
         return await super().close()
 
     async def send(self, bidi_read_object_request):
-        self.socket_like_rpc.send(bidi_read_object_request)
+        await self.socket_like_rpc.send(bidi_read_object_request)
         """
         1. what if this fails ? 
         2. calculate checksum and send data
@@ -88,7 +89,7 @@ class AsynReadObjectStream(AsyncAbstractObjectStream):
         return
 
     async def recv(self):
-        bidi_read_object_response = self.socket_like_rpc.recv()
+        bidi_read_object_response = await self.socket_like_rpc.recv()
         """
         P0 - get this working.
         1. what if this fails ?
@@ -114,12 +115,47 @@ async def test(bucket_name, object_name):
     await async_read_obj_str.open()
 
     # create bidi proto 'n' requests
-    # n = 10
-    # for i in range(n):
-    #     await async_read_obj_str.send()
+    for i in range(3):
+        req_count = 10
+        read_range_count = 1
 
-    # for i in range(n):
-    #     await async_read_obj_str.recv()
+        for req_num in range(req_count):
+            # create ranges
+            read_ranges: List[storage_v2.ReadRange] = []
+            read_ids_set = set()
+            for read_id in range(read_range_count):
+                read_ids_set.add(read_id)
+                # read_length = 32 * 1024 * 1024  # up to 32 MiB
+                read_length = 10
+                read_offset = random.randint(0, 210763776 - read_length)
+                # read_length = READ_LENGTH
+                # read_offset = random.randint(0, 10 * 1024 * 1024 - read_length)
+                read_range = storage_v2.ReadRange(
+                    read_offset=read_offset, read_length=read_length, read_id=read_id
+                )
+                read_ranges.append(read_range)
+                # first bidi req is already sent, so in 2nd request onwards, we send only
+                # read_ranges.
+            await async_read_obj_str.send(
+                storage_v2.BidiReadObjectRequest(read_ranges=read_ranges)
+            )
+
+        for i in range(20):
+            print("i", i)
+            try:
+                # response2 = await asyncio.wait_for(async_read_obj_str.recv(), timeout=2)
+                async with asyncio.timeout(2):
+                    # response2 = await asyncio.wait_for(
+                    #     async_read_obj_str.recv(), timeout=2
+                    # )
+                    response2 = await async_read_obj_str.recv()
+                    print(response2)
+            except asyncio.TimeoutError:
+                print("await4ed for 2s no response")
+                # print("opening again")
+                # await async_read_obj_str.open()
+
+                break
 
     # pass
 
@@ -133,10 +169,10 @@ if __name__ == "__main__":
     4. parse args
     """
     parser = argparse.ArgumentParser()
-    argparse.add_argument(
+    parser.add_argument(
         "--bucket_name", help="The name of the GCS bucket to upload to."
     )
-    argparse.add_argument("--object_name", help="Object name")
+    parser.add_argument("--object_name", help="Object name")
     args = parser.parse_args()
 
     asyncio.run(test(bucket_name=args.bucket_name, object_name=args.object_name))
