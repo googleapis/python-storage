@@ -29,7 +29,7 @@ description = "Google Cloud Storage API client library"
 release_status = "Development Status :: 5 - Production/Stable"
 dependencies = [
     "google-auth >= 2.26.1, < 3.0.0",
-    "google-api-core >= 2.15.0, < 3.0.0",
+    "google-api-core[grpc] >= 2.15.0, < 3.0.0",
     "google-cloud-core >= 2.4.2, < 3.0.0",
     # The dependency "google-resumable-media" is no longer used. However, the
     # dependency is still included here to accommodate users who may be
@@ -41,6 +41,7 @@ dependencies = [
     "google-resumable-media >= 2.7.2, < 3.0.0",
     "requests >= 2.22.0, < 3.0.0",
     "google-crc32c >= 1.1.3, < 2.0.0",
+    "grpc-google-iam-v1 >= 0.14.0, <1.0.0",
 ]
 extras = {
     "protobuf": ["protobuf >= 3.20.2, < 7.0.0"],
