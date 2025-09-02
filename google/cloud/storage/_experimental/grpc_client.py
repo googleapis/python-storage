@@ -56,7 +56,7 @@ class GrpcClient(ClientWithProject):
         (Optional) Whether to attempt to use DirectPath for gRPC connections.
         This provides a direct, unproxied connection to GCS for lower latency
         and higher throughput, and is highly recommended when running on Google
-        Cloud infrastructure. Defaults to ``False``.
+        Cloud infrastructure. Defaults to ``True``.
     """
 
     def __init__(
@@ -67,7 +67,7 @@ class GrpcClient(ClientWithProject):
         client_options=None,
         *,
         api_key=None,
-        attempt_direct_path=False,
+        attempt_direct_path=True,
     ):
         super(GrpcClient, self).__init__(project=project, credentials=credentials)
 
@@ -91,7 +91,7 @@ class GrpcClient(ClientWithProject):
         credentials=None,
         client_info=None,
         client_options=None,
-        attempt_direct_path=False,
+        attempt_direct_path=True,
     ):
         """Creates and configures the low-level GAPIC `storage_v2` client."""
         transport_cls = storage_v2.StorageClient.get_transport_class("grpc")
