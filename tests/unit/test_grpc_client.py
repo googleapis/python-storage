@@ -19,7 +19,7 @@ from google.auth import credentials as auth_credentials
 
 class TestGrpcClient(unittest.TestCase):
     @mock.patch("google.cloud.client.ClientWithProject.__init__")
-    @mock.patch("google.cloud.storage_v2.StorageClient")
+    @mock.patch("google.cloud._storage_v2.StorageClient")
     def test_constructor_defaults_and_options(
         self, mock_storage_client, mock_base_client
     ):
@@ -63,7 +63,7 @@ class TestGrpcClient(unittest.TestCase):
         self.assertIs(client._grpc_client, mock_storage_client.return_value)
 
     @mock.patch("google.cloud.storage._experimental.grpc_client.ClientWithProject")
-    @mock.patch("google.cloud.storage_v2.StorageClient")
+    @mock.patch("google.cloud._storage_v2.StorageClient")
     def test_constructor_can_enable_direct_path(
         self, mock_storage_client, mock_base_client
     ):
@@ -86,7 +86,7 @@ class TestGrpcClient(unittest.TestCase):
         )
 
     @mock.patch("google.cloud.storage._experimental.grpc_client.ClientWithProject")
-    @mock.patch("google.cloud.storage_v2.StorageClient")
+    @mock.patch("google.cloud._storage_v2.StorageClient")
     def test_constructor_handles_api_key(self, mock_storage_client, mock_base_client):
         from google.cloud.storage._experimental import grpc_client
 
