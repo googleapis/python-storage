@@ -26,7 +26,7 @@ mrr.download_ranges([(range_start, range_end, buf)])
 """
 
 
-class AsynReadObjectStream(AsyncAbstractObjectStream):
+class AsyncReadObjectStream(AsyncAbstractObjectStream):
     def __init__(
         self,
         client,
@@ -109,7 +109,7 @@ class AsynReadObjectStream(AsyncAbstractObjectStream):
 
 async def test(bucket_name, object_name):
     client = AsyncGrpcClient()._grpc_client
-    async_read_obj_str = AsynReadObjectStream(
+    async_read_obj_str = AsyncReadObjectStream(
         client, bucket_name=bucket_name, object_name=object_name
     )
     await async_read_obj_str.open()
