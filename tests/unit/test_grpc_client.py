@@ -49,7 +49,7 @@ class TestGrpcClient(unittest.TestCase):
         # 2. Assert DirectPath is OFF by default.
         mock_storage_client.get_transport_class.assert_called_once_with("grpc")
         mock_transport_cls.create_channel.assert_called_once_with(
-            attempt_direct_path=False
+            attempt_direct_path=True
         )
 
         # 3. Assert the GAPIC client was created with the correct options.
@@ -64,7 +64,7 @@ class TestGrpcClient(unittest.TestCase):
 
     @mock.patch("google.cloud.storage._experimental.grpc_client.ClientWithProject")
     @mock.patch("google.cloud._storage_v2.StorageClient")
-    def test_constructor_can_enable_direct_path(
+    def test_constructor_disables_direct_path(
         self, mock_storage_client, mock_base_client
     ):
         from google.cloud.storage._experimental import grpc_client
@@ -78,11 +78,11 @@ class TestGrpcClient(unittest.TestCase):
         grpc_client.GrpcClient(
             project="test-project",
             credentials=mock_creds,
-            attempt_direct_path=True,
+            attempt_direct_path=False,
         )
 
         mock_transport_cls.create_channel.assert_called_once_with(
-            attempt_direct_path=True
+            attempt_direct_path=False
         )
 
     @mock.patch("google.cloud.storage._experimental.grpc_client.ClientWithProject")
