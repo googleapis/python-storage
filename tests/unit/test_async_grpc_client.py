@@ -29,11 +29,11 @@ class TestAsyncGrpcClient(unittest.TestCase):
         async_grpc_client.AsyncGrpcClient(credentials=mock_creds)
 
         mock_transport_cls.assert_called_once_with(
-            credentials=mock_creds, attempt_direct_path=False
+            credentials=mock_creds, attempt_direct_path=True
         )
 
     @mock.patch("google.cloud._storage_v2.StorageAsyncClient")
-    def test_constructor_respects_directpath_true(self, mock_async_storage_client):
+    def test_constructor_when_directpath_is_false(self, mock_async_storage_client):
         from google.cloud.storage._experimental import async_grpc_client
 
         mock_transport_cls = mock.MagicMock()
@@ -41,9 +41,9 @@ class TestAsyncGrpcClient(unittest.TestCase):
         mock_creds = mock.Mock(spec=auth_credentials.Credentials)
 
         async_grpc_client.AsyncGrpcClient(
-            credentials=mock_creds, attempt_direct_path=True
+            credentials=mock_creds, attempt_direct_path=False
         )
 
         mock_transport_cls.assert_called_once_with(
-            credentials=mock_creds, attempt_direct_path=True
+            credentials=mock_creds, attempt_direct_path=False
         )

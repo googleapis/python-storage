@@ -36,7 +36,7 @@ class AsyncGrpcClient:
     :type attempt_direct_path: bool
     :param attempt_direct_path:
         (Optional) Whether to attempt to use DirectPath for gRPC connections.
-        Defaults to ``False``.
+        Defaults to ``True``.
     """
 
     def __init__(
@@ -45,7 +45,7 @@ class AsyncGrpcClient:
         client_info=None,
         client_options=None,
         *,
-        attempt_direct_path=False,
+        attempt_direct_path=True,
     ):
         self._grpc_client = self._create_async_grpc_client(
             credentials=credentials,
@@ -59,7 +59,7 @@ class AsyncGrpcClient:
         credentials=None,
         client_info=None,
         client_options=None,
-        attempt_direct_path=False,
+        attempt_direct_path=True,
     ):
         transport_cls = storage_v2.StorageAsyncClient.get_transport_class("grpc_asyncio")
 
