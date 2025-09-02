@@ -219,7 +219,7 @@ class AsyncBidiRpc(BidiRpcBase):
             protobuf.Message: The received message.
         """
         if self.call is None:
-            raise ValueError("Can not recv() on an RPC that has never been open()ed.")
+            raise ValueError("Can not recv() on an RPC that has never been opened.")
 
         return await self.call.read()
 
