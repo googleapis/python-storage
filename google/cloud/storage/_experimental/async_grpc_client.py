@@ -14,7 +14,7 @@
 
 """An async client for interacting with Google Cloud Storage using the gRPC API."""
 
-from google.cloud import storage_v2
+from google.cloud import _storage_v2 as storage_v2
 
 class AsyncGrpcClient:
     """An asynchronous client for interacting with Google Cloud Storage using the gRPC API.
