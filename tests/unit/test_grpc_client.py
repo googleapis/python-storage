@@ -107,3 +107,18 @@ class TestGrpcClient(unittest.TestCase):
         # that contains the api_key.
         _, kwargs = mock_storage_client.call_args
         self.assertEqual(kwargs["client_options"]["api_key"], "test-api-key")
+
+    @mock.patch("google.cloud.storage._experimental.grpc_client.ClientWithProject")
+    @mock.patch("google.cloud._storage_v2.StorageClient")
+    def test_grpc_client_property(self, mock_storage_client, mock_base_client):
+        from google.cloud.storage._experimental import grpc_client
+
+        mock_creds = mock.Mock(spec=auth_credentials.Credentials)
+        mock_base_instance = mock_base_client.return_value
+        mock_base_instance._credentials = mock_creds
+
+        client = grpc_client.GrpcClient(project="test-project", credentials=mock_creds)
+
+        retrieved_client = client.grpc_client
+
+        self.assertIs(retrieved_client, mock_storage_client.return_value)

@@ -106,3 +106,17 @@ class GrpcClient(ClientWithProject):
             client_info=client_info,
             client_options=client_options,
         )
+
+    @property
+    def grpc_client(self):
+        """The underlying gRPC client.
+
+        This property gives users direct access to the `storage_v2.StorageClient`
+         instance. This can be useful for accessing
+        newly added or experimental RPCs that are not yet exposed through
+        the high-level GrpcClient.
+
+        Returns:
+            google.cloud.storage_v2.StorageClient: The configured GAPIC client.
+        """
+        return self._grpc_client
