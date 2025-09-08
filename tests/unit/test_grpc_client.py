@@ -15,6 +15,7 @@
 import unittest
 from unittest import mock
 from google.auth import credentials as auth_credentials
+from google.api_core import client_options as client_options_lib
 
 
 class TestGrpcClient(unittest.TestCase):
@@ -89,7 +90,7 @@ class TestGrpcClient(unittest.TestCase):
 
     @mock.patch("google.cloud.storage._experimental.grpc_client.ClientWithProject")
     @mock.patch("google.cloud._storage_v2.StorageClient")
-    def test_constructor_handles_api_key(self, mock_storage_client, mock_base_client):
+    def test_constructor_initialize_with_api_key(self, mock_storage_client, mock_base_client):
         from google.cloud.storage._experimental import grpc_client
 
         mock_transport_cls = mock.MagicMock()
@@ -128,3 +129,72 @@ class TestGrpcClient(unittest.TestCase):
         retrieved_client = client.grpc_client
 
         self.assertIs(retrieved_client, mock_storage_client.return_value)
+
+    @mock.patch("google.cloud.storage._experimental.grpc_client.ClientWithProject")
+    @mock.patch("google.cloud._storage_v2.StorageClient")
+    def test_constructor_with_api_key_and_client_options(
+        self, mock_storage_client, mock_base_client
+    ):
+        from google.cloud.storage._experimental import grpc_client
+
+        mock_transport_cls = mock.MagicMock()
+        mock_storage_client.get_transport_class.return_value = mock_transport_cls
+        mock_transport = mock_transport_cls.return_value
+
+        mock_creds = mock.Mock(spec=auth_credentials.Credentials)
+        mock_base_instance = mock_base_client.return_value
+        mock_base_instance._credentials = mock_creds
+
+        client_options_obj = client_options_lib.ClientOptions(
+            api_endpoint="test.endpoint"
+        )
+        self.assertIsNone(client_options_obj.api_key)
+
+        grpc_client.GrpcClient(
+            project="test-project",
+            credentials=mock_creds,
+            client_options=client_options_obj,
+            api_key="new-test-key",
+        )
+
+        mock_storage_client.assert_called_once_with(
+            credentials=mock_creds,
+            transport=mock_transport,
+            client_info=None,
+            client_options=client_options_obj,
+        )
+        self.assertEqual(client_options_obj.api_key, "new-test-key")
+
+    @mock.patch("google.cloud.storage._experimental.grpc_client.ClientWithProject")
+    @mock.patch("google.cloud._storage_v2.StorageClient")
+    def test_constructor_with_api_key_and_dict_options(
+        self, mock_storage_client, mock_base_client
+    ):
+        from google.cloud.storage._experimental import grpc_client
+
+        mock_creds = mock.Mock(spec=auth_credentials.Credentials)
+        mock_base_instance = mock_base_client.return_value
+        mock_base_instance._credentials = mock_creds
+        mock_transport_cls = mock.MagicMock()
+        mock_storage_client.get_transport_class.return_value = mock_transport_cls
+        mock_transport = mock_transport_cls.return_value
+
+        client_options_dict = {"api_endpoint": "test.endpoint"}
+
+        grpc_client.GrpcClient(
+            project="test-project",
+            credentials=mock_creds,
+            client_options=client_options_dict,
+            api_key="new-test-key",
+        )
+
+        expected_options = {
+            "api_endpoint": "test.endpoint",
+            "api_key": "new-test-key",
+        }
+        mock_storage_client.assert_called_once_with(
+            credentials=mock_creds,
+            transport=mock_transport,
+            client_info=None,
+            client_options=expected_options,
+        )
