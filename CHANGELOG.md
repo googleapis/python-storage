@@ -4,6 +4,13 @@
 
 [1]: https://pypi.org/project/google-cloud-storage/#history
 
+## [3.3.2](https://github.com/googleapis/python-storage/compare/v3.3.1...v3.3.2) (2025-09-09)
+
+
+### Bug Fixes
+
+* GAPIC generation failed with 'Directory not empty' ([#1542](https://github.com/googleapis/python-storage/issues/1542)) ([c80d820](https://github.com/googleapis/python-storage/commit/c80d8207a8661b84c56cd66bb34de7b5704675b8))
+
 ## [3.3.1](https://github.com/googleapis/python-storage/compare/v3.3.0...v3.3.1) (2025-08-25)
 
 
