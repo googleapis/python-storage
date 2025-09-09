@@ -63,7 +63,7 @@ class TestGrpcClient(unittest.TestCase):
         )
 
         # 4. Assert the client instance holds the mocked GAPIC client.
-        self.assertIs(client._grpc_client, mock_storage_client.return_value)
+        self.assertIs(client.grpc_client, mock_storage_client.return_value)
 
     @mock.patch("google.cloud.storage._experimental.grpc_client.ClientWithProject")
     @mock.patch("google.cloud._storage_v2.StorageClient")
