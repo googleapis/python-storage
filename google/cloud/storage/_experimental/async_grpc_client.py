@@ -16,6 +16,7 @@
 
 from google.cloud import _storage_v2 as storage_v2
 
+
 class AsyncGrpcClient:
     """An asynchronous client for interacting with Google Cloud Storage using the gRPC API.
 
@@ -61,7 +62,9 @@ class AsyncGrpcClient:
         client_options=None,
         attempt_direct_path=True,
     ):
-        transport_cls = storage_v2.StorageAsyncClient.get_transport_class("grpc_asyncio")
+        transport_cls = storage_v2.StorageAsyncClient.get_transport_class(
+            "grpc_asyncio"
+        )
         channel = transport_cls.create_channel(attempt_direct_path=attempt_direct_path)
         transport = transport_cls(credentials=credentials, channel=channel)
 
@@ -71,3 +74,16 @@ class AsyncGrpcClient:
             client_info=client_info,
             client_options=client_options,
         )
+
+    @property
+    def grpc_client(self):
+        """The underlying gRPC client.
+
+        This property gives users direct access to the `_storage_v2.StorageAsyncClient`
+         instance. This can be useful for accessing
+        newly added or experimental RPCs that are not yet exposed through
+        the high-level GrpcClient.
+        Returns:
+            google.cloud._storage_v2.StorageAsyncClient: The configured GAPIC client.
+        """
+        return self._grpc_client

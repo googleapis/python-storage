@@ -17,16 +17,20 @@ from unittest import mock
 from google.auth import credentials as auth_credentials
 
 
+def _make_credentials(spec=None):
+    if spec is None:
+        return mock.Mock(spec=auth_credentials.Credentials)
+    return mock.Mock(spec=spec)
+
+
 class TestAsyncGrpcClient(unittest.TestCase):
     @mock.patch("google.cloud._storage_v2.StorageAsyncClient")
     def test_constructor_default_options(self, mock_async_storage_client):
         from google.cloud.storage._experimental import async_grpc_client
 
         mock_transport_cls = mock.MagicMock()
-        mock_async_storage_client.get_transport_class.return_value = (
-            mock_transport_cls
-        )
-        mock_creds = mock.Mock(spec=auth_credentials.Credentials)
+        mock_async_storage_client.get_transport_class.return_value = mock_transport_cls
+        mock_creds = _make_credentials()
 
         async_grpc_client.AsyncGrpcClient(credentials=mock_creds)
 
@@ -53,10 +57,8 @@ class TestAsyncGrpcClient(unittest.TestCase):
         from google.cloud.storage._experimental import async_grpc_client
 
         mock_transport_cls = mock.MagicMock()
-        mock_async_storage_client.get_transport_class.return_value = (
-            mock_transport_cls
-        )
-        mock_creds = mock.Mock(spec=auth_credentials.Credentials)
+        mock_async_storage_client.get_transport_class.return_value = mock_transport_cls
+        mock_creds = _make_credentials()
 
         async_grpc_client.AsyncGrpcClient(
             credentials=mock_creds, attempt_direct_path=False
@@ -69,3 +71,15 @@ class TestAsyncGrpcClient(unittest.TestCase):
         mock_transport_cls.assert_called_once_with(
             credentials=mock_creds, channel=mock_channel
         )
+
+    @mock.patch("google.cloud._storage_v2.StorageAsyncClient")
+    def test_grpc_client_property(self, mock_async_storage_client):
+        from google.cloud.storage._experimental import async_grpc_client
+
+        mock_creds = _make_credentials()
+
+        client = async_grpc_client.AsyncGrpcClient(credentials=mock_creds)
+
+        retrieved_client = client.grpc_client
+
+        self.assertIs(retrieved_client, mock_async_storage_client.return_value)
