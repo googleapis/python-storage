@@ -77,7 +77,6 @@ class MultiRangeDownloader:
 
 
         """
-        # > 1000 not supported yet.
         if len(read_ranges) > 1000:
             raise Exception("Invalid Input - ranges cannot be more than 1000")
 
@@ -99,26 +98,10 @@ class MultiRangeDownloader:
                         read_id=read_id,
                     )
                 )
-            # read_ranges_for_bidi_req = [
-            #     _storage_v2.ReadRange(
-            #         read_offset=x[0], read_length=x[1], read_id=read_id
-            #     )
-            # ]
-            # first_range = read_ranges[0]
-            # start = first_range[0]
-            # end = first_range[1]
-            # buffer = first_range[2]
-            # # create bidiReadReq
-            # read_id = 1
             print(read_ranges_for_bidi_req)
             await self.read_obj_str.send(
                 _storage_v2.BidiReadObjectRequest(read_ranges=read_ranges_for_bidi_req)
             )
-        # while read_end is not reached.
-        # read_ids_set = set()
-        # read_ids_set.add(read_id)
-        # bytes_received = 0
-        # while len(read_ids_set) > 0:
         while len(read_id_to_writable_buffer_dict) > 0:
             response = await self.read_obj_str.recv()
             if response is None:
@@ -167,7 +150,6 @@ async def test_mrd():
             (300, 400, my_buff4),
         ]
     )
-    # print("this is the generation, read handle", mrd.generation_number, mrd.read_handle)
     for buff in buffers:
         print("downloaded bytes", buff.getbuffer().nbytes)
 
