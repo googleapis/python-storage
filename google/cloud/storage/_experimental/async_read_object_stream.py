@@ -33,6 +33,7 @@ class AsyncReadObjectStream(AsyncAbstractObjectStream):
         bucket_name=None,
         object_name=None,
         generation_number=None,
+        # TODO: meta_generation
         read_handle=None,  # open with rea
     ):
         super().__init__(
@@ -70,6 +71,11 @@ class AsyncReadObjectStream(AsyncAbstractObjectStream):
         await self.socket_like_rpc.open()  # this is actually 1 send
         response = await self.socket_like_rpc.recv()
         print(response)
+        # object_metadata =
+        if self.generation_number is None:
+            self.generation_number = response.metadata.generation
+
+        self.read_handle = response.read_handle
 
         return
         # return await super().open()

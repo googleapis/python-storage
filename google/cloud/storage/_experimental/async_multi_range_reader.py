@@ -23,6 +23,9 @@ from io import BytesIO
 from google.cloud import _storage_v2
 import sys
 import asyncio
+import uuid
+
+_MAX_READ_RANGES_PER_BIDI_READ_REQUEST = 100
 
 
 class MultiRangeDownloader:
@@ -62,64 +65,86 @@ class MultiRangeDownloader:
             read_handle=self.read_handle,
         )
         await self.read_obj_str.open()
-        pass
+        if self.generation_number is None:
+            self.generation_number = self.read_obj_str.generation_number
+        self.read_handle = self.read_obj_str.read_handle
+        return
 
-    async def download_ranges(self, ranges):
-        first_range = ranges[0]
-        start = first_range[0]
-        end = first_range[1]
-        buffer = first_range[2]
-        # create bidiReadReq
-        read_id = 1
-        await self.read_obj_str.send(
-            _storage_v2.BidiReadObjectRequest(
-                read_ranges=[
+    async def download_ranges(self, read_ranges):
+        """
+        1.user can provide any number of ranges upto 1000.
+        2.
+
+
+        """
+        # > 1000 not supported yet.
+        if len(read_ranges) > 1000:
+            raise Exception("Invalid Input - ranges cannot be more than 1000")
+
+        read_id_to_writable_buffer_dict = {}
+        for i in range(0, len(read_ranges), _MAX_READ_RANGES_PER_BIDI_READ_REQUEST):
+            read_range_segment = read_ranges[
+                i : i + _MAX_READ_RANGES_PER_BIDI_READ_REQUEST
+            ]
+
+            read_ranges_for_bidi_req = []
+            for j, read_range in enumerate(read_range_segment):
+                # generate read_id
+                read_id = i + j
+                read_id_to_writable_buffer_dict[read_id] = read_range[2]
+                read_ranges_for_bidi_req.append(
                     _storage_v2.ReadRange(
-                        read_offset=start, read_length=end, read_id=read_id
+                        read_offset=read_range[0],
+                        read_length=read_range[1] - read_range[0],  # end - start
+                        read_id=read_id,
                     )
-                ]
+                )
+            # read_ranges_for_bidi_req = [
+            #     _storage_v2.ReadRange(
+            #         read_offset=x[0], read_length=x[1], read_id=read_id
+            #     )
+            # ]
+            # first_range = read_ranges[0]
+            # start = first_range[0]
+            # end = first_range[1]
+            # buffer = first_range[2]
+            # # create bidiReadReq
+            # read_id = 1
+            print(read_ranges_for_bidi_req)
+            await self.read_obj_str.send(
+                _storage_v2.BidiReadObjectRequest(read_ranges=read_ranges_for_bidi_req)
             )
-        )
         # while read_end is not reached.
-        read_ids_set = set()
-        read_ids_set.add(read_id)
-        bytes_received = 0
-        while len(read_ids_set) > 0:
+        # read_ids_set = set()
+        # read_ids_set.add(read_id)
+        # bytes_received = 0
+        # while len(read_ids_set) > 0:
+        while len(read_id_to_writable_buffer_dict) > 0:
             response = await self.read_obj_str.recv()
             if response is None:
                 print("None response received, something went wrong.")
                 sys.exit(1)
-            for object_data_chunk in response.object_data_ranges:
-                data = object_data_chunk.checksummed_data.content
+            for object_data_range in response.object_data_ranges:
+
+                if object_data_range.read_range is None:
+                    raise Exception("Invalid response, read_range is None")
+
+                data = object_data_range.checksummed_data.content
+                # bytes_received_in_curr_res = object_data_range.read_range.read_length
+                read_id = object_data_range.read_range.read_id
+                buffer = read_id_to_writable_buffer_dict[read_id]
                 buffer.write(data)
-                print(data)
-                print(object_data_chunk.checksummed_data.crc32c)
-
-                if object_data_chunk.read_range is not None:
-                    # bytes downloaded in this response.
-                    curr_iter_bytes = object_data_chunk.read_range.read_length
-                    bytes_received += curr_iter_bytes
-                    # if curr_iter_bytes != 2 * 1024 * 1024:
-                    #     print(
-                    #         "bytes received in current iter, for read_id",
-                    #         curr_iter_bytes,
-                    #         object_data_chunk.read_range.read_id,
-                    #     )
-                    # print(
-                    #     "bytes received in current iter, for read_id",
-                    #     curr_iter_bytes,
-                    #     object_data_chunk.read_range.read_id,
-                    # )
-
-                if (
-                    object_data_chunk.range_end is not None
-                    and object_data_chunk.range_end
-                ):
-                    # print(
-                    #     f"Read ID {object_data_chunk.read_range.read_id} completed."
-                    # )
-                    read_ids_set.remove(object_data_chunk.read_range.read_id)
-        print("downloaded bytes", bytes_received)
+                print(
+                    "for read_id ",
+                    read_id,
+                    data,
+                    object_data_range.checksummed_data.crc32c,
+                )
+                if object_data_range.range_end:
+                    del read_id_to_writable_buffer_dict[
+                        object_data_range.read_range.read_id
+                    ]
+        # print("downloaded bytes", bytes_received)
 
         # pass
 
@@ -129,10 +154,22 @@ async def test_mrd():
     mrd = await MultiRangeDownloader.create_mrd(
         client, bucket_name="chandrasiri-rs", object_name="test_open9"
     )
-    my_buff = BytesIO()
-    await mrd.download_ranges([(0, 10, my_buff)])
-    # print()
-    print("downloaded bytes", my_buff.getbuffer().nbytes)
+    my_buff1 = BytesIO()
+    my_buff2 = BytesIO()
+    my_buff3 = BytesIO()
+    my_buff4 = BytesIO()
+    buffers = [my_buff1, my_buff2, my_buff3, my_buff4]
+    await mrd.download_ranges(
+        [
+            (0, 100, my_buff1),
+            (100, 200, my_buff2),
+            (200, 300, my_buff3),
+            (300, 400, my_buff4),
+        ]
+    )
+    # print("this is the generation, read handle", mrd.generation_number, mrd.read_handle)
+    for buff in buffers:
+        print("downloaded bytes", buff.getbuffer().nbytes)
 
 
 if __name__ == "__main__":
