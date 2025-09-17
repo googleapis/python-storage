@@ -71,8 +71,6 @@ class _AsyncReadObjectStream(_AsyncAbstractObjectStream):
 
         self._full_bucket_name = f"projects/_/buckets/{self.bucket_name}"
 
-        # can this interface be changed tmrw ? (not accounting for that)
-        # self.rpc = self.client.get_bidi_rpc_str_str_mc()  # expose this func in GAPIC
         self.rpc = self.client._client._transport._wrapped_methods[
             self.client._client._transport.bidi_read_object
         ]
