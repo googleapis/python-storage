@@ -15,12 +15,12 @@
 import pytest
 
 from google.cloud.storage._experimental.asyncio.async_abstract_object_stream import (
-    AsyncAbstractObjectStream,
+    _AsyncAbstractObjectStream,
 )
 
 
 # A concrete implementation for testing purposes.
-class _ConcreteStream(AsyncAbstractObjectStream):
+class _ConcreteStream(_AsyncAbstractObjectStream):
     async def open(self):
         pass
 
@@ -56,7 +56,7 @@ def test_init():
 def test_instantiation_fails_without_implementation():
     """Test that instantiating an incomplete subclass raises TypeError."""
 
-    class _IncompleteStream(AsyncAbstractObjectStream):
+    class _IncompleteStream(_AsyncAbstractObjectStream):
         # Missing implementations for abstract methods like open(), close(), etc.
         pass
 

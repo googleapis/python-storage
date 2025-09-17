@@ -1,7 +1,7 @@
 import abc
 
 
-class AsyncAbstractObjectStream(abc.ABC):
+class _AsyncAbstractObjectStream(abc.ABC):
     """
     Abstract class for both ReadObjectStream as well as WriteObjectStream.
 
