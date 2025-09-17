@@ -18,7 +18,7 @@ import asyncio
 import logging
 
 from google.api_core import exceptions
-from bidi_base import BidiRpcBase
+from google.cloud.storage._experimental.asyncio.bidi_base import BidiRpcBase
 
 _LOGGER = logging.getLogger(__name__)
 
