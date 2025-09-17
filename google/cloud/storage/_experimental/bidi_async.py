@@ -1,4 +1,4 @@
-# Copyright 2024, Google LLC
+# Copyright 2025, Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,9 +24,11 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class _AsyncRequestQueueGenerator:
-    """An async helper for sending requests to a gRPC stream from a Queue.
+    """_AsyncRequestQueueGenerator is a helper class for sending asynchronous
+      requests to a gRPC stream from a Queue.
 
-    This generator takes requests off a given queue and yields them to gRPC.
+    This generator takes asynchronous requests off a given queue and yields them
+    to gRPC.
 
     This helper is useful when you have an indeterminate, indefinite, or
     otherwise open-ended set of requests to send through a request-streaming
@@ -72,10 +74,9 @@ class _AsyncRequestQueueGenerator:
         self.call = None
 
     def _is_active(self):
-        # Note: there is a possibility that this starts *before* the call
-        # property is set. So we have to check if self.call is set before
-        # seeing if it's active. We need to return True if self.call is None.
-        # See https://github.com/googleapis/python-api-core/issues/560.
+        """
+        Returns true if the call is not set or not completed.
+        """
         return self.call is None or not self.call.done()
 
     async def __aiter__(self):
@@ -200,7 +201,7 @@ class AsyncBidiRpc(BidiRpcBase):
             request (protobuf.Message): The request to send.
         """
         if self.call is None:
-            raise ValueError("Can not send() on an RPC that has never been open()ed.")
+            raise ValueError("Can not send() on an RPC that has never been opened.")
 
         # Don't use self.is_active(), as ResumableBidiRpc will overload it
         # to mean something semantically different.

@@ -47,7 +47,7 @@ class BidiRpcBase:
 
     def _create_queue(self):
         """Create a queue for requests."""
-        raise NotImplementedError("Not implemented in base class")
+        raise NotImplementedError("`_create_queue` is not implemented.")
 
     def add_done_callback(self, callback):
         """Adds a callback that will be called when the RPC terminates.
@@ -72,7 +72,7 @@ class BidiRpcBase:
     @property
     def is_active(self):
         """bool: True if this stream is currently open and active."""
-        raise NotImplementedError("Not implemented in base class")
+        raise NotImplementedError("`is_active` is not implemented.")
 
     @property
     def pending_requests(self):
