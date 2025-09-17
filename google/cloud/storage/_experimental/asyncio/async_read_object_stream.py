@@ -22,11 +22,17 @@ if you want to use these APIs.
 
 """
 
+from typing import Optional
+
 from google.cloud.storage._experimental.asyncio.async_abstract_object_stream import (
     _AsyncAbstractObjectStream,
 )
 from google.cloud import _storage_v2
 from google.cloud.storage._experimental.asyncio.bidi_async import AsyncBidiRpc
+
+from google.cloud.storage._experimental.asyncio.async_grpc_client import (
+    AsyncGrpcClient,
+)
 
 
 class _AsyncReadObjectStream(_AsyncAbstractObjectStream):
@@ -55,12 +61,12 @@ class _AsyncReadObjectStream(_AsyncAbstractObjectStream):
 
     def __init__(
         self,
-        client,
-        bucket_name=None,
-        object_name=None,
-        generation_number=None,
-        read_handle=None,
-    ):
+        client: AsyncGrpcClient,
+        bucket_name: Optional[str] = None,
+        object_name: Optional[str] = None,
+        generation_number: Optional[int] = None,
+        read_handle: Optional[str] = None,
+    ) -> None:
         super().__init__(
             bucket_name=bucket_name,
             object_name=object_name,
@@ -85,13 +91,47 @@ class _AsyncReadObjectStream(_AsyncAbstractObjectStream):
         )
 
     async def open(self) -> None:
-        pass
+        """Opens the bidi-gRPC connection to read from the object.
 
-    async def close(self):
-        pass
+        This method sends an initial request to start the stream and receives
+        the first response containing metadata and a read handle.
+        """
+        await self.socket_like_rpc.open()  # this is actually 1 send
+        response = await self.socket_like_rpc.recv()
+        if self.generation_number is None:
+            self.generation_number = response.metadata.generation
 
-    async def send(self, bidi_read_object_request):
-        pass
+        self.read_handle = response.read_handle
 
-    async def recv(self):
-        pass
+        return
+
+    async def close(self) -> None:
+        """Closes the bidi-gRPC connection."""
+        await self.socket_like_rpc.close()
+        return
+
+    async def send(
+        self, bidi_read_object_request: _storage_v2.BidiReadObjectRequest
+    ) -> None:
+        """Sends a request message on the stream.
+
+        Args:
+            bidi_read_object_request (:class:`~google.cloud._storage_v2.types.BidiReadObjectRequest`):
+                The request message to send. This is typically used to specify
+                the read offset and limit.
+        """
+        await self.socket_like_rpc.send(bidi_read_object_request)
+        return
+
+    async def recv(self) -> _storage_v2.BidiReadObjectResponse:
+        """Receives a response from the stream.
+
+        This method waits for the next message from the server, which could
+        contain object data or metadata.
+
+        Returns:
+            :class:`~google.cloud._storage_v2.types.BidiReadObjectResponse`:
+                The response message from the server.
+        """
+        bidi_read_object_response = await self.socket_like_rpc.recv()
+        return bidi_read_object_response

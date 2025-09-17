@@ -23,6 +23,20 @@ from google.cloud.storage._experimental.asyncio.async_read_object_stream import 
 )
 
 
+@pytest.fixture
+def mock_client():
+    """A mock client for testing."""
+    mock_rpc = mock.Mock(name="rpc")
+    mock_transport = mock.Mock(name="transport")
+    mock_transport.bidi_read_object = "bidi_read_object_key"
+    mock_transport._wrapped_methods = {"bidi_read_object_key": mock_rpc}
+    mock_gapic_client = mock.Mock(name="gapic_client")
+    mock_gapic_client._transport = mock_transport
+    mock_client = mock.Mock(name="client")
+    mock_client._client = mock_gapic_client
+    return mock_client
+
+
 def test_inheritance():
     """Test that _AsyncReadObjectStream inherits from _AsyncAbstractObjectStream."""
     assert issubclass(_AsyncReadObjectStream, _AsyncAbstractObjectStream)
@@ -34,18 +48,9 @@ def test_inheritance():
 @mock.patch(
     "google.cloud.storage._experimental.asyncio.async_read_object_stream._storage_v2"
 )
-def test_init(mock_storage_v2, mock_async_bidi_rpc):
+def test_init(mock_storage_v2, mock_async_bidi_rpc, mock_client):
     """Test the constructor of _AsyncReadObjectStream."""
-    # Setup mock client
-    mock_rpc = mock.Mock(name="rpc")
-    mock_transport = mock.Mock(name="transport")
-    mock_transport.bidi_read_object = "bidi_read_object_key"
-    mock_transport._wrapped_methods = {"bidi_read_object_key": mock_rpc}
-    mock_gapic_client = mock.Mock(name="gapic_client")
-    mock_gapic_client._transport = mock_transport
-    mock_client = mock.Mock(name="client")
-    mock_client._client = mock_gapic_client
-
+    mock_rpc = mock_client._client._transport._wrapped_methods["bidi_read_object_key"]
     bucket_name = "test-bucket"
     object_name = "test-object"
     generation = 12345
@@ -125,26 +130,76 @@ def test_init(mock_storage_v2, mock_async_bidi_rpc):
 
 
 @pytest.mark.asyncio
-async def test_async_methods_are_awaitable():
-    """Test that the async methods exist and are awaitable."""
-    # Setup mock client to allow instantiation of the stream object.
-    mock_rpc = mock.Mock(name="rpc")
-    mock_transport = mock.Mock(name="transport")
-    mock_transport.bidi_read_object = "bidi_read_object_key"
-    mock_transport._wrapped_methods = {"bidi_read_object_key": mock_rpc}
-    mock_gapic_client = mock.Mock(name="gapic_client")
-    mock_gapic_client._transport = mock_transport
-    mock_client = mock.Mock(name="client")
-    mock_client._client = mock_gapic_client
+async def test_open(mock_client):
+    """Test open() when generation_number is initially None."""
+    stream = _AsyncReadObjectStream(mock_client, bucket_name="b", object_name="o")
+    stream.socket_like_rpc = mock.AsyncMock()
+    stream.generation_number = None  # Explicitly set for clarity
 
+    mock_response = mock.Mock()
+    mock_response.metadata.generation = 98765
+    mock_response.read_handle = "test-read-handle"
+    stream.socket_like_rpc.recv.return_value = mock_response
+
+    await stream.open()
+
+    stream.socket_like_rpc.open.assert_awaited_once()
+    stream.socket_like_rpc.recv.assert_awaited_once()
+    assert stream.generation_number == 98765
+    assert stream.read_handle == "test-read-handle"
+
+
+@pytest.mark.asyncio
+async def test_open_with_generation_set(mock_client):
+    """Test open() when generation_number is already set."""
+    initial_generation = 12345
+    stream = _AsyncReadObjectStream(
+        mock_client,
+        bucket_name="b",
+        object_name="o",
+        generation_number=initial_generation,
+    )
+    stream.socket_like_rpc = mock.AsyncMock()
+
+    mock_response = mock.Mock()
+    mock_response.metadata.generation = 98765
+    mock_response.read_handle = "test-read-handle"
+    stream.socket_like_rpc.recv.return_value = mock_response
+
+    await stream.open()
+
+    stream.socket_like_rpc.open.assert_awaited_once()
+    stream.socket_like_rpc.recv.assert_awaited_once()
+    assert stream.generation_number == initial_generation  # Should not change
+    assert stream.read_handle == "test-read-handle"
+
+
+@pytest.mark.asyncio
+async def test_close(mock_client):
+    """Test close()."""
     stream = _AsyncReadObjectStream(mock_client)
+    stream.socket_like_rpc = mock.AsyncMock()
+    await stream.close()
+    stream.socket_like_rpc.close.assert_awaited_once()
 
-    # These methods are currently empty, but we can test they are awaitable
-    # and don't raise exceptions.
-    try:
-        await stream.open()
-        await stream.close()
-        await stream.send(mock.Mock())
-        await stream.recv()
-    except Exception as e:
-        pytest.fail(f"Async methods should be awaitable without errors. Raised: {e}")
+
+@pytest.mark.asyncio
+async def test_send(mock_client):
+    """Test send()."""
+    stream = _AsyncReadObjectStream(mock_client)
+    stream.socket_like_rpc = mock.AsyncMock()
+    mock_request = mock.Mock()
+    await stream.send(mock_request)
+    stream.socket_like_rpc.send.assert_awaited_once_with(mock_request)
+
+
+@pytest.mark.asyncio
+async def test_recv(mock_client):
+    """Test recv()."""
+    stream = _AsyncReadObjectStream(mock_client)
+    stream.socket_like_rpc = mock.AsyncMock()
+    mock_response = mock.Mock()
+    stream.socket_like_rpc.recv.return_value = mock_response
+    response = await stream.recv()
+    stream.socket_like_rpc.recv.assert_awaited_once()
+    assert response is mock_response
