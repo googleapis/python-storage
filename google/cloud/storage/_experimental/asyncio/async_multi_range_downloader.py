@@ -127,7 +127,7 @@ class AsyncMultiRangeDownloader:
         provided by user.
 
         Args:
-            read_ranges (List[Tuple[int, int]]): A list of tuples, where each
+            read_ranges (List[Tuple[int, int, BytesIO]]): A list of tuples, where each
             tuple represents a byte range (start_byte, end_byte, buffer) to download.
 
         """
