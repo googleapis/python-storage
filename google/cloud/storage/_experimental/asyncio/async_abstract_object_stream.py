@@ -46,16 +46,16 @@ class _AsyncAbstractObjectStream(abc.ABC):
 
     @abc.abstractmethod
     async def open(self) -> None:
-        raise NotImplementedError("Subclasses should implement this method.")
+        pass
 
     @abc.abstractmethod
     async def close(self) -> None:
-        raise NotImplementedError("Subclasses should implement this method.")
+        pass
 
     @abc.abstractmethod
     async def send(self, message: Any) -> None:
-        raise NotImplementedError("Subclasses should implement this method.")
+        pass
 
     @abc.abstractmethod
     async def recv(self) -> Any:
-        raise NotImplementedError("Subclasses should implement this method.")
+        pass
