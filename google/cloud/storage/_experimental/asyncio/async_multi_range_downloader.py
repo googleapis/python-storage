@@ -23,6 +23,8 @@ from google.cloud.storage._experimental.asyncio.async_grpc_client import (
     AsyncGrpcClient,
 )
 
+from io import BytesIO
+
 
 class MultiRangeDownloader:
     """Provides an interface for downloading multiple ranges of a GCS object concurrently."""
@@ -114,12 +116,14 @@ class MultiRangeDownloader:
         self.read_handle = self.read_obj_str.read_handle
         return
 
-    async def download_ranges(self, read_ranges: List[Tuple[int, int]]) -> Any:
-        """Downloads multiple byte ranges from the object.
+    async def download_ranges(self, read_ranges: List[Tuple[int, int, BytesIO]]) -> Any:
+        """Downloads multiple byte ranges from the object into the buffers
+        provided by user.
 
         Args:
-            read_ranges (List[Tuple[int, int]]): A list of tuples, where each tuple represents
-                                a byte range (offset, length) to download.
+            read_ranges (List[Tuple[int, int]]): A list of tuples, where each
+            tuple represents a byte range (start_byte, end_byte, buffer) to download.
+
 
         Raises:
             NotImplementedError: This method is not yet implemented.

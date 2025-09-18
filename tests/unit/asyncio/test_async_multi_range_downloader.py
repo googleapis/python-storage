@@ -18,6 +18,7 @@ from unittest import mock
 from google.cloud.storage._experimental.asyncio.async_multi_range_downloader import (
     MultiRangeDownloader,
 )
+from io import BytesIO
 
 
 @pytest.fixture
@@ -169,4 +170,4 @@ async def test_download_ranges(mock_async_grpc_client):
     """Test that download_ranges() raises NotImplementedError."""
     mrd = MultiRangeDownloader(mock_async_grpc_client)
     with pytest.raises(NotImplementedError):
-        await mrd.download_ranges([(0, 100)])
+        await mrd.download_ranges([(0, 100, BytesIO())])
