@@ -22,59 +22,64 @@ if you want to use these APIs.
 
 """
 
+from typing import Any, Optional
+from google.cloud import _storage_v2
+from google.cloud.storage._experimental.asyncio.async_grpc_client import AsyncGrpcClient
 from google.cloud.storage._experimental.asyncio.async_abstract_object_stream import (
     _AsyncAbstractObjectStream,
 )
 
 
 class _AsyncReadObjectStream(_AsyncAbstractObjectStream):
-    """Provides an asynchronous, streaming interface for reading from a GCS object.
+    """Class representing a gRPC bidi-stream for reading data from a GCS ``Object``.
 
-    This class provides a unix socket-like interface to a GCS Object, with
+    This class provides a unix socket-like interface to a GCS ``Object``, with
     methods like ``open``, ``close``, ``send``, and ``recv``.
 
-    :type client: :class:`~google.cloud.storage.aio.Client`
-    :param client: The asynchronous client to use for making API requests.
+    :type client: :class:`~google.cloud.storage.asyncio.AsyncGrpcClient`
+    :param client: async grpc client to use for making API requests.
 
     :type bucket_name: str
-    :param bucket_name: The name of the bucket containing the object.
+    :param bucket_name: The name of the GCS ``bucket`` containing the object.
 
     :type object_name: str
-    :param object_name: The name of the object to be read.
+    :param object_name: The name of the GCS ``object`` to be read.
 
     :type generation_number: int
     :param generation_number: (Optional) If present, selects a specific revision of
                               this object.
 
-    :type read_handle: object
+    :type read_handle: bytes
     :param read_handle: (Optional) An existing handle for reading the object.
                         If provided, opening the bidi-gRPC connection will be faster.
     """
 
     def __init__(
         self,
-        client,
-        bucket_name=None,
-        object_name=None,
-        generation_number=None,
-        read_handle=None,
-    ):
+        client: AsyncGrpcClient,
+        bucket_name: Optional[str] = None,
+        object_name: Optional[str] = None,
+        generation_number: Optional[int] = None,
+        read_handle: Optional[bytes] = None,
+    ) -> None:
         super().__init__(
             bucket_name=bucket_name,
             object_name=object_name,
             generation_number=generation_number,
         )
-        self.client = client
-        self.read_handle = read_handle
+        self.client: AsyncGrpcClient = client
+        self.read_handle: Optional[bytes] = read_handle
 
     async def open(self) -> None:
         pass
 
-    async def close(self):
+    async def close(self) -> None:
         pass
 
-    async def send(self, bidi_read_object_request):
+    async def send(
+        self, bidi_read_object_request: _storage_v2.BidiReadObjectRequest
+    ) -> None:
         pass
 
-    async def recv(self):
+    async def recv(self) -> Any:
         pass
