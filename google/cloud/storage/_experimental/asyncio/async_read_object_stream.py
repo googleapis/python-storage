@@ -38,7 +38,7 @@ class _AsyncReadObjectStream(_AsyncAbstractObjectStream):
     This class provides a unix socket-like interface to a GCS ``Object``, with
     methods like ``open``, ``close``, ``send``, and ``recv``.
 
-    :type client: :class:`~google.cloud.storage.asyncio.AsyncGrpcClient`
+    :type client: :class:`~google.cloud.storage._experimental.asyncio.async_grpc_client.AsyncGrpcClient.grpc_client`
     :param client: async grpc client to use for making API requests.
 
     :type bucket_name: str
@@ -58,7 +58,7 @@ class _AsyncReadObjectStream(_AsyncAbstractObjectStream):
 
     def __init__(
         self,
-        client: AsyncGrpcClient,
+        client: AsyncGrpcClient.grpc_client,
         bucket_name: Optional[str] = None,
         object_name: Optional[str] = None,
         generation_number: Optional[int] = None,
@@ -69,7 +69,7 @@ class _AsyncReadObjectStream(_AsyncAbstractObjectStream):
             object_name=object_name,
             generation_number=generation_number,
         )
-        self.client: AsyncGrpcClient = client
+        self.client: AsyncGrpcClient.grpc_client = client
         self.read_handle: Optional[bytes] = read_handle
 
         self._full_bucket_name = f"projects/_/buckets/{self.bucket_name}"
