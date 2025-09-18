@@ -52,10 +52,12 @@ def test_init():
     assert stream.read_handle == read_handle
 
     # Test with default parameters
-    stream_defaults = _AsyncReadObjectStream(mock_client)
+    stream_defaults = _AsyncReadObjectStream(
+        mock_client, bucket_name=bucket_name, object_name=object_name
+    )
     assert stream_defaults.client is mock_client
-    assert stream_defaults.bucket_name is None
-    assert stream_defaults.object_name is None
+    assert stream_defaults.bucket_name is bucket_name
+    assert stream_defaults.object_name is object_name
     assert stream_defaults.generation_number is None
     assert stream_defaults.read_handle is None
 
@@ -64,7 +66,7 @@ def test_init():
 async def test_async_methods_are_awaitable():
     """Test that the async methods exist and are awaitable."""
     mock_client = mock.Mock(name="client")
-    stream = _AsyncReadObjectStream(mock_client)
+    stream = _AsyncReadObjectStream(mock_client, "bucket", "object")
 
     # These methods are currently empty, but we can test they are awaitable
     # and don't raise exceptions.
