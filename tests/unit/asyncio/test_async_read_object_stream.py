@@ -54,7 +54,7 @@ def test_init(mock_storage_v2, mock_async_bidi_rpc, mock_client):
     bucket_name = "test-bucket"
     object_name = "test-object"
     generation = 12345
-    read_handle = "some-handle"
+    read_handle = b"some-handle"
 
     # Test with all parameters
     stream = _AsyncReadObjectStream(
@@ -138,7 +138,7 @@ async def test_open(mock_client):
 
     mock_response = mock.Mock()
     mock_response.metadata.generation = 98765
-    mock_response.read_handle = "test-read-handle"
+    mock_response.read_handle = b"test-read-handle"
     stream.socket_like_rpc.recv.return_value = mock_response
 
     await stream.open()
@@ -146,7 +146,7 @@ async def test_open(mock_client):
     stream.socket_like_rpc.open.assert_awaited_once()
     stream.socket_like_rpc.recv.assert_awaited_once()
     assert stream.generation_number == 98765
-    assert stream.read_handle == "test-read-handle"
+    assert stream.read_handle == b"test-read-handle"
 
 
 @pytest.mark.asyncio
@@ -163,7 +163,7 @@ async def test_open_with_generation_set(mock_client):
 
     mock_response = mock.Mock()
     mock_response.metadata.generation = 98765
-    mock_response.read_handle = "test-read-handle"
+    mock_response.read_handle = b"test-read-handle"
     stream.socket_like_rpc.recv.return_value = mock_response
 
     await stream.open()
@@ -171,7 +171,7 @@ async def test_open_with_generation_set(mock_client):
     stream.socket_like_rpc.open.assert_awaited_once()
     stream.socket_like_rpc.recv.assert_awaited_once()
     assert stream.generation_number == initial_generation  # Should not change
-    assert stream.read_handle == "test-read-handle"
+    assert stream.read_handle == b"test-read-handle"
 
 
 @pytest.mark.asyncio

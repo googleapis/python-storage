@@ -54,7 +54,7 @@ class _AsyncReadObjectStream(_AsyncAbstractObjectStream):
     :param generation_number: (Optional) If present, selects a specific revision of
                               this object.
 
-    :type read_handle: object
+    :type read_handle: bytes
     :param read_handle: (Optional) An existing handle for reading the object.
                         If provided, opening the bidi-gRPC connection will be faster.
     """
@@ -65,7 +65,7 @@ class _AsyncReadObjectStream(_AsyncAbstractObjectStream):
         bucket_name: Optional[str] = None,
         object_name: Optional[str] = None,
         generation_number: Optional[int] = None,
-        read_handle: Optional[str] = None,
+        read_handle: Optional[bytes] = None,
     ) -> None:
         super().__init__(
             bucket_name=bucket_name,
