@@ -17,10 +17,10 @@ from typing import Any, Optional
 
 
 class _AsyncAbstractObjectStream(abc.ABC):
-    """Abstract base class for asynchronous object streams.
+    """Abstract base class to represent gRPC stream for GCS ``Object``.
 
-    This class defines the common interface for both reading from and writing
-    to a GCS object in a streaming fashion.
+    Concrete implementation of this class could be ``_AsyncReadObjectStream``
+    or ``_AsyncWriteObjectStream``.
 
     :type bucket_name: str
     :param bucket_name: (Optional) The name of the bucket containing the object.
@@ -31,6 +31,10 @@ class _AsyncAbstractObjectStream(abc.ABC):
     :type generation_number: int
     :param generation_number: (Optional) If present, selects a specific revision of
                               this object.
+
+    :type handle: bytes
+    :param handle: (Optional) The handle for the object, could be read_handle or
+                   write_handle, based on how the stream is used.
     """
 
     def __init__(
@@ -38,11 +42,13 @@ class _AsyncAbstractObjectStream(abc.ABC):
         bucket_name: Optional[str] = None,
         object_name: Optional[str] = None,
         generation_number: Optional[int] = None,
+        handle: Optional[bytes] = None,
     ) -> None:
         super().__init__()
         self.bucket_name: Optional[str] = bucket_name
         self.object_name: Optional[str] = object_name
         self.generation_number: Optional[int] = generation_number
+        self.handle: Optional[bytes] = handle
 
     @abc.abstractmethod
     async def open(self) -> None:
@@ -53,7 +59,7 @@ class _AsyncAbstractObjectStream(abc.ABC):
         pass
 
     @abc.abstractmethod
-    async def send(self, message: Any) -> None:
+    async def send(self, protobuf: Any) -> None:
         pass
 
     @abc.abstractmethod
