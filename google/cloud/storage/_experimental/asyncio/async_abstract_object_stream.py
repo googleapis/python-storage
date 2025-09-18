@@ -17,10 +17,10 @@ from typing import Any, Optional
 
 
 class _AsyncAbstractObjectStream(abc.ABC):
-    """Abstract base class for asynchronous object streams.
+    """Abstract base class to represent gRPC stream for GCS ``Object``.
 
-    This class defines the common interface for both reading from and writing
-    to a GCS object in a streaming fashion.
+    Concrete implementation of this class could be ``_AsyncReadObjectStream``
+    or ``_AsyncWriteObjectStream``.
 
     :type bucket_name: str
     :param bucket_name: (Optional) The name of the bucket containing the object.
@@ -59,7 +59,7 @@ class _AsyncAbstractObjectStream(abc.ABC):
         pass
 
     @abc.abstractmethod
-    async def send(self, message: Any) -> None:
+    async def send(self, protobuf: Any) -> None:
         pass
 
     @abc.abstractmethod
