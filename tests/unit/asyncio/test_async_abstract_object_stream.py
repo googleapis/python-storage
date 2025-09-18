@@ -39,18 +39,23 @@ def test_init():
     bucket_name = "test-bucket"
     object_name = "test-object"
     generation = 12345
+    handle = b"test-handle"
 
     # Test with all parameters
-    stream = _ConcreteStream(bucket_name, object_name, generation_number=generation)
+    stream = _ConcreteStream(
+        bucket_name, object_name, generation_number=generation, handle=handle
+    )
     assert stream.bucket_name == bucket_name
     assert stream.object_name == object_name
     assert stream.generation_number == generation
+    assert stream.handle == handle
 
     # Test with default generation_number
     stream_no_gen = _ConcreteStream(bucket_name, object_name)
     assert stream_no_gen.bucket_name == bucket_name
     assert stream_no_gen.object_name == object_name
     assert stream_no_gen.generation_number is None
+    assert stream_no_gen.handle is None
 
 
 def test_instantiation_fails_without_implementation():
