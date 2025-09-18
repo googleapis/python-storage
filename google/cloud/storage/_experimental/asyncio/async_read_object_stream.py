@@ -59,8 +59,8 @@ class _AsyncReadObjectStream(_AsyncAbstractObjectStream):
     def __init__(
         self,
         client: AsyncGrpcClient.grpc_client,
-        bucket_name: Optional[str] = None,
-        object_name: Optional[str] = None,
+        bucket_name: str,
+        object_name: str,
         generation_number: Optional[int] = None,
         read_handle: Optional[bytes] = None,
     ) -> None:

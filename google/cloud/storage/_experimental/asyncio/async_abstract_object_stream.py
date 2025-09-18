@@ -39,14 +39,14 @@ class _AsyncAbstractObjectStream(abc.ABC):
 
     def __init__(
         self,
-        bucket_name: Optional[str] = None,
-        object_name: Optional[str] = None,
+        bucket_name: str,
+        object_name: str,
         generation_number: Optional[int] = None,
         handle: Optional[bytes] = None,
     ) -> None:
         super().__init__()
-        self.bucket_name: Optional[str] = bucket_name
-        self.object_name: Optional[str] = object_name
+        self.bucket_name: str = bucket_name
+        self.object_name: str = object_name
         self.generation_number: Optional[int] = generation_number
         self.handle: Optional[bytes] = handle
 
