@@ -16,7 +16,7 @@ import pytest
 from unittest import mock
 
 from google.cloud.storage._experimental.asyncio.async_multi_range_downloader import (
-    MultiRangeDownloader,
+    AsyncMultiRangeDownloader,
 )
 from io import BytesIO
 
@@ -48,7 +48,7 @@ def test_init(mock_async_grpc_client):
     generation = 123
     read_handle = b"test-handle"
 
-    mrd = MultiRangeDownloader(
+    mrd = AsyncMultiRangeDownloader(
         client,
         bucket_name=bucket_name,
         object_name=object_name,
@@ -71,7 +71,7 @@ async def test_open(mock_async_grpc_client, mock_async_read_object_stream):
     bucket_name = "test-bucket"
     object_name = "test-object"
 
-    mrd = MultiRangeDownloader(
+    mrd = AsyncMultiRangeDownloader(
         client,
         bucket_name=bucket_name,
         object_name=object_name,
@@ -105,7 +105,7 @@ async def test_open_with_generation(
     object_name = "test-object"
     initial_generation = 456
 
-    mrd = MultiRangeDownloader(
+    mrd = AsyncMultiRangeDownloader(
         client,
         bucket_name=bucket_name,
         object_name=object_name,
@@ -137,7 +137,7 @@ async def test_open_with_generation(
 async def test_create_mrd(mock_async_grpc_client):
     """Test the create_mrd() factory method."""
     with mock.patch(
-        "google.cloud.storage._experimental.asyncio.async_multi_range_downloader.MultiRangeDownloader.open",
+        "google.cloud.storage._experimental.asyncio.async_multi_range_downloader.AsyncMultiRangeDownloader.open",
         new_callable=mock.AsyncMock,
     ) as mock_open:
         client = mock_async_grpc_client
@@ -145,11 +145,11 @@ async def test_create_mrd(mock_async_grpc_client):
         object_name = "test-object"
         generation = 123
 
-        mrd = await MultiRangeDownloader.create_mrd(
+        mrd = await AsyncMultiRangeDownloader.create_mrd(
             client, bucket_name, object_name, generation_number=generation
         )
 
-        assert isinstance(mrd, MultiRangeDownloader)
+        assert isinstance(mrd, AsyncMultiRangeDownloader)
         assert mrd.client is client
         assert mrd.bucket_name == bucket_name
         assert mrd.object_name == object_name
@@ -160,7 +160,7 @@ async def test_create_mrd(mock_async_grpc_client):
 def test_create_mrd_from_read_handle(mock_async_grpc_client):
     """Test that create_mrd_from_read_handle() raises NotImplementedError."""
     with pytest.raises(NotImplementedError):
-        MultiRangeDownloader.create_mrd_from_read_handle(
+        AsyncMultiRangeDownloader.create_mrd_from_read_handle(
             mock_async_grpc_client, b"handle"
         )
 
@@ -168,6 +168,6 @@ def test_create_mrd_from_read_handle(mock_async_grpc_client):
 @pytest.mark.asyncio
 async def test_download_ranges(mock_async_grpc_client):
     """Test that download_ranges() raises NotImplementedError."""
-    mrd = MultiRangeDownloader(mock_async_grpc_client)
+    mrd = AsyncMultiRangeDownloader(mock_async_grpc_client)
     with pytest.raises(NotImplementedError):
         await mrd.download_ranges([(0, 100, BytesIO())])

@@ -26,7 +26,7 @@ from google.cloud.storage._experimental.asyncio.async_grpc_client import (
 from io import BytesIO
 
 
-class MultiRangeDownloader:
+class AsyncMultiRangeDownloader:
     """Provides an interface for downloading multiple ranges of a GCS object concurrently."""
 
     @classmethod
@@ -36,7 +36,7 @@ class MultiRangeDownloader:
         bucket_name: str,
         object_name: str,
         generation_number: Optional[int] = None,
-    ) -> MultiRangeDownloader:
+    ) -> AsyncMultiRangeDownloader:
         """Asynchronously creates and initializes a MultiRangeDownloader.
 
         This factory method creates an instance of MultiRangeDownloader and
@@ -59,7 +59,7 @@ class MultiRangeDownloader:
     @classmethod
     def create_mrd_from_read_handle(
         cls, client: AsyncGrpcClient, read_handle: bytes
-    ) -> MultiRangeDownloader:
+    ) -> AsyncMultiRangeDownloader:
         """Creates a MultiRangeDownloader from an existing read handle.
 
         Args:
