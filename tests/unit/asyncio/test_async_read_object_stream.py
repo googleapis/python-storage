@@ -69,6 +69,7 @@ def test_init_with_bucket_object_generation(mock_client, mock_async_bidi_rpc):
 )
 @pytest.mark.asyncio
 async def test_open(mock_client):
+    # arrange
     read_obj_stream = _AsyncReadObjectStream(
         client=mock_client,
         bucket_name=_TEST_BUCKET_NAME,
@@ -82,10 +83,79 @@ async def test_open(mock_client):
     recv_response.read_handle = _TEST_READ_HANDLE
     read_obj_stream.socket_like_rpc.recv = AsyncMock(return_value=recv_response)
 
+    # act
     await read_obj_stream.open()
 
+    # assert
     read_obj_stream.socket_like_rpc.open.assert_called_once()
     read_obj_stream.socket_like_rpc.recv.assert_called_once()
 
     assert read_obj_stream.generation_number == _TEST_GENERATION_NUMBER
     assert read_obj_stream.read_handle == _TEST_READ_HANDLE
+
+
+@mock.patch(
+    "google.cloud.storage._experimental.asyncio.async_grpc_client.AsyncGrpcClient.grpc_client"
+)
+@pytest.mark.asyncio
+async def test_close(mock_client):
+    # arrange
+    read_obj_stream = _AsyncReadObjectStream(
+        client=mock_client,
+        bucket_name=_TEST_BUCKET_NAME,
+        object_name=_TEST_OBJECT_NAME,
+    )
+    read_obj_stream.socket_like_rpc.close = AsyncMock()
+
+    # act
+    await read_obj_stream.close()
+
+    # assert
+    read_obj_stream.socket_like_rpc.close.assert_called_once()
+
+
+@mock.patch(
+    "google.cloud.storage._experimental.asyncio.async_grpc_client.AsyncGrpcClient.grpc_client"
+)
+@pytest.mark.asyncio
+async def test_send(mock_client):
+    # arrange
+    read_obj_stream = _AsyncReadObjectStream(
+        client=mock_client,
+        bucket_name=_TEST_BUCKET_NAME,
+        object_name=_TEST_OBJECT_NAME,
+    )
+    read_obj_stream.socket_like_rpc.send = AsyncMock()
+
+    # act
+    bidi_read_object_request = _storage_v2.BidiReadObjectRequest()
+    await read_obj_stream.send(bidi_read_object_request)
+
+    # assert
+    read_obj_stream.socket_like_rpc.send.assert_called_once_with(
+        bidi_read_object_request
+    )
+
+
+@mock.patch(
+    "google.cloud.storage._experimental.asyncio.async_grpc_client.AsyncGrpcClient.grpc_client"
+)
+@pytest.mark.asyncio
+async def test_recv(mock_client):
+    # arrange
+    read_obj_stream = _AsyncReadObjectStream(
+        client=mock_client,
+        bucket_name=_TEST_BUCKET_NAME,
+        object_name=_TEST_OBJECT_NAME,
+    )
+    bidi_read_object_response = _storage_v2.BidiReadObjectResponse()
+    read_obj_stream.socket_like_rpc.recv = AsyncMock(
+        return_value=bidi_read_object_response
+    )
+
+    # act
+    response = await read_obj_stream.recv()
+
+    # assert
+    read_obj_stream.socket_like_rpc.recv.assert_called_once()
+    assert response == bidi_read_object_response

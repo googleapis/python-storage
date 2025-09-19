@@ -104,12 +104,9 @@ class _AsyncReadObjectStream(_AsyncAbstractObjectStream):
 
         self.read_handle = response.read_handle
 
-        return
-
     async def close(self) -> None:
         """Closes the bidi-gRPC connection."""
         await self.socket_like_rpc.close()
-        return
 
     async def send(
         self, bidi_read_object_request: _storage_v2.BidiReadObjectRequest
@@ -122,7 +119,6 @@ class _AsyncReadObjectStream(_AsyncAbstractObjectStream):
                 the read offset and limit.
         """
         await self.socket_like_rpc.send(bidi_read_object_request)
-        return
 
     async def recv(self) -> _storage_v2.BidiReadObjectResponse:
         """Receives a response from the stream.
@@ -134,5 +130,4 @@ class _AsyncReadObjectStream(_AsyncAbstractObjectStream):
             :class:`~google.cloud._storage_v2.types.BidiReadObjectResponse`:
                 The response message from the server.
         """
-        bidi_read_object_response = await self.socket_like_rpc.recv()
-        return bidi_read_object_response
+        return await self.socket_like_rpc.recv()
