@@ -14,6 +14,7 @@
 
 import pytest
 from unittest import mock
+from unittest.mock import AsyncMock
 from google.cloud import _storage_v2
 
 from google.cloud.storage._experimental.asyncio.async_abstract_object_stream import (
@@ -23,24 +24,10 @@ from google.cloud.storage._experimental.asyncio.async_read_object_stream import 
     _AsyncReadObjectStream,
 )
 
-
-@pytest.fixture
-def mock_client():
-    """A mock client for testing."""
-    mock_rpc = mock.Mock(name="rpc")
-    mock_transport = mock.Mock(name="transport")
-    mock_transport.bidi_read_object = "bidi_read_object_key"
-    mock_transport._wrapped_methods = {"bidi_read_object_key": mock_rpc}
-    mock_gapic_client = mock.Mock(name="gapic_client")
-    mock_gapic_client._transport = mock_transport
-    mock_client = mock.Mock(name="client")
-    mock_client._client = mock_gapic_client
-    return mock_client
-
-
-def test_inheritance():
-    """Test that _AsyncReadObjectStream inherits from _AsyncAbstractObjectStream."""
-    assert issubclass(_AsyncReadObjectStream, _AsyncAbstractObjectStream)
+_TEST_BUCKET_NAME = "test-bucket"
+_TEST_OBJECT_NAME = "test-object"
+_TEST_GENERATION_NUMBER = 12345
+_TEST_READ_HANDLE = b"test-read-handle"
 
 
 @mock.patch(
@@ -50,30 +37,55 @@ def test_inheritance():
     "google.cloud.storage._experimental.asyncio.async_grpc_client.AsyncGrpcClient.grpc_client"
 )
 def test_init_with_bucket_object_generation(mock_client, mock_async_bidi_rpc):
-    # initialize with bucket, object_name and generation number.  & client.
-    bucket_name = "test-bucket"
-    object_name = "test-object"
-    generation_number = 12345
+
     mock_client._client._transport.bidi_read_object = "bidi_read_object_rpc"
     mock_client._client._transport._wrapped_methods = {
         "bidi_read_object_rpc": mock.sentinel.A
     }
+    full_bucket_name = f"projects/_/buckets/{_TEST_BUCKET_NAME}"
+    first_bidi_read_req = _storage_v2.BidiReadObjectRequest(
+        read_object_spec=_storage_v2.BidiReadObjectSpec(
+            bucket=full_bucket_name, object=_TEST_OBJECT_NAME
+        ),
+    )
 
     read_obj_stream = _AsyncReadObjectStream(
         client=mock_client,
-        bucket_name=bucket_name,
-        object_name=object_name,
-        generation_number=generation_number,
+        bucket_name=_TEST_BUCKET_NAME,
+        object_name=_TEST_OBJECT_NAME,
+        generation_number=_TEST_GENERATION_NUMBER,
     )
-    full_bucket_name = f"projects/_/buckets/{bucket_name}"
-    first_bidi_read_req = _storage_v2.BidiReadObjectRequest(
-        read_object_spec=_storage_v2.BidiReadObjectSpec(
-            bucket=full_bucket_name, object=object_name
-        ),
-    )
+
     mock_async_bidi_rpc.assert_called_once_with(
         mock.sentinel.A,
         initial_request=first_bidi_read_req,
         metadata=(("x-goog-request-params", f"bucket={full_bucket_name}"),),
     )
     assert read_obj_stream.socket_like_rpc is mock_async_bidi_rpc.return_value
+
+
+@mock.patch(
+    "google.cloud.storage._experimental.asyncio.async_grpc_client.AsyncGrpcClient.grpc_client"
+)
+@pytest.mark.asyncio
+async def test_open(mock_client):
+    read_obj_stream = _AsyncReadObjectStream(
+        client=mock_client,
+        bucket_name=_TEST_BUCKET_NAME,
+        object_name=_TEST_OBJECT_NAME,
+    )
+    read_obj_stream.socket_like_rpc.open = AsyncMock()
+
+    recv_response = mock.MagicMock(spec=_storage_v2.BidiReadObjectResponse)
+    recv_response.metadata = mock.MagicMock(spec=_storage_v2.Object)
+    recv_response.metadata.generation = _TEST_GENERATION_NUMBER
+    recv_response.read_handle = _TEST_READ_HANDLE
+    read_obj_stream.socket_like_rpc.recv = AsyncMock(return_value=recv_response)
+
+    await read_obj_stream.open()
+
+    read_obj_stream.socket_like_rpc.open.assert_called_once()
+    read_obj_stream.socket_like_rpc.recv.assert_called_once()
+
+    assert read_obj_stream.generation_number == _TEST_GENERATION_NUMBER
+    assert read_obj_stream.read_handle == _TEST_READ_HANDLE
