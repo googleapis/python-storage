@@ -17,7 +17,7 @@ from typing import Any, Optional
 
 
 class _AsyncAbstractObjectStream(abc.ABC):
-    """Abstract base class to represent gRPC stream for GCS ``Object``.
+    """Abstract base class to represent gRPC bidi-stream for GCS ``Object``.
 
     Concrete implementation of this class could be ``_AsyncReadObjectStream``
     or ``_AsyncWriteObjectStream``.
