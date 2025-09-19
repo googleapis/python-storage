@@ -22,8 +22,9 @@ if you want to use these APIs.
 
 """
 
-from typing import Optional
-
+from typing import Any, Optional
+from google.cloud import _storage_v2
+from google.cloud.storage._experimental.asyncio.async_grpc_client import AsyncGrpcClient
 from google.cloud.storage._experimental.asyncio.async_abstract_object_stream import (
     _AsyncAbstractObjectStream,
 )
@@ -36,19 +37,19 @@ from google.cloud.storage._experimental.asyncio.async_grpc_client import (
 
 
 class _AsyncReadObjectStream(_AsyncAbstractObjectStream):
-    """Provides an asynchronous, streaming interface for reading from a GCS object.
+    """Class representing a gRPC bidi-stream for reading data from a GCS ``Object``.
 
-    This class provides a unix socket-like interface to a GCS Object, with
+    This class provides a unix socket-like interface to a GCS ``Object``, with
     methods like ``open``, ``close``, ``send``, and ``recv``.
 
-    :type client: :class:`~google.cloud.storage.aio.Client`
-    :param client: The asynchronous client to use for making API requests.
+    :type client: :class:`~google.cloud.storage._experimental.asyncio.async_grpc_client.AsyncGrpcClient.grpc_client`
+    :param client: async grpc client to use for making API requests.
 
     :type bucket_name: str
-    :param bucket_name: The name of the bucket containing the object.
+    :param bucket_name: The name of the GCS ``bucket`` containing the object.
 
     :type object_name: str
-    :param object_name: The name of the object to be read.
+    :param object_name: The name of the GCS ``object`` to be read.
 
     :type generation_number: int
     :param generation_number: (Optional) If present, selects a specific revision of
@@ -61,9 +62,9 @@ class _AsyncReadObjectStream(_AsyncAbstractObjectStream):
 
     def __init__(
         self,
-        client: AsyncGrpcClient,
-        bucket_name: Optional[str] = None,
-        object_name: Optional[str] = None,
+        client: AsyncGrpcClient.grpc_client,
+        bucket_name: str,
+        object_name: str,
         generation_number: Optional[int] = None,
         read_handle: Optional[bytes] = None,
     ) -> None:
@@ -72,8 +73,8 @@ class _AsyncReadObjectStream(_AsyncAbstractObjectStream):
             object_name=object_name,
             generation_number=generation_number,
         )
-        self.client = client
-        self.read_handle = read_handle
+        self.client: AsyncGrpcClient.grpc_client = client
+        self.read_handle: Optional[bytes] = read_handle
 
         self._full_bucket_name = f"projects/_/buckets/{self.bucket_name}"
 
@@ -103,12 +104,9 @@ class _AsyncReadObjectStream(_AsyncAbstractObjectStream):
 
         self.read_handle = response.read_handle
 
-        return
-
     async def close(self) -> None:
         """Closes the bidi-gRPC connection."""
         await self.socket_like_rpc.close()
-        return
 
     async def send(
         self, bidi_read_object_request: _storage_v2.BidiReadObjectRequest
@@ -121,7 +119,6 @@ class _AsyncReadObjectStream(_AsyncAbstractObjectStream):
                 the read offset and limit.
         """
         await self.socket_like_rpc.send(bidi_read_object_request)
-        return
 
     async def recv(self) -> _storage_v2.BidiReadObjectResponse:
         """Receives a response from the stream.
@@ -133,5 +130,4 @@ class _AsyncReadObjectStream(_AsyncAbstractObjectStream):
             :class:`~google.cloud._storage_v2.types.BidiReadObjectResponse`:
                 The response message from the server.
         """
-        bidi_read_object_response = await self.socket_like_rpc.recv()
-        return bidi_read_object_response
+        return await self.socket_like_rpc.recv()
