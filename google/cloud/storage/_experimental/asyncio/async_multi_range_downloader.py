@@ -30,34 +30,29 @@ class AsyncMultiRangeDownloader:
     """Provides an interface for downloading multiple ranges of a GCS ``Object``
     concurrently.
 
-
     Example usage:
 
     .. code-block:: python
 
-
-    ```
-    client = AsyncGrpcClient().grpc_client
-    mrd = await AsyncMultiRangeDownloader.create_mrd(
-        client, bucket_name="chandrasiri-rs", object_name="test_open9"
-    )
-    my_buff1 = BytesIO()
-    my_buff2 = BytesIO()
-    my_buff3 = BytesIO()
-    my_buff4 = BytesIO()
-    buffers = [my_buff1, my_buff2, my_buff3, my_buff4]
-    await mrd.download_ranges(
-        [
-            (0, 100, my_buff1),
-            (100, 200, my_buff2),
-            (200, 300, my_buff3),
-            (300, 400, my_buff4),
-        ]
-    )
-    for buff in buffers:
-        print("downloaded bytes", buff.getbuffer().nbytes)
-    ```
-
+        client = AsyncGrpcClient().grpc_client
+        mrd = await AsyncMultiRangeDownloader.create_mrd(
+            client, bucket_name="chandrasiri-rs", object_name="test_open9"
+        )
+        my_buff1 = BytesIO()
+        my_buff2 = BytesIO()
+        my_buff3 = BytesIO()
+        my_buff4 = BytesIO()
+        buffers = [my_buff1, my_buff2, my_buff3, my_buff4]
+        await mrd.download_ranges(
+            [
+                (0, 100, my_buff1),
+                (100, 200, my_buff2),
+                (200, 300, my_buff3),
+                (300, 400, my_buff4),
+            ]
+        )
+        for buff in buffers:
+            print("downloaded bytes", buff.getbuffer().nbytes)
 
     """
 
