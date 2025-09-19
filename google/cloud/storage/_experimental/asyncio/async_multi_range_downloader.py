@@ -32,7 +32,7 @@ class AsyncMultiRangeDownloader:
     @classmethod
     async def create_mrd(
         cls,
-        client: AsyncGrpcClient,
+        client: AsyncGrpcClient.grpc_client,
         bucket_name: str,
         object_name: str,
         generation_number: Optional[int] = None,
@@ -43,7 +43,7 @@ class AsyncMultiRangeDownloader:
         opens the underlying bidi-gRPC connection.
 
         Args:
-            client (AsyncGrpcClient): The asynchronous client to use for making API requests.
+            client (AsyncGrpcClient.grpc_client): The asynchronous client to use for making API requests.
             bucket_name (str): The name of the bucket containing the object.
             object_name (str): The name of the object to be read.
             generation_number (int, optional): If present, selects a specific
@@ -58,12 +58,12 @@ class AsyncMultiRangeDownloader:
 
     @classmethod
     def create_mrd_from_read_handle(
-        cls, client: AsyncGrpcClient, read_handle: bytes
+        cls, client: AsyncGrpcClient.grpc_client, read_handle: bytes
     ) -> AsyncMultiRangeDownloader:
         """Creates a MultiRangeDownloader from an existing read handle.
 
         Args:
-            client (AsyncGrpcClient): The asynchronous client to use for making API requests.
+            client (AsyncGrpcClient.grpc_client): The asynchronous client to use for making API requests.
             read_handle (bytes): An existing handle for reading the object.
 
         Raises:
@@ -73,7 +73,7 @@ class AsyncMultiRangeDownloader:
 
     def __init__(
         self,
-        client: AsyncGrpcClient,
+        client: AsyncGrpcClient.grpc_client,
         bucket_name: Optional[str] = None,
         object_name: Optional[str] = None,
         generation_number: Optional[int] = None,
@@ -82,7 +82,7 @@ class AsyncMultiRangeDownloader:
         """Initializes a MultiRangeDownloader.
 
         Args:
-            client (AsyncGrpcClient): The asynchronous client to use for making API requests.
+            client (AsyncGrpcClient.grpc_client): The asynchronous client to use for making API requests.
             bucket_name (str, optional): The name of the bucket. Defaults to None.
             object_name (str, optional): The name of the object. Defaults to None.
             generation_number (int, optional): The generation number of the object.
