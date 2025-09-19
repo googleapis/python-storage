@@ -4,6 +4,14 @@
 
 [1]: https://pypi.org/project/google-cloud-storage/#history
 
+## [3.5.0](https://github.com/googleapis/python-storage/compare/v3.4.0...v3.5.0) (2025-09-19)
+
+
+### Features
+
+* Add async bidiRpc files in python-storage ([#1545](https://github.com/googleapis/python-storage/issues/1545)) ([8b988ad](https://github.com/googleapis/python-storage/commit/8b988ade0aae184f6404ac85391bc305e8dd1d94))
+* **experimental:** Add AsyncAbstractObjectStream ([#1546](https://github.com/googleapis/python-storage/issues/1546)) ([71e0904](https://github.com/googleapis/python-storage/commit/71e0904d9b311ba520188ced0a60d1fc7eb10072))
+
 ## [3.4.0](https://github.com/googleapis/python-storage/compare/v3.3.1...v3.4.0) (2025-09-15)
 
 
