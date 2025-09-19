@@ -16,7 +16,7 @@ NOTE:
 This is _experimental module for upcoming support for Rapid Storage.
 (https://cloud.google.com/blog/products/storage-data-transfer/high-performance-storage-innovations-for-ai-hpc#:~:text=your%20AI%20workloads%3A-,Rapid%20Storage,-%3A%20A%20new)
 
-APIs may not work as intented and are not stable yet. Feature is not
+APIs may not work as intended and are not stable yet. Feature is not
 GA(Generally Available) yet, please contact your TAM(Technical Account Manager)
 if you want to use these APIs.
 
@@ -36,7 +36,7 @@ class _AsyncReadObjectStream(_AsyncAbstractObjectStream):
     This class provides a unix socket-like interface to a GCS ``Object``, with
     methods like ``open``, ``close``, ``send``, and ``recv``.
 
-    :type client: :class:`~google.cloud.storage.asyncio.AsyncGrpcClient`
+    :type client: :class:`~google.cloud.storage.asyncio.AsyncGrpcClient.grpc_client`
     :param client: async grpc client to use for making API requests.
 
     :type bucket_name: str
@@ -56,18 +56,25 @@ class _AsyncReadObjectStream(_AsyncAbstractObjectStream):
 
     def __init__(
         self,
-        client: AsyncGrpcClient,
+        client: AsyncGrpcClient.grpc_client,
         bucket_name: str,
         object_name: str,
         generation_number: Optional[int] = None,
         read_handle: Optional[bytes] = None,
     ) -> None:
+        if client is None:
+            raise ValueError("client must be provided")
+        if bucket_name is None:
+            raise ValueError("bucket_name must be provided")
+        if object_name is None:
+            raise ValueError("object_name must be provided")
+
         super().__init__(
             bucket_name=bucket_name,
             object_name=object_name,
             generation_number=generation_number,
         )
-        self.client: AsyncGrpcClient = client
+        self.client: AsyncGrpcClient.grpc_client = client
         self.read_handle: Optional[bytes] = read_handle
 
     async def open(self) -> None:

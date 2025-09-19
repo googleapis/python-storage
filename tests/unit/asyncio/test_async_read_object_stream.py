@@ -62,6 +62,13 @@ def test_init():
     assert stream_defaults.read_handle is None
 
 
+def test_init_with_invalid_parameters():
+    """Test the constructor of _AsyncReadObjectStream with invalid params."""
+
+    with pytest.raises(ValueError):
+        _AsyncReadObjectStream(None, bucket_name=None, object_name=None)
+
+
 @pytest.mark.asyncio
 async def test_async_methods_are_awaitable():
     """Test that the async methods exist and are awaitable."""
