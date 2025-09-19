@@ -58,3 +58,10 @@ def test_init_with_bucket_object_generation(mock_client, mock_async_bidi_rpc):
         metadata=(("x-goog-request-params", f"bucket={full_bucket_name}"),),
     )
     assert read_obj_stream.socket_like_rpc is mock_async_bidi_rpc.return_value
+
+
+def test_init_with_invalid_parameters():
+    """Test the constructor of _AsyncReadObjectStream with invalid params."""
+
+    with pytest.raises(ValueError):
+        _AsyncReadObjectStream(None, bucket_name=None, object_name=None)
