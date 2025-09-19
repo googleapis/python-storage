@@ -27,7 +27,39 @@ from io import BytesIO
 
 
 class AsyncMultiRangeDownloader:
-    """Provides an interface for downloading multiple ranges of a GCS object concurrently."""
+    """Provides an interface for downloading multiple ranges of a GCS ``Object``
+    concurrently.
+
+
+    Example usage:
+
+    .. code-block:: python
+
+
+    ```
+    client = AsyncGrpcClient().grpc_client
+    mrd = await AsyncMultiRangeDownloader.create_mrd(
+        client, bucket_name="chandrasiri-rs", object_name="test_open9"
+    )
+    my_buff1 = BytesIO()
+    my_buff2 = BytesIO()
+    my_buff3 = BytesIO()
+    my_buff4 = BytesIO()
+    buffers = [my_buff1, my_buff2, my_buff3, my_buff4]
+    await mrd.download_ranges(
+        [
+            (0, 100, my_buff1),
+            (100, 200, my_buff2),
+            (200, 300, my_buff3),
+            (300, 400, my_buff4),
+        ]
+    )
+    for buff in buffers:
+        print("downloaded bytes", buff.getbuffer().nbytes)
+    ```
+
+
+    """
 
     @classmethod
     async def create_mrd(
@@ -36,72 +68,77 @@ class AsyncMultiRangeDownloader:
         bucket_name: str,
         object_name: str,
         generation_number: Optional[int] = None,
+        read_handle: Optional[bytes] = None,
     ) -> AsyncMultiRangeDownloader:
-        """Asynchronously creates and initializes a MultiRangeDownloader.
+        """Initializes a MultiRangeDownloader and opens the underlying bidi-gRPC
+        object for reading.
 
-        This factory method creates an instance of MultiRangeDownloader and
-        opens the underlying bidi-gRPC connection.
+        :type client: :class:`~google.cloud.storage._experimental.asyncio.async_grpc_client.AsyncGrpcClient.grpc_client`
+        :param client: The asynchronous client to use for making API requests.
 
-        Args:
-            client (AsyncGrpcClient.grpc_client): The asynchronous client to use for making API requests.
-            bucket_name (str): The name of the bucket containing the object.
-            object_name (str): The name of the object to be read.
-            generation_number (int, optional): If present, selects a specific
-                                               revision of this object.
+        :type bucket_name: str
+        :param bucket_name: The name of the bucket containing the object.
 
-        Returns:
-            MultiRangeDownloader: An initialized MultiRangeDownloader instance.
+        :type object_name: str
+        :param object_name: The name of the object to be read.
+
+        :type generation_number: int
+        :param generation_number: (Optional) If present, selects a specific
+                                  revision of this object.
+
+        :type read_handle: bytes
+        :param read_handle: (Optional) An existing handle for reading the object.
+                            If provided, opening the bidi-gRPC connection will be faster.
+
+        :rtype: :class:`~google.cloud.storage._experimental.asyncio.async_multi_range_downloader.AsyncMultiRangeDownloader`
+        :returns: An initialized AsyncMultiRangeDownloader instance for reading.
         """
-        mrd = cls(client, bucket_name, object_name, generation_number)
+        mrd = cls(client, bucket_name, object_name, generation_number, read_handle)
         await mrd.open()
         return mrd
-
-    @classmethod
-    def create_mrd_from_read_handle(
-        cls, client: AsyncGrpcClient.grpc_client, read_handle: bytes
-    ) -> AsyncMultiRangeDownloader:
-        """Creates a MultiRangeDownloader from an existing read handle.
-
-        Args:
-            client (AsyncGrpcClient.grpc_client): The asynchronous client to use for making API requests.
-            read_handle (bytes): An existing handle for reading the object.
-
-        Raises:
-            NotImplementedError: This method is not yet implemented.
-        """
-        raise NotImplementedError("TODO")
 
     def __init__(
         self,
         client: AsyncGrpcClient.grpc_client,
-        bucket_name: Optional[str] = None,
-        object_name: Optional[str] = None,
+        bucket_name: str,
+        object_name: str,
         generation_number: Optional[int] = None,
         read_handle: Optional[bytes] = None,
     ) -> None:
-        """Initializes a MultiRangeDownloader.
+        """Constructor for AsyncMultiRangeDownloader, clients are not adviced to
+         use it directly. Instead it's adviced to use the classmethod `create_mrd`.
 
-        Args:
-            client (AsyncGrpcClient.grpc_client): The asynchronous client to use for making API requests.
-            bucket_name (str, optional): The name of the bucket. Defaults to None.
-            object_name (str, optional): The name of the object. Defaults to None.
-            generation_number (int, optional): The generation number of the object.
-                                               Defaults to None.
-            read_handle (bytes, optional): An existing read handle. Defaults to None.
+        :type client: :class:`~google.cloud.storage._experimental.asyncio.async_grpc_client.AsyncGrpcClient.grpc_client`
+        :param client: The asynchronous client to use for making API requests.
+
+        :type bucket_name: str
+        :param bucket_name: The name of the bucket containing the object.
+
+        :type object_name: str
+        :param object_name: The name of the object to be read.
+
+        :type generation_number: int
+        :param generation_number: (Optional) If present, selects a specific revision of
+                                  this object.
+
+        :type read_handle: bytes
+        :param read_handle: (Optional) An existing read handle.
         """
         self.client = client
         self.bucket_name = bucket_name
         self.object_name = object_name
         self.generation_number = generation_number
         self.read_handle = read_handle
-        self.read_obj_str: _AsyncReadObjectStream
+        self.read_obj_str: _AsyncReadObjectStream = None
 
     async def open(self) -> None:
         """Opens the bidi-gRPC connection to read from the object.
 
-        This method initializes and opens an `_AsyncReadObjectStream` to
-        establish a connection for downloading. It also retrieves the
-        generation number and read handle if they are not already set.
+        This method initializes and opens an `_AsyncReadObjectStream` (bidi-gRPC stream) to
+        for downloading ranges of data from GCS ``Object``.
+
+        "Opening" constitutes fetching object metadata such as generation number
+        and read handle and sets them as attributes if not already set.
         """
         self.read_obj_str = _AsyncReadObjectStream(
             client=self.client,
@@ -120,9 +157,11 @@ class AsyncMultiRangeDownloader:
         """Downloads multiple byte ranges from the object into the buffers
         provided by user.
 
-        Args:
-            read_ranges (List[Tuple[int, int]]): A list of tuples, where each
-            tuple represents a byte range (start_byte, end_byte, buffer) to download.
+        :type read_ranges: List[Tuple[int, int, "BytesIO"]]
+        :param read_ranges: A list of tuples, where each tuple represents a
+            byte range (start_byte, end_byte, buffer) to download. Buffer has to
+            be provided by the user, and user has to make sure appropriate
+            memory is available in the application to avoid out-of-memory crash.
 
 
         Raises:
