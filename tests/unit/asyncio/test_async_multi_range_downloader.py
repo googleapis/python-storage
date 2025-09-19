@@ -20,6 +20,11 @@ from google.cloud.storage._experimental.asyncio.async_multi_range_downloader imp
 )
 from io import BytesIO
 
+_TEST_BUCKET_NAME = "test-bucket"
+_TEST_OBJECT_NAME = "test-object"
+_TEST_GENERATION = 123456789
+_TEST_READ_HANDLE = b"test-handle"
+
 
 @pytest.fixture
 def mock_async_grpc_client():
@@ -43,24 +48,20 @@ def mock_async_read_object_stream():
 def test_init(mock_async_grpc_client):
     """Test the constructor of MultiRangeDownloader."""
     client = mock_async_grpc_client
-    bucket_name = "test-bucket"
-    object_name = "test-object"
-    generation = 123
-    read_handle = b"test-handle"
 
     mrd = AsyncMultiRangeDownloader(
         client,
-        bucket_name=bucket_name,
-        object_name=object_name,
-        generation_number=generation,
-        read_handle=read_handle,
+        bucket_name=_TEST_BUCKET_NAME,
+        object_name=_TEST_OBJECT_NAME,
+        generation_number=_TEST_GENERATION,
+        read_handle=_TEST_READ_HANDLE,
     )
 
     assert mrd.client is client
-    assert mrd.bucket_name == bucket_name
-    assert mrd.object_name == object_name
-    assert mrd.generation_number == generation
-    assert mrd.read_handle == read_handle
+    assert mrd.bucket_name == _TEST_BUCKET_NAME
+    assert mrd.object_name == _TEST_OBJECT_NAME
+    assert mrd.generation_number == _TEST_GENERATION
+    assert mrd.read_handle == _TEST_READ_HANDLE
     assert not hasattr(mrd, "read_obj_str")
 
 
@@ -68,21 +69,19 @@ def test_init(mock_async_grpc_client):
 async def test_open(mock_async_grpc_client, mock_async_read_object_stream):
     """Test the open() method."""
     client = mock_async_grpc_client
-    bucket_name = "test-bucket"
-    object_name = "test-object"
 
     mrd = AsyncMultiRangeDownloader(
         client,
-        bucket_name=bucket_name,
-        object_name=object_name,
+        bucket_name=_TEST_BUCKET_NAME,
+        object_name=_TEST_OBJECT_NAME,
     )
 
     await mrd.open()
 
     mock_async_read_object_stream.assert_called_once_with(
         client=client,
-        bucket_name=bucket_name,
-        object_name=object_name,
+        bucket_name=_TEST_BUCKET_NAME,
+        object_name=_TEST_OBJECT_NAME,
         generation_number=None,
         read_handle=None,
     )
@@ -101,15 +100,12 @@ async def test_open_with_generation(
 ):
     """Test open() when generation_number is already set."""
     client = mock_async_grpc_client
-    bucket_name = "test-bucket"
-    object_name = "test-object"
-    initial_generation = 456
 
     mrd = AsyncMultiRangeDownloader(
         client,
-        bucket_name=bucket_name,
-        object_name=object_name,
-        generation_number=initial_generation,
+        bucket_name=_TEST_BUCKET_NAME,
+        object_name=_TEST_OBJECT_NAME,
+        generation_number=_TEST_GENERATION,
     )
 
     # The mock stream will have a different generation number to ensure we don't overwrite it.
@@ -119,9 +115,9 @@ async def test_open_with_generation(
 
     mock_async_read_object_stream.assert_called_once_with(
         client=client,
-        bucket_name=bucket_name,
-        object_name=object_name,
-        generation_number=initial_generation,
+        bucket_name=_TEST_BUCKET_NAME,
+        object_name=_TEST_OBJECT_NAME,
+        generation_number=_TEST_GENERATION,
         read_handle=None,
     )
 
@@ -129,7 +125,7 @@ async def test_open_with_generation(
     mock_stream_instance.open.assert_awaited_once()
 
     assert mrd.read_obj_str is mock_stream_instance
-    assert mrd.generation_number == initial_generation  # Should not be overwritten
+    assert mrd.generation_number == _TEST_GENERATION  # Should not be overwritten
     assert mrd.read_handle == mock_stream_instance.read_handle
 
 
@@ -141,19 +137,19 @@ async def test_create_mrd(mock_async_grpc_client):
         new_callable=mock.AsyncMock,
     ) as mock_open:
         client = mock_async_grpc_client
-        bucket_name = "test-bucket"
-        object_name = "test-object"
-        generation = 123
 
         mrd = await AsyncMultiRangeDownloader.create_mrd(
-            client, bucket_name, object_name, generation_number=generation
+            client,
+            _TEST_BUCKET_NAME,
+            _TEST_OBJECT_NAME,
+            generation_number=_TEST_GENERATION,
         )
 
         assert isinstance(mrd, AsyncMultiRangeDownloader)
         assert mrd.client is client
-        assert mrd.bucket_name == bucket_name
-        assert mrd.object_name == object_name
-        assert mrd.generation_number == generation
+        assert mrd.bucket_name == _TEST_BUCKET_NAME
+        assert mrd.object_name == _TEST_OBJECT_NAME
+        assert mrd.generation_number == _TEST_GENERATION
         mock_open.assert_awaited_once()
 
 
