@@ -16,7 +16,7 @@ NOTE:
 This is _experimental module for upcoming support for Rapid Storage.
 (https://cloud.google.com/blog/products/storage-data-transfer/high-performance-storage-innovations-for-ai-hpc#:~:text=your%20AI%20workloads%3A-,Rapid%20Storage,-%3A%20A%20new)
 
-APIs may not work as intented and are not stable yet. Feature is not
+APIs may not work as intended and are not stable yet. Feature is not
 GA(Generally Available) yet, please contact your TAM(Technical Account Manager)
 if you want to use these APIs.
 
@@ -68,6 +68,13 @@ class _AsyncReadObjectStream(_AsyncAbstractObjectStream):
         generation_number: Optional[int] = None,
         read_handle: Optional[bytes] = None,
     ) -> None:
+        if client is None:
+            raise ValueError("client must be provided")
+        if bucket_name is None:
+            raise ValueError("bucket_name must be provided")
+        if object_name is None:
+            raise ValueError("object_name must be provided")
+
         super().__init__(
             bucket_name=bucket_name,
             object_name=object_name,
