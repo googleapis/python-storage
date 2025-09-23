@@ -34,7 +34,6 @@ _TEST_READ_HANDLE = b"test-read-handle"
     "google.cloud.storage._experimental.asyncio.async_grpc_client.AsyncGrpcClient.grpc_client"
 )
 def test_init_with_bucket_object_generation(mock_client, mock_async_bidi_rpc):
-
     mock_client._client._transport.bidi_read_object = "bidi_read_object_rpc"
     mock_client._client._transport._wrapped_methods = {
         "bidi_read_object_rpc": mock.sentinel.A
