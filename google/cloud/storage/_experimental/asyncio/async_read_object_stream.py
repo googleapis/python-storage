@@ -30,10 +30,6 @@ from google.cloud.storage._experimental.asyncio.async_abstract_object_stream imp
 )
 from google.cloud.storage._experimental.asyncio.bidi_async import AsyncBidiRpc
 
-from google.cloud.storage._experimental.asyncio.async_grpc_client import (
-    AsyncGrpcClient,
-)
-
 
 class _AsyncReadObjectStream(_AsyncAbstractObjectStream):
     """Class representing a gRPC bidi-stream for reading data from a GCS ``Object``.
