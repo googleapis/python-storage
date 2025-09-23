@@ -37,7 +37,6 @@ _TEST_READ_HANDLE = b"test-handle"
 )
 @pytest.mark.asyncio
 async def test_create_mrd(mock_async_grpc_client, async_read_object_stream):
-
     # Arrange
     mock_stream_instance = async_read_object_stream.return_value
     mock_stream_instance.open = AsyncMock()
