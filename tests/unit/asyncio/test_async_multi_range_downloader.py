@@ -73,6 +73,9 @@ async def test_create_mrd(mock_async_grpc_client, async_read_object_stream):
 @pytest.mark.asyncio
 async def test_download_ranges(mock_async_grpc_client):
     """Test that download_ranges() raises NotImplementedError."""
-    mrd = AsyncMultiRangeDownloader(mock_async_grpc_client)
+    mrd = AsyncMultiRangeDownloader(
+        mock_async_grpc_client, _TEST_BUCKET_NAME, _TEST_OBJECT_NAME
+    )
+
     with pytest.raises(NotImplementedError):
         await mrd.download_ranges([(0, 100, BytesIO())])
