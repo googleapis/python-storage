@@ -16,9 +16,6 @@ import pytest
 from unittest import mock
 from google.cloud import _storage_v2
 
-from google.cloud.storage._experimental.asyncio.async_abstract_object_stream import (
-    _AsyncAbstractObjectStream,
-)
 from google.cloud.storage._experimental.asyncio.async_read_object_stream import (
     _AsyncReadObjectStream,
 )
