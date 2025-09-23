@@ -28,7 +28,6 @@ from google.cloud.storage._experimental.asyncio.async_grpc_client import AsyncGr
 from google.cloud.storage._experimental.asyncio.async_abstract_object_stream import (
     _AsyncAbstractObjectStream,
 )
-from google.cloud import _storage_v2
 from google.cloud.storage._experimental.asyncio.bidi_async import AsyncBidiRpc
 
 
