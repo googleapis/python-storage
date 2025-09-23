@@ -20,7 +20,6 @@ from google.cloud.storage._experimental.asyncio.async_multi_range_downloader imp
     AsyncMultiRangeDownloader,
 )
 from io import BytesIO
-from google.cloud import _storage_v2
 
 
 _TEST_BUCKET_NAME = "test-bucket"
