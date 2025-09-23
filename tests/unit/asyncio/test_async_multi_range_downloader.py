@@ -20,7 +20,6 @@ from google.cloud.storage._experimental.asyncio.async_multi_range_downloader imp
     AsyncMultiRangeDownloader,
 )
 from io import BytesIO
-from google.cloud import _storage_v2
 
 
 _TEST_BUCKET_NAME = "test-bucket"
@@ -37,7 +36,6 @@ _TEST_READ_HANDLE = b"test-handle"
 )
 @pytest.mark.asyncio
 async def test_create_mrd(mock_async_grpc_client, async_read_object_stream):
-
     # Arrange
     mock_stream_instance = async_read_object_stream.return_value
     mock_stream_instance.open = AsyncMock()
@@ -73,6 +71,9 @@ async def test_create_mrd(mock_async_grpc_client, async_read_object_stream):
 @pytest.mark.asyncio
 async def test_download_ranges(mock_async_grpc_client):
     """Test that download_ranges() raises NotImplementedError."""
-    mrd = AsyncMultiRangeDownloader(mock_async_grpc_client)
+    mrd = AsyncMultiRangeDownloader(
+        mock_async_grpc_client, _TEST_BUCKET_NAME, _TEST_OBJECT_NAME
+    )
+
     with pytest.raises(NotImplementedError):
         await mrd.download_ranges([(0, 100, BytesIO())])

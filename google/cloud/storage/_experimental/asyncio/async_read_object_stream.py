@@ -22,17 +22,13 @@ if you want to use these APIs.
 
 """
 
-from typing import Any, Optional
+from typing import Optional
 from google.cloud import _storage_v2
 from google.cloud.storage._experimental.asyncio.async_grpc_client import AsyncGrpcClient
 from google.cloud.storage._experimental.asyncio.async_abstract_object_stream import (
     _AsyncAbstractObjectStream,
 )
 from google.cloud.storage._experimental.asyncio.bidi_async import AsyncBidiRpc
-
-from google.cloud.storage._experimental.asyncio.async_grpc_client import (
-    AsyncGrpcClient,
-)
 
 
 class _AsyncReadObjectStream(_AsyncAbstractObjectStream):
