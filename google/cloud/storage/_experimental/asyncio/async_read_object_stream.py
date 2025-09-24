@@ -83,15 +83,12 @@ class _AsyncReadObjectStream(_AsyncAbstractObjectStream):
         self.rpc = self.client._client._transport._wrapped_methods[
             self.client._client._transport.bidi_read_object
         ]
-        first_bidi_read_req = _storage_v2.BidiReadObjectRequest(
+        self.first_bidi_read_req = _storage_v2.BidiReadObjectRequest(
             read_object_spec=_storage_v2.BidiReadObjectSpec(
                 bucket=self._full_bucket_name, object=object_name
             ),
         )
         self.metadata = (("x-goog-request-params", f"bucket={self._full_bucket_name}"),)
-        self.socket_like_rpc = AsyncBidiRpc(
-            self.rpc, initial_request=first_bidi_read_req, metadata=self.metadata
-        )
 
     async def open(self) -> None:
         """Opens the bidi-gRPC connection to read from the object.
@@ -99,6 +96,9 @@ class _AsyncReadObjectStream(_AsyncAbstractObjectStream):
         This method sends an initial request to start the stream and receives
         the first response containing metadata and a read handle.
         """
+        self.socket_like_rpc = AsyncBidiRpc(
+            self.rpc, initial_request=self.first_bidi_read_req, metadata=self.metadata
+        )
         await self.socket_like_rpc.open()  # this is actually 1 send
         response = await self.socket_like_rpc.recv()
         if self.generation_number is None:
@@ -133,3 +133,7 @@ class _AsyncReadObjectStream(_AsyncAbstractObjectStream):
                 The response message from the server.
         """
         return await self.socket_like_rpc.recv()
+
+    def is_active(self):
+        """bool: True if this stream is currently open and active."""
+        return self.socket_like_rpc.is_active
