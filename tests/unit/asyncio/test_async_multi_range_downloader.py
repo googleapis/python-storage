@@ -30,7 +30,6 @@ _TEST_READ_HANDLE = b"test-handle"
 
 
 class TestAsyncMultiRangeDownloader:
-
     # helper method
     @pytest.mark.asyncio
     async def _make_mock_mrd(
