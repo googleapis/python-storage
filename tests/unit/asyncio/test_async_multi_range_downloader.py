@@ -15,6 +15,7 @@
 import pytest
 from unittest import mock
 from unittest.mock import AsyncMock
+from google.cloud import _storage_v2
 
 from google.cloud.storage._experimental.asyncio.async_multi_range_downloader import (
     AsyncMultiRangeDownloader,
@@ -28,41 +29,127 @@ _TEST_GENERATION_NUMBER = 123456789
 _TEST_READ_HANDLE = b"test-handle"
 
 
-@mock.patch(
-    "google.cloud.storage._experimental.asyncio.async_multi_range_downloader._AsyncReadObjectStream"
-)
-@mock.patch(
-    "google.cloud.storage._experimental.asyncio.async_grpc_client.AsyncGrpcClient.grpc_client"
-)
-@pytest.mark.asyncio
-async def test_create_mrd(mock_async_grpc_client, async_read_object_stream):
-    # Arrange
-    mock_stream_instance = async_read_object_stream.return_value
-    mock_stream_instance.open = AsyncMock()
-    mock_stream_instance.generation_number = _TEST_GENERATION_NUMBER
-    mock_stream_instance.read_handle = _TEST_READ_HANDLE
+class TestAsyncMultiRangeDownloader:
 
-    # act
-    mrd = await AsyncMultiRangeDownloader.create_mrd(
-        mock_async_grpc_client, _TEST_BUCKET_NAME, _TEST_OBJECT_NAME
-    )
-
-    # Assert
-    async_read_object_stream.assert_called_once_with(
-        client=mock_async_grpc_client,
+    # helper method
+    @pytest.mark.asyncio
+    async def _make_mock_mrd(
+        self,
+        mock_grpc_client,
+        mock_cls_async_read_object_stream,
         bucket_name=_TEST_BUCKET_NAME,
         object_name=_TEST_OBJECT_NAME,
-        generation_number=None,
-        read_handle=None,
-    )
-    mock_stream_instance.open.assert_called_once()
+        generation_number=_TEST_GENERATION_NUMBER,
+        read_handle=_TEST_READ_HANDLE,
+    ):
+        mock_stream = mock_cls_async_read_object_stream.return_value
+        mock_stream.open = AsyncMock()
+        mock_stream.generation_number = _TEST_GENERATION_NUMBER
+        mock_stream.read_handle = _TEST_READ_HANDLE
 
-    assert mrd.client == mock_async_grpc_client
-    assert mrd.bucket_name == _TEST_BUCKET_NAME
-    assert mrd.object_name == _TEST_OBJECT_NAME
-    assert mrd.generation_number == _TEST_GENERATION_NUMBER
-    assert mrd.read_handle == _TEST_READ_HANDLE
-    assert mrd.read_obj_str is mock_stream_instance
+        mrd = await AsyncMultiRangeDownloader.create_mrd(
+            mock_grpc_client, bucket_name, object_name, generation_number, read_handle
+        )
+
+        return mrd
+
+    @mock.patch(
+        "google.cloud.storage._experimental.asyncio.async_multi_range_downloader._AsyncReadObjectStream"
+    )
+    @mock.patch(
+        "google.cloud.storage._experimental.asyncio.async_grpc_client.AsyncGrpcClient.grpc_client"
+    )
+    @pytest.mark.asyncio
+    async def test_create_mrd(
+        self, mock_grpc_client, mock_cls_async_read_object_stream
+    ):
+        # Arrange & Act
+        mrd = await self._make_mock_mrd(
+            mock_grpc_client, mock_cls_async_read_object_stream
+        )
+
+        # Assert
+        mock_cls_async_read_object_stream.assert_called_once_with(
+            client=mock_grpc_client,
+            bucket_name=_TEST_BUCKET_NAME,
+            object_name=_TEST_OBJECT_NAME,
+            generation_number=_TEST_GENERATION_NUMBER,
+            read_handle=_TEST_READ_HANDLE,
+        )
+
+        mrd.read_obj_str.open.assert_called_once()
+
+        assert mrd.client == mock_grpc_client
+        assert mrd.bucket_name == _TEST_BUCKET_NAME
+        assert mrd.object_name == _TEST_OBJECT_NAME
+        assert mrd.generation_number == _TEST_GENERATION_NUMBER
+        assert mrd.read_handle == _TEST_READ_HANDLE
+
+    @mock.patch(
+        "google.cloud.storage._experimental.asyncio.async_multi_range_downloader._AsyncReadObjectStream"
+    )
+    @mock.patch(
+        "google.cloud.storage._experimental.asyncio.async_grpc_client.AsyncGrpcClient.grpc_client"
+    )
+    @pytest.mark.asyncio
+    async def test_download_ranges(
+        self, mock_grpc_client, mock_cls_async_read_object_stream
+    ):
+        # Arrange
+        mock_mrd = await self._make_mock_mrd(
+            mock_grpc_client, mock_cls_async_read_object_stream
+        )
+        mock_mrd.read_obj_str.send = AsyncMock()
+        mock_mrd.read_obj_str.recv = AsyncMock()
+        mock_mrd.read_obj_str.recv.return_value = _storage_v2.BidiReadObjectResponse(
+            object_data_ranges=[
+                _storage_v2.ObjectRangeData(
+                    checksummed_data=_storage_v2.ChecksummedData(
+                        content=b"these_are_18_chars", crc32c=123
+                    ),
+                    range_end=True,
+                    read_range=_storage_v2.ReadRange(
+                        read_offset=0, read_length=18, read_id=0
+                    ),
+                )
+            ],
+        )
+
+        # Act
+        buffer = BytesIO()
+        results, error_obj = await mock_mrd.download_ranges([(0, 18, buffer)])
+
+        # Assert
+        mock_mrd.read_obj_str.send.assert_called_once_with(
+            _storage_v2.BidiReadObjectRequest(
+                read_ranges=[
+                    _storage_v2.ReadRange(read_offset=0, read_length=18, read_id=0)
+                ]
+            )
+        )
+        assert len(results) == 1
+        assert results[0].bytes_requested == 18
+        assert results[0].bytes_written == 18
+        assert buffer.getvalue() == b"these_are_18_chars"
+        assert error_obj is None
+
+
+"""
+test cases
+
+
+* returns a awaitable which when awaited, fullfills into List[Result] object.
+
+1. if read_ranges > 1000 -> Raise exception 
+  1. A ? why Exception ? why not ValueError?
+  1.B read_ranges == 0 =>  Raise exception.
+
+2. read_ranges 0, 1, 3, 45, 101, 500, 1000, 1001
+
+3. None response received, raise error ? 
+    return the result object.
+
+"""
 
 
 @mock.patch(
@@ -74,6 +161,12 @@ async def test_download_ranges(mock_async_grpc_client):
     mrd = AsyncMultiRangeDownloader(
         mock_async_grpc_client, _TEST_BUCKET_NAME, _TEST_OBJECT_NAME
     )
-
     with pytest.raises(NotImplementedError):
         await mrd.download_ranges([(0, 100, BytesIO())])
+
+
+"""
+1. possible issues 
+    you're keep on sending w/o receiving ? 
+
+"""

@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 
-from typing import Any, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 from google.cloud.storage._experimental.asyncio.async_read_object_stream import (
     _AsyncReadObjectStream,
@@ -25,11 +25,32 @@ from google.cloud.storage._experimental.asyncio.async_grpc_client import (
 
 from io import BytesIO
 from google.cloud import _storage_v2
-import sys
 import asyncio
 
 
 _MAX_READ_RANGES_PER_BIDI_READ_REQUEST = 100
+
+
+class Result:
+    def __init__(self, bytes_requested: int):
+        # only while instantiation, should not be edited later.
+        self._bytes_requested: int = bytes_requested
+        self._bytes_written: int = 0
+
+    @property
+    def bytes_requested(self) -> int:
+        return self._bytes_requested
+
+    @property
+    def bytes_written(self) -> int:
+        return self._bytes_written
+
+    @bytes_written.setter
+    def bytes_written(self, value: int):
+        self._bytes_written = value
+
+    def __repr__(self):
+        return f"bytes_requested: {self._bytes_requested}, bytes_written: {self._bytes_written}"
 
 
 class AsyncMultiRangeDownloader:
@@ -154,89 +175,100 @@ class AsyncMultiRangeDownloader:
         self.read_handle = self.read_obj_str.read_handle
         return
 
-    async def download_ranges(self, read_ranges: List[Tuple[int, int, BytesIO]]) -> Any:
+    async def download_ranges(
+        self, read_ranges: List[Tuple[int, int, BytesIO]]
+    ) -> List[Result]:
         """Downloads multiple byte ranges from the object into the buffers
         provided by user.
 
         :type read_ranges: List[Tuple[int, int, "BytesIO"]]
         :param read_ranges: A list of tuples, where each tuple represents a
-            byte range (start_byte, end_byte, buffer) to download. Buffer has to
-            be provided by the user, and user has to make sure appropriate
+            byte range (start_byte, end_byte) and a writable buffer. Buffer has
+            to be provided by the user, and user has to make sure appropriate
             memory is available in the application to avoid out-of-memory crash.
 
         """
         if len(read_ranges) > 1000:
-            raise Exception("Invalid Input - ranges cannot be more than 1000")
+            raise Exception(
+                "Invalid input - length of read_ranges cannot be more than 1000"
+            )
 
         read_id_to_writable_buffer_dict = {}
+        exception = None
+        results = []
         for i in range(0, len(read_ranges), _MAX_READ_RANGES_PER_BIDI_READ_REQUEST):
-            read_range_segment = read_ranges[
+            read_ranges_segment = read_ranges[
                 i : i + _MAX_READ_RANGES_PER_BIDI_READ_REQUEST
             ]
 
             read_ranges_for_bidi_req = []
-            for j, read_range in enumerate(read_range_segment):
-                # generate read_id
+            for j, read_range in enumerate(read_ranges_segment):
                 read_id = i + j
                 read_id_to_writable_buffer_dict[read_id] = read_range[2]
+                bytes_requested = read_range[1]
+                results.append(Result(bytes_requested))
                 read_ranges_for_bidi_req.append(
                     _storage_v2.ReadRange(
                         read_offset=read_range[0],
-                        read_length=read_range[1] - read_range[0],  # end - start
+                        read_length=bytes_requested,
                         read_id=read_id,
                     )
                 )
-            print(read_ranges_for_bidi_req)
             await self.read_obj_str.send(
                 _storage_v2.BidiReadObjectRequest(read_ranges=read_ranges_for_bidi_req)
             )
+
         while len(read_id_to_writable_buffer_dict) > 0:
-            response = await self.read_obj_str.recv()
-            if response is None:
-                print("None response received, something went wrong.")
-                sys.exit(1)
-            for object_data_range in response.object_data_ranges:
+            try:
+                response = await self.read_obj_str.recv()
 
-                if object_data_range.read_range is None:
-                    raise Exception("Invalid response, read_range is None")
+                if response is None:
+                    raise Exception("None response received, something went wrong.")
 
-                data = object_data_range.checksummed_data.content
-                # bytes_received_in_curr_res = object_data_range.read_range.read_length
-                read_id = object_data_range.read_range.read_id
-                buffer = read_id_to_writable_buffer_dict[read_id]
-                buffer.write(data)
-                print(
-                    "for read_id ",
-                    read_id,
-                    data,
-                    object_data_range.checksummed_data.crc32c,
-                )
-                if object_data_range.range_end:
-                    del read_id_to_writable_buffer_dict[
-                        object_data_range.read_range.read_id
-                    ]
+                for object_data_range in response.object_data_ranges:
+                    if object_data_range.read_range is None:
+                        raise Exception("Invalid response, read_range is None")
+
+                    data = object_data_range.checksummed_data.content
+                    read_id = object_data_range.read_range.read_id
+                    buffer = read_id_to_writable_buffer_dict[read_id]
+                    buffer.write(data)
+                    results[read_id].bytes_written += len(data)
+
+                    if object_data_range.range_end:
+                        del read_id_to_writable_buffer_dict[
+                            object_data_range.read_range.read_id
+                        ]
+            except Exception as exc:
+                exception = exc
+                break
+        return results, exception
 
 
 async def test_mrd():
     client = AsyncGrpcClient()._grpc_client
     mrd = await AsyncMultiRangeDownloader.create_mrd(
-        client, bucket_name="chandrasiri-rs", object_name="test_open9"
+        client, bucket_name="chandrasiri-rs", object_name="test_open10"
     )
-    my_buff1 = BytesIO()
+    my_buff1 = open("my_fav_file.txt", "wb")
     my_buff2 = BytesIO()
     my_buff3 = BytesIO()
     my_buff4 = BytesIO()
-    buffers = [my_buff1, my_buff2, my_buff3, my_buff4]
-    await mrd.download_ranges(
+    results_arr, error_obj = await mrd.download_ranges(
         [
             (0, 100, my_buff1),
-            (100, 200, my_buff2),
-            (200, 300, my_buff3),
-            (300, 400, my_buff4),
+            (100, 20, my_buff2),
+            (200, 123, my_buff3),
+            (300, 789, my_buff4),
         ]
     )
-    for buff in buffers:
-        print("downloaded bytes", buff.getbuffer().nbytes)
+    if error_obj:
+        print("*" * 80)
+        print(error_obj)
+        print("*" * 80)
+
+    for result in results_arr:
+        print("downloaded bytes", result)
 
 
 if __name__ == "__main__":

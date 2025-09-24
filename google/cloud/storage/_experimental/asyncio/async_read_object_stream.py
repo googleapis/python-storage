@@ -132,4 +132,5 @@ class _AsyncReadObjectStream(_AsyncAbstractObjectStream):
             :class:`~google.cloud._storage_v2.types.BidiReadObjectResponse`:
                 The response message from the server.
         """
-        return await self.socket_like_rpc.recv()
+        val = await self.socket_like_rpc.recv()
+        return val
