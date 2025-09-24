@@ -127,7 +127,7 @@ def _set_retry_attr(retry, conditional_predicate=None):
 
 
 def _get_opentelemetry_attributes_from_url(
-    url, strip_query=False
+    url, strip_query=True
 ):
     """Helper to assemble OpenTelemetry span attributes from a URL."""
     u = urlparse(url)
