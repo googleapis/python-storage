@@ -31,8 +31,14 @@ _MAX_READ_RANGES_PER_BIDI_READ_REQUEST = 100
 
 
 class Result:
+    """An instance of this class will be populated and retured for each
+    `read_range` provided to ``download_ranges`` method.
+
+    """
+
     def __init__(self, bytes_requested: int):
         # only while instantiation, should not be edited later.
+        # hence there's no setter, only getter is provided.
         self._bytes_requested: int = bytes_requested
         self._bytes_written: int = 0
 
@@ -64,21 +70,29 @@ class AsyncMultiRangeDownloader:
         mrd = await AsyncMultiRangeDownloader.create_mrd(
             client, bucket_name="chandrasiri-rs", object_name="test_open9"
         )
-        my_buff1 = BytesIO()
+        my_buff1 = open('my_fav_file.txt', 'wb')
         my_buff2 = BytesIO()
         my_buff3 = BytesIO()
-        my_buff4 = BytesIO()
-        buffers = [my_buff1, my_buff2, my_buff3, my_buff4]
-        await mrd.download_ranges(
+        my_buff4 = any_object_which_provides_BytesIO_like_interface()
+        results_arr, error_obj = await mrd.download_ranges(
             [
                 (0, 100, my_buff1),
-                (100, 200, my_buff2),
-                (200, 300, my_buff3),
-                (300, 400, my_buff4),
+                (100, 20, my_buff2),
+                (200, 123, my_buff3),
+                (300, 789, my_buff4),
             ]
         )
-        for buff in buffers:
-            print("downloaded bytes", buff.getbuffer().nbytes)
+        if error_obj:
+            print("Error occurred: ")
+            print(error_obj)
+            print(
+                "please issue call to `download_ranges` with updated"
+                "`read_ranges` based on diff of (bytes_requested - bytes_written)"
+            )
+
+        for result in results_arr:
+            print("downloaded bytes", result)
+
 
     """
 
