@@ -136,7 +136,7 @@ def test_get_final_attributes(setup, setup_optin):
     }
     api_request = {
         "method": "GET",
-        "path": "/foo/bar/baz",
+        "path": "/foo/bar/baz?sensitive=true",
         "timeout": (100, 100),
     }
     retry_obj = api_retry.Retry()
@@ -147,15 +147,18 @@ def test_get_final_attributes(setup, setup_optin):
         "rpc.system": "http",
         "user_agent.original": f"gcloud-python/{__version__}",
         "http.request.method": "GET",
-        "url.full": "https://testOtel.org/foo/bar/baz",
-        "connect_timeout,read_timeout": (100, 100),
+        "server.address": "testOtel.org",
+        "server.port": None,
+        "url.path": "/foo/bar/baz",
+        "url.scheme": "https",
+        "http.request.timeout": str((100, 100)),
         "retry": f"multiplier{retry_obj._multiplier}/deadline{retry_obj._deadline}/max{retry_obj._maximum}/initial{retry_obj._initial}/predicate{retry_obj._predicate}",
     }
     expected_attributes.update(_opentelemetry_tracing._cloud_trace_adoption_attrs)
 
     with mock.patch("google.cloud.storage.client.Client") as test_client:
         test_client.project = "test_project"
-        test_client._connection.API_BASE_URL = "https://testOtel.org"
+        test_client._connection.build_api_url.return_value = "https://testOtel.org/foo/bar/baz?sensitive=true"
         with _opentelemetry_tracing.create_trace_span(
             test_span_name,
             attributes=test_span_attributes,
@@ -165,6 +168,7 @@ def test_get_final_attributes(setup, setup_optin):
         ) as span:
             assert span is not None
             assert span.name == test_span_name
+            assert "url.query" not in span.attributes
             assert span.attributes == expected_attributes
 
 
@@ -196,23 +200,47 @@ def test_set_conditional_retry_attr(setup, setup_optin):
         assert span.attributes == expected_attributes
 
 
-def test_set_api_request_attr():
-    from google.cloud.storage import Client
-
-    test_client = Client()
-    args_method = {"method": "GET"}
-    expected_attributes = {"http.request.method": "GET"}
-    attr = _opentelemetry_tracing._set_api_request_attr(args_method, test_client)
-    assert attr == expected_attributes
-
-    args_path = {"path": "/foo/bar/baz"}
-    expected_attributes = {"url.full": "https://storage.googleapis.com/foo/bar/baz"}
-    attr = _opentelemetry_tracing._set_api_request_attr(args_path, test_client)
-    assert attr == expected_attributes
-
-    args_timeout = {"timeout": (100, 100)}
-    expected_attributes = {
-        "connect_timeout,read_timeout": (100, 100),
+def test__get_opentelemetry_attributes_from_url():
+    url = "https://example.com:8080/path?query=true"
+    expected = {
+        "server.address": "example.com",
+        "server.port": 8080,
+        "url.scheme": "https",
+        "url.path": "/path",
     }
-    attr = _opentelemetry_tracing._set_api_request_attr(args_timeout, test_client)
+    # Test stripping query
+    attrs = _opentelemetry_tracing._get_opentelemetry_attributes_from_url(url, strip_query=True)
+    assert attrs == expected
+    assert "url.query" not in attrs
+
+    # Test not stripping query
+    expected["url.query"] = "query=true"
+    attrs = _opentelemetry_tracing._get_opentelemetry_attributes_from_url(url, strip_query=False)
+    assert attrs == expected
+
+
+def test_set_api_request_attr_with_pii_in_query():
+    client = mock.Mock()
+    client._connection.build_api_url.return_value = "https://example.com/path?sensitive=true&token=secret"
+
+    request = {"method": "GET", "path": "/path?sensitive=true&token=secret", "timeout": 60}
+    expected_attributes = {
+        "http.request.method": "GET",
+        "server.address": "example.com",
+        "server.port": None,
+        "url.scheme": "https",
+        "url.path": "/path",
+        "http.request.timeout": "60",
+    }
+    attr = _opentelemetry_tracing._set_api_request_attr(request, client)
     assert attr == expected_attributes
+    assert "url.query" not in attr # Ensure query with PII is not captured
+
+
+def test_set_api_request_attr_no_timeout():
+    client = mock.Mock()
+    client._connection.build_api_url.return_value = "https://example.com/path"
+
+    request = {"method": "GET", "path": "/path"}
+    attr = _opentelemetry_tracing._set_api_request_attr(request, client)
+    assert "http.request.timeout" not in attr
