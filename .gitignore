@@ -51,6 +51,14 @@ docs.metadata
 # Virtual environment
 env/
 venv/
+.venv/
+.env/
+
+# UV generated files
+.python-version
+uv.lock
+hello.py
+pyproject.toml
 
 # Test logs
 coverage.xml
