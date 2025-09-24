@@ -25,7 +25,6 @@ from google.cloud.storage._experimental.asyncio.async_grpc_client import (
 
 from io import BytesIO
 from google.cloud import _storage_v2
-import asyncio
 
 
 _MAX_READ_RANGES_PER_BIDI_READ_REQUEST = 100
@@ -243,33 +242,3 @@ class AsyncMultiRangeDownloader:
                 exception = exc
                 break
         return results, exception
-
-
-async def test_mrd():
-    client = AsyncGrpcClient()._grpc_client
-    mrd = await AsyncMultiRangeDownloader.create_mrd(
-        client, bucket_name="chandrasiri-rs", object_name="test_open10"
-    )
-    my_buff1 = open("my_fav_file.txt", "wb")
-    my_buff2 = BytesIO()
-    my_buff3 = BytesIO()
-    my_buff4 = BytesIO()
-    results_arr, error_obj = await mrd.download_ranges(
-        [
-            (0, 100, my_buff1),
-            (100, 20, my_buff2),
-            (200, 123, my_buff3),
-            (300, 789, my_buff4),
-        ]
-    )
-    if error_obj:
-        print("*" * 80)
-        print(error_obj)
-        print("*" * 80)
-
-    for result in results_arr:
-        print("downloaded bytes", result)
-
-
-if __name__ == "__main__":
-    asyncio.run(test_mrd())
