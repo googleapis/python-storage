@@ -177,7 +177,7 @@ class AsyncMultiRangeDownloader:
 
     async def download_ranges(
         self, read_ranges: List[Tuple[int, int, BytesIO]]
-    ) -> List[Result]:
+    ) -> Tuple[List[Result], Exception]:
         """Downloads multiple byte ranges from the object into the buffers
         provided by user.
 
