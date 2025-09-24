@@ -115,8 +115,8 @@ def _set_api_request_attr(request, client):
     if request.get("path"):
         full_url = client._connection.build_api_url(request.get("path"))
         attr.update(_get_opentelemetry_attributes_from_url(full_url, strip_query=True))
-    if request.get("timeout"):
-        attr["connect_timeout,read_timeout"] = request.get("timeout")
+    if "timeout" in request:
+        attr["connect_timeout,read_timeout"] = str(request.get("timeout"))
     return attr
 
 
@@ -131,8 +131,16 @@ def _get_opentelemetry_attributes_from_url(
 ):
     """Helper to assemble OpenTelemetry span attributes from a URL."""
     u = urlparse(url)
+    netloc = u.netloc
+    # u.hostname is always lowercase. We parse netloc to preserve casing.
+    # netloc format: [userinfo@]host[:port]
+    if "@" in netloc:
+        netloc = netloc.split("@", 1)[1]
+    if ":" in netloc and not netloc.endswith("]"):  # Handle IPv6 literal
+        netloc = netloc.split(":", 1)[0]
+
     attributes = {
-        "server.address": u.hostname,
+        "server.address": netloc,
         "server.port": u.port,
         "url.scheme": u.scheme,
         "url.path": u.path,

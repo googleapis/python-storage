@@ -148,10 +148,9 @@ def test_get_final_attributes(setup, setup_optin):
         "user_agent.original": f"gcloud-python/{__version__}",
         "http.request.method": "GET",
         "server.address": "testOtel.org",
-        "server.port": None,
         "url.path": "/foo/bar/baz",
         "url.scheme": "https",
-        "http.request.timeout": str((100, 100)),
+        "connect_timeout,read_timeout": str((100, 100)),
         "retry": f"multiplier{retry_obj._multiplier}/deadline{retry_obj._deadline}/max{retry_obj._maximum}/initial{retry_obj._initial}/predicate{retry_obj._predicate}",
     }
     expected_attributes.update(_opentelemetry_tracing._cloud_trace_adoption_attrs)
@@ -219,6 +218,20 @@ def test__get_opentelemetry_attributes_from_url():
     assert attrs == expected
 
 
+def test__get_opentelemetry_attributes_from_url_with_query():
+    url = "https://example.com/path?query=true&another=false"
+    expected = {
+        "server.address": "example.com",
+        "server.port": None,
+        "url.scheme": "https",
+        "url.path": "/path",
+        "url.query": "query=true&another=false",
+    }
+    # Test not stripping query
+    attrs = _opentelemetry_tracing._get_opentelemetry_attributes_from_url(url, strip_query=False)
+    assert attrs == expected
+
+
 def test_set_api_request_attr_with_pii_in_query():
     client = mock.Mock()
     client._connection.build_api_url.return_value = "https://example.com/path?sensitive=true&token=secret"
@@ -230,7 +243,7 @@ def test_set_api_request_attr_with_pii_in_query():
         "server.port": None,
         "url.scheme": "https",
         "url.path": "/path",
-        "http.request.timeout": "60",
+        "connect_timeout,read_timeout": "60",
     }
     attr = _opentelemetry_tracing._set_api_request_attr(request, client)
     assert attr == expected_attributes
@@ -243,4 +256,4 @@ def test_set_api_request_attr_no_timeout():
 
     request = {"method": "GET", "path": "/path"}
     attr = _opentelemetry_tracing._set_api_request_attr(request, client)
-    assert "http.request.timeout" not in attr
+    assert "connect_timeout,read_timeout" not in attr
