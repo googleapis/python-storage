@@ -117,6 +117,7 @@ class _AsyncReadObjectStream(_AsyncAbstractObjectStream):
         if not self._is_stream_open:
             raise ValueError("Stream is not open")
         await self.socket_like_rpc.close()
+        self._is_stream_open = False
 
     async def send(
         self, bidi_read_object_request: _storage_v2.BidiReadObjectRequest
