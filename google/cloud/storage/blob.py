@@ -47,7 +47,9 @@ from google.cloud._helpers import _datetime_to_rfc3339
 from google.cloud._helpers import _rfc3339_nanos_to_datetime
 from google.cloud._helpers import _to_bytes
 from google.cloud.exceptions import NotFound
-from google.cloud.storage._opentelemetry_tracing import _get_opentelemetry_attributes_from_url
+from google.cloud.storage._opentelemetry_tracing import (
+    _get_opentelemetry_attributes_from_url,
+)
 from google.cloud.storage._helpers import _add_etag_match_headers
 from google.cloud.storage._helpers import _add_generation_match_parameters
 from google.cloud.storage._helpers import _PropertyMixin

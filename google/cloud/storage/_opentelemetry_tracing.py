@@ -126,9 +126,7 @@ def _set_retry_attr(retry, conditional_predicate=None):
     return {"retry": retry_info}
 
 
-def _get_opentelemetry_attributes_from_url(
-    url, strip_query=True
-):
+def _get_opentelemetry_attributes_from_url(url, strip_query=True):
     """Helper to assemble OpenTelemetry span attributes from a URL."""
     u = urlparse(url)
     netloc = u.netloc

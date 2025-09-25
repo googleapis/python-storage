@@ -157,7 +157,9 @@ def test_get_final_attributes(setup, setup_optin):
 
     with mock.patch("google.cloud.storage.client.Client") as test_client:
         test_client.project = "test_project"
-        test_client._connection.build_api_url.return_value = "https://testOtel.org/foo/bar/baz?sensitive=true"
+        test_client._connection.build_api_url.return_value = (
+            "https://testOtel.org/foo/bar/baz?sensitive=true"
+        )
         with _opentelemetry_tracing.create_trace_span(
             test_span_name,
             attributes=test_span_attributes,
@@ -208,13 +210,17 @@ def test__get_opentelemetry_attributes_from_url():
         "url.path": "/path",
     }
     # Test stripping query
-    attrs = _opentelemetry_tracing._get_opentelemetry_attributes_from_url(url, strip_query=True)
+    attrs = _opentelemetry_tracing._get_opentelemetry_attributes_from_url(
+        url, strip_query=True
+    )
     assert attrs == expected
     assert "url.query" not in attrs
 
     # Test not stripping query
     expected["url.query"] = "query=true"
-    attrs = _opentelemetry_tracing._get_opentelemetry_attributes_from_url(url, strip_query=False)
+    attrs = _opentelemetry_tracing._get_opentelemetry_attributes_from_url(
+        url, strip_query=False
+    )
     assert attrs == expected
 
 
@@ -228,15 +234,23 @@ def test__get_opentelemetry_attributes_from_url_with_query():
         "url.query": "query=true&another=false",
     }
     # Test not stripping query
-    attrs = _opentelemetry_tracing._get_opentelemetry_attributes_from_url(url, strip_query=False)
+    attrs = _opentelemetry_tracing._get_opentelemetry_attributes_from_url(
+        url, strip_query=False
+    )
     assert attrs == expected
 
 
 def test_set_api_request_attr_with_pii_in_query():
     client = mock.Mock()
-    client._connection.build_api_url.return_value = "https://example.com/path?sensitive=true&token=secret"
+    client._connection.build_api_url.return_value = (
+        "https://example.com/path?sensitive=true&token=secret"
+    )
 
-    request = {"method": "GET", "path": "/path?sensitive=true&token=secret", "timeout": 60}
+    request = {
+        "method": "GET",
+        "path": "/path?sensitive=true&token=secret",
+        "timeout": 60,
+    }
     expected_attributes = {
         "http.request.method": "GET",
         "server.address": "example.com",
@@ -247,7 +261,7 @@ def test_set_api_request_attr_with_pii_in_query():
     }
     attr = _opentelemetry_tracing._set_api_request_attr(request, client)
     assert attr == expected_attributes
-    assert "url.query" not in attr # Ensure query with PII is not captured
+    assert "url.query" not in attr  # Ensure query with PII is not captured
 
 
 def test_set_api_request_attr_no_timeout():
