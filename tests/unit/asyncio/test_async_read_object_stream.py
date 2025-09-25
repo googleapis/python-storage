@@ -27,6 +27,30 @@ _TEST_GENERATION_NUMBER = 12345
 _TEST_READ_HANDLE = b"test-read-handle"
 
 
+async def instantiate_read_obj_stream(mock_client, mock_cls_async_bidi_rpc, open=True):
+    """Helper to instance an instance of _AsyncReadObjectStream and open it by default."""
+    socket_like_rpc = AsyncMock()
+    mock_cls_async_bidi_rpc.return_value = socket_like_rpc
+    socket_like_rpc.open = AsyncMock()
+
+    recv_response = mock.MagicMock(spec=_storage_v2.BidiReadObjectResponse)
+    recv_response.metadata = mock.MagicMock(spec=_storage_v2.Object)
+    recv_response.metadata.generation = _TEST_GENERATION_NUMBER
+    recv_response.read_handle = _TEST_READ_HANDLE
+    socket_like_rpc.recv = AsyncMock(return_value=recv_response)
+
+    read_obj_stream = _AsyncReadObjectStream(
+        client=mock_client,
+        bucket_name=_TEST_BUCKET_NAME,
+        object_name=_TEST_OBJECT_NAME,
+    )
+
+    if open:
+        await read_obj_stream.open()
+
+    return read_obj_stream
+
+
 @mock.patch(
     "google.cloud.storage._experimental.asyncio.async_read_object_stream.AsyncBidiRpc"
 )
@@ -74,22 +98,11 @@ def test_init_with_bucket_object_generation(mock_client, mock_async_bidi_rpc):
 @pytest.mark.asyncio
 async def test_open(mock_client, mock_cls_async_bidi_rpc):
     # arrange
-    socket_like_rpc = AsyncMock()
-    mock_cls_async_bidi_rpc.return_value = socket_like_rpc
-    socket_like_rpc.open = AsyncMock()
-
-    recv_response = mock.MagicMock(spec=_storage_v2.BidiReadObjectResponse)
-    recv_response.metadata = mock.MagicMock(spec=_storage_v2.Object)
-    recv_response.metadata.generation = _TEST_GENERATION_NUMBER
-    recv_response.read_handle = _TEST_READ_HANDLE
-    socket_like_rpc.recv = AsyncMock(return_value=recv_response)
+    read_obj_stream = await instantiate_read_obj_stream(
+        mock_client, mock_cls_async_bidi_rpc, open=False
+    )
 
     # act
-    read_obj_stream = _AsyncReadObjectStream(
-        client=mock_client,
-        bucket_name=_TEST_BUCKET_NAME,
-        object_name=_TEST_OBJECT_NAME,
-    )
     await read_obj_stream.open()
 
     # assert
@@ -107,24 +120,34 @@ async def test_open(mock_client, mock_cls_async_bidi_rpc):
     "google.cloud.storage._experimental.asyncio.async_grpc_client.AsyncGrpcClient.grpc_client"
 )
 @pytest.mark.asyncio
+async def test_open_when_already_open_should_raise_error(
+    mock_client, mock_cls_async_bidi_rpc
+):
+    # arrange
+    read_obj_stream = await instantiate_read_obj_stream(
+        mock_client, mock_cls_async_bidi_rpc, open=True
+    )
+
+    # act + assert (pythonic)
+    with pytest.raises(ValueError) as exc:
+        await read_obj_stream.open()
+
+    # assert
+    assert str(exc.value) == "Stream is already open"
+
+
+@mock.patch(
+    "google.cloud.storage._experimental.asyncio.async_read_object_stream.AsyncBidiRpc"
+)
+@mock.patch(
+    "google.cloud.storage._experimental.asyncio.async_grpc_client.AsyncGrpcClient.grpc_client"
+)
+@pytest.mark.asyncio
 async def test_close(mock_client, mock_cls_async_bidi_rpc):
     # arrange
-    socket_like_rpc = AsyncMock()
-    mock_cls_async_bidi_rpc.return_value = socket_like_rpc
-    socket_like_rpc.open = AsyncMock()
-
-    recv_response = mock.MagicMock(spec=_storage_v2.BidiReadObjectResponse)
-    recv_response.metadata = mock.MagicMock(spec=_storage_v2.Object)
-    recv_response.metadata.generation = _TEST_GENERATION_NUMBER
-    recv_response.read_handle = _TEST_READ_HANDLE
-    socket_like_rpc.recv = AsyncMock(return_value=recv_response)
-
-    read_obj_stream = _AsyncReadObjectStream(
-        client=mock_client,
-        bucket_name=_TEST_BUCKET_NAME,
-        object_name=_TEST_OBJECT_NAME,
+    read_obj_stream = await instantiate_read_obj_stream(
+        mock_client, mock_cls_async_bidi_rpc, open=True
     )
-    await read_obj_stream.open()
 
     # act
     await read_obj_stream.close()
@@ -140,24 +163,34 @@ async def test_close(mock_client, mock_cls_async_bidi_rpc):
     "google.cloud.storage._experimental.asyncio.async_grpc_client.AsyncGrpcClient.grpc_client"
 )
 @pytest.mark.asyncio
+async def test_close_without_open_should_raise_error(
+    mock_client, mock_cls_async_bidi_rpc
+):
+    # arrange
+    read_obj_stream = await instantiate_read_obj_stream(
+        mock_client, mock_cls_async_bidi_rpc, open=False
+    )
+
+    # act + assert (pythonic)
+    with pytest.raises(ValueError) as exc:
+        await read_obj_stream.close()
+
+    # assert
+    assert str(exc.value) == "Stream is not open"
+
+
+@mock.patch(
+    "google.cloud.storage._experimental.asyncio.async_read_object_stream.AsyncBidiRpc"
+)
+@mock.patch(
+    "google.cloud.storage._experimental.asyncio.async_grpc_client.AsyncGrpcClient.grpc_client"
+)
+@pytest.mark.asyncio
 async def test_send(mock_client, mock_cls_async_bidi_rpc):
     # arrange
-    socket_like_rpc = AsyncMock()
-    mock_cls_async_bidi_rpc.return_value = socket_like_rpc
-    socket_like_rpc.open = AsyncMock()
-
-    recv_response = mock.MagicMock(spec=_storage_v2.BidiReadObjectResponse)
-    recv_response.metadata = mock.MagicMock(spec=_storage_v2.Object)
-    recv_response.metadata.generation = _TEST_GENERATION_NUMBER
-    recv_response.read_handle = _TEST_READ_HANDLE
-    socket_like_rpc.recv = AsyncMock(return_value=recv_response)
-
-    read_obj_stream = _AsyncReadObjectStream(
-        client=mock_client,
-        bucket_name=_TEST_BUCKET_NAME,
-        object_name=_TEST_OBJECT_NAME,
+    read_obj_stream = await instantiate_read_obj_stream(
+        mock_client, mock_cls_async_bidi_rpc, open=True
     )
-    await read_obj_stream.open()
 
     # act
     bidi_read_object_request = _storage_v2.BidiReadObjectRequest()
@@ -176,24 +209,34 @@ async def test_send(mock_client, mock_cls_async_bidi_rpc):
     "google.cloud.storage._experimental.asyncio.async_grpc_client.AsyncGrpcClient.grpc_client"
 )
 @pytest.mark.asyncio
+async def test_send_without_open_should_raise_error(
+    mock_client, mock_cls_async_bidi_rpc
+):
+    # arrange
+    read_obj_stream = await instantiate_read_obj_stream(
+        mock_client, mock_cls_async_bidi_rpc, open=False
+    )
+
+    # act + assert (pythonic)
+    with pytest.raises(ValueError) as exc:
+        await read_obj_stream.send(_storage_v2.BidiReadObjectRequest())
+
+    # assert
+    assert str(exc.value) == "Stream is not open"
+
+
+@mock.patch(
+    "google.cloud.storage._experimental.asyncio.async_read_object_stream.AsyncBidiRpc"
+)
+@mock.patch(
+    "google.cloud.storage._experimental.asyncio.async_grpc_client.AsyncGrpcClient.grpc_client"
+)
+@pytest.mark.asyncio
 async def test_recv(mock_client, mock_cls_async_bidi_rpc):
     # arrange
-    socket_like_rpc = AsyncMock()
-    mock_cls_async_bidi_rpc.return_value = socket_like_rpc
-    socket_like_rpc.open = AsyncMock()
-
-    recv_response = mock.MagicMock(spec=_storage_v2.BidiReadObjectResponse)
-    recv_response.metadata = mock.MagicMock(spec=_storage_v2.Object)
-    recv_response.metadata.generation = _TEST_GENERATION_NUMBER
-    recv_response.read_handle = _TEST_READ_HANDLE
-    socket_like_rpc.recv = AsyncMock(return_value=recv_response)
-
-    read_obj_stream = _AsyncReadObjectStream(
-        client=mock_client,
-        bucket_name=_TEST_BUCKET_NAME,
-        object_name=_TEST_OBJECT_NAME,
+    read_obj_stream = await instantiate_read_obj_stream(
+        mock_client, mock_cls_async_bidi_rpc, open=True
     )
-    await read_obj_stream.open()
     bidi_read_object_response = _storage_v2.BidiReadObjectResponse()
     read_obj_stream.socket_like_rpc.recv = AsyncMock(
         return_value=bidi_read_object_response
@@ -205,3 +248,26 @@ async def test_recv(mock_client, mock_cls_async_bidi_rpc):
     # assert
     read_obj_stream.socket_like_rpc.recv.assert_called_once()
     assert response == bidi_read_object_response
+
+
+@mock.patch(
+    "google.cloud.storage._experimental.asyncio.async_read_object_stream.AsyncBidiRpc"
+)
+@mock.patch(
+    "google.cloud.storage._experimental.asyncio.async_grpc_client.AsyncGrpcClient.grpc_client"
+)
+@pytest.mark.asyncio
+async def test_recv_without_open_should_raise_error(
+    mock_client, mock_cls_async_bidi_rpc
+):
+    # arrange
+    read_obj_stream = await instantiate_read_obj_stream(
+        mock_client, mock_cls_async_bidi_rpc, open=False
+    )
+
+    # act + assert (pythonic)
+    with pytest.raises(ValueError) as exc:
+        await read_obj_stream.recv()
+
+    # assert
+    assert str(exc.value) == "Stream is not open"

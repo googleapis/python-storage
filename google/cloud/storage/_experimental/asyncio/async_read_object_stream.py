@@ -89,6 +89,8 @@ class _AsyncReadObjectStream(_AsyncAbstractObjectStream):
             ),
         )
         self.metadata = (("x-goog-request-params", f"bucket={self._full_bucket_name}"),)
+        self.socket_like_rpc: Optional[AsyncBidiRpc] = None
+        self._is_stream_open: bool = False
 
     async def open(self) -> None:
         """Opens the bidi-gRPC connection to read from the object.
@@ -96,6 +98,8 @@ class _AsyncReadObjectStream(_AsyncAbstractObjectStream):
         This method sends an initial request to start the stream and receives
         the first response containing metadata and a read handle.
         """
+        if self._is_stream_open:
+            raise ValueError("Stream is already open")
         self.socket_like_rpc = AsyncBidiRpc(
             self.rpc, initial_request=self.first_bidi_read_req, metadata=self.metadata
         )
@@ -106,8 +110,12 @@ class _AsyncReadObjectStream(_AsyncAbstractObjectStream):
 
         self.read_handle = response.read_handle
 
+        self._is_stream_open = True
+
     async def close(self) -> None:
         """Closes the bidi-gRPC connection."""
+        if not self._is_stream_open:
+            raise ValueError("Stream is not open")
         await self.socket_like_rpc.close()
 
     async def send(
@@ -120,6 +128,8 @@ class _AsyncReadObjectStream(_AsyncAbstractObjectStream):
                 The request message to send. This is typically used to specify
                 the read offset and limit.
         """
+        if not self._is_stream_open:
+            raise ValueError("Stream is not open")
         await self.socket_like_rpc.send(bidi_read_object_request)
 
     async def recv(self) -> _storage_v2.BidiReadObjectResponse:
@@ -132,8 +142,10 @@ class _AsyncReadObjectStream(_AsyncAbstractObjectStream):
             :class:`~google.cloud._storage_v2.types.BidiReadObjectResponse`:
                 The response message from the server.
         """
+        if not self._is_stream_open:
+            raise ValueError("Stream is not open")
         return await self.socket_like_rpc.recv()
 
-    def is_active(self):
-        """bool: True if this stream is currently open and active."""
-        return self.socket_like_rpc.is_active
+    @property
+    def is_stream_open(self) -> bool:
+        return self._is_stream_open
