@@ -76,6 +76,7 @@ class AsyncMultiRangeDownloader:
         my_buff4 = any_object_which_provides_BytesIO_like_interface()
         results_arr, error_obj = await mrd.download_ranges(
             [
+                # (start_byte, bytes_to_read, writeable_buffer)
                 (0, 100, my_buff1),
                 (100, 20, my_buff2),
                 (200, 123, my_buff3),
@@ -196,7 +197,7 @@ class AsyncMultiRangeDownloader:
 
         :type read_ranges: List[Tuple[int, int, "BytesIO"]]
         :param read_ranges: A list of tuples, where each tuple represents a
-            byte range (start_byte, end_byte) and a writable buffer. Buffer has
+            byte range (start_byte, bytes_to_read, writeable_buffer). Buffer has
             to be provided by the user, and user has to make sure appropriate
             memory is available in the application to avoid out-of-memory crash.
 
