@@ -83,7 +83,7 @@ class TestAsyncMultiRangeDownloader:
         assert mrd.object_name == _TEST_OBJECT_NAME
         assert mrd.generation_number == _TEST_GENERATION_NUMBER
         assert mrd.read_handle == _TEST_READ_HANDLE
-        assert mrd.is_stream_open == True
+        assert mrd.is_stream_open
 
     @mock.patch(
         "google.cloud.storage._experimental.asyncio.async_multi_range_downloader._AsyncReadObjectStream"
@@ -173,7 +173,7 @@ class TestAsyncMultiRangeDownloader:
         await mrd.close()
 
         # Assert
-        assert mrd.is_stream_open == False
+        assert not mrd.is_stream_open
 
     @mock.patch(
         "google.cloud.storage._experimental.asyncio.async_grpc_client.AsyncGrpcClient.grpc_client"
@@ -191,7 +191,7 @@ class TestAsyncMultiRangeDownloader:
 
         # Assert
         assert str(exc.value) == "Underlying bidi-gRPC stream is not open"
-        assert mrd.is_stream_open == False
+        assert not mrd.is_stream_open
 
     @mock.patch(
         "google.cloud.storage._experimental.asyncio.async_grpc_client.AsyncGrpcClient.grpc_client"
@@ -211,7 +211,4 @@ class TestAsyncMultiRangeDownloader:
 
         # Assert
         assert str(exc.value) == "Underlying bidi-gRPC stream is not open"
-        assert mrd.is_stream_open == False
-
-
-
+        assert not mrd.is_stream_open
