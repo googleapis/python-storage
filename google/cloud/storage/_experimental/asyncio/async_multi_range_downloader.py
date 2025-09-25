@@ -165,7 +165,8 @@ class AsyncMultiRangeDownloader:
         self.object_name = object_name
         self.generation_number = generation_number
         self.read_handle = read_handle
-        self.read_obj_str: _AsyncReadObjectStream = None
+        self.read_obj_str: Optional[_AsyncReadObjectStream] = None
+        self._is_stream_open: bool = False
 
     async def open(self) -> None:
         """Opens the bidi-gRPC connection to read from the object.
@@ -176,14 +177,19 @@ class AsyncMultiRangeDownloader:
         "Opening" constitutes fetching object metadata such as generation number
         and read handle and sets them as attributes if not already set.
         """
-        self.read_obj_str = _AsyncReadObjectStream(
-            client=self.client,
-            bucket_name=self.bucket_name,
-            object_name=self.object_name,
-            generation_number=self.generation_number,
-            read_handle=self.read_handle,
-        )
+        if self._is_stream_open:
+            raise ValueError("Underlying bidi-gRPC stream is already open")
+
+        if self.read_obj_str is None:
+            self.read_obj_str = _AsyncReadObjectStream(
+                client=self.client,
+                bucket_name=self.bucket_name,
+                object_name=self.object_name,
+                generation_number=self.generation_number,
+                read_handle=self.read_handle,
+            )
         await self.read_obj_str.open()
+        self._is_stream_open = True
         if self.generation_number is None:
             self.generation_number = self.read_obj_str.generation_number
         self.read_handle = self.read_obj_str.read_handle
@@ -202,6 +208,8 @@ class AsyncMultiRangeDownloader:
             memory is available in the application to avoid out-of-memory crash.
 
         """
+        if not self._is_stream_open:
+            raise ValueError("Underlying bidi-gRPC stream is not open")
         if len(read_ranges) > 1000:
             raise Exception(
                 "Invalid input - length of read_ranges cannot be more than 1000"
@@ -257,3 +265,17 @@ class AsyncMultiRangeDownloader:
                 exception = exc
                 break
         return results, exception
+
+    async def close(self):
+        """
+        Closes the underlying bidi-gRPC connection.
+        """
+        if not self._is_stream_open:
+            raise ValueError("Underlying bidi-gRPC stream is not open")
+        await self.read_obj_str.close()
+        self._is_stream_open = False
+        return
+
+    @property
+    def is_stream_open(self) -> bool:
+        return self._is_stream_open
