@@ -203,7 +203,7 @@ class AsyncMultiRangeDownloader:
 
         """
         if len(read_ranges) > 1000:
-            raise Exception(
+            raise ValueError(
                 "Invalid input - length of read_ranges cannot be more than 1000"
             )
 
