@@ -116,7 +116,7 @@ class TestAsyncMultiRangeDownloader:
 
         # Act
         buffer = BytesIO()
-        results, error_obj = await mock_mrd.download_ranges([(0, 18, buffer)])
+        results = await mock_mrd.download_ranges([(0, 18, buffer)])
 
         # Assert
         mock_mrd.read_obj_str.send.assert_called_once_with(
@@ -130,7 +130,6 @@ class TestAsyncMultiRangeDownloader:
         assert results[0].bytes_requested == 18
         assert results[0].bytes_written == 18
         assert buffer.getvalue() == b"these_are_18_chars"
-        assert error_obj is None
 
     def create_read_ranges(self, num_ranges):
         ranges = []
