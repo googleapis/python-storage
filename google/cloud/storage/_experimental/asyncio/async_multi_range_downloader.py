@@ -201,8 +201,9 @@ class AsyncMultiRangeDownloader:
             to be provided by the user, and user has to make sure appropriate
             memory is available in the application to avoid out-of-memory crash.
 
-        :rtype: :class:`~google.cloud.storage._experimental.asyncio.async_multi_range_downloader.Result`
-        :returns: An initialized AsyncMultiRangeDownloader instance for reading.
+        :rtype: List[:class:`~google.cloud.storage._experimental.asyncio.async_multi_range_downloader.Result`]
+        :returns: A list of ``Result`` objects, where each object corresponds
+                  to a requested range.
 
         """
         if len(read_ranges) > 1000:
