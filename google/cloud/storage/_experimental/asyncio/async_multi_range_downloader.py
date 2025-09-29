@@ -191,7 +191,7 @@ class AsyncMultiRangeDownloader:
 
     async def download_ranges(
         self, read_ranges: List[Tuple[int, int, BytesIO]]
-    ) -> Tuple[List[Result], Exception]:
+    ) -> List[Result]:
         """Downloads multiple byte ranges from the object into the buffers
         provided by user.
 
@@ -201,14 +201,17 @@ class AsyncMultiRangeDownloader:
             to be provided by the user, and user has to make sure appropriate
             memory is available in the application to avoid out-of-memory crash.
 
+        :rtype: List[:class:`~google.cloud.storage._experimental.asyncio.async_multi_range_downloader.Result`]
+        :returns: A list of ``Result`` objects, where each object corresponds
+                  to a requested range.
+
         """
         if len(read_ranges) > 1000:
-            raise Exception(
+            raise ValueError(
                 "Invalid input - length of read_ranges cannot be more than 1000"
             )
 
         read_id_to_writable_buffer_dict = {}
-        exception = None
         results = []
         for i in range(0, len(read_ranges), _MAX_READ_RANGES_PER_BIDI_READ_REQUEST):
             read_ranges_segment = read_ranges[
@@ -233,27 +236,23 @@ class AsyncMultiRangeDownloader:
             )
 
         while len(read_id_to_writable_buffer_dict) > 0:
-            try:
-                response = await self.read_obj_str.recv()
+            response = await self.read_obj_str.recv()
 
-                if response is None:
-                    raise Exception("None response received, something went wrong.")
+            if response is None:
+                raise Exception("None response received, something went wrong.")
 
-                for object_data_range in response.object_data_ranges:
-                    if object_data_range.read_range is None:
-                        raise Exception("Invalid response, read_range is None")
+            for object_data_range in response.object_data_ranges:
+                if object_data_range.read_range is None:
+                    raise Exception("Invalid response, read_range is None")
 
-                    data = object_data_range.checksummed_data.content
-                    read_id = object_data_range.read_range.read_id
-                    buffer = read_id_to_writable_buffer_dict[read_id]
-                    buffer.write(data)
-                    results[read_id].bytes_written += len(data)
+                data = object_data_range.checksummed_data.content
+                read_id = object_data_range.read_range.read_id
+                buffer = read_id_to_writable_buffer_dict[read_id]
+                buffer.write(data)
+                results[read_id].bytes_written += len(data)
 
-                    if object_data_range.range_end:
-                        del read_id_to_writable_buffer_dict[
-                            object_data_range.read_range.read_id
-                        ]
-            except Exception as exc:
-                exception = exc
-                break
-        return results, exception
+                if object_data_range.range_end:
+                    del read_id_to_writable_buffer_dict[
+                        object_data_range.read_range.read_id
+                    ]
+        return results

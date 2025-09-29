@@ -116,7 +116,7 @@ class TestAsyncMultiRangeDownloader:
 
         # Act
         buffer = BytesIO()
-        results, error_obj = await mock_mrd.download_ranges([(0, 18, buffer)])
+        results = await mock_mrd.download_ranges([(0, 18, buffer)])
 
         # Assert
         mock_mrd.read_obj_str.send.assert_called_once_with(
@@ -130,4 +130,33 @@ class TestAsyncMultiRangeDownloader:
         assert results[0].bytes_requested == 18
         assert results[0].bytes_written == 18
         assert buffer.getvalue() == b"these_are_18_chars"
-        assert error_obj is None
+
+    def create_read_ranges(self, num_ranges):
+        ranges = []
+        for i in range(num_ranges):
+            ranges.append(
+                _storage_v2.ReadRange(read_offset=i, read_length=1, read_id=i)
+            )
+        return ranges
+
+    @mock.patch(
+        "google.cloud.storage._experimental.asyncio.async_grpc_client.AsyncGrpcClient.grpc_client"
+    )
+    @pytest.mark.asyncio
+    async def test_downloading_ranges_with_more_than_1000_should_throw_error(
+        self, mock_grpc_client
+    ):
+        # Arrange
+        mrd = AsyncMultiRangeDownloader(
+            mock_grpc_client, _TEST_BUCKET_NAME, _TEST_OBJECT_NAME
+        )
+
+        # Act + Assert
+        with pytest.raises(ValueError) as exc:
+            await mrd.download_ranges(self.create_read_ranges(1001))
+
+        # Assert
+        assert (
+            str(exc.value)
+            == "Invalid input - length of read_ranges cannot be more than 1000"
+        )
