@@ -191,7 +191,7 @@ class AsyncMultiRangeDownloader:
 
     async def download_ranges(
         self, read_ranges: List[Tuple[int, int, BytesIO]]
-    ) -> Tuple[List[Result], Exception]:
+    ) -> List[Result]:
         """Downloads multiple byte ranges from the object into the buffers
         provided by user.
 
@@ -200,6 +200,9 @@ class AsyncMultiRangeDownloader:
             byte range (start_byte, bytes_to_read, writeable_buffer). Buffer has
             to be provided by the user, and user has to make sure appropriate
             memory is available in the application to avoid out-of-memory crash.
+
+        :rtype: :class:`~google.cloud.storage._experimental.asyncio.async_multi_range_downloader.Result`
+        :returns: An initialized AsyncMultiRangeDownloader instance for reading.
 
         """
         if len(read_ranges) > 1000:
