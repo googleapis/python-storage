@@ -28,7 +28,7 @@ _TEST_READ_HANDLE = b"test-read-handle"
 
 
 async def instantiate_read_obj_stream(mock_client, mock_cls_async_bidi_rpc, open=True):
-    """Helper to instance an instance of _AsyncReadObjectStream and open it by default."""
+    """Helper to create an instance of _AsyncReadObjectStream and open it by default."""
     socket_like_rpc = AsyncMock()
     mock_cls_async_bidi_rpc.return_value = socket_like_rpc
     socket_like_rpc.open = AsyncMock()

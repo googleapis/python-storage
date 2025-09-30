@@ -85,6 +85,16 @@ class TestAsyncMultiRangeDownloader:
         )
 
         mrd.read_obj_str.open.assert_called_once()
+        # Assert
+        mock_cls_async_read_object_stream.assert_called_once_with(
+            client=mock_grpc_client,
+            bucket_name=_TEST_BUCKET_NAME,
+            object_name=_TEST_OBJECT_NAME,
+            generation_number=_TEST_GENERATION_NUMBER,
+            read_handle=_TEST_READ_HANDLE,
+        )
+
+        mrd.read_obj_str.open.assert_called_once()
 
         assert mrd.client == mock_grpc_client
         assert mrd.bucket_name == _TEST_BUCKET_NAME
@@ -241,3 +251,25 @@ class TestAsyncMultiRangeDownloader:
         # Assert
         assert str(exc.value) == "Underlying bidi-gRPC stream is not open"
         assert not mrd.is_stream_open
+
+    @mock.patch(
+        "google.cloud.storage._experimental.asyncio.async_grpc_client.AsyncGrpcClient.grpc_client"
+    )
+    @pytest.mark.asyncio
+    async def test_downloading_ranges_with_more_than_1000_should_throw_error(
+        self, mock_grpc_client
+    ):
+        # Arrange
+        mrd = AsyncMultiRangeDownloader(
+            mock_grpc_client, _TEST_BUCKET_NAME, _TEST_OBJECT_NAME
+        )
+
+        # Act + Assert
+        with pytest.raises(ValueError) as exc:
+            await mrd.download_ranges(self.create_read_ranges(1001))
+
+        # Assert
+        assert (
+            str(exc.value)
+            == "Invalid input - length of read_ranges cannot be more than 1000"
+        )
