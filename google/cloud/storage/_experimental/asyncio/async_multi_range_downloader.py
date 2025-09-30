@@ -276,7 +276,6 @@ class AsyncMultiRangeDownloader:
             raise ValueError("Underlying bidi-gRPC stream is not open")
         await self.read_obj_str.close()
         self._is_stream_open = False
-        return
 
     @property
     def is_stream_open(self) -> bool:
