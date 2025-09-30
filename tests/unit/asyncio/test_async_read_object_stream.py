@@ -28,7 +28,7 @@ _TEST_READ_HANDLE = b"test-read-handle"
 
 
 async def instantiate_read_obj_stream(mock_client, mock_cls_async_bidi_rpc, open=True):
-    """Helper to instance an instance of _AsyncReadObjectStream and open it by default."""
+    """Helper to create an instance of _AsyncReadObjectStream and open it by default."""
     socket_like_rpc = AsyncMock()
     mock_cls_async_bidi_rpc.return_value = socket_like_rpc
     socket_like_rpc.open = AsyncMock()
@@ -111,7 +111,7 @@ async def test_open(mock_client, mock_cls_async_bidi_rpc):
 
     assert read_obj_stream.generation_number == _TEST_GENERATION_NUMBER
     assert read_obj_stream.read_handle == _TEST_READ_HANDLE
-    assert read_obj_stream.is_stream_open == True
+    assert read_obj_stream.is_stream_open
 
 
 @mock.patch(
@@ -155,7 +155,7 @@ async def test_close(mock_client, mock_cls_async_bidi_rpc):
 
     # assert
     read_obj_stream.socket_like_rpc.close.assert_called_once()
-    assert read_obj_stream.is_stream_open == False
+    assert not read_obj_stream.is_stream_open
 
 
 @mock.patch(
