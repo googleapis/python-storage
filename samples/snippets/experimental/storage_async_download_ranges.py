@@ -17,7 +17,7 @@ async def test_mrd(bucket_name, object_name, generation_number=None):
     # create buffers.
     # Make sure buffer desitnation has enough space to accomodate bytes requetsed.
     # Buffers could be in-memory or on disk
-    my_buff1 = open(f"sample_file_to_write_contents.txt", "wb")
+    my_buff1 = open("sample_file_to_write_contents.txt", "wb")
     my_buff2 = BytesIO()
     my_buff3 = BytesIO()
     my_buff4 = BytesIO()
