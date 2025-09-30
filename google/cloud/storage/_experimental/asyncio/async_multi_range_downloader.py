@@ -15,7 +15,6 @@
 from __future__ import annotations
 
 from typing import List, Optional, Tuple
-from typing import List, Optional, Tuple
 
 from google.cloud.storage._experimental.asyncio.async_read_object_stream import (
     _AsyncReadObjectStream,
@@ -25,40 +24,6 @@ from google.cloud.storage._experimental.asyncio.async_grpc_client import (
 )
 
 from io import BytesIO
-from google.cloud import _storage_v2
-
-
-_MAX_READ_RANGES_PER_BIDI_READ_REQUEST = 100
-
-
-class Result:
-    """An instance of this class will be populated and retured for each
-    `read_range` provided to ``download_ranges`` method.
-
-    """
-
-    def __init__(self, bytes_requested: int):
-        # only while instantiation, should not be edited later.
-        # hence there's no setter, only getter is provided.
-        self._bytes_requested: int = bytes_requested
-        self._bytes_written: int = 0
-
-    @property
-    def bytes_requested(self) -> int:
-        return self._bytes_requested
-
-    @property
-    def bytes_written(self) -> int:
-        return self._bytes_written
-
-    @bytes_written.setter
-    def bytes_written(self, value: int):
-        self._bytes_written = value
-
-    def __repr__(self):
-        return f"bytes_requested: {self._bytes_requested}, bytes_written: {self._bytes_written}"
-
-
 from google.cloud import _storage_v2
 
 
