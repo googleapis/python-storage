@@ -246,7 +246,7 @@ class Blob(_PropertyMixin):
             self._properties["generation"] = generation
 
         if crc32c_checksum is not None:
-            self._properties["crc32c"] = crc32c_checksum
+            self._properties["user_provided_crc32c"] = crc32c_checksum
 
     @property
     def bucket(self):
@@ -2016,8 +2016,8 @@ class Blob(_PropertyMixin):
         info = self._get_upload_arguments(client, content_type, command=command)
         headers, object_metadata, content_type = info
 
-        if "crc32c" in self._properties:
-            object_metadata["crc32c"] = self._properties["crc32c"]
+        if "user_provided_crc32c" in self._properties:
+            object_metadata["crc32c"] = self._properties["user_provided_crc32c"]
 
         hostname = _get_host_name(client._connection)
         base_url = _MULTIPART_URL_TEMPLATE.format(
@@ -2214,8 +2214,8 @@ class Blob(_PropertyMixin):
         if extra_headers is not None:
             headers.update(extra_headers)
 
-        if "crc32c" in self._properties:
-            object_metadata["crc32c"] = self._properties["crc32c"]
+        if "user_provided_crc32c" in self._properties:
+            object_metadata["crc32c"] = self._properties["user_provided_crc32c"]
 
         hostname = _get_host_name(client._connection)
         base_url = _RESUMABLE_URL_TEMPLATE.format(
