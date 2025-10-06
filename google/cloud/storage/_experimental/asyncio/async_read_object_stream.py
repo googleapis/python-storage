@@ -28,7 +28,6 @@ from google.cloud.storage._experimental.asyncio.async_grpc_client import AsyncGr
 from google.cloud.storage._experimental.asyncio.async_abstract_object_stream import (
     _AsyncAbstractObjectStream,
 )
-from google.cloud.storage._experimental.asyncio.bidi_async import AsyncBidiRpc
 
 
 class _AsyncReadObjectStream(_AsyncAbstractObjectStream):
@@ -145,7 +144,11 @@ class _AsyncReadObjectStream(_AsyncAbstractObjectStream):
         """
         if not self._is_stream_open:
             raise ValueError("Stream is not open")
-        return await self.socket_like_rpc.recv()
+        response = await self.socket_like_rpc.recv()
+        # Update read_handle if present in response
+        if response and response.read_handle:
+            self.read_handle = response.read_handle
+        return response
 
     @property
     def is_stream_open(self) -> bool:

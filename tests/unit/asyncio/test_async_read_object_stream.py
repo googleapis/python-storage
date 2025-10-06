@@ -16,7 +16,9 @@ import pytest
 from unittest import mock
 from unittest.mock import AsyncMock
 from google.cloud import _storage_v2
+from google.cloud.storage._experimental.asyncio import bidi_async
 
+from google.cloud.storage._experimental.asyncio import async_read_object_stream
 from google.cloud.storage._experimental.asyncio.async_read_object_stream import (
     _AsyncReadObjectStream,
 )
@@ -273,3 +275,6 @@ async def test_recv_without_open_should_raise_error(
 
     # assert
     assert str(exc.value) == "Stream is not open"
+
+
+
