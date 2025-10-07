@@ -180,14 +180,6 @@ class Blob(_PropertyMixin):
     :type generation: long
     :param generation:
         (Optional) If present, selects a specific revision of this object.
-
-    :type crc32c_checksum: str
-    :param crc32c_checksum:
-            (Optional) If set, the CRC32C checksum of the blob's content.
-            CRC32c checksum, as described in RFC 4960, Appendix B; encoded using
-            base64 in big-endian byte order. See
-            Apenndix B: https://datatracker.ietf.org/doc/html/rfc4960#appendix-B
-            base64: https://datatracker.ietf.org/doc/html/rfc4648#section-4
     """
 
     _chunk_size = None  # Default value for each instance.
@@ -221,7 +213,6 @@ class Blob(_PropertyMixin):
         encryption_key=None,
         kms_key_name=None,
         generation=None,
-        crc32c_checksum=None,
     ):
         """
         property :attr:`name`
@@ -244,10 +235,6 @@ class Blob(_PropertyMixin):
 
         if generation is not None:
             self._properties["generation"] = generation
-
-        if crc32c_checksum is not None:
-            self._properties["crc32c"] = crc32c_checksum
-
     @property
     def bucket(self):
         """Bucket which contains the object.
@@ -2097,6 +2084,7 @@ class Blob(_PropertyMixin):
         checksum="auto",
         retry=None,
         command=None,
+        crc32c_checksum_value=None,
     ):
         """Initiate a resumable upload.
 
@@ -2214,8 +2202,8 @@ class Blob(_PropertyMixin):
         if extra_headers is not None:
             headers.update(extra_headers)
 
-        if "crc32c" in self._properties:
-            object_metadata["crc32c"] = self._properties["crc32c"]
+        if crc32c_checksum_value is not None:
+            object_metadata["crc32c"] = crc32c_checksum_value
 
         hostname = _get_host_name(client._connection)
         base_url = _RESUMABLE_URL_TEMPLATE.format(
@@ -2292,6 +2280,7 @@ class Blob(_PropertyMixin):
         checksum="auto",
         retry=None,
         command=None,
+        crc32c_checksum_value=None,
     ):
         """Perform a resumable upload.
 
@@ -2395,6 +2384,7 @@ class Blob(_PropertyMixin):
             checksum=checksum,
             retry=retry,
             command=command,
+            crc32c_checksum_value=crc32c_checksum_value,
         )
         extra_attributes = {
             "url.full": upload.resumable_url,
@@ -2432,6 +2422,7 @@ class Blob(_PropertyMixin):
         checksum="auto",
         retry=None,
         command=None,
+        crc32c_checksum_value=None,
     ):
         """Determine an upload strategy and then perform the upload.
 
@@ -2574,6 +2565,7 @@ class Blob(_PropertyMixin):
                 checksum=checksum,
                 retry=retry,
                 command=command,
+                crc32c_checksum_value=crc32c_checksum_value,
             )
 
         return response.json()
@@ -2594,6 +2586,7 @@ class Blob(_PropertyMixin):
         checksum="auto",
         retry=DEFAULT_RETRY,
         command=None,
+        crc32c_checksum_value=None,
     ):
         """Upload the contents of this blob from a file-like object.
 
@@ -2729,6 +2722,7 @@ class Blob(_PropertyMixin):
                 checksum=checksum,
                 retry=retry,
                 command=command,
+                crc32c_checksum_value=crc32c_checksum_value,
             )
             self._set_properties(created_json)
         except InvalidResponse as exc:
@@ -2749,6 +2743,7 @@ class Blob(_PropertyMixin):
         timeout=_DEFAULT_TIMEOUT,
         checksum="auto",
         retry=DEFAULT_RETRY,
+        crc32c_checksum_value=None,
     ):
         """Upload the contents of this blob from a file-like object.
 
@@ -2875,6 +2870,7 @@ class Blob(_PropertyMixin):
                 timeout=timeout,
                 checksum=checksum,
                 retry=retry,
+                crc32c_checksum_value=crc32c_checksum_value,
             )
 
     def _handle_filename_and_upload(self, filename, content_type=None, *args, **kwargs):
@@ -2914,6 +2910,8 @@ class Blob(_PropertyMixin):
         timeout=_DEFAULT_TIMEOUT,
         checksum="auto",
         retry=DEFAULT_RETRY,
+        crc32c_checksum_value=None,
+
     ):
         """Upload this blob's contents from the content of a named file.
 
@@ -3022,6 +3020,7 @@ class Blob(_PropertyMixin):
                 timeout=timeout,
                 checksum=checksum,
                 retry=retry,
+                crc32c_checksum_value=crc32c_checksum_value,
             )
 
     def upload_from_string(
@@ -3037,6 +3036,7 @@ class Blob(_PropertyMixin):
         timeout=_DEFAULT_TIMEOUT,
         checksum="auto",
         retry=DEFAULT_RETRY,
+        crc32c_checksum_value=None,
     ):
         """Upload contents of this blob from the provided string.
 
@@ -3123,6 +3123,13 @@ class Blob(_PropertyMixin):
             See the retry.py source code and docstrings in this package
             (google.cloud.storage.retry) for information on retry types and how
             to configure them.
+        :type crc32c_checksum_value: str
+        :param crc32c_checksum_value:
+                (Optional) If set, the CRC32C checksum of `data`
+                CRC32c checksum, as described in RFC 4960, Appendix B; encoded using
+                base64 in big-endian byte order. See
+                Apenndix B: https://datatracker.ietf.org/doc/html/rfc4960#appendix-B
+                base64: https://datatracker.ietf.org/doc/html/rfc4648#section-4
         """
         with create_trace_span(name="Storage.Blob.uploadFromString"):
             data = _to_bytes(data, encoding="utf-8")
@@ -3140,6 +3147,7 @@ class Blob(_PropertyMixin):
                 timeout=timeout,
                 checksum=checksum,
                 retry=retry,
+                crc32c_checksum_value=crc32c_checksum_value,
             )
 
     def create_resumable_upload_session(
