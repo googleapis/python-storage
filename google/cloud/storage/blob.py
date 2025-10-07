@@ -2180,6 +2180,38 @@ class Blob(_PropertyMixin):
             to be included in the X-Goog-API-Client header. Please leave as None
             unless otherwise directed.
 
+        :type crc32c_checksum_value: str
+        :param crc32c_checksum_value: (Optional) This should be the checksum of 
+            the entire contents of `file`. Applicable while uploading object
+            greater than `_MAX_MULTIPART_SIZE` bytes.
+
+            It can be obtained by running
+            
+            `gcloud storage hash /path/to/your/file`
+
+            or
+            
+            ```
+            import google_crc32c
+            import base64
+
+            data = b"Hello, world!"
+            crc32c_int = google_crc32c.value(data)
+            crc32c_hex = f"{crc32c_int:08x}"
+            crc32c_bytes = crc32c_int.to_bytes(4, "big")
+            base64_encoded = base64.b64encode(crc32c_bytes)
+            crc32c_base64 = base64_encoded.decode("utf-8")
+
+            print(crc32c_base64)
+            ```
+
+            The value here is the 8 char string of base64 encoded big-endian
+            bytes of 32 bit CRC32c integer.
+            
+            More details on CRC32c can be found in Apenndix B:
+            https://datatracker.ietf.org/doc/html/rfc4960#appendix-B and
+            base64: https://datatracker.ietf.org/doc/html/rfc4648#section-4
+
         :rtype: tuple
         :returns:
             Pair of
@@ -2366,6 +2398,38 @@ class Blob(_PropertyMixin):
             to be included in the X-Goog-API-Client header. Please leave as None
             unless otherwise directed.
 
+        :type crc32c_checksum_value: str
+        :param crc32c_checksum_value: (Optional) This should be the checksum of 
+            the entire contents of `stream`. Applicable while uploading object
+            greater than `_MAX_MULTIPART_SIZE` bytes.
+
+            It can be obtained by running
+            
+            `gcloud storage hash /path/to/your/file`
+
+            or
+            
+            ```
+            import google_crc32c
+            import base64
+
+            data = b"Hello, world!"
+            crc32c_int = google_crc32c.value(data)
+            crc32c_hex = f"{crc32c_int:08x}"
+            crc32c_bytes = crc32c_int.to_bytes(4, "big")
+            base64_encoded = base64.b64encode(crc32c_bytes)
+            crc32c_base64 = base64_encoded.decode("utf-8")
+
+            print(crc32c_base64)
+            ```
+
+            The value here is the 8 char string of base64 encoded big-endian
+            bytes of 32 bit CRC32c integer.
+            
+            More details on CRC32c can be found in Apenndix B:
+            https://datatracker.ietf.org/doc/html/rfc4960#appendix-B and
+            base64: https://datatracker.ietf.org/doc/html/rfc4648#section-4
+
         :rtype: :class:`~requests.Response`
         :returns: The "200 OK" response object returned after the final chunk
                   is uploaded.
@@ -2515,6 +2579,38 @@ class Blob(_PropertyMixin):
             (Optional) Information about which interface for upload was used,
             to be included in the X-Goog-API-Client header. Please leave as None
             unless otherwise directed.
+
+        :type crc32c_checksum_value: str
+        :param crc32c_checksum_value: (Optional) This should be the checksum of 
+            the entire contents of `file_obj`. Applicable while uploading object
+            greater than `_MAX_MULTIPART_SIZE` bytes.
+
+            It can be obtained by running
+            
+            `gcloud storage hash /path/to/your/file`
+
+            or
+            
+            ```
+            import google_crc32c
+            import base64
+
+            data = b"Hello, world!"
+            crc32c_int = google_crc32c.value(data)
+            crc32c_hex = f"{crc32c_int:08x}"
+            crc32c_bytes = crc32c_int.to_bytes(4, "big")
+            base64_encoded = base64.b64encode(crc32c_bytes)
+            crc32c_base64 = base64_encoded.decode("utf-8")
+
+            print(crc32c_base64)
+            ```
+
+            The value here is the 8 char string of base64 encoded big-endian
+            bytes of 32 bit CRC32c integer.
+            
+            More details on CRC32c can be found in Apenndix B:
+            https://datatracker.ietf.org/doc/html/rfc4960#appendix-B and
+            base64: https://datatracker.ietf.org/doc/html/rfc4648#section-4
 
         :rtype: dict
         :returns: The parsed JSON from the "200 OK" response. This will be the
@@ -2701,6 +2797,38 @@ class Blob(_PropertyMixin):
             to be included in the X-Goog-API-Client header. Please leave as None
             unless otherwise directed.
 
+        :type crc32c_checksum_value: str
+        :param crc32c_checksum_value: (Optional) This should be the checksum of 
+            the entire contents of `file_obj`. Applicable while uploading object
+            greater than `_MAX_MULTIPART_SIZE` bytes.
+
+            It can be obtained by running
+            
+            `gcloud storage hash /path/to/your/file`
+
+            or
+            
+            ```
+            import google_crc32c
+            import base64
+
+            data = b"Hello, world!"
+            crc32c_int = google_crc32c.value(data)
+            crc32c_hex = f"{crc32c_int:08x}"
+            crc32c_bytes = crc32c_int.to_bytes(4, "big")
+            base64_encoded = base64.b64encode(crc32c_bytes)
+            crc32c_base64 = base64_encoded.decode("utf-8")
+
+            print(crc32c_base64)
+            ```
+
+            The value here is the 8 char string of base64 encoded big-endian
+            bytes of 32 bit CRC32c integer.
+            
+            More details on CRC32c can be found in Apenndix B:
+            https://datatracker.ietf.org/doc/html/rfc4960#appendix-B and
+            base64: https://datatracker.ietf.org/doc/html/rfc4648#section-4
+
         :raises: :class:`~google.cloud.exceptions.GoogleCloudError`
                  if the upload response returns an error status.
         """
@@ -2851,6 +2979,38 @@ class Blob(_PropertyMixin):
             See the retry.py source code and docstrings in this package
             (google.cloud.storage.retry) for information on retry types and how
             to configure them.
+
+        :type crc32c_checksum_value: str
+        :param crc32c_checksum_value: (Optional) This should be the checksum of 
+            the entire contents of `file_obj`. Applicable while uploading object
+            greater than `_MAX_MULTIPART_SIZE` bytes.
+
+            It can be obtained by running
+            
+            `gcloud storage hash /path/to/your/file`
+
+            or
+            
+            ```
+            import google_crc32c
+            import base64
+
+            data = b"Hello, world!"
+            crc32c_int = google_crc32c.value(data)
+            crc32c_hex = f"{crc32c_int:08x}"
+            crc32c_bytes = crc32c_int.to_bytes(4, "big")
+            base64_encoded = base64.b64encode(crc32c_bytes)
+            crc32c_base64 = base64_encoded.decode("utf-8")
+
+            print(crc32c_base64)
+            ```
+
+            The value here is the 8 char string of base64 encoded big-endian
+            bytes of 32 bit CRC32c integer.
+            
+            More details on CRC32c can be found in Apenndix B:
+            https://datatracker.ietf.org/doc/html/rfc4960#appendix-B and
+            base64: https://datatracker.ietf.org/doc/html/rfc4648#section-4
 
         :raises: :class:`~google.cloud.exceptions.GoogleCloudError`
                  if the upload response returns an error status.
@@ -3006,6 +3166,38 @@ class Blob(_PropertyMixin):
             See the retry.py source code and docstrings in this package
             (google.cloud.storage.retry) for information on retry types and how
             to configure them.
+        
+        :type crc32c_checksum_value: str
+        :param crc32c_checksum_value: (Optional) This should be the checksum of 
+            the entire contents of `filename`. Applicable while uploading object
+            greater than `_MAX_MULTIPART_SIZE` bytes.
+
+            It can be obtained by running
+            
+            `gcloud storage hash /path/to/your/file`
+
+            or
+            
+            ```
+            import google_crc32c
+            import base64
+
+            data = b"Hello, world!"
+            crc32c_int = google_crc32c.value(data)
+            crc32c_hex = f"{crc32c_int:08x}"
+            crc32c_bytes = crc32c_int.to_bytes(4, "big")
+            base64_encoded = base64.b64encode(crc32c_bytes)
+            crc32c_base64 = base64_encoded.decode("utf-8")
+
+            print(crc32c_base64)
+            ```
+
+            The value here is the 8 char string of base64 encoded big-endian
+            bytes of 32 bit CRC32c integer.
+            
+            More details on CRC32c can be found in Apenndix B:
+            https://datatracker.ietf.org/doc/html/rfc4960#appendix-B and
+            base64: https://datatracker.ietf.org/doc/html/rfc4648#section-4
         """
         with create_trace_span(name="Storage.Blob.uploadFromFilename"):
             self._handle_filename_and_upload(
@@ -3123,13 +3315,38 @@ class Blob(_PropertyMixin):
             See the retry.py source code and docstrings in this package
             (google.cloud.storage.retry) for information on retry types and how
             to configure them.
+
         :type crc32c_checksum_value: str
-        :param crc32c_checksum_value:
-                (Optional) If set, the CRC32C checksum of `data`
-                CRC32c checksum, as described in RFC 4960, Appendix B; encoded using
-                base64 in big-endian byte order. See
-                Apenndix B: https://datatracker.ietf.org/doc/html/rfc4960#appendix-B
-                base64: https://datatracker.ietf.org/doc/html/rfc4648#section-4
+        :param crc32c_checksum_value: (Optional) This should be the checksum of 
+            the entire contents of `file_obj`. Applicable while uploading object
+            greater than `_MAX_MULTIPART_SIZE` bytes.
+
+            It can be obtained by running
+            
+            `gcloud storage hash /path/to/your/file`
+
+            or
+            
+            ```
+            import google_crc32c
+            import base64
+
+            data = b"Hello, world!"
+            crc32c_int = google_crc32c.value(data)
+            crc32c_hex = f"{crc32c_int:08x}"
+            crc32c_bytes = crc32c_int.to_bytes(4, "big")
+            base64_encoded = base64.b64encode(crc32c_bytes)
+            crc32c_base64 = base64_encoded.decode("utf-8")
+
+            print(crc32c_base64)
+            ```
+
+            The value here is the 8 char string of base64 encoded big-endian
+            bytes of 32 bit CRC32c integer.
+            
+            More details on CRC32c can be found in Apenndix B:
+            https://datatracker.ietf.org/doc/html/rfc4960#appendix-B and
+            base64: https://datatracker.ietf.org/doc/html/rfc4648#section-4
         """
         with create_trace_span(name="Storage.Blob.uploadFromString"):
             data = _to_bytes(data, encoding="utf-8")
