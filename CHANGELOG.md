@@ -7,22 +7,6 @@
 ## [3.5.0](https://github.com/googleapis/python-storage/compare/v3.4.0...v3.5.0) (2025-10-08)
 
 
-### Features
-
-* Add async bidiRpc files in python-storage ([#1545](https://github.com/googleapis/python-storage/issues/1545)) ([8b988ad](https://github.com/googleapis/python-storage/commit/8b988ade0aae184f6404ac85391bc305e8dd1d94))
-* **experimental:** Add _AsyncReadObjectStream and it's stubs ([#1547](https://github.com/googleapis/python-storage/issues/1547)) ([3c8a21d](https://github.com/googleapis/python-storage/commit/3c8a21d6467f3a2407dd64d231ba89ffb9940187))
-* **experimental:** Add AsyncAbstractObjectStream ([#1546](https://github.com/googleapis/python-storage/issues/1546)) ([71e0904](https://github.com/googleapis/python-storage/commit/71e0904d9b311ba520188ced0a60d1fc7eb10072))
-* **experimental:** Implement `__init__` method for _AsyncReadObjectStream ([#1548](https://github.com/googleapis/python-storage/issues/1548)) ([c31a516](https://github.com/googleapis/python-storage/commit/c31a516def72a1504b05c44dd8fad5a7eef52552))
-* **experimental:** Read handle refresh ([#1559](https://github.com/googleapis/python-storage/issues/1559)) ([b975732](https://github.com/googleapis/python-storage/commit/b975732f24b1e54bfd0a2c8918f3043e6e1634b6))
-* **zb-experimental:** Add all other methods open close send recv in _AsyncReadObjectStream ([#1549](https://github.com/googleapis/python-storage/issues/1549)) ([fc8461b](https://github.com/googleapis/python-storage/commit/fc8461b5d1ae8cae749a0e0a262e055fe8ea9439))
-* **zb-experimental:** Add AsyncMultiRangeDownloader ([#1550](https://github.com/googleapis/python-storage/issues/1550)) ([4766164](https://github.com/googleapis/python-storage/commit/4766164e560e170af18de68870c085f2202c7b9a))
-* **zb-experimental:** Add AsyncMultiRangeDownloader and it's init method. ([4766164](https://github.com/googleapis/python-storage/commit/4766164e560e170af18de68870c085f2202c7b9a))
-* **zb-experimental:** Add support for closing MRD ([#1554](https://github.com/googleapis/python-storage/issues/1554)) ([9c8856a](https://github.com/googleapis/python-storage/commit/9c8856af3b4fa95269855509c08968c2d29412e9))
-* **zb-experimental:** Implement `close` in AsyncMultiRangeDownloader ([aba4c6b](https://github.com/googleapis/python-storage/commit/aba4c6b7bd34f8ceb8284f0cb2137cfd0ef81b63))
-* **zb-experimental:** Implement `close` in AsyncMultiRangeDownloader ([#1555](https://github.com/googleapis/python-storage/issues/1555)) ([aba4c6b](https://github.com/googleapis/python-storage/commit/aba4c6b7bd34f8ceb8284f0cb2137cfd0ef81b63))
-* **zb-experimental:** Implement download_ranges ([#1551](https://github.com/googleapis/python-storage/issues/1551)) ([e26888f](https://github.com/googleapis/python-storage/commit/e26888fa6885330a3d938b09b3a028c2fd6c605d))
-
-
 ### Bug Fixes
 
 * Send entire object checksums via upload methods ([#1561](https://github.com/googleapis/python-storage/issues/1561)) ([acb918e](https://github.com/googleapis/python-storage/commit/acb918e20f7092e13d72fc63fe4ae2560bfecd40))
