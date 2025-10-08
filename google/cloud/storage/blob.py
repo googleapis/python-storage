@@ -2191,7 +2191,7 @@ class Blob(_PropertyMixin):
 
             or
             
-            ```
+            ```python
             import google_crc32c
             import base64
 
@@ -2208,7 +2208,7 @@ class Blob(_PropertyMixin):
             The value here is the 8 char string of base64 encoded big-endian
             bytes of 32 bit CRC32c integer.
             
-            More details on CRC32c can be found in Apenndix B:
+            More details on CRC32c can be found in Appendix B:
             https://datatracker.ietf.org/doc/html/rfc4960#appendix-B and
             base64: https://datatracker.ietf.org/doc/html/rfc4648#section-4
 
@@ -2409,7 +2409,7 @@ class Blob(_PropertyMixin):
 
             or
             
-            ```
+            ```python
             import google_crc32c
             import base64
 
@@ -2426,7 +2426,7 @@ class Blob(_PropertyMixin):
             The value here is the 8 char string of base64 encoded big-endian
             bytes of 32 bit CRC32c integer.
             
-            More details on CRC32c can be found in Apenndix B:
+            More details on CRC32c can be found in Appendix B:
             https://datatracker.ietf.org/doc/html/rfc4960#appendix-B and
             base64: https://datatracker.ietf.org/doc/html/rfc4648#section-4
 
@@ -2591,7 +2591,7 @@ class Blob(_PropertyMixin):
 
             or
             
-            ```
+            ```python
             import google_crc32c
             import base64
 
@@ -2608,7 +2608,7 @@ class Blob(_PropertyMixin):
             The value here is the 8 char string of base64 encoded big-endian
             bytes of 32 bit CRC32c integer.
             
-            More details on CRC32c can be found in Apenndix B:
+            More details on CRC32c can be found in Appendix B:
             https://datatracker.ietf.org/doc/html/rfc4960#appendix-B and
             base64: https://datatracker.ietf.org/doc/html/rfc4648#section-4
 
@@ -2808,7 +2808,7 @@ class Blob(_PropertyMixin):
 
             or
             
-            ```
+            ```python
             import google_crc32c
             import base64
 
@@ -2825,7 +2825,7 @@ class Blob(_PropertyMixin):
             The value here is the 8 char string of base64 encoded big-endian
             bytes of 32 bit CRC32c integer.
             
-            More details on CRC32c can be found in Apenndix B:
+            More details on CRC32c can be found in Appendix B:
             https://datatracker.ietf.org/doc/html/rfc4960#appendix-B and
             base64: https://datatracker.ietf.org/doc/html/rfc4648#section-4
 
@@ -2991,7 +2991,7 @@ class Blob(_PropertyMixin):
 
             or
             
-            ```
+            ```python
             import google_crc32c
             import base64
 
@@ -3008,7 +3008,7 @@ class Blob(_PropertyMixin):
             The value here is the 8 char string of base64 encoded big-endian
             bytes of 32 bit CRC32c integer.
             
-            More details on CRC32c can be found in Apenndix B:
+            More details on CRC32c can be found in Appendix B:
             https://datatracker.ietf.org/doc/html/rfc4960#appendix-B and
             base64: https://datatracker.ietf.org/doc/html/rfc4648#section-4
 
@@ -3178,7 +3178,7 @@ class Blob(_PropertyMixin):
 
             or
             
-            ```
+            ```python
             import google_crc32c
             import base64
 
@@ -3195,7 +3195,7 @@ class Blob(_PropertyMixin):
             The value here is the 8 char string of base64 encoded big-endian
             bytes of 32 bit CRC32c integer.
             
-            More details on CRC32c can be found in Apenndix B:
+            More details on CRC32c can be found in Appendix B:
             https://datatracker.ietf.org/doc/html/rfc4960#appendix-B and
             base64: https://datatracker.ietf.org/doc/html/rfc4648#section-4
         """
@@ -3327,7 +3327,7 @@ class Blob(_PropertyMixin):
 
             or
             
-            ```
+            ```python
             import google_crc32c
             import base64
 
@@ -3344,7 +3344,7 @@ class Blob(_PropertyMixin):
             The value here is the 8 char string of base64 encoded big-endian
             bytes of 32 bit CRC32c integer.
             
-            More details on CRC32c can be found in Apenndix B:
+            More details on CRC32c can be found in Appendix B:
             https://datatracker.ietf.org/doc/html/rfc4960#appendix-B and
             base64: https://datatracker.ietf.org/doc/html/rfc4648#section-4
         """
