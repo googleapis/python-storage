@@ -2187,22 +2187,22 @@ class Blob(_PropertyMixin):
             `gcloud storage hash /path/to/your/file`
 
             or
-            
-            ```python
-            import google_crc32c
-            import base64
 
-            data = b"Hello, world!"
-            crc32c_int = google_crc32c.value(data)
-            crc32c_hex = f"{crc32c_int:08x}"
-            crc32c_bytes = crc32c_int.to_bytes(4, "big")
-            base64_encoded = base64.b64encode(crc32c_bytes)
-            crc32c_base64 = base64_encoded.decode("utf-8")
+            .. code-block:: python
 
-            print(crc32c_base64)
-            ```
+                import google_crc32c
+                import base64
 
-            The value here is the 8 char string of base64 encoded big-endian
+                data = b"Hello, world!"
+                crc32c_int = google_crc32c.value(data)
+                crc32c_hex = f"{crc32c_int:08x}"
+                crc32c_bytes = crc32c_int.to_bytes(4, "big")
+                base64_encoded = base64.b64encode(crc32c_bytes)
+                crc32c_base64 = base64_encoded.decode("utf-8")
+
+                print(crc32c_base64)
+
+            Above code block prints 8 char string of base64 encoded big-endian
             bytes of 32 bit CRC32c integer.
             
             More details on CRC32c can be found in Appendix B:
@@ -2405,22 +2405,22 @@ class Blob(_PropertyMixin):
             `gcloud storage hash /path/to/your/file`
 
             or
-            
-            ```python
-            import google_crc32c
-            import base64
 
-            data = b"Hello, world!"
-            crc32c_int = google_crc32c.value(data)
-            crc32c_hex = f"{crc32c_int:08x}"
-            crc32c_bytes = crc32c_int.to_bytes(4, "big")
-            base64_encoded = base64.b64encode(crc32c_bytes)
-            crc32c_base64 = base64_encoded.decode("utf-8")
+            .. code-block:: python
 
-            print(crc32c_base64)
-            ```
+                import google_crc32c
+                import base64
 
-            The value here is the 8 char string of base64 encoded big-endian
+                data = b"Hello, world!"
+                crc32c_int = google_crc32c.value(data)
+                crc32c_hex = f"{crc32c_int:08x}"
+                crc32c_bytes = crc32c_int.to_bytes(4, "big")
+                base64_encoded = base64.b64encode(crc32c_bytes)
+                crc32c_base64 = base64_encoded.decode("utf-8")
+
+                print(crc32c_base64)
+
+            Above code block prints 8 char string of base64 encoded big-endian
             bytes of 32 bit CRC32c integer.
             
             More details on CRC32c can be found in Appendix B:
@@ -2587,22 +2587,22 @@ class Blob(_PropertyMixin):
             `gcloud storage hash /path/to/your/file`
 
             or
-            
-            ```python
-            import google_crc32c
-            import base64
 
-            data = b"Hello, world!"
-            crc32c_int = google_crc32c.value(data)
-            crc32c_hex = f"{crc32c_int:08x}"
-            crc32c_bytes = crc32c_int.to_bytes(4, "big")
-            base64_encoded = base64.b64encode(crc32c_bytes)
-            crc32c_base64 = base64_encoded.decode("utf-8")
+            .. code-block:: python
 
-            print(crc32c_base64)
-            ```
+                import google_crc32c
+                import base64
 
-            The value here is the 8 char string of base64 encoded big-endian
+                data = b"Hello, world!"
+                crc32c_int = google_crc32c.value(data)
+                crc32c_hex = f"{crc32c_int:08x}"
+                crc32c_bytes = crc32c_int.to_bytes(4, "big")
+                base64_encoded = base64.b64encode(crc32c_bytes)
+                crc32c_base64 = base64_encoded.decode("utf-8")
+
+                print(crc32c_base64)
+
+            Above code block prints 8 char string of base64 encoded big-endian
             bytes of 32 bit CRC32c integer.
             
             More details on CRC32c can be found in Appendix B:
@@ -2804,22 +2804,22 @@ class Blob(_PropertyMixin):
             `gcloud storage hash /path/to/your/file`
 
             or
-            
-            ```python
-            import google_crc32c
-            import base64
 
-            data = b"Hello, world!"
-            crc32c_int = google_crc32c.value(data)
-            crc32c_hex = f"{crc32c_int:08x}"
-            crc32c_bytes = crc32c_int.to_bytes(4, "big")
-            base64_encoded = base64.b64encode(crc32c_bytes)
-            crc32c_base64 = base64_encoded.decode("utf-8")
+            .. code-block:: python
 
-            print(crc32c_base64)
-            ```
+                import google_crc32c
+                import base64
 
-            The value here is the 8 char string of base64 encoded big-endian
+                data = b"Hello, world!"
+                crc32c_int = google_crc32c.value(data)
+                crc32c_hex = f"{crc32c_int:08x}"
+                crc32c_bytes = crc32c_int.to_bytes(4, "big")
+                base64_encoded = base64.b64encode(crc32c_bytes)
+                crc32c_base64 = base64_encoded.decode("utf-8")
+
+                print(crc32c_base64)
+
+            Above code block prints 8 char string of base64 encoded big-endian
             bytes of 32 bit CRC32c integer.
             
             More details on CRC32c can be found in Appendix B:
@@ -2987,22 +2987,22 @@ class Blob(_PropertyMixin):
             `gcloud storage hash /path/to/your/file`
 
             or
-            
-            ```python
-            import google_crc32c
-            import base64
 
-            data = b"Hello, world!"
-            crc32c_int = google_crc32c.value(data)
-            crc32c_hex = f"{crc32c_int:08x}"
-            crc32c_bytes = crc32c_int.to_bytes(4, "big")
-            base64_encoded = base64.b64encode(crc32c_bytes)
-            crc32c_base64 = base64_encoded.decode("utf-8")
+            .. code-block:: python
 
-            print(crc32c_base64)
-            ```
+                import google_crc32c
+                import base64
 
-            The value here is the 8 char string of base64 encoded big-endian
+                data = b"Hello, world!"
+                crc32c_int = google_crc32c.value(data)
+                crc32c_hex = f"{crc32c_int:08x}"
+                crc32c_bytes = crc32c_int.to_bytes(4, "big")
+                base64_encoded = base64.b64encode(crc32c_bytes)
+                crc32c_base64 = base64_encoded.decode("utf-8")
+
+                print(crc32c_base64)
+
+            Above code block prints 8 char string of base64 encoded big-endian
             bytes of 32 bit CRC32c integer.
             
             More details on CRC32c can be found in Appendix B:
@@ -3174,22 +3174,22 @@ class Blob(_PropertyMixin):
             `gcloud storage hash /path/to/your/file`
 
             or
-            
-            ```python
-            import google_crc32c
-            import base64
 
-            data = b"Hello, world!"
-            crc32c_int = google_crc32c.value(data)
-            crc32c_hex = f"{crc32c_int:08x}"
-            crc32c_bytes = crc32c_int.to_bytes(4, "big")
-            base64_encoded = base64.b64encode(crc32c_bytes)
-            crc32c_base64 = base64_encoded.decode("utf-8")
+            .. code-block:: python
 
-            print(crc32c_base64)
-            ```
+                import google_crc32c
+                import base64
 
-            The value here is the 8 char string of base64 encoded big-endian
+                data = b"Hello, world!"
+                crc32c_int = google_crc32c.value(data)
+                crc32c_hex = f"{crc32c_int:08x}"
+                crc32c_bytes = crc32c_int.to_bytes(4, "big")
+                base64_encoded = base64.b64encode(crc32c_bytes)
+                crc32c_base64 = base64_encoded.decode("utf-8")
+
+                print(crc32c_base64)
+
+            Above code block prints 8 char string of base64 encoded big-endian
             bytes of 32 bit CRC32c integer.
             
             More details on CRC32c can be found in Appendix B:
@@ -3323,22 +3323,22 @@ class Blob(_PropertyMixin):
             `gcloud storage hash /path/to/your/file`
 
             or
-            
-            ```python
-            import google_crc32c
-            import base64
 
-            data = b"Hello, world!"
-            crc32c_int = google_crc32c.value(data)
-            crc32c_hex = f"{crc32c_int:08x}"
-            crc32c_bytes = crc32c_int.to_bytes(4, "big")
-            base64_encoded = base64.b64encode(crc32c_bytes)
-            crc32c_base64 = base64_encoded.decode("utf-8")
+            .. code-block:: python
 
-            print(crc32c_base64)
-            ```
+                import google_crc32c
+                import base64
 
-            The value here is the 8 char string of base64 encoded big-endian
+                data = b"Hello, world!"
+                crc32c_int = google_crc32c.value(data)
+                crc32c_hex = f"{crc32c_int:08x}"
+                crc32c_bytes = crc32c_int.to_bytes(4, "big")
+                base64_encoded = base64.b64encode(crc32c_bytes)
+                crc32c_base64 = base64_encoded.decode("utf-8")
+
+                print(crc32c_base64)
+
+            Above code block prints 8 char string of base64 encoded big-endian
             bytes of 32 bit CRC32c integer.
             
             More details on CRC32c can be found in Appendix B:
