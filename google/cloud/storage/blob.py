@@ -2003,9 +2003,6 @@ class Blob(_PropertyMixin):
         info = self._get_upload_arguments(client, content_type, command=command)
         headers, object_metadata, content_type = info
 
-        if "crc32c" in self._properties:
-            object_metadata["crc32c"] = self._properties["crc32c"]
-
         hostname = _get_host_name(client._connection)
         base_url = _MULTIPART_URL_TEMPLATE.format(
             hostname=hostname,
