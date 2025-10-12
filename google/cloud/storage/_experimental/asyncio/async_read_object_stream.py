@@ -145,7 +145,11 @@ class _AsyncReadObjectStream(_AsyncAbstractObjectStream):
         """
         if not self._is_stream_open:
             raise ValueError("Stream is not open")
-        return await self.socket_like_rpc.recv()
+        res = await self.socket_like_rpc.recv()
+        if hasattr(res, "object_data_ranges"):
+            for object_data_range in res.object_data_ranges:
+                print("readid in read_obj_str", object_data_range.read_range.read_id)
+        return res
 
     @property
     def is_stream_open(self) -> bool:

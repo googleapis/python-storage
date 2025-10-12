@@ -26,6 +26,8 @@ from google.cloud.storage._experimental.asyncio.async_grpc_client import (
 from io import BytesIO
 from google.cloud import _storage_v2
 
+import asyncio
+import traceback
 
 _MAX_READ_RANGES_PER_BIDI_READ_REQUEST = 100
 
@@ -160,6 +162,9 @@ class AsyncMultiRangeDownloader:
         self.read_handle = read_handle
         self.read_obj_str: Optional[_AsyncReadObjectStream] = None
         self._is_stream_open: bool = False
+        self.read_id_to_writable_buffer_dict = {}
+        self.read_id_to_func_offset = {}
+        self.func_id_to_pending_read_ids = {}
 
     async def open(self) -> None:
         """Opens the bidi-gRPC connection to read from the object.
@@ -189,8 +194,8 @@ class AsyncMultiRangeDownloader:
         return
 
     async def download_ranges(
-        self, read_ranges: List[Tuple[int, int, BytesIO]]
-    ) -> List[Result]:
+        self, read_ranges: List[Tuple[int, int, BytesIO]], func_offest: int
+    ):
         """Downloads multiple byte ranges from the object into the buffers
         provided by user.
 
@@ -214,8 +219,7 @@ class AsyncMultiRangeDownloader:
         if not self._is_stream_open:
             raise ValueError("Underlying bidi-gRPC stream is not open")
 
-        read_id_to_writable_buffer_dict = {}
-        results = []
+        read_ids_in_this_func = set()
         for i in range(0, len(read_ranges), _MAX_READ_RANGES_PER_BIDI_READ_REQUEST):
             read_ranges_segment = read_ranges[
                 i : i + _MAX_READ_RANGES_PER_BIDI_READ_REQUEST
@@ -223,10 +227,12 @@ class AsyncMultiRangeDownloader:
 
             read_ranges_for_bidi_req = []
             for j, read_range in enumerate(read_ranges_segment):
-                read_id = i + j
-                read_id_to_writable_buffer_dict[read_id] = read_range[2]
+                read_id = i + j + func_offest
+                self.read_id_to_func_offset[read_id] = func_offest
+                self.read_id_to_writable_buffer_dict[read_id] = read_range[2]
+                read_ids_in_this_func.add(read_id)
                 bytes_requested = read_range[1]
-                results.append(Result(bytes_requested))
+                # results.append(Result(bytes_requested))
                 read_ranges_for_bidi_req.append(
                     _storage_v2.ReadRange(
                         read_offset=read_range[0],
@@ -234,12 +240,27 @@ class AsyncMultiRangeDownloader:
                         read_id=read_id,
                     )
                 )
+            print("sending read_ranges", read_ranges_for_bidi_req)
             await self.read_obj_str.send(
                 _storage_v2.BidiReadObjectRequest(read_ranges=read_ranges_for_bidi_req)
             )
 
-        while len(read_id_to_writable_buffer_dict) > 0:
-            response = await self.read_obj_str.recv()
+        self.func_id_to_pending_read_ids[func_offest] = read_ids_in_this_func
+        # if func_offest == 100:
+        #     await asyncio.sleep(15)
+        #     print("woke up from sleep, recveing to start")
+
+        while len(self.func_id_to_pending_read_ids[func_offest]) > 0:
+            try:
+                async with asyncio.timeout(30):
+                    response = await self.read_obj_str.recv()
+            except TimeoutError as exc:
+                print("timeout error occurred, Traceback:", traceback.format_exc())
+                print("in funcId", func_offest)
+                for read_id, buffer in self.read_id_to_writable_buffer_dict.items():
+                    print("read_id", read_id, "buffer size", buffer.getbuffer().nbytes)
+                print("*" * 40)
+                continue
 
             if response is None:
                 raise Exception("None response received, something went wrong.")
@@ -248,18 +269,16 @@ class AsyncMultiRangeDownloader:
                 if object_data_range.read_range is None:
                     raise Exception("Invalid response, read_range is None")
 
-                data = object_data_range.checksummed_data.content
                 read_id = object_data_range.read_range.read_id
-                buffer = read_id_to_writable_buffer_dict[read_id]
+                print("received read_id", read_id)
+                data = object_data_range.checksummed_data.content
+                buffer = self.read_id_to_writable_buffer_dict[read_id]
                 buffer.write(data)
-                results[read_id].bytes_written += len(data)
 
                 if object_data_range.range_end:
-                    del read_id_to_writable_buffer_dict[
-                        object_data_range.read_range.read_id
-                    ]
-
-        return results
+                    tmp_func_offset = self.read_id_to_func_offset[read_id]
+                    self.func_id_to_pending_read_ids[tmp_func_offset].remove(read_id)
+        return
 
     async def close(self):
         """
