@@ -13,6 +13,9 @@
 # limitations under the License.
 
 from __future__ import annotations
+import google_crc32c
+from google.api_core import exceptions
+from google_crc32c import Checksum
 
 from typing import List, Optional, Tuple
 
@@ -153,6 +156,15 @@ class AsyncMultiRangeDownloader:
         :type read_handle: bytes
         :param read_handle: (Optional) An existing read handle.
         """
+
+        # Verify that the fast, C-accelerated version of crc32c is available.
+        # If not, raise an error to prevent silent performance degradation.
+        if google_crc32c.implementation != "c":
+            raise exceptions.GoogleAPICallError(
+                "The google-crc32c package is not installed with C support. "
+                "Bidi reads require the C extension for data integrity checks."
+            )
+
         self.client = client
         self.bucket_name = bucket_name
         self.object_name = object_name
@@ -248,7 +260,19 @@ class AsyncMultiRangeDownloader:
                 if object_data_range.read_range is None:
                     raise Exception("Invalid response, read_range is None")
 
-                data = object_data_range.checksummed_data.content
+                checksummed_data = object_data_range.checksummed_data
+                data = checksummed_data.content
+                server_checksum = checksummed_data.crc32c
+
+                client_crc32c = Checksum(data).digest()
+                client_checksum = int.from_bytes(client_crc32c, "big")
+
+                if server_checksum != client_checksum:
+                    raise Exception(
+                        f"Checksum mismatch for read_id {object_data_range.read_range.read_id}. "
+                        f"Server sent {server_checksum}, client calculated {client_checksum}."
+                    )
+
                 read_id = object_data_range.read_range.read_id
                 buffer = read_id_to_writable_buffer_dict[read_id]
                 buffer.write(data)
