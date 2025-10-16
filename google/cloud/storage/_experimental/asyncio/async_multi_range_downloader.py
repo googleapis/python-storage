@@ -28,6 +28,7 @@ from google.cloud.storage._experimental.asyncio.async_grpc_client import (
 
 from io import BytesIO
 from google.cloud import _storage_v2
+from google.cloud.storage.exceptions import DataCorruption
 
 
 _MAX_READ_RANGES_PER_BIDI_READ_REQUEST = 100
@@ -160,9 +161,10 @@ class AsyncMultiRangeDownloader:
         # Verify that the fast, C-accelerated version of crc32c is available.
         # If not, raise an error to prevent silent performance degradation.
         if google_crc32c.implementation != "c":
-            raise exceptions.GoogleAPICallError(
+            raise exceptions.NotFound(
                 "The google-crc32c package is not installed with C support. "
                 "Bidi reads require the C extension for data integrity checks."
+                "For more information, see https://github.com/googleapis/python-crc32c."
             )
 
         self.client = client
@@ -268,7 +270,7 @@ class AsyncMultiRangeDownloader:
                 client_checksum = int.from_bytes(client_crc32c, "big")
 
                 if server_checksum != client_checksum:
-                    raise Exception(
+                    raise DataCorruption(response,
                         f"Checksum mismatch for read_id {object_data_range.read_range.read_id}. "
                         f"Server sent {server_checksum}, client calculated {client_checksum}."
                     )

@@ -24,6 +24,7 @@ from google.cloud.storage._experimental.asyncio.async_multi_range_downloader imp
 )
 from google.cloud.storage._experimental.asyncio import async_read_object_stream
 from io import BytesIO
+from google.cloud.storage.exceptions import DataCorruption
 
 
 _TEST_BUCKET_NAME = "test-bucket"
@@ -266,7 +267,7 @@ class TestAsyncMultiRangeDownloader:
     ):
         mock_google_crc32c.implementation = "python"
 
-        with pytest.raises(exceptions.GoogleAPICallError) as exc_info:
+        with pytest.raises(exceptions.NotFound) as exc_info:
             AsyncMultiRangeDownloader(
                 mock_grpc_client, "bucket", "object"
             )
@@ -304,7 +305,7 @@ class TestAsyncMultiRangeDownloader:
         mrd.read_obj_str = mock_stream
         mrd._is_stream_open = True
 
-        with pytest.raises(Exception) as exc_info:
+        with pytest.raises(DataCorruption) as exc_info:
             await mrd.download_ranges([(0, len(test_data), BytesIO())])
 
         assert "Checksum mismatch" in str(exc_info.value)
