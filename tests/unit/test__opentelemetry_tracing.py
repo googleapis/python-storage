@@ -58,6 +58,13 @@ def setup_optin(mock_os_environ):
     importlib.reload(_opentelemetry_tracing)
 
 
+@pytest.fixture()
+def setup_optout(mock_os_environ):
+    """Mock envar to opt-in tracing for storage client."""
+    mock_os_environ["ENABLE_GCS_PYTHON_CLIENT_OTEL_TRACES"] = "False"
+    importlib.reload(_opentelemetry_tracing)
+
+
 def test_opentelemetry_not_installed(setup, monkeypatch):
     monkeypatch.setitem(sys.modules, "opentelemetry", None)
     importlib.reload(_opentelemetry_tracing)
@@ -81,6 +88,13 @@ def test_enable_trace_yield_span(setup, setup_optin):
     assert _opentelemetry_tracing.enable_otel_traces
     with _opentelemetry_tracing.create_trace_span("No-ops for opentelemetry") as span:
         assert span is not None
+
+
+def test_disable_traces(setup, setup_optout):
+    assert _opentelemetry_tracing.HAS_OPENTELEMETRY
+    assert not _opentelemetry_tracing.enable_otel_traces
+    with _opentelemetry_tracing.create_trace_span("No-ops for opentelemetry") as span:
+        assert span is None
 
 
 def test_enable_trace_call(setup, setup_optin):
@@ -271,3 +285,38 @@ def test_set_api_request_attr_no_timeout():
     request = {"method": "GET", "path": "/path"}
     attr = _opentelemetry_tracing._set_api_request_attr(request, client)
     assert "connect_timeout,read_timeout" not in attr
+
+
+@pytest.mark.parametrize(
+    "env_value, default, expected",
+    [
+        # Test default values when env var is not set
+        (None, False, False),
+        (None, True, True),
+        # Test truthy values
+        ("1", False, True),
+        ("true", False, True),
+        ("yes", False, True),
+        ("on", False, True),
+        ("TRUE", False, True),
+        (" Yes ", False, True),
+        # Test falsy values
+        ("0", False, False),
+        ("false", False, False),
+        ("no", False, False),
+        ("off", False, False),
+        ("any_other_string", False, False),
+        ("", False, False),
+        # Test with default=True and falsy values
+        ("false", True, False),
+        ("0", True, False),
+    ],
+)
+def test__parse_bool_env(monkeypatch, env_value, default, expected):
+    env_var_name = "TEST_ENV_VAR"
+    monkeypatch.setenv(
+        env_var_name, str(env_value)
+    ) if env_value is not None else monkeypatch.delenv(env_var_name, raising=False)
+
+    result = _opentelemetry_tracing._parse_bool_env(env_var_name, default)
+    assert result is expected
