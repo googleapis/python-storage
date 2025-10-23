@@ -4,6 +4,20 @@
 
 [1]: https://pypi.org/project/google-cloud-storage/#history
 
+## [3.5.0](https://github.com/googleapis/python-storage/compare/v3.4.1...v3.5.0) (2025-10-23)
+
+
+### Features
+
+* **experimental:** Add checksum for bidi reads operation ([#1566](https://github.com/googleapis/python-storage/issues/1566)) ([93ce515](https://github.com/googleapis/python-storage/commit/93ce515d60f0ac77ab83680ba2b4d6a9f57e75d0))
+* Indicate that md5 is used as a CRC ([#1522](https://github.com/googleapis/python-storage/issues/1522)) ([961536c](https://github.com/googleapis/python-storage/commit/961536c7bf3652a824c207754317030526b9dd28))
+
+
+### Bug Fixes
+
+* Redact sensitive data from OTEL traces and fix env var parsing ([#1553](https://github.com/googleapis/python-storage/issues/1553)) ([a38ca19](https://github.com/googleapis/python-storage/commit/a38ca1977694def98f65ae7239e300a987bbd262))
+* Redact sensitive data from OTEL traces and fix env var parsing ([#1553](https://github.com/googleapis/python-storage/issues/1553)) ([a38ca19](https://github.com/googleapis/python-storage/commit/a38ca1977694def98f65ae7239e300a987bbd262))
+
 ## [3.4.1](https://github.com/googleapis/python-storage/compare/v3.4.0...v3.5.0) (2025-10-08)
 
 ### Bug Fixes
