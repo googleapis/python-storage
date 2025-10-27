@@ -28,8 +28,30 @@ from google.cloud import _storage_v2
 
 import asyncio
 import traceback
+import logging
+import datetime
+import time
 
 _MAX_READ_RANGES_PER_BIDI_READ_REQUEST = 100
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s - %(name)s:%(lineno)d - %(levelname)s - %(message)s",
+)
+logger = logging.getLogger(__name__)
+
+
+def my_time(time_seconds: float) -> str:
+    """
+    this function takes outupt of time.time() in seconds and returns a human readable timestamp with accuracy up to nanoseconds.
+    For example, "2023-10-05 14:23:45.123"
+    :return: str: formatted timestamp
+
+    """
+
+    ts = datetime.datetime.fromtimestamp(time_seconds)
+    return ts.strftime("%Y-%m-%d %H:%M:%S.%f")
+
+    return
 
 
 class Result:
@@ -194,7 +216,7 @@ class AsyncMultiRangeDownloader:
         return
 
     async def download_ranges(
-        self, read_ranges: List[Tuple[int, int, BytesIO]], func_offest: int
+        self, read_ranges: List[Tuple[int, int, BytesIO]], func_offest: int, lock
     ):
         """Downloads multiple byte ranges from the object into the buffers
         provided by user.
@@ -240,7 +262,14 @@ class AsyncMultiRangeDownloader:
                         read_id=read_id,
                     )
                 )
-            print("sending read_ranges", read_ranges_for_bidi_req)
+            # logger.debug("sending read_ranges in func_id %d: ", func_offest)
+
+            print(
+                my_time(time.time()),
+                "sending read_ranges in funcId: ",
+                func_offest,
+                # read_ranges_for_bidi_req,
+            )
             await self.read_obj_str.send(
                 _storage_v2.BidiReadObjectRequest(read_ranges=read_ranges_for_bidi_req)
             )
@@ -249,11 +278,27 @@ class AsyncMultiRangeDownloader:
         # if func_offest == 100:
         #     await asyncio.sleep(15)
         #     print("woke up from sleep, recveing to start")
-
+        # async with lock:
+        recv_count = 0
         while len(self.func_id_to_pending_read_ids[func_offest]) > 0:
             try:
-                async with asyncio.timeout(30):
+                async with asyncio.timeout(10):
+                    # async with lock:
+                    print(
+                        my_time(time.time()),
+                        "receiving read_ranges in func_id: ",
+                        func_offest,
+                        "recv_count:",
+                        recv_count,
+                    )
                     response = await self.read_obj_str.recv()
+                    print(
+                        my_time(time.time()),
+                        "received read_ranges in func_id: ",
+                        func_offest,
+                        "recv_count:",
+                        recv_count,
+                    )
             except TimeoutError as exc:
                 print("timeout error occurred, Traceback:", traceback.format_exc())
                 print("in funcId", func_offest)
@@ -270,7 +315,7 @@ class AsyncMultiRangeDownloader:
                     raise Exception("Invalid response, read_range is None")
 
                 read_id = object_data_range.read_range.read_id
-                print("received read_id", read_id)
+                # print("received read_id", read_id)
                 data = object_data_range.checksummed_data.content
                 buffer = self.read_id_to_writable_buffer_dict[read_id]
                 buffer.write(data)
@@ -278,6 +323,7 @@ class AsyncMultiRangeDownloader:
                 if object_data_range.range_end:
                     tmp_func_offset = self.read_id_to_func_offset[read_id]
                     self.func_id_to_pending_read_ids[tmp_func_offset].remove(read_id)
+            recv_count += 1
         return
 
     async def close(self):
