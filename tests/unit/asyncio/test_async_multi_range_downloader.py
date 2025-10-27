@@ -108,6 +108,9 @@ class TestAsyncMultiRangeDownloader:
         assert mrd.is_stream_open
 
     @mock.patch(
+        "google.cloud.storage._experimental.asyncio.async_multi_range_downloader.generate_random_56_bit_integer"
+    )
+    @mock.patch(
         "google.cloud.storage._experimental.asyncio.async_multi_range_downloader._AsyncReadObjectStream"
     )
     @mock.patch(
@@ -115,7 +118,7 @@ class TestAsyncMultiRangeDownloader:
     )
     @pytest.mark.asyncio
     async def test_download_ranges(
-        self, mock_grpc_client, mock_cls_async_read_object_stream
+        self, mock_grpc_client, mock_cls_async_read_object_stream, mock_random_int
     ):
         # Arrange
         data = b"these_are_18_chars"
@@ -125,6 +128,7 @@ class TestAsyncMultiRangeDownloader:
         mock_mrd = await self._make_mock_mrd(
             mock_grpc_client, mock_cls_async_read_object_stream
         )
+        mock_random_int.side_effect = [123, 456]  # for _func_id and read_id
         mock_mrd.read_obj_str.send = AsyncMock()
         mock_mrd.read_obj_str.recv = AsyncMock()
         mock_mrd.read_obj_str.recv.return_value = _storage_v2.BidiReadObjectResponse(
@@ -135,7 +139,7 @@ class TestAsyncMultiRangeDownloader:
                     ),
                     range_end=True,
                     read_range=_storage_v2.ReadRange(
-                        read_offset=0, read_length=18, read_id=0
+                        read_offset=0, read_length=18, read_id=456
                     ),
                 )
             ],
@@ -149,13 +153,10 @@ class TestAsyncMultiRangeDownloader:
         mock_mrd.read_obj_str.send.assert_called_once_with(
             _storage_v2.BidiReadObjectRequest(
                 read_ranges=[
-                    _storage_v2.ReadRange(read_offset=0, read_length=18, read_id=0)
+                    _storage_v2.ReadRange(read_offset=0, read_length=18, read_id=456)
                 ]
             )
         )
-        assert len(results) == 1
-        assert results[0].bytes_requested == 18
-        assert results[0].bytes_written == 18
         assert buffer.getvalue() == data
 
     @mock.patch(

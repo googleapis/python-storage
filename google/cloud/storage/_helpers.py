@@ -22,6 +22,7 @@ import datetime
 from hashlib import md5
 import os
 import sys
+import secrets
 from urllib.parse import urlsplit
 from urllib.parse import urlunsplit
 from uuid import uuid4
@@ -668,3 +669,11 @@ def _get_default_headers(
         "content-type": content_type,
         "x-upload-content-type": x_upload_content_type or content_type,
     }
+
+
+def generate_random_56_bit_integer():
+    """Generates a secure 56 bit random integer."""
+    # 7 bytes * 8 bits/byte = 56 bits
+    random_bytes = secrets.token_bytes(7)
+    # Convert bytes to an integer
+    return int.from_bytes(random_bytes, "big")
