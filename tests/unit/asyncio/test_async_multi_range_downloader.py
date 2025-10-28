@@ -147,7 +147,7 @@ class TestAsyncMultiRangeDownloader:
 
         # Act
         buffer = BytesIO()
-        results = await mock_mrd.download_ranges([(0, 18, buffer)])
+        await mock_mrd.download_ranges([(0, 18, buffer)])
 
         # Assert
         mock_mrd.read_obj_str.send.assert_called_once_with(
