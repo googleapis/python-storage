@@ -64,10 +64,11 @@ class CorruptingAuthorizedSession(tr_requests.AuthorizedSession):
             constructor.
     """
 
-    if sys.version_info >= (3, 9):
-        EMPTY_MD5 = base64.b64encode(hashlib.md5(b"", usedforsecurity=False).digest()).decode("utf-8")
-    else:
-        EMPTY_MD5 = base64.b64encode(hashlib.md5(b"").digest()).decode("utf-8")
+    EMPTY_MD5 = base64.b64encode(
+        hashlib.md5(
+            b"", **({"usedforsecurity": False} if sys.version_info >= (3, 9) else {})
+        ).digest()
+    ).decode("utf-8")
     crc32c = google_crc32c.Checksum()
     crc32c.update(b"")
     EMPTY_CRC32C = base64.b64encode(crc32c.digest()).decode("utf-8")
