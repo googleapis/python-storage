@@ -18,6 +18,7 @@ import http.client
 import io
 import os
 import urllib.parse
+import sys
 
 import pytest  # type: ignore
 from unittest import mock
@@ -73,7 +74,10 @@ def img_stream():
 
 
 def get_md5(data):
-    hash_obj = hashlib.md5(data)
+    if sys.version_info >= (3, 9):
+        hash_obj = hashlib.md5(data, usedforsecurity=False)
+    else:
+        hash_obj = hashlib.md5(data)
     return base64.b64encode(hash_obj.digest())
 
 
