@@ -2762,6 +2762,7 @@ class Test_Blob(unittest.TestCase):
         metadata=None,
         mtls=False,
         retry=None,
+        crc32c_checksum_value=None,
     ):
         from google.cloud.storage._media.requests import ResumableUpload
         from google.cloud.storage.blob import _DEFAULT_CHUNKSIZE
@@ -2832,6 +2833,7 @@ class Test_Blob(unittest.TestCase):
                 if_metageneration_match=if_metageneration_match,
                 if_metageneration_not_match=if_metageneration_not_match,
                 retry=retry,
+                crc32c_checksum_value=crc32c_checksum_value,
                 **timeout_kwarg,
             )
 
@@ -2919,6 +2921,10 @@ class Test_Blob(unittest.TestCase):
         else:
             # Check the mocks.
             blob._get_writable_metadata.assert_called_once_with()
+
+        if crc32c_checksum_value is not None:
+            object_metadata["crc32c"] = crc32c_checksum_value
+
         payload = json.dumps(object_metadata).encode("utf-8")
 
         with patch.object(
@@ -2944,6 +2950,17 @@ class Test_Blob(unittest.TestCase):
 
     def test__initiate_resumable_upload_with_metadata(self):
         self._initiate_resumable_helper(metadata={"test": "test"})
+
+    def test__initiate_resumable_upload_with_user_provided_checksum(self):
+        self._initiate_resumable_helper(
+            crc32c_checksum_value="this-is-a-fake-checksum-for-unit-tests",
+        )
+
+    def test__initiate_resumable_upload_w_metadata_and_user_provided_checksum(self):
+        self._initiate_resumable_helper(
+            crc32c_checksum_value="test-checksum",
+            metadata={"my-fav-key": "my-fav-value"},
+        )
 
     def test__initiate_resumable_upload_with_custom_timeout(self):
         self._initiate_resumable_helper(timeout=9.58)
@@ -3401,6 +3418,7 @@ class Test_Blob(unittest.TestCase):
                 checksum=None,
                 retry=retry,
                 command=None,
+                crc32c_checksum_value=None,
             )
 
     def test__do_upload_uses_multipart(self):
@@ -3489,6 +3507,7 @@ class Test_Blob(unittest.TestCase):
             checksum=None,
             retry=retry,
             command=None,
+            crc32c_checksum_value=None,
         )
         return stream
 
@@ -3553,6 +3572,7 @@ class Test_Blob(unittest.TestCase):
             kwargs,
             {
                 "timeout": expected_timeout,
+                "crc32c_checksum_value": None,
                 "checksum": None,
                 "retry": retry,
                 "command": None,
