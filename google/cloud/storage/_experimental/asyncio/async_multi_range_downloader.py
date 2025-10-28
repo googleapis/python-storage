@@ -80,7 +80,7 @@ class AsyncMultiRangeDownloader:
         my_buff2 = BytesIO()
         my_buff3 = BytesIO()
         my_buff4 = any_object_which_provides_BytesIO_like_interface()
-        results_arr = await mrd.download_ranges(
+        await mrd.download_ranges(
             [
                 # (start_byte, bytes_to_read, writeable_buffer)
                 (0, 100, my_buff1),
@@ -90,8 +90,8 @@ class AsyncMultiRangeDownloader:
             ]
         )
 
-        for result in results_arr:
-            print("downloaded bytes", result)
+        # verify data in buffers...
+        assert my_buff2.getbuffer().nbytes == 20
 
 
     """
@@ -178,7 +178,7 @@ class AsyncMultiRangeDownloader:
         self._is_stream_open: bool = False
 
         self._read_id_to_writable_buffer_dict = {}
-        self._read_id_to_dn_range_id = {}
+        self._read_id_to_download_ranges_id = {}
         self._download_ranges_id_to_pending_read_ids = {}
 
     async def open(self) -> None:
@@ -225,6 +225,27 @@ class AsyncMultiRangeDownloader:
             on the underlying bidi-GRPC stream. This is required when multiple
             coroutines are calling this method concurrently.
 
+            i.e. Example usage with multiple coroutines:
+
+            ```
+            lock = asyncio.Lock()
+            task1 = asyncio.create_task(mrd.download_ranges(ranges1, lock))
+            task2 = asyncio.create_task(mrd.download_ranges(ranges2, lock))
+            await asyncio.gather(task1, task2)
+
+            ```
+
+            If user want to call this method serially from multiple coroutines,
+            then providing a lock is not necessary.
+
+            ```
+            await mrd.download_ranges(ranges1)
+            await mrd.download_ranges(ranges2)
+
+            # ... some other code code...
+
+            ```
+
 
         :raises ValueError: if the underlying bidi-GRPC stream is not open.
         :raises ValueError: if the length of read_ranges is more than 1000.
@@ -255,7 +276,7 @@ class AsyncMultiRangeDownloader:
             for j, read_range in enumerate(read_ranges_segment):
                 read_id = generate_random_56_bit_integer()
                 read_ids_in_current_func.add(read_id)
-                self._read_id_to_dn_range_id[read_id] = _func_id
+                self._read_id_to_download_ranges_id[read_id] = _func_id
                 self._read_id_to_writable_buffer_dict[read_id] = read_range[2]
                 bytes_requested = read_range[1]
                 results.append(Result(bytes_requested))
@@ -306,11 +327,11 @@ class AsyncMultiRangeDownloader:
                 buffer.write(data)
 
                 if object_data_range.range_end:
-                    tmp_func_id = self._read_id_to_dn_range_id[read_id]
-                    self._download_ranges_id_to_pending_read_ids[tmp_func_id].remove(
-                        read_id
-                    )
-                    del self._read_id_to_dn_range_id[read_id]
+                    tmp_dn_ranges_id = self._read_id_to_download_ranges_id[read_id]
+                    self._download_ranges_id_to_pending_read_ids[
+                        tmp_dn_ranges_id
+                    ].remove(read_id)
+                    del self._read_id_to_download_ranges_id[read_id]
 
     async def close(self):
         """

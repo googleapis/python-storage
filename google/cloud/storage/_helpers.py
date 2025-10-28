@@ -672,7 +672,16 @@ def _get_default_headers(
 
 
 def generate_random_56_bit_integer():
-    """Generates a secure 56 bit random integer."""
+    """Generates a secure 56 bit random integer.
+
+
+    If 64 bit int is used, sometimes the random int generated is greater than
+    max positive value of signed 64 bit int which is 2^63 -1 causing overflow
+    issues.
+
+    :rtype: int
+    :returns: A secure random 56 bit integer.
+    """
     # 7 bytes * 8 bits/byte = 56 bits
     random_bytes = secrets.token_bytes(7)
     # Convert bytes to an integer
