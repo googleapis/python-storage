@@ -266,7 +266,6 @@ class AsyncMultiRangeDownloader:
 
         _func_id = generate_random_56_bit_integer()
         read_ids_in_current_func = set()
-        results = []
         for i in range(0, len(read_ranges), _MAX_READ_RANGES_PER_BIDI_READ_REQUEST):
             read_ranges_segment = read_ranges[
                 i : i + _MAX_READ_RANGES_PER_BIDI_READ_REQUEST
@@ -279,7 +278,6 @@ class AsyncMultiRangeDownloader:
                 self._read_id_to_download_ranges_id[read_id] = _func_id
                 self._read_id_to_writable_buffer_dict[read_id] = read_range[2]
                 bytes_requested = read_range[1]
-                results.append(Result(bytes_requested))
                 read_ranges_for_bidi_req.append(
                     _storage_v2.ReadRange(
                         read_offset=read_range[0],
