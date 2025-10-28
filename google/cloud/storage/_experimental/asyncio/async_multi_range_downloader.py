@@ -293,9 +293,9 @@ class AsyncMultiRangeDownloader:
                         read_ranges=read_ranges_for_bidi_req
                     )
                 )
-        self._download_ranges_id_to_pending_read_ids[_func_id] = (
-            read_ids_in_current_func
-        )
+        self._download_ranges_id_to_pending_read_ids[
+            _func_id
+        ] = read_ids_in_current_func
 
         while len(self._download_ranges_id_to_pending_read_ids[_func_id]) > 0:
             async with lock:
