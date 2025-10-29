@@ -130,13 +130,6 @@ export TEST_UNIVERSE_PROJECT_ID=$(gcloud secrets versions access latest --projec
 export TEST_UNIVERSE_LOCATION=$(gcloud secrets versions access latest --project cloud-devrel-kokoro-resources --secret=client-library-test-universe-storage-location)
 
 """)
-
-s.replace(
-    "noxfile.py",
-    '''session.python in ("3.11", "3.12", "3.13")''',
-    '''session.python in ("3.11", "3.12", "3.13", "3.14")'''
-)
-
 python.py_samples(skip_readmes=True)
 
 # Use a python runtime which is available in the owlbot post processor here
