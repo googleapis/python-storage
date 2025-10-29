@@ -99,7 +99,8 @@ s.move(
         "CONTRIBUTING.rst",
         "README.rst",
         ".kokoro/continuous/continuous.cfg",
-        ".kokoro/presubmit/system-3.12.cfg",
+        ".kokoro/presubmit/system-3.8.cfg",
+        ".kokoro/presubmit/prerelease-deps.cfg",
         ".kokoro/continuous/prerelease-deps.cfg",
         ".github/blunderbuss.yml", # blunderbuss assignment to python squad
         ".github/workflows", # exclude gh actions as credentials are needed for tests
