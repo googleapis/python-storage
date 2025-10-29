@@ -131,6 +131,12 @@ export TEST_UNIVERSE_LOCATION=$(gcloud secrets versions access latest --project 
 
 """)
 
+s.replace(
+    "noxfile.py",
+    '''session.python in ("3.11", "3.12", "3.13")''',
+    '''session.python in ("3.11", "3.12", "3.13", "3.14")'''
+)
+
 python.py_samples(skip_readmes=True)
 
 # Use a python runtime which is available in the owlbot post processor here
