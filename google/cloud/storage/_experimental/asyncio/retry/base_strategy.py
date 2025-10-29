@@ -1,5 +1,5 @@
 import abc
-from typing import Any
+from typing import Any, Iterable
 
 class _BaseResumptionStrategy(abc.ABC):
     """Abstract base class defining the interface for a bidi stream strategy.
@@ -12,7 +12,7 @@ class _BaseResumptionStrategy(abc.ABC):
     """
 
     @abc.abstractmethod
-    def generate_requests(self, state: Any):
+    def generate_requests(self, state: Any) -> Iterable[Any]:
         """Generates the next batch of requests based on the current state.
 
         This method is called at the beginning of each retry attempt. It should
@@ -29,25 +29,21 @@ class _BaseResumptionStrategy(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def update_state_from_response(self, state: Any):
+    def update_state_from_response(self, state: Any) -> None:
         """Updates the state based on a successful server response.
 
         This method is called for every message received from the server. It is
         responsible for processing the response and updating the shared state
-        object. For bidi reads, this is where data integrity checks should be
-        performed and the `bytes_written` for the corresponding range should be
-        updated.
+        object.
 
         :type state: Any
         :param state: The shared state object for the operation, which will be
                       mutated by this method.
-
-        :rtype: None
         """
         pass
 
     @abc.abstractmethod
-    async def recover_state_on_failure(self, error: Exception, state: Any):
+    async def recover_state_on_failure(self, error: Exception, state: Any) -> None:
         """Prepares the state for the next retry attempt after a failure.
 
         This method is called when a retriable gRPC error occurs. It is
@@ -61,7 +57,5 @@ class _BaseResumptionStrategy(abc.ABC):
 
         :type state: Any
         :param state: The shared state object for the operation.
-
-        :rtype: None
         """
         pass
