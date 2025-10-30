@@ -1540,7 +1540,6 @@ class TestClient(unittest.TestCase):
         self.assertIn("my-test-agent/1.0", client._connection.user_agent)
 
     def test_update_user_agent_when_none_clientinfo_provided(self):
-
         client = self._make_one(project=None)
         client.update_user_agent("my-test-agent/1.0")
 
