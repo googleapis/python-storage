@@ -4,6 +4,26 @@
 
 [1]: https://pypi.org/project/google-cloud-storage/#history
 
+## [3.5.0](https://github.com/googleapis/python-storage/compare/v3.4.1...v3.5.0) (2025-10-31)
+
+
+### Features
+
+* Add support for Python 3.14 ([#1562](https://github.com/googleapis/python-storage/issues/1562)) ([74415a2](https://github.com/googleapis/python-storage/commit/74415a2a120e9bfa42f4f5fc8bd2f8e0d4cf5d18))
+* **experimental:** Add checksum for bidi reads operation ([#1566](https://github.com/googleapis/python-storage/issues/1566)) ([93ce515](https://github.com/googleapis/python-storage/commit/93ce515d60f0ac77ab83680ba2b4d6a9f57e75d0))
+* Indicate that md5 is used as a CRC ([#1522](https://github.com/googleapis/python-storage/issues/1522)) ([961536c](https://github.com/googleapis/python-storage/commit/961536c7bf3652a824c207754317030526b9dd28))
+* Provide option to update user_agent ([#1596](https://github.com/googleapis/python-storage/issues/1596)) ([02f1451](https://github.com/googleapis/python-storage/commit/02f1451aaa8dacd10a862e97abb62ae48249b9b4))
+
+
+### Bug Fixes
+
+* Flaky system tests for resumable_media ([#1592](https://github.com/googleapis/python-storage/issues/1592)) ([7fee3dd](https://github.com/googleapis/python-storage/commit/7fee3dd3390cfb5475a39d8f8272ea825dbda449))
+* Make `download_ranges` compatible with `asyncio.create_task(..)` ([#1591](https://github.com/googleapis/python-storage/issues/1591)) ([faf8b83](https://github.com/googleapis/python-storage/commit/faf8b83b1f0ac378f8f6f47ce33dc23a866090c9))
+* Make `download_ranges` compatible with `asyncio.create_task(..)` ([#1591](https://github.com/googleapis/python-storage/issues/1591)) ([faf8b83](https://github.com/googleapis/python-storage/commit/faf8b83b1f0ac378f8f6f47ce33dc23a866090c9))
+* Redact sensitive data from OTEL traces and fix env var parsing ([#1553](https://github.com/googleapis/python-storage/issues/1553)) ([a38ca19](https://github.com/googleapis/python-storage/commit/a38ca1977694def98f65ae7239e300a987bbd262))
+* Redact sensitive data from OTEL traces and fix env var parsing ([#1553](https://github.com/googleapis/python-storage/issues/1553)) ([a38ca19](https://github.com/googleapis/python-storage/commit/a38ca1977694def98f65ae7239e300a987bbd262))
+* Use separate header object for each upload in Transfer Manager MPU ([#1595](https://github.com/googleapis/python-storage/issues/1595)) ([0d867bd](https://github.com/googleapis/python-storage/commit/0d867bd4f405d2dbeca1edfc8072080c5a96c1cd))
+
 ## [3.4.1](https://github.com/googleapis/python-storage/compare/v3.4.0...v3.5.0) (2025-10-08)
 
 ### Bug Fixes
