@@ -1,7 +1,6 @@
 import abc
 from typing import Any, List
 
-from google.api_core import exceptions
 from google.cloud import _storage_v2 as storage_v2
 from google.cloud.storage.exceptions import DataCorruption
 from google_crc32c import Checksum
@@ -48,22 +47,9 @@ class _ReadResumptionStrategy(_BaseResumptionStrategy):
             # Offset Verification
             chunk_offset = object_data_range.read_range.read_offset
             if chunk_offset != read_state.next_expected_offset:
-                raise exceptions.DataCorruption(f"Offset mismatch for read_id {read_id}")
+                raise DataCorruption(response, f"Offset mismatch for read_id {read_id}")
 
-            # Checksum Verification
-            checksummed_data = object_data_range.checksummed_data
-            data = checksummed_data.content
-            server_checksum = checksummed_data.crc32c
-
-            client_crc32c = Checksum(data).digest()
-            client_checksum = int.from_bytes(client_crc32c, "big")
-            if server_checksum != client_checksum:
-                    raise DataCorruption(
-                        response,
-                        f"Checksum mismatch for read_id {read_id}. "
-                        f"Server sent {server_checksum}, client calculated {client_checksum}.",
-                    )
-
+            data = object_data_range.checksummed_data.content
             chunk_size = len(data)
             read_state.bytes_written += chunk_size
             read_state.next_expected_offset += chunk_size
@@ -73,7 +59,7 @@ class _ReadResumptionStrategy(_BaseResumptionStrategy):
             if object_data_range.range_end:
                 read_state.is_complete = True
                 if read_state.initial_length != 0 and read_state.bytes_written != read_state.initial_length:
-                    raise exceptions.DataCorruption(f"Byte count mismatch for read_id {read_id}")
+                    raise DataCorruption(response, f"Byte count mismatch for read_id {read_id}")
 
     async def recover_state_on_failure(self, error: Exception, state: Any) -> None:
         """Handles BidiReadObjectRedirectError for reads."""
