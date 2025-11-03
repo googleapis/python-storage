@@ -31,7 +31,7 @@ class _BaseResumptionStrategy(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def update_state_from_response(self, state: Any) -> None:
+    def update_state_from_response(self, response: Any, state: Any) -> None:
         """Updates the state based on a successful server response.
 
         This method is called for every message received from the server. It is

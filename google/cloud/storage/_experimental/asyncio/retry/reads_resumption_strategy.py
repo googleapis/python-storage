@@ -1,16 +1,14 @@
-import abc
-from typing import Any, List
+from typing import Any, List, IO
 
 from google.cloud import _storage_v2 as storage_v2
 from google.cloud.storage.exceptions import DataCorruption
-from google_crc32c import Checksum
 from google.cloud.storage._experimental.asyncio.retry.base_strategy import (
     _BaseResumptionStrategy,
 )
 
 class _DownloadState:
     """A helper class to track the state of a single range download."""
-    def __init__(self, initial_offset, initial_length, user_buffer):
+    def __init__(self, initial_offset: int, initial_length: int, user_buffer: IO[bytes]):
         self.initial_offset = initial_offset
         self.initial_length = initial_length
         self.user_buffer = user_buffer
