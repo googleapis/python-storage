@@ -2,7 +2,7 @@ import abc
 from typing import Any, Iterable
 
 class _BaseResumptionStrategy(abc.ABC):
-    """Abstract base class defining the interface for a bidi stream strategy.
+    """Abstract base class defining the interface for a bidi stream resumption strategy.
 
     This class defines the skeleton for a pluggable strategy that contains
     all the service-specific logic for a given bidi operation (e.g., reads
@@ -19,7 +19,9 @@ class _BaseResumptionStrategy(abc.ABC):
         inspect the provided state object and generate the appropriate list of
         request protos to send to the server. For example, a read strategy
         would use this to implement "Smarter Resumption" by creating smaller
-        `ReadRange` requests for partially downloaded ranges.
+        `ReadRange` requests for partially downloaded ranges. For bidi-writes,
+        it will set the `write_offset` field to the persisted size received
+        from the server in the next request.
 
         :type state: Any
         :param state: An object containing all the state needed for the
@@ -50,7 +52,9 @@ class _BaseResumptionStrategy(abc.ABC):
         responsible for performing any necessary actions to ensure the next
         retry attempt can succeed. For bidi reads, its primary role is to
         handle the `BidiReadObjectRedirectError` by extracting the
-        `routing_token` and updating the state.
+        `routing_token` and updating the state. For bidi writes, it will update
+        the state to reflect any bytes that were successfully persisted before
+        the failure.
 
         :type error: :class:`Exception`
         :param error: The exception that was caught by the retry engine.
