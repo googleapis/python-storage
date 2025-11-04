@@ -216,7 +216,7 @@ class TestReadResumptionStrategy(unittest.TestCase):
 
         dummy_token = "dummy-routing-token"
         redirect_error = BidiReadObjectRedirectedError(
-            "Redirected by server", routing_token=dummy_token
+            routing_token=dummy_token
         )
 
         final_error = exceptions.RetryError("Retry failed", cause=redirect_error)

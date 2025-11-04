@@ -69,5 +69,6 @@ class _ReadResumptionStrategy(_BaseResumptionStrategy):
         """Handles BidiReadObjectRedirectedError for reads."""
         # This would parse the gRPC error details, extract the routing_token,
         # and store it on the shared state object.
-        if isinstance(error, BidiReadObjectRedirectedError):
-            state['routing_token'] = error.routing_token
+        cause = getattr(error, "cause", error)
+        if isinstance(cause, BidiReadObjectRedirectedError):
+            state['routing_token'] = cause.routing_token
