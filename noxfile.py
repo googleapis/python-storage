@@ -130,6 +130,8 @@ def default(session, install_extras=True):
 
     session.install("-e", ".", "-c", constraints_path)
 
+    session.run("python", "-m", "pip", "freeze")
+
     # This dependency is included in setup.py for backwards compatibility only
     # and the client library is expected to pass all tests without it. See
     # setup.py and README for details.
