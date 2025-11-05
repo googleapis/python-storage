@@ -23,6 +23,8 @@ from google.cloud.storage._experimental.asyncio.retry.reads_resumption_strategy 
     _ReadResumptionStrategy,
 )
 
+_READ_ID = 1
+
 
 class TestDownloadState(unittest.TestCase):
     def test_initialization(self):
@@ -45,7 +47,7 @@ class TestReadResumptionStrategy(unittest.TestCase):
         """Test generating a request for a single incomplete download."""
         read_state = _DownloadState(0, 100, io.BytesIO())
         read_state.bytes_written = 20
-        state = {1: read_state}
+        state = {_READ_ID: read_state}
 
         read_strategy = _ReadResumptionStrategy()
         requests = read_strategy.generate_requests(state)
@@ -53,21 +55,22 @@ class TestReadResumptionStrategy(unittest.TestCase):
         self.assertEqual(len(requests), 1)
         self.assertEqual(requests[0].read_offset, 20)
         self.assertEqual(requests[0].read_length, 80)
-        self.assertEqual(requests[0].read_id, 1)
+        self.assertEqual(requests[0].read_id, _READ_ID)
 
     def test_generate_requests_multiple_incomplete(self):
         """Test generating requests for multiple incomplete downloads."""
+        read_id2 = 2
         read_state1 = _DownloadState(0, 100, io.BytesIO())
         read_state1.bytes_written = 50
         read_state2 = _DownloadState(200, 100, io.BytesIO())
-        state = {1: read_state1, 2: read_state2}
+        state = {_READ_ID: read_state1, read_id2: read_state2}
 
         read_strategy = _ReadResumptionStrategy()
         requests = read_strategy.generate_requests(state)
 
         self.assertEqual(len(requests), 2)
-        req1 = next(request for request in requests if request.read_id == 1)
-        req2 = next(request for request in requests if request.read_id == 2)
+        req1 = next(request for request in requests if request.read_id == _READ_ID)
+        req2 = next(request for request in requests if request.read_id == read_id2)
 
         self.assertEqual(req1.read_offset, 50)
         self.assertEqual(req1.read_length, 50)
@@ -78,7 +81,7 @@ class TestReadResumptionStrategy(unittest.TestCase):
         """Test that no request is generated for a completed download."""
         read_state = _DownloadState(0, 100, io.BytesIO())
         read_state.is_complete = True
-        state = {1: read_state}
+        state = {_READ_ID: read_state}
 
         read_strategy = _ReadResumptionStrategy()
         requests = read_strategy.generate_requests(state)
@@ -91,18 +94,18 @@ class TestReadResumptionStrategy(unittest.TestCase):
         requests = read_strategy.generate_requests({})
         self.assertEqual(len(requests), 0)
 
-    def test_update_state_from_response_success(self):
+    def test_update_state_processes_single_chunk_successfully(self):
         """Test updating state from a successful response."""
         buffer = io.BytesIO()
         read_state = _DownloadState(0, 100, buffer)
-        state = {1: read_state}
+        state = {_READ_ID: read_state}
         data = b"test_data"
         read_strategy = _ReadResumptionStrategy()
 
         response = storage_v2.BidiReadObjectResponse(
             object_data_ranges=[
                 storage_v2.types.ObjectRangeData(
-                    read_range=storage_v2.ReadRange(read_id=1, read_offset=0, read_length=len(data)),
+                    read_range=storage_v2.ReadRange(read_id=_READ_ID, read_offset=0, read_length=len(data)),
                     checksummed_data=storage_v2.ChecksummedData(content=data),
                 )
             ]
@@ -119,13 +122,13 @@ class TestReadResumptionStrategy(unittest.TestCase):
         """Test that an offset mismatch raises DataCorruption."""
         read_state = _DownloadState(0, 100, io.BytesIO())
         read_state.next_expected_offset = 10
-        state = {1: read_state}
+        state = {_READ_ID: read_state}
         read_strategy = _ReadResumptionStrategy()
 
         response = storage_v2.BidiReadObjectResponse(
             object_data_ranges=[
                 storage_v2.types.ObjectRangeData(
-                    read_range=storage_v2.ReadRange(read_id=1, read_offset=0, read_length=4),
+                    read_range=storage_v2.ReadRange(read_id=_READ_ID, read_offset=0, read_length=4),
                     checksummed_data=storage_v2.ChecksummedData(content=b"data"),
                 )
             ]
@@ -138,13 +141,13 @@ class TestReadResumptionStrategy(unittest.TestCase):
     def test_update_state_from_response_final_byte_count_mismatch(self):
         """Test that a final byte count mismatch raises DataCorruption."""
         read_state = _DownloadState(0, 100, io.BytesIO())
-        state = {1: read_state}
+        state = {_READ_ID: read_state}
         read_strategy = _ReadResumptionStrategy()
 
         response = storage_v2.BidiReadObjectResponse(
             object_data_ranges=[
                 storage_v2.types.ObjectRangeData(
-                    read_range=storage_v2.ReadRange(read_id=1, read_offset=0, read_length=4),
+                    read_range=storage_v2.ReadRange(read_id=_READ_ID, read_offset=0, read_length=4),
                     checksummed_data=storage_v2.ChecksummedData(content=b"data"),
                     range_end=True,
                 )
@@ -160,13 +163,13 @@ class TestReadResumptionStrategy(unittest.TestCase):
         buffer = io.BytesIO()
         data = b"test_data"
         read_state = _DownloadState(0, len(data), buffer)
-        state = {1: read_state}
+        state = {_READ_ID: read_state}
         read_strategy = _ReadResumptionStrategy()
 
         response = storage_v2.BidiReadObjectResponse(
             object_data_ranges=[
                 storage_v2.types.ObjectRangeData(
-                    read_range=storage_v2.ReadRange(read_id=1, read_offset=0, read_length=len(data)),
+                    read_range=storage_v2.ReadRange(read_id=_READ_ID, read_offset=0, read_length=len(data)),
                     checksummed_data=storage_v2.ChecksummedData(content=data),
                     range_end=True,
                 )
@@ -184,13 +187,13 @@ class TestReadResumptionStrategy(unittest.TestCase):
         buffer = io.BytesIO()
         data = b"test_data"
         read_state = _DownloadState(0, 0, buffer)
-        state = {1: read_state}
+        state = {_READ_ID: read_state}
         read_strategy = _ReadResumptionStrategy()
 
         response = storage_v2.BidiReadObjectResponse(
             object_data_ranges=[
                 storage_v2.types.ObjectRangeData(
-                    read_range=storage_v2.ReadRange(read_id=1, read_offset=0, read_length=len(data)),
+                    read_range=storage_v2.ReadRange(read_id=_READ_ID, read_offset=0, read_length=len(data)),
                     checksummed_data=storage_v2.ChecksummedData(content=data),
                     range_end=True,
                 )

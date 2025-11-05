@@ -21,7 +21,12 @@ class _ReadResumptionStrategy(_BaseResumptionStrategy):
     """The concrete resumption strategy for bidi reads."""
 
     def generate_requests(self, state: dict) -> List[storage_v2.ReadRange]:
-        """Generates new ReadRange requests for all incomplete downloads."""
+        """Generates new ReadRange requests for all incomplete downloads.
+
+        :type state: dict
+        :param state: A dictionary mapping a read_id to its corresponding
+                  _DownloadState object.
+        """
         pending_requests = []
         for read_id, read_state in state.items():
             if not read_state.is_complete:

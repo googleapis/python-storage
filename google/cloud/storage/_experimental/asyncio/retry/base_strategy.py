@@ -38,6 +38,9 @@ class _BaseResumptionStrategy(abc.ABC):
         responsible for processing the response and updating the shared state
         object.
 
+        :type response: Any
+        :param response: The response message received from the server.
+
         :type state: Any
         :param state: The shared state object for the operation, which will be
                       mutated by this method.
