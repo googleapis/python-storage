@@ -22,9 +22,13 @@ def list_buckets():
     """Lists all buckets."""
 
     storage_client = storage.Client()
-    buckets = storage_client.list_buckets()
+    buckets_iterator = storage_client.list_buckets()
+    if hasattr(buckets_iterator, "unreachable"):
+        print("Unreachable locations:", len(buckets_iterator.unreachable))
+        for location in buckets_iterator.unreachable:
+            print(location)
 
-    for bucket in buckets:
+    for bucket in buckets_iterator:
         print(bucket.name)
 
 

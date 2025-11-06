@@ -64,6 +64,22 @@ from google.cloud.storage.retry import DEFAULT_RETRY
 _marker = object()
 
 
+def _buckets_page_start(iterator, page, response):
+    """Grab prefixes after a :class:`~google.cloud.iterator.Page` started.
+
+    :type iterator: :class:`~google.api_core.page_iterator.Iterator`
+    :param iterator: The iterator that is currently in use.
+
+    :type page: :class:`~google.cloud.api.core.page_iterator.Page`
+    :param page: The page that was just created.
+
+    :type response: dict
+    :param response: The JSON API response for a page of blobs.
+    """
+    page.unreachable = tuple(response.get("unreachable", ()))
+    iterator.unreachable.update(page.unreachable)
+
+
 class Client(ClientWithProject):
     """Client to bundle configuration needed for API requests.
 
@@ -1551,7 +1567,7 @@ class Client(ClientWithProject):
             if soft_deleted is not None:
                 extra_params["softDeleted"] = soft_deleted
 
-            return self._list_resource(
+            iterator = self._list_resource(
                 "/b",
                 _item_to_bucket,
                 page_token=page_token,
@@ -1560,7 +1576,10 @@ class Client(ClientWithProject):
                 page_size=page_size,
                 timeout=timeout,
                 retry=retry,
+                page_start=_buckets_page_start,
             )
+            iterator.unreachable = set()
+            return iterator
 
     def restore_bucket(
         self,
