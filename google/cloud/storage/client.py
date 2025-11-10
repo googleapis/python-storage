@@ -1538,7 +1538,6 @@ class Client(ClientWithProject):
         """
         with create_trace_span(name="Storage.Client.listBuckets"):
             extra_params = {}
-            page_start_callback = None
 
             if project is None:
                 project = self.project
