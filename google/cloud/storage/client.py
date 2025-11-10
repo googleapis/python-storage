@@ -64,6 +64,12 @@ from google.cloud.storage.retry import DEFAULT_RETRY
 _marker = object()
 
 
+def _buckets_page_start(iterator, page, response):
+        """Grab unreachable buckets after a :class:`~google.cloud.iterator.Page` started."""
+        unreachable = response.get("unreachable")
+        if unreachable:
+            iterator.unreachable.extend(unreachable)
+
 class Client(ClientWithProject):
     """Client to bundle configuration needed for API requests.
 
@@ -1458,6 +1464,7 @@ class Client(ClientWithProject):
         retry=DEFAULT_RETRY,
         *,
         soft_deleted=None,
+        return_partial_success=None,
     ):
         """Get all buckets in the project associated to the client.
 
@@ -1516,6 +1523,13 @@ class Client(ClientWithProject):
             generation number. This parameter can only be used successfully if the bucket has a soft delete policy.
             See: https://cloud.google.com/storage/docs/soft-delete
 
+        :type return_partial_success: bool
+        :param return_partial_success:
+            (Optional) If True, the response will also contain a list of
+            unreachable buckets if the buckets are unavailable. The
+            unreachable buckets will be available on the ``unreachable``
+            attribute of the returned iterator.
+
         :rtype: :class:`~google.api_core.page_iterator.Iterator`
         :raises ValueError: if both ``project`` is ``None`` and the client's
                             project is also ``None``.
@@ -1524,6 +1538,7 @@ class Client(ClientWithProject):
         """
         with create_trace_span(name="Storage.Client.listBuckets"):
             extra_params = {}
+            page_start_callback = None
 
             if project is None:
                 project = self.project
@@ -1551,16 +1566,34 @@ class Client(ClientWithProject):
             if soft_deleted is not None:
                 extra_params["softDeleted"] = soft_deleted
 
-            return self._list_resource(
-                "/b",
-                _item_to_bucket,
-                page_token=page_token,
-                max_results=max_results,
-                extra_params=extra_params,
-                page_size=page_size,
-                timeout=timeout,
-                retry=retry,
-            )
+            if return_partial_success is not None:
+                extra_params["returnPartialSuccess"] = return_partial_success
+
+                iterator = self._list_resource(
+                    "/b",
+                    _item_to_bucket,
+                    page_token=page_token,
+                    max_results=max_results,
+                    extra_params=extra_params,
+                    page_size=page_size,
+                    timeout=timeout,
+                    retry=retry,
+                    page_start=_buckets_page_start,
+                )
+                iterator.unreachable = []
+
+            else:
+                iterator = self._list_resource(
+                    "/b",
+                    _item_to_bucket,
+                    page_token=page_token,
+                    max_results=max_results,
+                    extra_params=extra_params,
+                    page_size=page_size,
+                    timeout=timeout,
+                    retry=retry,
+                )
+            return iterator
 
     def restore_bucket(
         self,

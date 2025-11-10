@@ -3086,6 +3086,37 @@ class TestClient(unittest.TestCase):
         self.assertEqual(fields["x-goog-signature"], EXPECTED_SIGN)
         self.assertEqual(fields["policy"], EXPECTED_POLICY)
 
+    def test_list_buckets_w_partial_success(self):
+        from google.cloud.storage.client import _item_to_bucket
+        from google.cloud.storage.client import _buckets_page_start
+
+        PROJECT = "PROJECT"
+        client = self._make_one(project=PROJECT)
+        client._list_resource = mock.Mock(spec=[])
+
+        iterator = client.list_buckets(return_partial_success=True)
+
+        self.assertIs(iterator, client._list_resource.return_value)
+
+        expected_path = "/b"
+        expected_item_to_value = _item_to_bucket
+        expected_extra_params = {
+            "project": PROJECT,
+            "projection": "noAcl",
+            "returnPartialSuccess": True,
+        }
+
+        client._list_resource.assert_called_once_with(
+            expected_path,
+            expected_item_to_value,
+            page_token=None,
+            max_results=None,
+            extra_params=expected_extra_params,
+            page_size=None,
+            timeout=self._get_default_timeout(),
+            retry=DEFAULT_RETRY,
+            page_start=_buckets_page_start,
+        )
 
 class Test__item_to_bucket(unittest.TestCase):
     def _call_fut(self, iterator, item):
