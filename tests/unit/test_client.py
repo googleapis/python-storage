@@ -3092,11 +3092,13 @@ class TestClient(unittest.TestCase):
 
         PROJECT = "PROJECT"
         client = self._make_one(project=PROJECT)
-        client._list_resource = mock.Mock(spec=[])
+        mock_iterator = mock.Mock()
+        client._list_resource = mock.Mock(return_value=mock_iterator)
 
         iterator = client.list_buckets(return_partial_success=True)
 
-        self.assertIs(iterator, client._list_resource.return_value)
+        self.assertIs(iterator, mock_iterator)
+        self.assertEqual(iterator.unreachable, [])
 
         expected_path = "/b"
         expected_item_to_value = _item_to_bucket

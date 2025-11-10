@@ -65,10 +65,10 @@ _marker = object()
 
 
 def _buckets_page_start(iterator, page, response):
-        """Grab unreachable buckets after a :class:`~google.cloud.iterator.Page` started."""
-        unreachable = response.get("unreachable")
-        if unreachable:
-            iterator.unreachable.extend(unreachable)
+    """Grab unreachable buckets after a :class:`~google.cloud.iterator.Page` started."""
+    unreachable = response.get("unreachable")
+    if unreachable:
+        iterator.unreachable.extend(unreachable)
 
 class Client(ClientWithProject):
     """Client to bundle configuration needed for API requests.
