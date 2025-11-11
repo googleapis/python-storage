@@ -66,7 +66,7 @@ _marker = object()
 
 def _buckets_page_start(iterator, page, response):
     """Grab unreachable buckets after a :class:`~google.cloud.iterator.Page` started."""
-    unreachable = response.get("unreachable")
+    unreachable = response.get("unreachable", None)
     if unreachable:
         iterator.unreachable.extend(unreachable)
 
