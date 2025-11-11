@@ -27,8 +27,6 @@ from google.cloud._storage_v2.types.storage import BidiReadObjectRedirectedError
 
 _READ_ID = 1
 
-_READ_ID = 1
-
 
 class TestDownloadState(unittest.TestCase):
     def test_initialization(self):
