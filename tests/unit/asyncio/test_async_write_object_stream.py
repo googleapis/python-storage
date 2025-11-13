@@ -106,12 +106,3 @@ async def test_unimplemented_methods_raise_error(mock_client):
 
     with pytest.raises(NotImplementedError):
         await stream.recv()
-
-
-def test_add_to_sources_txt():
-    """
-    This is a dummy test to ensure that the new test file is included in the
-    package's source file list. This is necessary for some build and packaging
-    tools to recognize the file.
-    """
-    pass
