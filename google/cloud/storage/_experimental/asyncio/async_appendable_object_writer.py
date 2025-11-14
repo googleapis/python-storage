@@ -34,7 +34,7 @@ class AsyncAppendableObjectWriter:
         self.offset: Optional[int] = None
         self.persisted_size: Optional[int] = None
 
-    async def state_lookup(self):
+    async def state_lookup(self) -> _storage_v2.BidiWriteObjectResponse:
         """Returns the persisted_size."""
         await self.write_obj_stream.send(
             _storage_v2.BidiWriteObjectRequest(
