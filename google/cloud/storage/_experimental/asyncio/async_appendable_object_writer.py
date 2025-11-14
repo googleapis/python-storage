@@ -1,4 +1,5 @@
 from typing import Optional
+from google.cloud import _storage_v2
 from google.cloud.storage._experimental.asyncio.async_grpc_client import (
     AsyncGrpcClient,
 )
@@ -35,7 +36,12 @@ class AsyncAppendableObjectWriter:
 
     async def state_lookup(self):
         """Returns the persisted_size."""
-        raise NotImplementedError("state_lookup is not implemented yet.")
+        await self.write_obj_stream.send(
+            _storage_v2.BidiWriteObjectRequest(
+                state_lookup=True,
+            )
+        )
+        return await self.write_obj_stream.recv()
 
     async def open(self) -> None:
         """Opens the underlying bidi-gRPC stream."""
