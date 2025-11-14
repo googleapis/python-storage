@@ -34,14 +34,16 @@ class AsyncAppendableObjectWriter:
         self.offset: Optional[int] = None
         self.persisted_size: Optional[int] = None
 
-    async def state_lookup(self):
+    async def state_lookup(self) -> int:
         """Returns the persisted_size."""
         await self.write_obj_stream.send(
             _storage_v2.BidiWriteObjectRequest(
                 state_lookup=True,
             )
         )
-        return await self.write_obj_stream.recv()
+        response = await self.write_obj_stream.recv()
+        self.persisted_size = response.persisted_size
+        return self.persisted_size
 
     async def open(self) -> None:
         """Opens the underlying bidi-gRPC stream."""
