@@ -18,6 +18,8 @@ from unittest import mock
 from google.cloud.storage._experimental.asyncio.async_appendable_object_writer import (
     AsyncAppendableObjectWriter,
 )
+from google.cloud import _storage_v2
+
 
 BUCKET = "test-bucket"
 OBJECT = "test-object"
@@ -83,12 +85,32 @@ def test_init_with_optional_args(mock_write_object_stream, mock_client):
 
 
 @pytest.mark.asyncio
+@mock.patch(
+    "google.cloud.storage._experimental.asyncio.async_appendable_object_writer._AsyncWriteObjectStream"
+)
+async def test_state_lookup(mock_write_object_stream, mock_client):
+    """Test state_lookup method."""
+    # Arrange
+    writer = AsyncAppendableObjectWriter(mock_client, BUCKET, OBJECT)
+    mock_stream = mock_write_object_stream.return_value
+    mock_stream.send = mock.AsyncMock()
+    mock_stream.recv = mock.AsyncMock(return_value=mock.sentinel.response)
+
+    expected_request = _storage_v2.BidiWriteObjectRequest(state_lookup=True)
+
+    # Act
+    response = await writer.state_lookup()
+
+    # Assert
+    mock_stream.send.assert_awaited_once_with(expected_request)
+    mock_stream.recv.assert_awaited_once()
+    assert response == mock.sentinel.response
+
+
+@pytest.mark.asyncio
 async def test_unimplemented_methods_raise_error(mock_client):
     """Test that all currently unimplemented methods raise NotImplementedError."""
     writer = AsyncAppendableObjectWriter(mock_client, BUCKET, OBJECT)
-
-    with pytest.raises(NotImplementedError):
-        await writer.state_lookup()
 
     with pytest.raises(NotImplementedError):
         await writer.open()
