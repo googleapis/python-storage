@@ -25,6 +25,7 @@ BUCKET = "test-bucket"
 OBJECT = "test-object"
 GENERATION = 123
 WRITE_HANDLE = b"test-write-handle"
+PERSISTED_SIZE = 456
 
 
 @pytest.fixture
@@ -94,7 +95,9 @@ async def test_state_lookup(mock_write_object_stream, mock_client):
     writer = AsyncAppendableObjectWriter(mock_client, BUCKET, OBJECT)
     mock_stream = mock_write_object_stream.return_value
     mock_stream.send = mock.AsyncMock()
-    mock_stream.recv = mock.AsyncMock(return_value=mock.sentinel.response)
+    mock_stream.recv = mock.AsyncMock(
+        return_value=_storage_v2.BidiWriteObjectResponse(persisted_size=PERSISTED_SIZE)
+    )
 
     expected_request = _storage_v2.BidiWriteObjectRequest(state_lookup=True)
 
@@ -104,7 +107,8 @@ async def test_state_lookup(mock_write_object_stream, mock_client):
     # Assert
     mock_stream.send.assert_awaited_once_with(expected_request)
     mock_stream.recv.assert_awaited_once()
-    assert response == mock.sentinel.response
+    assert writer.persisted_size == PERSISTED_SIZE
+    assert response == PERSISTED_SIZE
 
 
 @pytest.mark.asyncio
