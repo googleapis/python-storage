@@ -56,9 +56,8 @@ class AsyncAppendableObjectWriter:
             self.generation = self.write_obj_stream.generation_number
         self.write_handle = self.write_obj_stream.write_handle
 
-        # send another message on stream to get persisted_size.
-        state_loop_up_resp = await self.state_lookup()
-        self.persisted_size = state_loop_up_resp.persisted_size
+        # Update self.persisted_size
+        _ = await self.state_lookup()
 
     async def append(self, data: bytes):
         raise NotImplementedError("append is not implemented yet.")
