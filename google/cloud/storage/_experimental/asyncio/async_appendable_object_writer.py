@@ -45,7 +45,18 @@ class AsyncAppendableObjectWriter:
 
     async def open(self) -> None:
         """Opens the underlying bidi-gRPC stream."""
-        raise NotImplementedError("open is not implemented yet.")
+        if self._is_stream_open:
+            raise ValueError("Underlying bidi-gRPC stream is already open")
+
+        await self.write_obj_stream.open()
+        self._is_stream_open = True
+        if self.generation is None:
+            self.generation = self.write_obj_stream.generation_number
+        self.write_handle = self.write_obj_stream.write_handle
+
+        # send another message on stream to get persisted_size.
+        state_loop_up_resp = await self.state_lookup()
+        self.persisted_size = state_loop_up_resp.persisted_size
 
     async def append(self, data: bytes):
         raise NotImplementedError("append is not implemented yet.")
