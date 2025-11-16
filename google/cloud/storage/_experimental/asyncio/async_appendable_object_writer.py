@@ -35,7 +35,11 @@ class AsyncAppendableObjectWriter:
         self.persisted_size: Optional[int] = None
 
     async def state_lookup(self) -> int:
-        """Returns the persisted_size."""
+        """Returns the persisted_size
+
+        :rtype: int
+        :returns: persisted size.
+        """
         await self.write_obj_stream.send(
             _storage_v2.BidiWriteObjectRequest(
                 state_lookup=True,
@@ -89,8 +93,12 @@ class AsyncAppendableObjectWriter:
         self.offset = None
 
     async def finalize(self) -> _storage_v2.Object:
-        """Returns object_resource
+        """Finalizes the Appendable Object.
+
         Note: Once finalized no more data can be appended.
+
+        rtype: google.cloud.storage_v2.types.Object
+        returns: The finalized object resource.
         """
         await self.write_obj_stream.send(
             _storage_v2.BidiWriteObjectRequest(finish_write=True)
