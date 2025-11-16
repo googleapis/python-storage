@@ -32,7 +32,7 @@ from google.cloud.storage._experimental.asyncio.async_write_object_stream import
 
 
 _MAX_CHUNK_SIZE_BYTES = 2 * 1024 * 1024  # 2 MiB
-_MAX_BUFFER_SIZE_BYTES = 16 * 1024 * 1024  # 8 MiB
+_MAX_BUFFER_SIZE_BYTES = 16 * 1024 * 1024  # 16 MiB
 
 
 class AsyncAppendableObjectWriter:
