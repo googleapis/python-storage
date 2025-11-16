@@ -8,6 +8,10 @@ from google.cloud.storage._experimental.asyncio.async_write_object_stream import
 )
 
 
+_MAX_CHUNK_SIZE_BYTES = 2 * 1024 * 1024  # 2 MiB
+_MAX_BUFFER_SIZE_BYTES = 16 * 1024 * 1024  # 8 MiB
+
+
 class AsyncAppendableObjectWriter:
     def __init__(
         self,
@@ -64,7 +68,34 @@ class AsyncAppendableObjectWriter:
         _ = await self.state_lookup()
 
     async def append(self, data: bytes):
-        raise NotImplementedError("append is not implemented yet.")
+        if not self._is_stream_open:
+            raise ValueError("Stream is not open. Call open() before append().")
+        total_bytes = len(data)
+        if total_bytes == 0:
+            # TODO: add warning.
+            return
+        if self.offset is None:
+            assert self.persisted_size is not None
+            self.offset = self.persisted_size
+
+        for i in range(0, total_bytes, _MAX_BUFFER_SIZE_BYTES):
+            buffer_data = data[i : i + _MAX_BUFFER_SIZE_BYTES]
+            buffer_size = len(buffer_data)
+            curr_index = 0
+            while curr_index < buffer_size:
+                end_index = min(curr_index + _MAX_CHUNK_SIZE_BYTES, buffer_size)
+                chunk = data[curr_index:end_index]
+                await self.write_obj_stream.send(
+                    _storage_v2.BidiWriteObjectRequest(
+                        write_offset=self.offset,
+                        checksummed_data=_storage_v2.ChecksummedData(content=chunk),
+                    )
+                )
+                curr_index = end_index
+                self.offset += len(chunk)
+            # if buffer is full, flush to persist data.
+            if buffer_size == _MAX_BUFFER_SIZE_BYTES:
+                await self.flush()
 
     async def flush(self) -> int:
         """Flushes the data to the server.
@@ -125,3 +156,40 @@ class AsyncAppendableObjectWriter:
     async def append_from_file(self, file_path: str):
         """Create a file object from `file_path` and call append_from_stream(file_obj)"""
         raise NotImplementedError("append_from_file is not implemented yet.")
+
+
+async def test_aaow():
+    import os
+    import time
+
+    client = AsyncGrpcClient().grpc_client
+    writer = AsyncAppendableObjectWriter(
+        client=client,
+        bucket_name="chandrasiri-rs",
+        object_name="code-test-20251116-1",
+        generation=1763299631619231,
+    )
+    await writer.open()
+    print("finished open()", writer.persisted_size)
+    # print("1st state lookup", await writer.state_lookup())
+    # # start_time = time.monotonic_ns()
+    # num_bytes_to_append = 100 * 1024 * 1024
+    # await writer.append(os.urandom(num_bytes_to_append))
+    # # for i in range(100):
+    # await writer.flush()
+    # print(f"finished appending {num_bytes_to_append} byte")
+    # await asyncio.sleep(1)
+    # end_time = time.monotonic_ns()
+    # duration_secs = (end_time - start_time) / 1e9
+    # print(f"finished appending 100*200MiB  in {duration_secs} seconds")
+    # print("Throuput is ", (100 * 200) / duration_secs, " MiB/s")
+    # print("finished appending 1 byte, sleeping for 60+ seconds")
+    # print("2nd state lookup", await writer.state_lookup())
+
+    return
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    asyncio.run(test_aaow())
