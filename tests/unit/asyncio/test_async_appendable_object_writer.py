@@ -375,3 +375,30 @@ async def test_append_handles_large_data(mock_write_object_stream, mock_client):
     await writer.append(data)
 
     assert writer.flush.await_count == 2
+
+
+@pytest.mark.asyncio
+@mock.patch(
+    "google.cloud.storage._experimental.asyncio.async_appendable_object_writer._AsyncWriteObjectStream"
+)
+async def test_append_data_two_times(mock_write_object_stream, mock_client):
+    """Test that append sends data correctly when called multiple times."""
+    from google.cloud.storage._experimental.asyncio.async_appendable_object_writer import (
+        _MAX_CHUNK_SIZE_BYTES,
+    )
+
+    writer = AsyncAppendableObjectWriter(mock_client, BUCKET, OBJECT)
+    writer._is_stream_open = True
+    writer.persisted_size = 0
+    mock_stream = mock_write_object_stream.return_value
+    mock_stream.send = mock.AsyncMock()
+    writer.flush = mock.AsyncMock()
+
+    data1 = b"a" * (_MAX_CHUNK_SIZE_BYTES + 10)
+    await writer.append(data1)
+
+    data2 = b"b" * (_MAX_CHUNK_SIZE_BYTES + 20)
+    await writer.append(data2)
+
+    total_data_length = len(data1) + len(data2)
+    assert writer.offset == total_data_length
