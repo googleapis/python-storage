@@ -128,7 +128,11 @@ class _AsyncWriteObjectStream(_AsyncAbstractObjectStream):
         response = await self.socket_like_rpc.recv()
         self._is_stream_open = True
 
-        if not response.resource and not response.resource.generation:
+        if not response.resource:
+            raise ValueError(
+                "Failed to obtain object resource after opening the stream"
+            )
+        if not response.resource.generation:
             raise ValueError(
                 "Failed to obtain object generation after opening the stream"
             )
