@@ -206,6 +206,34 @@ async def test_open_when_already_open_raises_error(mock_async_bidi_rpc, mock_cli
 @mock.patch(
     "google.cloud.storage._experimental.asyncio.async_write_object_stream.AsyncBidiRpc"
 )
+async def test_open_raises_error_on_missing_object_resource(
+    mock_async_bidi_rpc, mock_client
+):
+    """Test that open raises ValueError if object_resource is not in the response."""
+    socket_like_rpc = mock.AsyncMock()
+    mock_async_bidi_rpc.return_value = socket_like_rpc
+
+    mock_reponse = mock.AsyncMock()
+    type(mock_reponse).resource = mock.PropertyMock(return_value=None)
+    socket_like_rpc.recv.return_value = mock_reponse
+
+    # Note: Don't use below code as unittest library automatically assigns an
+    # `AsyncMock` object to an attribute, if not set.
+    # socket_like_rpc.recv.return_value = mock.AsyncMock(
+    #     return_value=_storage_v2.BidiWriteObjectResponse(resource=None)
+    # )
+
+    stream = _AsyncWriteObjectStream(mock_client, BUCKET, OBJECT)
+    with pytest.raises(
+        ValueError, match="Failed to obtain object resource after opening the stream"
+    ):
+        await stream.open()
+
+
+@pytest.mark.asyncio
+@mock.patch(
+    "google.cloud.storage._experimental.asyncio.async_write_object_stream.AsyncBidiRpc"
+)
 async def test_open_raises_error_on_missing_generation(
     mock_async_bidi_rpc, mock_client
 ):
