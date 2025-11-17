@@ -212,11 +212,16 @@ async def test_open_raises_error_on_missing_generation(
     """Test that open raises ValueError if generation is not in the response."""
     socket_like_rpc = mock.AsyncMock()
     mock_async_bidi_rpc.return_value = socket_like_rpc
-    socket_like_rpc.recv = mock.AsyncMock(
-        return_value=_storage_v2.BidiWriteObjectResponse(resource=None)
-    )
+
+    # Configure the mock response object
+    mock_response = mock.AsyncMock()
+    type(mock_response.resource).generation = mock.PropertyMock(return_value=None)
+    socket_like_rpc.recv.return_value = mock_response
+
     stream = _AsyncWriteObjectStream(mock_client, BUCKET, OBJECT)
-    with pytest.raises(ValueError, match="Failed to obtain object generation"):
+    with pytest.raises(
+        ValueError, match="Failed to obtain object generation after opening the stream"
+    ):
         await stream.open()
 
 
