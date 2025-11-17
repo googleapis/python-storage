@@ -32,7 +32,7 @@ from google.cloud.storage._experimental.asyncio.async_write_object_stream import
 
 
 _MAX_CHUNK_SIZE_BYTES = 2 * 1024 * 1024  # 2 MiB
-_MAX_BUFFER_SIZE_BYTES = 16 * 1024 * 1024  # 16 MiB
+_MAX_BUFFER_SIZE_BYTES = 150 * 1024 * 1024  # 16 MiB
 
 
 class AsyncAppendableObjectWriter:
@@ -157,24 +157,25 @@ class AsyncAppendableObjectWriter:
             assert self.persisted_size is not None
             self.offset = self.persisted_size
 
-        for i in range(0, total_bytes, _MAX_BUFFER_SIZE_BYTES):
-            buffer_data = data[i : i + _MAX_BUFFER_SIZE_BYTES]
-            buffer_size = len(buffer_data)
-            curr_index = 0
-            while curr_index < buffer_size:
-                end_index = min(curr_index + _MAX_CHUNK_SIZE_BYTES, buffer_size)
-                chunk = data[curr_index:end_index]
-                await self.write_obj_stream.send(
-                    _storage_v2.BidiWriteObjectRequest(
-                        write_offset=self.offset,
-                        checksummed_data=_storage_v2.ChecksummedData(content=chunk),
-                    )
+        start_idx = 0
+        bytes_to_flush = 0
+        while start_idx < total_bytes:
+            end_idx = min(start_idx + _MAX_CHUNK_SIZE_BYTES, total_bytes)
+            await self.write_obj_stream.send(
+                _storage_v2.BidiWriteObjectRequest(
+                    write_offset=self.offset,
+                    checksummed_data=_storage_v2.ChecksummedData(
+                        content=data[start_idx:end_idx]
+                    ),
                 )
-                curr_index = end_index
-                self.offset += len(chunk)
-            # if buffer is full, flush to persist data.
-            if buffer_size == _MAX_BUFFER_SIZE_BYTES:
+            )
+            chunk_size = end_idx - start_idx
+            self.offset += chunk_size
+            bytes_to_flush += chunk_size
+            if bytes_to_flush >= _MAX_BUFFER_SIZE_BYTES:
                 await self.flush()
+                bytes_to_flush = 0
+            start_idx = end_idx
 
     async def flush(self) -> int:
         """Flushes the data to the server.
