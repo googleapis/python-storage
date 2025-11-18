@@ -59,6 +59,8 @@ class TestBidiStreamRetryManager(unittest.IsolatedAsyncioTestCase):
             strategy=mock_strategy, stream_opener=mock_stream_opener
         )
         retry_policy = AsyncRetry(predicate=_is_retriable, initial=0.01)
+        retry_policy.sleep = mock.AsyncMock()
+
         await retry_manager.execute(initial_state={}, retry_policy=retry_policy)
 
         self.assertEqual(attempt_count, 2)
