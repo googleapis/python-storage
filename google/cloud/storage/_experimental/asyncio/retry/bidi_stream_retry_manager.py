@@ -69,15 +69,22 @@ class _BidiStreamRetryManager:
                     self._strategy.update_state_from_response(response, state)
                 return
             except Exception as e:
-                if not retry_policy._predicate(e):
+                # AsyncRetry may expose either 'on_error' (public) or the private
+                # '_on_error' depending on google.api_core version. Call whichever
+                # exists so the retry policy can decide to raise (non-retriable /
+                # deadline exceeded) or allow a retry.
+                on_error_callable = getattr(retry_policy, "on_error", None)
+                if on_error_callable is None:
+                    on_error_callable = getattr(retry_policy, "_on_error", None)
+
+                if on_error_callable is None:
+                    # No hook available on the policy; re-raise the error.
                     raise
 
+                # Let the retry policy handle the error (may raise RetryError).
+                await on_error_callable(e)
+
+                # If the retry policy did not raise, allow the strategy to recover
+                # and then sleep per policy before next attempt.
                 await self._strategy.recover_state_on_failure(e, state)
-
-                sleep = next(sleep_generator)
-                if deadline is not None and time.monotonic() + sleep > deadline:
-                    raise exceptions.RetryError(
-                        f"Deadline of {retry_policy._deadline}s exceeded", cause=e
-                    ) from e
-
-                await asyncio.sleep(sleep)
+                await retry_policy.sleep()
