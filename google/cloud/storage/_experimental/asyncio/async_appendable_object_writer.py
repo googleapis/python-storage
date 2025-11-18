@@ -22,6 +22,7 @@ if you want to use these Rapid Storage APIs.
 
 """
 from typing import Optional
+from google.cloud import _storage_v2
 from google.cloud.storage._experimental.asyncio.async_grpc_client import (
     AsyncGrpcClient,
 )
@@ -112,13 +113,30 @@ class AsyncAppendableObjectWriter:
         self.offset: Optional[int] = None
         self.persisted_size: Optional[int] = None
 
-    async def state_lookup(self):
+    async def state_lookup(self) -> int:
         """Returns the persisted_size."""
-        raise NotImplementedError("state_lookup is not implemented yet.")
+        await self.write_obj_stream.send(
+            _storage_v2.BidiWriteObjectRequest(
+                state_lookup=True,
+            )
+        )
+        response = await self.write_obj_stream.recv()
+        self.persisted_size = response.persisted_size
+        return self.persisted_size
 
     async def open(self) -> None:
         """Opens the underlying bidi-gRPC stream."""
-        raise NotImplementedError("open is not implemented yet.")
+        if self._is_stream_open:
+            raise ValueError("Underlying bidi-gRPC stream is already open")
+
+        await self.write_obj_stream.open()
+        self._is_stream_open = True
+        if self.generation is None:
+            self.generation = self.write_obj_stream.generation_number
+        self.write_handle = self.write_obj_stream.write_handle
+
+        # Update self.persisted_size
+        _ = await self.state_lookup()
 
     async def append(self, data: bytes):
         raise NotImplementedError("append is not implemented yet.")
