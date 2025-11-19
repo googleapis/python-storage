@@ -10,23 +10,22 @@ libraries:
       - .
     preserve_regex: []
     remove_regex:
-      - .flake8
-      - .pre-commit-config.yaml
-      - .trampolinerc
-      - .repo-metadata.json
-      - LICENSE
-      - MANIFEST.in
-      - SECURITY.md
-      - librarian.py
-      - mypy.ini
+      - ^.flake8
+      - ^.pre-commit-config.yaml
+      - ^.trampolinerc
+      - ^.repo-metadata.json
+      - ^LICENSE
+      - ^MANIFEST.in
+      - ^SECURITY.md
+      - ^mypy.ini
       - ^noxfile.py
-      - renovate.json
-      - setup.py
-      - docs/summary_overview.md
-      - google/cloud/_storage_v2
-      - samples/generated_samples
-      - testing/constraints-3.8.txt
-      - testing/constraints-3.1.*
-      - tests/__init__.py
-      - tests/unit/gapic
+      - ^renovate.json
+      - ^setup.py
+      - ^docs/summary_overview.md
+      - ^google/cloud/_storage_v2
+      - ^samples/generated_samples
+      - ^testing/constraints-3.8.txt
+      - ^testing/constraints-3.1.*
+      - ^tests/__init__.py
+      - ^tests/unit/gapic
     tag_format: v{version}
