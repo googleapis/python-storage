@@ -26,7 +26,7 @@ def list_buckets_with_partial_success():
     buckets_iterator = storage_client.list_buckets(return_partial_success=True)
 
     for page in buckets_iterator.pages:
-        if hasattr(page, "unreachable") and page.unreachable:
+        if page.unreachable:
             print("Unreachable locations in this page:")
             for location in page.unreachable:
                 print(location)
