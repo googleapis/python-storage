@@ -2,9 +2,10 @@ image: us-central1-docker.pkg.dev/cloud-sdk-librarian-prod/images-prod/python-li
 libraries:
   - id: google-cloud-storage
     version: 3.6.0
-    last_generated_commit: f2a87ff9836e96a7d37501128134ff34eb486d2d
+    last_generated_commit: 5400ccce473c439885bd6bf2924fd242271bfcab
     apis:
       - path: google/storage/v2
+        service_config: storage_v2.yaml
     source_roots:
       - .
     preserve_regex: []
