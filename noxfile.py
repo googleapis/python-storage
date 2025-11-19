@@ -74,7 +74,9 @@ def lint(session):
     session.run("flake8", "google", "tests")
 
 
-@nox.session(python="3.14")
+# Use a python runtime which is available in the owlbot post processor here
+# https://github.com/googleapis/synthtool/blob/master/docker/owlbot/python/Dockerfile
+@nox.session(python=["3.10", DEFAULT_PYTHON_VERSION])
 def blacken(session):
     """Run black.
 
