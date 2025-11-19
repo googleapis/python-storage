@@ -25,8 +25,8 @@ libraries:
       - docs/summary_overview.md
       - google/cloud/_storage_v2
       - samples/generated_samples
-      - testing/constraints-3.8
-      - testing/constraints-3.1
+      - testing/constraints-3.8.txt
+      - testing/constraints-3.1.*
       - tests/__init__.py
       - tests/unit/gapic
     tag_format: v{version}
