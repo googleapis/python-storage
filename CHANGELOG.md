@@ -4,6 +4,33 @@
 
 [1]: https://pypi.org/project/google-cloud-storage/#history
 
+## [3.7.0](https://github.com/googleapis/python-storage/compare/v3.6.0...v3.7.0) (2025-11-19)
+
+
+### Features
+
+* implement flush, close and finalize (#1619) ([b4134054f57e8767df3d62ee36dcbe3a83e6bfaa](https://github.com/googleapis/python-storage/commit/b4134054f57e8767df3d62ee36dcbe3a83e6bfaa))
+* implement flush, close and finalize ([b4134054f57e8767df3d62ee36dcbe3a83e6bfaa](https://github.com/googleapis/python-storage/commit/b4134054f57e8767df3d62ee36dcbe3a83e6bfaa))
+* implement open in writer (#1618) ([dfe4566e4b087ee217a7d05fc388ab5bfb760f39](https://github.com/googleapis/python-storage/commit/dfe4566e4b087ee217a7d05fc388ab5bfb760f39))
+* implement open in writer ([dfe4566e4b087ee217a7d05fc388ab5bfb760f39](https://github.com/googleapis/python-storage/commit/dfe4566e4b087ee217a7d05fc388ab5bfb760f39))
+* implement state_lookup (#1617) ([7d17922e671aa2d975262984ba50bfcfa29ff4a5](https://github.com/googleapis/python-storage/commit/7d17922e671aa2d975262984ba50bfcfa29ff4a5))
+* implement state_lookup ([7d17922e671aa2d975262984ba50bfcfa29ff4a5](https://github.com/googleapis/python-storage/commit/7d17922e671aa2d975262984ba50bfcfa29ff4a5))
+* Add Async_appendable_object_writer.py (#1616) ([fdd0a50146d7b5f50f04c1871d43329a10938ff5](https://github.com/googleapis/python-storage/commit/fdd0a50146d7b5f50f04c1871d43329a10938ff5))
+* Add Async_appendable_object_writer.py ([fdd0a50146d7b5f50f04c1871d43329a10938ff5](https://github.com/googleapis/python-storage/commit/fdd0a50146d7b5f50f04c1871d43329a10938ff5))
+* implement send & recv (#1615) ([6da118652c97ba11d82c25347080188c7cf7a338](https://github.com/googleapis/python-storage/commit/6da118652c97ba11d82c25347080188c7cf7a338))
+* implement send & recv ([6da118652c97ba11d82c25347080188c7cf7a338](https://github.com/googleapis/python-storage/commit/6da118652c97ba11d82c25347080188c7cf7a338))
+* implement close (#1614) ([7a532216a9a3da728bd3d7f196372f8f6528ef75](https://github.com/googleapis/python-storage/commit/7a532216a9a3da728bd3d7f196372f8f6528ef75))
+* implement close ([7a532216a9a3da728bd3d7f196372f8f6528ef75](https://github.com/googleapis/python-storage/commit/7a532216a9a3da728bd3d7f196372f8f6528ef75))
+* implement "open" for write_object_stream (#1613) ([786af5556023144001f1375f1c6265bd46326b24](https://github.com/googleapis/python-storage/commit/786af5556023144001f1375f1c6265bd46326b24))
+* implement "open" for write_object_stream ([786af5556023144001f1375f1c6265bd46326b24](https://github.com/googleapis/python-storage/commit/786af5556023144001f1375f1c6265bd46326b24))
+
+
+### Bug Fixes
+
+* Skip flaky test (#1622) ([53ced015a7a584cbf88197424e92538f8f18915c](https://github.com/googleapis/python-storage/commit/53ced015a7a584cbf88197424e92538f8f18915c))
+* Move blob fails when the new blob name contains characters that need to be url encoded (#1605) ([ec470a270e189e137c7229cc359367d5a897cdb9](https://github.com/googleapis/python-storage/commit/ec470a270e189e137c7229cc359367d5a897cdb9))
+* url encode new_name parameter in move_blob() ([ec470a270e189e137c7229cc359367d5a897cdb9](https://github.com/googleapis/python-storage/commit/ec470a270e189e137c7229cc359367d5a897cdb9))
+
 ## [3.6.0](https://github.com/googleapis/python-storage/compare/v3.5.0...v3.6.0) (2025-11-17)
 
 
