@@ -93,6 +93,7 @@ async def test_state_lookup(mock_write_object_stream, mock_client):
     """Test state_lookup method."""
     # Arrange
     writer = AsyncAppendableObjectWriter(mock_client, BUCKET, OBJECT)
+    writer._is_stream_open = True
     mock_stream = mock_write_object_stream.return_value
     mock_stream.send = mock.AsyncMock()
     mock_stream.recv = mock.AsyncMock(
@@ -109,6 +110,17 @@ async def test_state_lookup(mock_write_object_stream, mock_client):
     mock_stream.recv.assert_awaited_once()
     assert writer.persisted_size == PERSISTED_SIZE
     assert response == PERSISTED_SIZE
+
+
+@pytest.mark.asyncio
+async def test_state_lookup_without_open_raises_value_error(mock_client):
+    """Test that state_lookup raises an error if the stream is not open."""
+    writer = AsyncAppendableObjectWriter(mock_client, BUCKET, OBJECT)
+    with pytest.raises(
+        ValueError,
+        match="Stream is not open. Call open\\(\\) before state_lookup\\(\\).",
+    ):
+        await writer.state_lookup()
 
 
 @pytest.mark.asyncio
@@ -185,6 +197,7 @@ async def test_unimplemented_methods_raise_error(mock_client):
 async def test_flush(mock_write_object_stream, mock_client):
     """Test that flush sends the correct request and updates state."""
     writer = AsyncAppendableObjectWriter(mock_client, BUCKET, OBJECT)
+    writer._is_stream_open = True
     mock_stream = mock_write_object_stream.return_value
     mock_stream.send = mock.AsyncMock()
     mock_stream.recv = mock.AsyncMock(
@@ -199,6 +212,16 @@ async def test_flush(mock_write_object_stream, mock_client):
     assert writer.persisted_size == 1024
     assert writer.offset == 1024
     assert persisted_size == 1024
+
+
+@pytest.mark.asyncio
+async def test_flush_without_open_raises_value_error(mock_client):
+    """Test that flush raises an error if the stream is not open."""
+    writer = AsyncAppendableObjectWriter(mock_client, BUCKET, OBJECT)
+    with pytest.raises(
+        ValueError, match="Stream is not open. Call open\\(\\) before flush\\(\\)."
+    ):
+        await writer.flush()
 
 
 @pytest.mark.asyncio
@@ -224,6 +247,16 @@ async def test_close(mock_write_object_stream, mock_client):
     assert writer.offset is None
     assert persisted_size == 1024
     assert not writer._is_stream_open
+
+
+@pytest.mark.asyncio
+async def test_close_without_open_raises_value_error(mock_client):
+    """Test that close raises an error if the stream is not open."""
+    writer = AsyncAppendableObjectWriter(mock_client, BUCKET, OBJECT)
+    with pytest.raises(
+        ValueError, match="Stream is not open. Call open\\(\\) before close\\(\\)."
+    ):
+        await writer.close()
 
 
 @pytest.mark.asyncio
@@ -263,6 +296,7 @@ async def test_finalize_on_close(mock_write_object_stream, mock_client):
 async def test_finalize(mock_write_object_stream, mock_client):
     """Test that finalize sends the correct request and updates state."""
     writer = AsyncAppendableObjectWriter(mock_client, BUCKET, OBJECT)
+    writer._is_stream_open = True
     mock_resource = _storage_v2.Object(name=OBJECT, bucket=BUCKET, size=123)
     mock_stream = mock_write_object_stream.return_value
     mock_stream.send = mock.AsyncMock()
@@ -282,13 +316,25 @@ async def test_finalize(mock_write_object_stream, mock_client):
 
 
 @pytest.mark.asyncio
+async def test_finalize_without_open_raises_value_error(mock_client):
+    """Test that finalize raises an error if the stream is not open."""
+    writer = AsyncAppendableObjectWriter(mock_client, BUCKET, OBJECT)
+    with pytest.raises(
+        ValueError, match="Stream is not open. Call open\\(\\) before finalize\\(\\)."
+    ):
+        await writer.finalize()
+
+
+@pytest.mark.asyncio
 @mock.patch(
     "google.cloud.storage._experimental.asyncio.async_appendable_object_writer._AsyncWriteObjectStream"
 )
 async def test_append_raises_error_if_not_open(mock_write_object_stream, mock_client):
     """Test that append raises an error if the stream is not open."""
     writer = AsyncAppendableObjectWriter(mock_client, BUCKET, OBJECT)
-    with pytest.raises(ValueError, match="Stream is not open"):
+    with pytest.raises(
+        ValueError, match="Stream is not open. Call open\\(\\) before append\\(\\)."
+    ):
         await writer.append(b"some data")
 
 

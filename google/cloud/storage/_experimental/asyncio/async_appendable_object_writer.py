@@ -122,7 +122,13 @@ class AsyncAppendableObjectWriter:
 
         :rtype: int
         :returns: persisted size.
+
+        :raises ValueError: If the stream is not open (i.e., `open()` has not
+            been called).
         """
+        if not self._is_stream_open:
+            raise ValueError("Stream is not open. Call open() before state_lookup().")
+
         await self.write_obj_stream.send(
             _storage_v2.BidiWriteObjectRequest(
                 state_lookup=True,
@@ -133,7 +139,11 @@ class AsyncAppendableObjectWriter:
         return self.persisted_size
 
     async def open(self) -> None:
-        """Opens the underlying bidi-gRPC stream."""
+        """Opens the underlying bidi-gRPC stream.
+
+        :raises ValueError: If the stream is already open.
+
+        """
         if self._is_stream_open:
             raise ValueError("Underlying bidi-gRPC stream is already open")
 
@@ -198,7 +208,13 @@ class AsyncAppendableObjectWriter:
 
         :rtype: int
         :returns: The persisted size after flush.
+
+        :raises ValueError: If the stream is not open (i.e., `open()` has not
+            been called).
         """
+        if not self._is_stream_open:
+            raise ValueError("Stream is not open. Call open() before flush().")
+
         await self.write_obj_stream.send(
             _storage_v2.BidiWriteObjectRequest(
                 flush=True,
@@ -222,7 +238,12 @@ class AsyncAppendableObjectWriter:
             bidi-gRPC stream. However, if `finalize_on_close=True` is passed,
             returns the finalized object resource.
 
+        :raises ValueError: If the stream is not open (i.e., `open()` has not
+            been called).
+
         """
+        if not self._is_stream_open:
+            raise ValueError("Stream is not open. Call open() before close().")
 
         if finalize_on_close:
             await self.finalize()
@@ -241,7 +262,13 @@ class AsyncAppendableObjectWriter:
 
         rtype: google.cloud.storage_v2.types.Object
         returns: The finalized object resource.
+
+        :raises ValueError: If the stream is not open (i.e., `open()` has not
+            been called).
         """
+        if not self._is_stream_open:
+            raise ValueError("Stream is not open. Call open() before finalize().")
+
         await self.write_obj_stream.send(
             _storage_v2.BidiWriteObjectRequest(finish_write=True)
         )
