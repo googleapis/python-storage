@@ -205,42 +205,55 @@ async def test_flush(mock_write_object_stream, mock_client):
 @mock.patch(
     "google.cloud.storage._experimental.asyncio.async_appendable_object_writer._AsyncWriteObjectStream"
 )
-async def test_close_without_finalize(mock_write_object_stream, mock_client):
-    """Test close without finalizing."""
+async def test_close(mock_write_object_stream, mock_client):
     writer = AsyncAppendableObjectWriter(mock_client, BUCKET, OBJECT)
     writer._is_stream_open = True
     writer.offset = 1024
     mock_stream = mock_write_object_stream.return_value
+    mock_stream.send = mock.AsyncMock()
+    mock_stream.recv = mock.AsyncMock(
+        return_value=_storage_v2.BidiWriteObjectResponse(persisted_size=1024)
+    )
     mock_stream.close = mock.AsyncMock()
     writer.finalize = mock.AsyncMock()
 
-    await writer.close(finalize_on_close=False)
+    persisted_size = await writer.close()
 
     writer.finalize.assert_not_awaited()
     mock_stream.close.assert_awaited_once()
-    assert not writer._is_stream_open
     assert writer.offset is None
+    assert persisted_size == 1024
+    assert not writer._is_stream_open
 
 
 @pytest.mark.asyncio
 @mock.patch(
     "google.cloud.storage._experimental.asyncio.async_appendable_object_writer._AsyncWriteObjectStream"
 )
-async def test_close_with_finalize(mock_write_object_stream, mock_client):
+async def test_finalize_on_close(mock_write_object_stream, mock_client):
     """Test close with finalizing."""
+    # Arrange
+    mock_resource = _storage_v2.Object(name=OBJECT, bucket=BUCKET, size=2048)
     writer = AsyncAppendableObjectWriter(mock_client, BUCKET, OBJECT)
     writer._is_stream_open = True
     writer.offset = 1024
     mock_stream = mock_write_object_stream.return_value
+    mock_stream.send = mock.AsyncMock()
+    mock_stream.recv = mock.AsyncMock(
+        return_value=_storage_v2.BidiWriteObjectResponse(resource=mock_resource)
+    )
     mock_stream.close = mock.AsyncMock()
-    writer.finalize = mock.AsyncMock()
 
-    await writer.close(finalize_on_close=True)
+    # Act
+    result = await writer.close(finalize_on_close=True)
 
-    writer.finalize.assert_awaited_once()
-    mock_stream.close.assert_awaited_once()
+    # Assert
+    mock_stream.close.assert_not_awaited()  # Based on new implementation
     assert not writer._is_stream_open
     assert writer.offset is None
+    assert writer.object_resource == mock_resource
+    assert writer.persisted_size == 2048
+    assert result == mock_resource
 
 
 @pytest.mark.asyncio
@@ -250,20 +263,22 @@ async def test_close_with_finalize(mock_write_object_stream, mock_client):
 async def test_finalize(mock_write_object_stream, mock_client):
     """Test that finalize sends the correct request and updates state."""
     writer = AsyncAppendableObjectWriter(mock_client, BUCKET, OBJECT)
+    mock_resource = _storage_v2.Object(name=OBJECT, bucket=BUCKET, size=123)
     mock_stream = mock_write_object_stream.return_value
     mock_stream.send = mock.AsyncMock()
-    mock_resource = _storage_v2.Object(name=OBJECT, bucket=BUCKET)
     mock_stream.recv = mock.AsyncMock(
         return_value=_storage_v2.BidiWriteObjectResponse(resource=mock_resource)
     )
 
-    await writer.finalize()
+    gcs_object = await writer.finalize()
 
     mock_stream.send.assert_awaited_once_with(
         _storage_v2.BidiWriteObjectRequest(finish_write=True)
     )
     mock_stream.recv.assert_awaited_once()
     assert writer.object_resource == mock_resource
+    assert writer.persisted_size == 123
+    assert gcs_object == mock_resource
 
 
 @pytest.mark.asyncio
@@ -402,3 +417,4 @@ async def test_append_data_two_times(mock_write_object_stream, mock_client):
 
     total_data_length = len(data1) + len(data2)
     assert writer.offset == total_data_length
+    assert writer.flush.await_count == 0

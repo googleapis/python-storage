@@ -21,7 +21,7 @@ GA(Generally Available) yet, please contact your TAM (Technical Account Manager)
 if you want to use these Rapid Storage APIs.
 
 """
-from typing import Optional
+from typing import Optional, Union
 from google.cloud import _storage_v2
 from google.cloud.storage._experimental.asyncio.async_grpc_client import (
     AsyncGrpcClient,
@@ -32,7 +32,7 @@ from google.cloud.storage._experimental.asyncio.async_write_object_stream import
 
 
 _MAX_CHUNK_SIZE_BYTES = 2 * 1024 * 1024  # 2 MiB
-_MAX_BUFFER_SIZE_BYTES = 150 * 1024 * 1024  # 16 MiB
+_MAX_BUFFER_SIZE_BYTES = 16 * 1024 * 1024  # 16 MiB
 
 
 class AsyncAppendableObjectWriter:
@@ -146,7 +146,23 @@ class AsyncAppendableObjectWriter:
         # Update self.persisted_size
         _ = await self.state_lookup()
 
-    async def append(self, data: bytes):
+    async def append(self, data: bytes) -> None:
+        """Appends data to the Appendable object.
+
+        This method sends the provided data to the GCS server in chunks. It
+        maintains an internal threshold `_MAX_BUFFER_SIZE_BYTES` and will
+        automatically flush the data to make it visible to readers when that
+        threshold has reached.
+
+        :type data: bytes
+        :param data: The bytes to append to the object.
+
+        :rtype: None
+
+        :raises ValueError: If the stream is not open (i.e., `open()` has not
+            been called).
+        """
+
         if not self._is_stream_open:
             raise ValueError("Stream is not open. Call open() before append().")
         total_bytes = len(data)
@@ -194,14 +210,29 @@ class AsyncAppendableObjectWriter:
         self.offset = self.persisted_size
         return self.persisted_size
 
-    async def close(self, finalize_on_close=False) -> int:
-        """Returns persisted_size"""
+    async def close(self, finalize_on_close=False) -> Union[int, _storage_v2.Object]:
+        """Closes the underlying bidi-gRPC stream.
+
+        :type finalize_on_close: bool
+        :param finalize_on_close: Finalizes the Appendable Object. No more data
+          can be appended.
+
+        rtype: Union[int, _storage_v2.Object]
+        returns: Updated `self.persisted_size` by default after closing the
+            bidi-gRPC stream. However, if `finalize_on_close=True` is passed,
+            returns the finalized object resource.
+
+        """
+
         if finalize_on_close:
             await self.finalize()
+        else:
+            await self.flush()
+            await self.write_obj_stream.close()
 
-        await self.write_obj_stream.close()
         self._is_stream_open = False
         self.offset = None
+        return self.object_resource if finalize_on_close else self.persisted_size
 
     async def finalize(self) -> _storage_v2.Object:
         """Finalizes the Appendable Object.
@@ -216,6 +247,8 @@ class AsyncAppendableObjectWriter:
         )
         response = await self.write_obj_stream.recv()
         self.object_resource = response.resource
+        self.persisted_size = self.object_resource.size
+        return self.object_resource
 
     # helper methods.
     async def append_from_string(self, data: str):
