@@ -28,6 +28,7 @@ from urllib.parse import urlunsplit
 from uuid import uuid4
 
 from google.auth import environment_vars
+from google.auth.transport import mtls
 from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 from google.cloud.storage.retry import DEFAULT_RETRY
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED
@@ -112,7 +113,19 @@ def _virtual_hosted_style_base_url(url, bucket, trailing_slash=False):
 
 
 def _use_client_cert():
-    return os.getenv("GOOGLE_API_USE_CLIENT_CERTIFICATE") == "true"
+    if hasattr(mtls, "should_use_client_cert"):
+        use_client_cert = mtls.should_use_client_cert()
+    else:
+        # if unsupported, fallback to reading from env var
+        use_client_cert_str = os.getenv(
+            "GOOGLE_API_USE_CLIENT_CERTIFICATE", "false"
+        ).lower()
+        use_client_cert = use_client_cert_str == "true"
+        if use_client_cert_str not in ("true", "false"):
+            raise MutualTLSChannelError(
+                "Unsupported GOOGLE_API_USE_CLIENT_CERTIFICATE value. Accepted values: true, false"
+            )
+    return use_client_cert
 
 
 def _get_environ_project():
