@@ -13,11 +13,9 @@
 # limitations under the License.
 
 import asyncio
-import time
 from typing import Any, AsyncIterator, Callable
 
 from google.api_core import exceptions
-from google.api_core.retry.retry_base import exponential_sleep_generator
 from google.cloud.storage._experimental.asyncio.retry.base_strategy import (
     _BaseResumptionStrategy,
 )
@@ -45,9 +43,6 @@ class _BidiStreamRetryManager:
         """
         Executes the bidi operation with the configured retry policy.
 
-        This method implements a manual retry loop that provides the necessary
-        control points to manage state between attempts.
-
         Args:
             initial_state: An object containing all state for the operation.
             retry_policy: The `google.api_core.retry.AsyncRetry` object to
@@ -55,36 +50,18 @@ class _BidiStreamRetryManager:
         """
         state = initial_state
 
-        deadline = time.monotonic() + retry_policy._deadline if retry_policy._deadline else 0
-
-        sleep_generator = exponential_sleep_generator(
-            retry_policy._initial, retry_policy._maximum, retry_policy._multiplier
-        )
-
-        while True:
+        async def attempt():
+            requests = self._strategy.generate_requests(state)
+            stream = self._stream_opener(requests, state)
             try:
-                requests = self._strategy.generate_requests(state)
-                stream = self._stream_opener(requests, state)
                 async for response in stream:
                     self._strategy.update_state_from_response(response, state)
                 return
             except Exception as e:
-                # AsyncRetry may expose either 'on_error' (public) or the private
-                # '_on_error' depending on google.api_core version. Call whichever
-                # exists so the retry policy can decide to raise (non-retriable /
-                # deadline exceeded) or allow a retry.
-                on_error_callable = getattr(retry_policy, "on_error", None)
-                if on_error_callable is None:
-                    on_error_callable = getattr(retry_policy, "_on_error", None)
+                if retry_policy._predicate(e):
+                    await self._strategy.recover_state_on_failure(e, state)
+                raise e
 
-                if on_error_callable is None:
-                    # No hook available on the policy; re-raise the error.
-                    raise
+        wrapped_attempt = retry_policy(attempt)
 
-                # Let the retry policy handle the error (may raise RetryError).
-                await on_error_callable(e)
-
-                # If the retry policy did not raise, allow the strategy to recover
-                # and then sleep per policy before next attempt.
-                await self._strategy.recover_state_on_failure(e, state)
-                await retry_policy.sleep()
+        await wrapped_attempt()
