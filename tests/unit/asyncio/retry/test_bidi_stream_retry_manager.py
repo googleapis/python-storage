@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import asyncio
-import unittest
 from unittest import mock
 
 import pytest
@@ -30,9 +29,11 @@ def _is_retriable(exc):
 DEFAULT_TEST_RETRY = AsyncRetry(predicate=_is_retriable, deadline=1)
 
 
-class TestBidiStreamRetryManager(unittest.IsolatedAsyncioTestCase):
+class TestBidiStreamRetryManager:
+    @pytest.mark.asyncio
     async def test_execute_success_on_first_try(self):
         mock_strategy = mock.AsyncMock(spec=base_strategy._BaseResumptionStrategy)
+
         async def mock_stream_opener(*args, **kwargs):
             yield "response_1"
 
@@ -41,12 +42,33 @@ class TestBidiStreamRetryManager(unittest.IsolatedAsyncioTestCase):
         )
         await retry_manager.execute(initial_state={}, retry_policy=DEFAULT_TEST_RETRY)
         mock_strategy.generate_requests.assert_called_once()
-        mock_strategy.update_state_from_response.assert_called_once_with("response_1", {})
+        mock_strategy.update_state_from_response.assert_called_once_with(
+            "response_1", {}
+        )
         mock_strategy.recover_state_on_failure.assert_not_called()
 
-    async def test_execute_retries_and_succeeds(self):
+    @pytest.mark.asyncio
+    async def test_execute_success_on_empty_stream(self):
+        mock_strategy = mock.AsyncMock(spec=base_strategy._BaseResumptionStrategy)
+
+        async def mock_stream_opener(*args, **kwargs):
+            if False:
+                yield
+
+        retry_manager = manager._BidiStreamRetryManager(
+            strategy=mock_strategy, stream_opener=mock_stream_opener
+        )
+        await retry_manager.execute(initial_state={}, retry_policy=DEFAULT_TEST_RETRY)
+
+        mock_strategy.generate_requests.assert_called_once()
+        mock_strategy.update_state_from_response.assert_not_called()
+        mock_strategy.recover_state_on_failure.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_execute_retries_on_initial_failure_and_succeeds(self):
         mock_strategy = mock.AsyncMock(spec=base_strategy._BaseResumptionStrategy)
         attempt_count = 0
+
         async def mock_stream_opener(*args, **kwargs):
             nonlocal attempt_count
             attempt_count += 1
@@ -59,17 +81,63 @@ class TestBidiStreamRetryManager(unittest.IsolatedAsyncioTestCase):
             strategy=mock_strategy, stream_opener=mock_stream_opener
         )
         retry_policy = AsyncRetry(predicate=_is_retriable, initial=0.01)
-        retry_policy.sleep = mock.AsyncMock()
 
-        await retry_manager.execute(initial_state={}, retry_policy=retry_policy)
+        with mock.patch("asyncio.sleep", new_callable=mock.AsyncMock):
+            await retry_manager.execute(initial_state={}, retry_policy=retry_policy)
 
-        self.assertEqual(attempt_count, 2)
-        self.assertEqual(mock_strategy.generate_requests.call_count, 2)
+        assert attempt_count == 2
+        assert mock_strategy.generate_requests.call_count == 2
         mock_strategy.recover_state_on_failure.assert_called_once()
-        mock_strategy.update_state_from_response.assert_called_once_with("response_2", {})
+        mock_strategy.update_state_from_response.assert_called_once_with(
+            "response_2", {}
+        )
 
+    @pytest.mark.asyncio
+    async def test_execute_retries_and_succeeds_mid_stream(self):
+        """Test retry logic for a stream that fails after yielding some data."""
+        mock_strategy = mock.AsyncMock(spec=base_strategy._BaseResumptionStrategy)
+        attempt_count = 0
+        # Use a list to simulate stream content for each attempt
+        stream_content = [
+            ["response_1", exceptions.ServiceUnavailable("Service is down")],
+            ["response_2"],
+        ]
+
+        async def mock_stream_opener(*args, **kwargs):
+            nonlocal attempt_count
+            content = stream_content[attempt_count]
+            attempt_count += 1
+            for item in content:
+                if isinstance(item, Exception):
+                    raise item
+                else:
+                    yield item
+
+        retry_manager = manager._BidiStreamRetryManager(
+            strategy=mock_strategy, stream_opener=mock_stream_opener
+        )
+        retry_policy = AsyncRetry(predicate=_is_retriable, initial=0.01)
+
+        with mock.patch("asyncio.sleep", new_callable=mock.AsyncMock) as mock_sleep:
+            await retry_manager.execute(initial_state={}, retry_policy=retry_policy)
+
+        assert attempt_count == 2
+        mock_sleep.assert_called_once()
+
+        assert mock_strategy.generate_requests.call_count == 2
+        mock_strategy.recover_state_on_failure.assert_called_once()
+        assert mock_strategy.update_state_from_response.call_count == 2
+        mock_strategy.update_state_from_response.assert_has_calls(
+            [
+                mock.call("response_1", {}),
+                mock.call("response_2", {}),
+            ]
+        )
+
+    @pytest.mark.asyncio
     async def test_execute_fails_after_deadline_exceeded(self):
         mock_strategy = mock.AsyncMock(spec=base_strategy._BaseResumptionStrategy)
+
         async def mock_stream_opener(*args, **kwargs):
             if False:
                 yield
@@ -79,13 +147,15 @@ class TestBidiStreamRetryManager(unittest.IsolatedAsyncioTestCase):
         retry_manager = manager._BidiStreamRetryManager(
             strategy=mock_strategy, stream_opener=mock_stream_opener
         )
-        with pytest.raises(exceptions.RetryError, match="Deadline of 0.01s exceeded"):
+        with pytest.raises(exceptions.RetryError, match="Timeout of 0.0s exceeded"):
             await retry_manager.execute(initial_state={}, retry_policy=fast_retry)
 
-        self.assertGreater(mock_strategy.recover_state_on_failure.call_count, 0)
+        mock_strategy.recover_state_on_failure.assert_called_once()
 
+    @pytest.mark.asyncio
     async def test_execute_fails_immediately_on_non_retriable_error(self):
         mock_strategy = mock.AsyncMock(spec=base_strategy._BaseResumptionStrategy)
+
         async def mock_stream_opener(*args, **kwargs):
             if False:
                 yield
