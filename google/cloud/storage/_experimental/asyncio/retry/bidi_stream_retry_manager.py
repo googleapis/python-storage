@@ -13,12 +13,15 @@
 # limitations under the License.
 
 import asyncio
-from typing import Any, AsyncIterator, Callable
+from typing import Any, AsyncIterator, Callable, Iterable, TYPE_CHECKING
 
 from google.api_core import exceptions
 from google.cloud.storage._experimental.asyncio.retry.base_strategy import (
     _BaseResumptionStrategy,
 )
+
+if TYPE_CHECKING:
+    from google.api_core.retry_async import AsyncRetry
 
 
 class _BidiStreamRetryManager:
@@ -27,7 +30,7 @@ class _BidiStreamRetryManager:
     def __init__(
         self,
         strategy: _BaseResumptionStrategy,
-        stream_opener: Callable[..., AsyncIterator[Any]],
+        stream_opener: Callable[[Iterable[Any], Any], AsyncIterator[Any]],
     ):
         """Initializes the retry manager.
 
@@ -39,13 +42,13 @@ class _BidiStreamRetryManager:
         self._strategy = strategy
         self._stream_opener = stream_opener
 
-    async def execute(self, initial_state: Any, retry_policy):
+    async def execute(self, initial_state: Any, retry_policy: "AsyncRetry"):
         """
         Executes the bidi operation with the configured retry policy.
 
         Args:
             initial_state: An object containing all state for the operation.
-            retry_policy: The `google.api_core.retry.AsyncRetry` object to
+            retry_policy: The `google.api_core.retry_async.AsyncRetry` object to
                 govern the retry behavior for this specific operation.
         """
         state = initial_state
@@ -56,12 +59,14 @@ class _BidiStreamRetryManager:
             try:
                 async for response in stream:
                     self._strategy.update_state_from_response(response, state)
-                return
+                return  # Successful completion of the stream.
             except Exception as e:
                 if retry_policy._predicate(e):
                     await self._strategy.recover_state_on_failure(e, state)
                 raise e
 
+        # Wrap the attempt function with the retry policy.
         wrapped_attempt = retry_policy(attempt)
 
+        # Execute the operation with retry.
         await wrapped_attempt()
