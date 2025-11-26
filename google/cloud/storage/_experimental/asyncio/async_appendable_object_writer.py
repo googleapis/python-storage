@@ -314,37 +314,3 @@ class AsyncAppendableObjectWriter:
     async def append_from_file(self, file_path: str):
         """Create a file object from `file_path` and call append_from_stream(file_obj)"""
         raise NotImplementedError("append_from_file is not implemented yet.")
-
-
-async def test_aaow():
-
-    import time
-    import os
-
-    client = AsyncGrpcClient().grpc_client
-    with open("random_20_MB_file", "rb") as f:
-        data = f.read()
-    writer = AsyncAppendableObjectWriter(
-        client=client,
-        bucket_name="chandrasiri-rs",
-        object_name="close-20251126-1",
-    )
-    await writer.open()
-    start_time = time.monotonic_ns()
-    await writer.append(data)
-    # await writer.append(data[: 10 * 1024 * 1024])
-    # await writer.append(data[10 * 1024 * 1024 : 15 * 1024 * 1024])
-    # await writer.append(data[15 * 1024 * 1024 :])
-    end_time = time.monotonic_ns()
-    print("generation", writer.generation)
-    print(await writer.close(finalize_on_close=False))
-
-    duration_secs = (end_time - start_time) / 1e9
-    print(f"finished appending 10MiB  in {duration_secs} seconds")
-    return
-
-
-if __name__ == "__main__":
-    import asyncio
-
-    asyncio.run(test_aaow())
