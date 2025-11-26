@@ -230,13 +230,11 @@ async def test_flush_without_open_raises_value_error(mock_client):
 )
 async def test_simple_flush(mock_write_object_stream, mock_client):
     """Test that flush sends the correct request and updates state."""
+    # Arrange
     writer = AsyncAppendableObjectWriter(mock_client, BUCKET, OBJECT)
     writer._is_stream_open = True
     mock_stream = mock_write_object_stream.return_value
     mock_stream.send = mock.AsyncMock()
-    # mock_stream.recv = mock.AsyncMock(
-    #     return_value=_storage_v2.BidiWriteObjectResponse(persisted_size=1024)
-    # )
 
     # Act
     await writer.simple_flush()
