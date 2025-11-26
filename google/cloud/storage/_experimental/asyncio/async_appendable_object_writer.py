@@ -199,9 +199,27 @@ class AsyncAppendableObjectWriter:
             self.offset += chunk_size
             bytes_to_flush += chunk_size
             if bytes_to_flush >= _MAX_BUFFER_SIZE_BYTES:
-                await self.flush()
+                await self.simple_flush()
                 bytes_to_flush = 0
             start_idx = end_idx
+
+    async def simple_flush(self) -> None:
+        """Flushes the data to the server.
+        Please note: Unlike `flush` it does not do `state_lookup`
+
+        :rtype: None
+
+        :raises ValueError: If the stream is not open (i.e., `open()` has not
+            been called).
+        """
+        if not self._is_stream_open:
+            raise ValueError("Stream is not open. Call open() before simple_flush().")
+
+        await self.write_obj_stream.send(
+            _storage_v2.BidiWriteObjectRequest(
+                flush=True,
+            )
+        )
 
     async def flush(self) -> int:
         """Flushes the data to the server.
@@ -296,3 +314,37 @@ class AsyncAppendableObjectWriter:
     async def append_from_file(self, file_path: str):
         """Create a file object from `file_path` and call append_from_stream(file_obj)"""
         raise NotImplementedError("append_from_file is not implemented yet.")
+
+
+async def test_aaow():
+
+    import time
+    import os
+
+    client = AsyncGrpcClient().grpc_client
+    with open("random_20_MB_file", "rb") as f:
+        data = f.read()
+    writer = AsyncAppendableObjectWriter(
+        client=client,
+        bucket_name="chandrasiri-rs",
+        object_name="close-20251126-1",
+    )
+    await writer.open()
+    start_time = time.monotonic_ns()
+    await writer.append(data)
+    # await writer.append(data[: 10 * 1024 * 1024])
+    # await writer.append(data[10 * 1024 * 1024 : 15 * 1024 * 1024])
+    # await writer.append(data[15 * 1024 * 1024 :])
+    end_time = time.monotonic_ns()
+    print("generation", writer.generation)
+    print(await writer.close(finalize_on_close=False))
+
+    duration_secs = (end_time - start_time) / 1e9
+    print(f"finished appending 10MiB  in {duration_secs} seconds")
+    return
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    asyncio.run(test_aaow())
