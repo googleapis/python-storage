@@ -143,11 +143,11 @@ class TestBidiStreamRetryManager:
                 yield
             raise exceptions.ServiceUnavailable("Service is always down")
 
-        fast_retry = AsyncRetry(predicate=_is_retriable, deadline=0.01, initial=0.02)
+        fast_retry = AsyncRetry(predicate=_is_retriable, deadline=0.1, initial=0.2)
         retry_manager = manager._BidiStreamRetryManager(
             strategy=mock_strategy, stream_opener=mock_stream_opener
         )
-        with pytest.raises(exceptions.RetryError, match="Timeout of 0.0s exceeded"):
+        with pytest.raises(exceptions.RetryError, match="Timeout of 0.1s exceeded"):
             await retry_manager.execute(initial_state={}, retry_policy=fast_retry)
 
         mock_strategy.recover_state_on_failure.assert_called_once()
