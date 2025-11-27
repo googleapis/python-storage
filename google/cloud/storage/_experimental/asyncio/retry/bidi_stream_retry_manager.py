@@ -33,7 +33,6 @@ class _BidiStreamRetryManager:
         stream_opener: Callable[[Iterable[Any], Any], AsyncIterator[Any]],
     ):
         """Initializes the retry manager.
-
         Args:
             strategy: The strategy for managing the state of a specific
                 bidi operation (e.g., reads or writes).
@@ -45,7 +44,6 @@ class _BidiStreamRetryManager:
     async def execute(self, initial_state: Any, retry_policy: "AsyncRetry"):
         """
         Executes the bidi operation with the configured retry policy.
-
         Args:
             initial_state: An object containing all state for the operation.
             retry_policy: The `google.api_core.retry_async.AsyncRetry` object to
@@ -53,20 +51,28 @@ class _BidiStreamRetryManager:
         """
         state = initial_state
 
+        def on_error(e: Exception):
+            """The single point of recovery logic."""
+            self._strategy.recover_state_on_failure(e, state)
+
         async def attempt():
+            """The core operation to be retried."""
             requests = self._strategy.generate_requests(state)
             stream = self._stream_opener(requests, state)
-            try:
-                async for response in stream:
-                    self._strategy.update_state_from_response(response, state)
-                return  # Successful completion of the stream.
-            except Exception as e:
-                if retry_policy._predicate(e):
-                    await self._strategy.recover_state_on_failure(e, state)
-                raise e
+            async for response in stream:
+                self._strategy.update_state_from_response(response, state)
 
-        # Wrap the attempt function with the retry policy.
-        wrapped_attempt = retry_policy(attempt)
+        # Correctly create a new retry instance with the on_error handler.
+        retry_with_error_handler = type(retry_policy)(
+            predicate=retry_policy._predicate,
+            initial=retry_policy._initial,
+            maximum=retry_policy._maximum,
+            multiplier=retry_policy._multiplier,
+            deadline=retry_policy._deadline,
+            on_error=on_error,
+        )
+
+        wrapped_attempt = retry_with_error_handler(attempt)
 
         # Execute the operation with retry.
         await wrapped_attempt()
