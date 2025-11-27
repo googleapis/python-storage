@@ -63,7 +63,7 @@ class _BaseResumptionStrategy(abc.ABC):
         pass
 
     @abc.abstractmethod
-    async def recover_state_on_failure(self, error: Exception, state: Any) -> None:
+    def recover_state_on_failure(self, error: Exception, state: Any) -> None:
         """Prepares the state for the next retry attempt after a failure.
 
         This method is called when a retriable gRPC error occurs. It is

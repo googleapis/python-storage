@@ -90,7 +90,7 @@ class _ReadResumptionStrategy(_BaseResumptionStrategy):
                         response, f"Byte count mismatch for read_id {read_id}"
                     )
 
-    async def recover_state_on_failure(self, error: Exception, state: Any) -> None:
+    def recover_state_on_failure(self, error: Exception, state: Any) -> None:
         """Handles BidiReadObjectRedirectedError for reads."""
         # This would parse the gRPC error details, extract the routing_token,
         # and store it on the shared state object.
