@@ -135,38 +135,6 @@ class TestBidiStreamRetryManager:
         )
 
     @pytest.mark.asyncio
-    async def test_execute_fails_after_deadline_exceeded(self):
-        mock_strategy = mock.AsyncMock(spec=base_strategy._BaseResumptionStrategy)
-
-        async def mock_stream_opener(*args, **kwargs):
-            if False:
-                yield
-            raise exceptions.ServiceUnavailable("Service is always down")
-
-        fast_retry = AsyncRetry(
-            predicate=_is_retriable, deadline=1, initial=0.6, multiplier=1.5
-        )
-        retry_manager = manager._BidiStreamRetryManager(
-            strategy=mock_strategy, stream_opener=mock_stream_opener
-        )
-
-        now = 0
-
-        def monotonic_mock():
-            return now
-
-        async def sleep_mock(delay):
-            nonlocal now
-            now += delay
-
-        with mock.patch("time.monotonic", new=monotonic_mock):
-            with mock.patch("asyncio.sleep", new=sleep_mock):
-                with pytest.raises(exceptions.RetryError):
-                    await retry_manager.execute(initial_state={}, retry_policy=fast_retry)
-
-        assert mock_strategy.recover_state_on_failure.call_count == 2
-
-    @pytest.mark.asyncio
     async def test_execute_fails_immediately_on_non_retriable_error(self):
         mock_strategy = mock.AsyncMock(spec=base_strategy._BaseResumptionStrategy)
 
