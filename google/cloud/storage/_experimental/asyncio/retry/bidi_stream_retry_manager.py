@@ -13,24 +13,18 @@
 # limitations under the License.
 
 import asyncio
-from typing import Any, AsyncIterator, Callable, Iterable, TYPE_CHECKING
+from typing import Any, AsyncIterator, Callable
 
 from google.api_core import exceptions
 from google.cloud.storage._experimental.asyncio.retry.base_strategy import (
     _BaseResumptionStrategy,
 )
-
-if TYPE_CHECKING:
-    from google.api_core.retry_async import AsyncRetry
-
-
 class _BidiStreamRetryManager:
     """Manages the generic retry loop for a bidi streaming operation."""
-
     def __init__(
         self,
         strategy: _BaseResumptionStrategy,
-        stream_opener: Callable[[Iterable[Any], Any], AsyncIterator[Any]],
+        stream_opener: Callable[..., AsyncIterator[Any]],
     ):
         """Initializes the retry manager.
         Args:
@@ -40,39 +34,28 @@ class _BidiStreamRetryManager:
         """
         self._strategy = strategy
         self._stream_opener = stream_opener
-
-    async def execute(self, initial_state: Any, retry_policy: "AsyncRetry"):
+    async def execute(self, initial_state: Any, retry_policy):
         """
         Executes the bidi operation with the configured retry policy.
         Args:
             initial_state: An object containing all state for the operation.
-            retry_policy: The `google.api_core.retry_async.AsyncRetry` object to
+            retry_policy: The `google.api_core.retry.AsyncRetry` object to
                 govern the retry behavior for this specific operation.
         """
         state = initial_state
 
-        def on_error(e: Exception):
-            """The single point of recovery logic."""
-            self._strategy.recover_state_on_failure(e, state)
-
         async def attempt():
-            """The core operation to be retried."""
             requests = self._strategy.generate_requests(state)
             stream = self._stream_opener(requests, state)
-            async for response in stream:
-                self._strategy.update_state_from_response(response, state)
+            try:
+                async for response in stream:
+                    self._strategy.update_state_from_response(response, state)
+                return
+            except Exception as e:
+                if retry_policy._predicate(e):
+                    await self._strategy.recover_state_on_failure(e, state)
+                raise e
 
-        # Correctly create a new retry instance with the on_error handler.
-        retry_with_error_handler = type(retry_policy)(
-            predicate=retry_policy._predicate,
-            initial=retry_policy._initial,
-            maximum=retry_policy._maximum,
-            multiplier=retry_policy._multiplier,
-            deadline=retry_policy._deadline,
-            on_error=on_error,
-        )
+        wrapped_attempt = retry_policy(attempt)
 
-        wrapped_attempt = retry_with_error_handler(attempt)
-
-        # Execute the operation with retry.
         await wrapped_attempt()
