@@ -231,7 +231,7 @@ def conftest_retry(session):
         test_cmd = ["py.test", "-v", "-s", "-n", "auto", conformance_test_folder_path]
 
     # Run py.test against the conformance tests.
-    session.run(*test_cmd)
+    session.run(*test_cmd, env={"DOCKER_API_VERSION": "1.39"})
 
 
 @nox.session(python=DEFAULT_PYTHON_VERSION)
