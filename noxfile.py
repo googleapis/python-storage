@@ -224,12 +224,11 @@ def conftest_retry(session):
     if session.posargs:
         test_cmd = [
             "py.test",
-            "--quiet",
             conformance_test_folder_path,
             *session.posargs,
         ]
     else:
-        test_cmd = ["py.test", "-n", "auto", "--quiet", conformance_test_folder_path]
+        test_cmd = ["py.test", "-n", "auto", conformance_test_folder_path]
 
     # Run py.test against the conformance tests.
     session.run(*test_cmd)
