@@ -19,12 +19,15 @@ import pytest
 from google.api_core import exceptions
 from google.api_core.retry_async import AsyncRetry
 
-from google.cloud.storage._experimental.asyncio.retry import bidi_stream_retry_manager as manager
+from google.cloud.storage._experimental.asyncio.retry import (
+    bidi_stream_retry_manager as manager,
+)
 from google.cloud.storage._experimental.asyncio.retry import base_strategy
 
 
 def _is_retriable(exc):
     return isinstance(exc, exceptions.ServiceUnavailable)
+
 
 DEFAULT_TEST_RETRY = AsyncRetry(predicate=_is_retriable, deadline=1)
 
@@ -147,6 +150,8 @@ class TestBidiStreamRetryManager:
             strategy=mock_strategy, stream_opener=mock_stream_opener
         )
         with pytest.raises(exceptions.PermissionDenied):
-            await retry_manager.execute(initial_state={}, retry_policy=DEFAULT_TEST_RETRY)
+            await retry_manager.execute(
+                initial_state={}, retry_policy=DEFAULT_TEST_RETRY
+            )
 
         mock_strategy.recover_state_on_failure.assert_not_called()

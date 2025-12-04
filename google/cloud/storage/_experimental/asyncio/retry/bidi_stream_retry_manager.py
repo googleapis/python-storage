@@ -19,8 +19,11 @@ from google.api_core import exceptions
 from google.cloud.storage._experimental.asyncio.retry.base_strategy import (
     _BaseResumptionStrategy,
 )
+
+
 class _BidiStreamRetryManager:
     """Manages the generic retry loop for a bidi streaming operation."""
+
     def __init__(
         self,
         strategy: _BaseResumptionStrategy,
@@ -34,6 +37,7 @@ class _BidiStreamRetryManager:
         """
         self._strategy = strategy
         self._stream_opener = stream_opener
+
     async def execute(self, initial_state: Any, retry_policy):
         """
         Executes the bidi operation with the configured retry policy.
