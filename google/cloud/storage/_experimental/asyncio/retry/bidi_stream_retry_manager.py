@@ -12,10 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import asyncio
 from typing import Any, AsyncIterator, Callable
 
-from google.api_core import exceptions
 from google.cloud.storage._experimental.asyncio.retry.base_strategy import (
     _BaseResumptionStrategy,
 )
