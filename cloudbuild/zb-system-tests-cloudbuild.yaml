@@ -77,6 +77,7 @@ steps:
           export GCSFS_TEST_KMS_KEY=projects/${PROJECT_ID}/locations/${_REGION}/keyRings/${_GCSFS_KEY_RING_NAME}/cryptoKeys/${_GCSFS_KEY_NAME}
 
           echo '--- Running Zonal tests on VM ---'
+          python3 -m pip install nox
           nox -s system
         "
 
