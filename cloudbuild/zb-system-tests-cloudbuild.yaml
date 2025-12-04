@@ -26,10 +26,11 @@ steps:
       - "--metadata=enable-oslogin=TRUE"
     waitFor: ["-"]
 
-  # Step 2: Run the integration tests inside the newly created VM.
+  # Step 2: Run the integration tests inside the newly created VM and cleanup.
   # This step uses 'gcloud compute ssh' to execute a remote script.
+  # The VM is deleted after tests are run, regardless of success.
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
-    id: "run-tests-on-vm"
+    id: "run-tests-and-delete-vm"
     entrypoint: "bash"
     args:
       - "-c"
@@ -40,7 +41,7 @@ steps:
           if gcloud compute ssh gcsfs-test-vm-${_SHORT_BUILD_ID} --zone=${_ZONE} --internal-ip --command="echo VM is ready"; then
             break
           fi
-          echo "Waiting for VM to become available... (attempt $$i/10)"
+          echo "Waiting for VM to become available... (attempt $i/10)"
           sleep 15
         done
 
@@ -82,25 +83,23 @@ steps:
         "
 
         # Execute the script on the VM via SSH.
+        # Capture the exit code to ensure cleanup happens before the build fails.
+        set +e
         gcloud compute ssh gcsfs-test-vm-${_SHORT_BUILD_ID} --zone=${_ZONE} --internal-ip --command="$$VM_SCRIPT"
+        EXIT_CODE=$?
+        set -e
+
+        echo "--- Deleting GCE VM ---"
+        gcloud compute instances delete "gcsfs-test-vm-${_SHORT_BUILD_ID}" --zone=${_ZONE} --quiet
+
+        # Exit with the original exit code from the test script.
+        exit $EXIT_CODE
     waitFor:
       - "create-vm"
 
   # --- Cleanup Steps ---
 
-  # Step 5: Delete the GCE VM.
-  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
-    id: "delete-vm"
-    entrypoint: "gcloud"
-    args:
-      - "compute"
-      - "instances"
-      - "delete"
-      - "gcsfs-test-vm-${_SHORT_BUILD_ID}"
-      - "--zone=${_ZONE}"
-      - "--quiet"
-    waitFor:
-      - "run-tests-on-vm"
+  # The GCE VM is deleted in the step above to ensure cleanup happens even if tests fail.
 
 timeout: "3600s" # 60 minutes
 
