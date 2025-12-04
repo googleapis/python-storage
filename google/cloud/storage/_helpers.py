@@ -112,22 +112,6 @@ def _virtual_hosted_style_base_url(url, bucket, trailing_slash=False):
     return base_url
 
 
-def _use_client_cert():
-    if hasattr(mtls, "should_use_client_cert"):
-        use_client_cert = mtls.should_use_client_cert()
-    else:
-        # if unsupported, fallback to reading from env var
-        use_client_cert_str = os.getenv(
-            "GOOGLE_API_USE_CLIENT_CERTIFICATE", "false"
-        ).lower()
-        use_client_cert = use_client_cert_str == "true"
-        if use_client_cert_str not in ("true", "false"):
-            raise MutualTLSChannelError(
-                "Unsupported GOOGLE_API_USE_CLIENT_CERTIFICATE value. Accepted values: true, false"
-            )
-    return use_client_cert
-
-
 def _get_environ_project():
     return os.getenv(
         environment_vars.PROJECT,
