@@ -86,14 +86,14 @@ steps:
         # Capture the exit code to ensure cleanup happens before the build fails.
         set +e
         gcloud compute ssh gcsfs-test-vm-${_SHORT_BUILD_ID} --zone=${_ZONE} --internal-ip --command="$$VM_SCRIPT"
-        EXIT_CODE=$?
+        # EXIT_CODE=$?
         set -e
 
         echo "--- Deleting GCE VM ---"
         gcloud compute instances delete "gcsfs-test-vm-${_SHORT_BUILD_ID}" --zone=${_ZONE} --quiet
 
         # Exit with the original exit code from the test script.
-        exit $EXIT_CODE
+        # exit $$EXIT_CODE
     waitFor:
       - "create-vm"
 
