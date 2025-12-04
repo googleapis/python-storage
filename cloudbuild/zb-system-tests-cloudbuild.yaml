@@ -51,7 +51,7 @@ steps:
           set -e
           echo '--- Installing git and cloning repository on VM ---'
           sudo apt-get update
-          sudo apt-get install -y git python3.12 python3-pip python3-venv fuse fuse3 libfuse2
+          sudo apt-get install -y git python3-pip python3-venv fuse fuse3 libfuse2
 
           # Clone the repository and checkout the specific commit from the build trigger.
           git clone https://github.com/googleapis/python-storage.git
@@ -65,7 +65,8 @@ steps:
 
           pip install --upgrade pip
           # Install testing libraries explicitly, as they are not in setup.py
-          pip install pytest pytest-timeout pytest-subtests pytest-asyncio fusepy google-cloud-storage
+          pip install pytest pytest-timeout pytest-subtests pytest-asyncio fusepy
+          pip install google-cloud-testutils google-cloud-kms
           pip install -e .
 
           echo '--- Preparing test environment on VM ---'
@@ -78,8 +79,7 @@ steps:
           export GCSFS_TEST_KMS_KEY=projects/${PROJECT_ID}/locations/${_REGION}/keyRings/${_GCSFS_KEY_RING_NAME}/cryptoKeys/${_GCSFS_KEY_NAME}
 
           echo '--- Running Zonal tests on VM ---'
-          python3 -m pip install nox
-          nox -s system
+          pytest -vv -s --log-format='%(asctime)s %(levelname)s %(message)s' --log-date-format='%H:%M:%S' tests/system/test_zonal.py
         "
 
         # Execute the script on the VM via SSH.
