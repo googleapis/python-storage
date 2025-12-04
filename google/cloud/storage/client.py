@@ -20,11 +20,12 @@ import collections
 import datetime
 import functools
 import json
+import os
 import warnings
 import google.api_core.client_options
 
 from google.auth.credentials import AnonymousCredentials
-from google.auth.transport.mtls import should_use_client_cert
+from google.auth.transport import mtls
 from google.api_core import page_iterator
 from google.cloud._helpers import _LocalStack
 from google.cloud.client import ClientWithProject
@@ -217,22 +218,21 @@ class Client(ClientWithProject):
             # The final decision of whether to use mTLS takes place in
             # google-auth-library-python. We peek at the environment variable
             # here only to issue an exception in case of a conflict.
+            use_client_cert = False
             if hasattr(mtls, "should_use_client_cert"):
-                if should_use_client_cert():
-                    raise ValueError(
-                        'The "GOOGLE_API_USE_CLIENT_CERTIFICATE" env variable is '
-                        'set to "true" and a non-default universe domain is '
-                        "configured. mTLS is not supported in any universe other than"
-                        "googleapis.com."
-                    )
+                use_client_cert = mtls.should_use_client_cert()
             else:
-                if os.getenv("GOOGLE_API_USE_CLIENT_CERTIFICATE") == "true":
-                    raise ValueError(
-                        'The "GOOGLE_API_USE_CLIENT_CERTIFICATE" env variable is '
-                        'set to "true" and a non-default universe domain is '
-                        "configured. mTLS is not supported in any universe other than"
-                        "googleapis.com."
-                    )
+                use_client_cert = (
+                    os.getenv("GOOGLE_API_USE_CLIENT_CERTIFICATE") == "true"
+                )
+
+            if use_client_cert:
+                raise ValueError(
+                    'The "GOOGLE_API_USE_CLIENT_CERTIFICATE" env variable is '
+                    'set to "true" and a non-default universe domain is '
+                    "configured. mTLS is not supported in any universe other than"
+                    "googleapis.com."
+                )
             api_endpoint = _DEFAULT_SCHEME + _STORAGE_HOST_TEMPLATE.format(
                 universe_domain=self._universe_domain
             )
