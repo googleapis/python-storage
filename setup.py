@@ -50,7 +50,7 @@ extras = {
         "grpcio >= 1.33.2, < 2.0.0; python_version < '3.14'",
         "grpcio >= 1.75.1, < 2.0.0; python_version >= '3.14'",
         "grpcio-status >= 1.76.0, < 2.0.0",
-        "proto-plus >= 1.22.3, <2.0.0",
+        "proto-plus >= 1.22.3, <2.0.0; python_version < '3.13'",
         "proto-plus >= 1.25.0, <2.0.0; python_version >= '3.13'",
         "protobuf>=3.20.2,<7.0.0,!=4.21.0,!=4.21.1,!=4.21.2,!=4.21.3,!=4.21.4,!=4.21.5",
         "grpc-google-iam-v1 >= 0.14.0, <1.0.0",
