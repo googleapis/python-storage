@@ -51,7 +51,7 @@ steps:
           set -e
           echo '--- Installing git and cloning repository on VM ---'
           sudo apt-get update
-          sudo apt-get install -y git python3-pip python3-venv fuse fuse3 libfuse2
+          sudo apt-get install -y git python3-pip python3-venv
 
           # Clone the repository and checkout the specific commit from the build trigger.
           git clone https://github.com/googleapis/python-storage.git
@@ -63,21 +63,14 @@ steps:
           python3 -m venv env
           source env/bin/activate
 
+          echo 'Install testing libraries explicitly, as they are not in setup.py'
           pip install --upgrade pip
-          # Install testing libraries explicitly, as they are not in setup.py
-          pip install pytest pytest-timeout pytest-subtests pytest-asyncio fusepy
+          pip install pytest pytest-timeout pytest-subtests pytest-asyncio
           pip install google-cloud-testutils google-cloud-kms
           pip install -e .
 
-          echo '--- Preparing test environment on VM ---'
-          export GCSFS_TEST_BUCKET='gcsfs-test-standard-${_SHORT_BUILD_ID}'
-          export GCSFS_TEST_VERSIONED_BUCKET='gcsfs-test-versioned-${_SHORT_BUILD_ID}'
-
-          export STORAGE_EMULATOR_HOST=https://storage.googleapis.com
-          export GCSFS_TEST_PROJECT=${PROJECT_ID}
-          export GCSFS_TEST_KMS_KEY=projects/${PROJECT_ID}/locations/${_REGION}/keyRings/${_GCSFS_KEY_RING_NAME}/cryptoKeys/${_GCSFS_KEY_NAME}
+          echo '--- Setting up environment variables on VM ---'
           export ZONAL_BUCKET=${_ZONAL_BUCKET}
-
           echo '--- Running Zonal tests on VM ---'
           pytest -vv -s --log-format='%(asctime)s %(levelname)s %(message)s' --log-date-format='%H:%M:%S' tests/system/test_zonal.py
         "
