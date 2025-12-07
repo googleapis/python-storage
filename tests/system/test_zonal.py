@@ -3,6 +3,7 @@ import asyncio
 import os
 import uuid
 from io import BytesIO
+from google.cloud.storage import Client
 
 # python additional imports
 import pytest
@@ -23,7 +24,7 @@ _ZONAL_BUCKET = os.getenv("ZONAL_BUCKET", "zb-for-pysdk-system-tests")
 
 
 @pytest.mark.asyncio
-async def test_basic_wrd(storage_client, blobs_to_delete):
+async def test_basic_wrd(blobs_to_delete):
     bytes_to_upload = b"dummy_bytes_to_write_read_and_delete_appendable_object"
     object_name = f"test_basic_wrd-{str(uuid.uuid4())}"
 
@@ -52,4 +53,5 @@ async def test_basic_wrd(storage_client, blobs_to_delete):
     assert buffer.getvalue() == bytes_to_upload
 
     # Clean up; use json client(storage_client fixture) to delete.
+    storage_client = Client()
     blobs_to_delete.append(storage_client.bucket(_ZONAL_BUCKET).blob(object_name))
