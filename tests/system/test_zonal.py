@@ -53,6 +53,4 @@ async def test_basic_wrd(storage_client, blobs_to_delete):
     assert buffer.getvalue() == bytes_to_upload
 
     # Clean up; use json client(storage_client fixture) to delete.
-    # storage_client = Client()
-    # storage_client.bucket(_ZONAL_BUCKET).blob(object_name).delete()
     blobs_to_delete.append(storage_client.bucket(_ZONAL_BUCKET).blob(object_name))
