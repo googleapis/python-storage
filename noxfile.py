@@ -159,10 +159,10 @@ def system(session):
     if os.environ.get("RUN_SYSTEM_TESTS", "true") == "false":
         session.skip("RUN_SYSTEM_TESTS is set to false, skipping")
     # Environment check: Only run tests if the environment variable is set.
-    # if not os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", ""):
-    #     session.skip(
-    #         "Credentials must be set via environment variable GOOGLE_APPLICATION_CREDENTIALS"
-    #     )
+    if not os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", ""):
+        session.skip(
+            "Credentials must be set via environment variable GOOGLE_APPLICATION_CREDENTIALS"
+        )
     # mTLS tests requires pyopenssl.
     if os.environ.get("GOOGLE_API_USE_CLIENT_CERTIFICATE", "") == "true":
         session.install("pyopenssl")
@@ -182,15 +182,7 @@ def system(session):
     # 2021-05-06: defer installing 'google-cloud-*' to after this package,
     #             in order to work around Python 2.7 googolapis-common-protos
     #             issue.
-    session.install(
-        "mock",
-        "pytest",
-        "pytest-rerunfailures",
-        "pytest-cov",
-        "pytest-asyncio",
-        "-c",
-        constraints_path,
-    )
+    session.install("mock", "pytest", "pytest-rerunfailures", "-c", constraints_path)
     session.install("-e", ".", "-c", constraints_path)
     session.install(
         "google-cloud-testutils",
@@ -208,8 +200,8 @@ def system(session):
         "--quiet",
         f"--junitxml=system_{session.python}_sponge_log.xml",
         "--reruns={}".format(rerun_count),
-        os.path.join("tests", "system", "test_zonal.py"),
-        # os.path.join("tests", "resumable_media", "system"),
+        os.path.join("tests", "system"),
+        os.path.join("tests", "resumable_media", "system"),
         *session.posargs,
     )
 
