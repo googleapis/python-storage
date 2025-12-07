@@ -1,9 +1,7 @@
 # py standard imports
-import asyncio
 import os
 import uuid
 from io import BytesIO
-from google.cloud.storage import Client
 
 # python additional imports
 import pytest
@@ -57,5 +55,5 @@ async def test_basic_wrd(storage_client, blobs_to_delete):
     await mrd.close()
     assert buffer.getvalue() == bytes_to_upload
 
-    # Clean up; use json client(storage_client fixture) to delete.
+    # Clean up; use json client (i.e. `storage_client` fixture) to delete.
     blobs_to_delete.append(storage_client.bucket(_ZONAL_BUCKET).blob(object_name))
