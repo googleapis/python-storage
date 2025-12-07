@@ -1,0 +1,26 @@
+
+set -e
+echo '--- Installing git and cloning repository on VM ---'
+sudo apt-get update
+sudo apt-get install -y git python3-pip python3-venv
+
+# Clone the repository and checkout the specific commit from the build trigger.
+git clone https://github.com/googleapis/python-storage.git
+cd python-storage
+git checkout ${COMMIT_SHA}
+
+
+echo '--- Installing Python and dependencies on VM ---'
+python3 -m venv env
+source env/bin/activate
+
+echo 'Install testing libraries explicitly, as they are not in setup.py'
+pip install --upgrade pip
+pip install pytest pytest-timeout pytest-subtests pytest-asyncio
+pip install google-cloud-testutils google-cloud-kms
+pip install -e .
+
+echo '--- Setting up environment variables on VM ---'
+export ZONAL_BUCKET=${_ZONAL_BUCKET}
+echo '--- Running Zonal tests on VM ---'
+pytest -vv -s --log-format='%(asctime)s %(levelname)s %(message)s' --log-date-format='%H:%M:%S' tests/system/test_zonal.py
