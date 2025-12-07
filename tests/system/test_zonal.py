@@ -54,4 +54,5 @@ async def test_basic_wrd(blobs_to_delete):
 
     # Clean up; use json client(storage_client fixture) to delete.
     storage_client = Client()
-    blobs_to_delete.append(storage_client.bucket(_ZONAL_BUCKET).blob(object_name))
+    storage_client.bucket(_ZONAL_BUCKET).blob(object_name).delete()
+    # blobs_to_delete.append(storage_client.bucket(_ZONAL_BUCKET).blob(object_name))
