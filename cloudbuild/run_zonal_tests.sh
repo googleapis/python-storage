@@ -1,8 +1,7 @@
 
-set -e
+set -euxo pipefail
 echo '--- Installing git and cloning repository on VM ---'
-sudo apt-get update
-sudo apt-get install -y git python3-pip python3-venv
+sudo apt-get update && sudo apt-get install -y git python3-pip python3-venv
 
 # Clone the repository and checkout the specific commit from the build trigger.
 git clone https://github.com/googleapis/python-storage.git
