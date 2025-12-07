@@ -17,6 +17,11 @@ from google.cloud.storage._experimental.asyncio.async_multi_range_downloader imp
     AsyncMultiRangeDownloader,
 )
 
+pytestmark = pytest.mark.skipif(
+    os.getenv("RUN_ZONAL_SYSTEM_TESTS", None) != "True",
+    reason="Zonal system tests need to be explicitly enabled. This helps scheduling tests in Kokoro and Cloud Build.",
+)
+
 
 # TODO: replace this with a fixture once zonal bucket creation / deletion
 # is supported in grpc client or json client client.
