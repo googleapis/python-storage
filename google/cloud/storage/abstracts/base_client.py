@@ -23,7 +23,7 @@ from google.cloud.storage._helpers import _DEFAULT_UNIVERSE_DOMAIN
 from google.cloud.client import ClientWithProject
 from google.cloud._helpers import _LocalStack
 from google.auth.transport import mtls
-from abc import ABC
+from abc import ABC, abstractmethod
 
 import os
 import google.api_core.client_options
@@ -291,3 +291,91 @@ class BaseClient(ClientWithProject, ABC):
         :returns: The batch at the top of the batch stack.
         """
         return self._batch_stack.top
+
+    @abstractmethod
+    def bucket(self, bucket_name, user_project=None, generation=None):
+        raise NotImplementedError("This method needs to be implemented.")
+
+    @abstractmethod
+    def _get_resource(
+        self,
+        path,
+        query_params=None,
+        headers=None,
+        timeout=None,
+        retry=None,
+        _target_object=None,
+    ):
+        """Helper for bucket / blob methods making API 'GET' calls."""
+        raise NotImplementedError("This should be implemented via the child class")
+
+    @abstractmethod
+    def _list_resource(
+        self,
+        path,
+        item_to_value,
+        page_token=None,
+        max_results=None,
+        extra_params=None,
+        page_start=None,
+        page_size=None,
+        timeout=None,
+        retry=None,
+    ):
+        """Helper for bucket / blob methods making API 'GET' calls."""
+        raise NotImplementedError("This should be implemented via the child class")
+
+    @abstractmethod
+    def _patch_resource(
+        self,
+        path,
+        data,
+        query_params=None,
+        headers=None,
+        timeout=None,
+        retry=None,
+        _target_object=None,
+    ):
+        """Helper for bucket / blob methods making API 'PATCH' calls."""
+        raise NotImplementedError("This should be implemented via the child class")
+
+    @abstractmethod
+    def _put_resource(
+        self,
+        path,
+        data,
+        query_params=None,
+        headers=None,
+        timeout=None,
+        retry=None,
+        _target_object=None,
+    ):
+        """Helper for bucket / blob methods making API 'PUT' calls."""
+        raise NotImplementedError("This should be implemented via the child class")
+
+    @abstractmethod
+    def _post_resource(
+        self,
+        path,
+        data,
+        query_params=None,
+        headers=None,
+        timeout=None,
+        retry=None,
+        _target_object=None,
+    ):
+        """Helper for bucket / blob methods making API 'POST' calls."""
+        raise NotImplementedError("This should be implemented via the child class")
+
+    @abstractmethod
+    def _delete_resource(
+        self,
+        path,
+        query_params=None,
+        headers=None,
+        timeout=None,
+        retry=None,
+        _target_object=None,
+    ):
+        """Helper for bucket / blob methods making API 'DELETE' calls."""
+        raise NotImplementedError("This should be implemented via the child class")
