@@ -14,7 +14,11 @@
 
 from __future__ import annotations
 import asyncio
-from typing import List, Optional, Tuple
+import google_crc32c
+from google.api_core import exceptions
+from google.api_core.retry_async import AsyncRetry
+
+from typing import List, Optional, Tuple, Any, Dict
 
 from google_crc32c import Checksum
 
@@ -25,42 +29,20 @@ from google.cloud.storage._experimental.asyncio.async_read_object_stream import 
 from google.cloud.storage._experimental.asyncio.async_grpc_client import (
     AsyncGrpcClient,
 )
+from google.cloud.storage._experimental.asyncio.retry.bidi_stream_retry_manager import (
+    _BidiStreamRetryManager,
+)
+from google.cloud.storage._experimental.asyncio.retry.reads_resumption_strategy import (
+    _ReadResumptionStrategy,
+    _DownloadState,
+)
 
 from io import BytesIO
 from google.cloud import _storage_v2
-from google.cloud.storage.exceptions import DataCorruption
 from google.cloud.storage._helpers import generate_random_56_bit_integer
 
 
 _MAX_READ_RANGES_PER_BIDI_READ_REQUEST = 100
-
-
-class Result:
-    """An instance of this class will be populated and retured for each
-    `read_range` provided to ``download_ranges`` method.
-
-    """
-
-    def __init__(self, bytes_requested: int):
-        # only while instantiation, should not be edited later.
-        # hence there's no setter, only getter is provided.
-        self._bytes_requested: int = bytes_requested
-        self._bytes_written: int = 0
-
-    @property
-    def bytes_requested(self) -> int:
-        return self._bytes_requested
-
-    @property
-    def bytes_written(self) -> int:
-        return self._bytes_written
-
-    @bytes_written.setter
-    def bytes_written(self, value: int):
-        self._bytes_written = value
-
-    def __repr__(self):
-        return f"bytes_requested: {self._bytes_requested}, bytes_written: {self._bytes_written}"
 
 
 class AsyncMultiRangeDownloader:
@@ -103,6 +85,7 @@ class AsyncMultiRangeDownloader:
         object_name: str,
         generation_number: Optional[int] = None,
         read_handle: Optional[bytes] = None,
+        retry_policy: Optional[AsyncRetry] = None,
     ) -> AsyncMultiRangeDownloader:
         """Initializes a MultiRangeDownloader and opens the underlying bidi-gRPC
         object for reading.
@@ -124,11 +107,14 @@ class AsyncMultiRangeDownloader:
         :param read_handle: (Optional) An existing handle for reading the object.
                             If provided, opening the bidi-gRPC connection will be faster.
 
+        :type retry_policy: :class:`~google.api_core.retry_async.AsyncRetry`
+        :param retry_policy: (Optional) The retry policy to use for the ``open`` operation.
+
         :rtype: :class:`~google.cloud.storage._experimental.asyncio.async_multi_range_downloader.AsyncMultiRangeDownloader`
         :returns: An initialized AsyncMultiRangeDownloader instance for reading.
         """
         mrd = cls(client, bucket_name, object_name, generation_number, read_handle)
-        await mrd.open()
+        await mrd.open(retry_policy=retry_policy)
         return mrd
 
     def __init__(
@@ -174,7 +160,7 @@ class AsyncMultiRangeDownloader:
         self._download_ranges_id_to_pending_read_ids = {}
         self.persisted_size: Optional[int] = None  # updated after opening the stream
 
-    async def open(self) -> None:
+    async def open(self, retry_policy: Optional[AsyncRetry] = None) -> None:
         """Opens the bidi-gRPC connection to read from the object.
 
         This method initializes and opens an `_AsyncReadObjectStream` (bidi-gRPC stream) to
@@ -185,27 +171,43 @@ class AsyncMultiRangeDownloader:
         """
         if self._is_stream_open:
             raise ValueError("Underlying bidi-gRPC stream is already open")
-        self.read_obj_str = _AsyncReadObjectStream(
-            client=self.client,
-            bucket_name=self.bucket_name,
-            object_name=self.object_name,
-            generation_number=self.generation_number,
-            read_handle=self.read_handle,
-        )
-        await self.read_obj_str.open()
-        self._is_stream_open = True
-        if self.generation_number is None:
-            self.generation_number = self.read_obj_str.generation_number
-        self.read_handle = self.read_obj_str.read_handle
-        if self.read_obj_str.persisted_size is not None:
-            self.persisted_size = self.read_obj_str.persisted_size
-        return
+
+        if retry_policy is None:
+            # Default policy: retry generic transient errors
+            retry_policy = AsyncRetry(
+                predicate=lambda e: isinstance(e, (exceptions.ServiceUnavailable, exceptions.DeadlineExceeded))
+            )
+
+        async def _do_open():
+            self.read_obj_str = _AsyncReadObjectStream(
+                client=self.client,
+                bucket_name=self.bucket_name,
+                object_name=self.object_name,
+                generation_number=self.generation_number,
+                read_handle=self.read_handle,
+            )
+            await self.read_obj_str.open()
+
+            if self.read_obj_str.generation_number:
+                self.generation_number = self.read_obj_str.generation_number
+            if self.read_obj_str.read_handle:
+                self.read_handle = self.read_obj_str.read_handle
+            if self.read_obj_str.persisted_size is not None:
+                self.persisted_size = self.read_obj_str.persisted_size
+
+            self._is_stream_open = True
+
+        # Execute open with retry policy
+        await retry_policy(_do_open)()
 
     async def download_ranges(
-        self, read_ranges: List[Tuple[int, int, BytesIO]], lock: asyncio.Lock = None
+        self,
+        read_ranges: List[Tuple[int, int, BytesIO]],
+        lock: asyncio.Lock = None,
+        retry_policy: AsyncRetry = None
     ) -> None:
         """Downloads multiple byte ranges from the object into the buffers
-        provided by user.
+        provided by user with automatic retries.
 
         :type read_ranges: List[Tuple[int, int, "BytesIO"]]
         :param read_ranges: A list of tuples, where each tuple represents a
@@ -240,6 +242,8 @@ class AsyncMultiRangeDownloader:
 
             ```
 
+        :type retry_policy: :class:`~google.api_core.retry_async.AsyncRetry`
+        :param retry_policy: (Optional) The retry policy to use for the operation.
 
         :raises ValueError: if the underlying bidi-GRPC stream is not open.
         :raises ValueError: if the length of read_ranges is more than 1000.
@@ -258,72 +262,91 @@ class AsyncMultiRangeDownloader:
         if lock is None:
             lock = asyncio.Lock()
 
-        _func_id = generate_random_56_bit_integer()
-        read_ids_in_current_func = set()
-        for i in range(0, len(read_ranges), _MAX_READ_RANGES_PER_BIDI_READ_REQUEST):
-            read_ranges_segment = read_ranges[
-                i : i + _MAX_READ_RANGES_PER_BIDI_READ_REQUEST
-            ]
+        if retry_policy is None:
+            retry_policy = AsyncRetry(
+                predicate=lambda e: isinstance(e, (exceptions.ServiceUnavailable, exceptions.DeadlineExceeded))
+            )
 
-            read_ranges_for_bidi_req = []
-            for j, read_range in enumerate(read_ranges_segment):
-                read_id = generate_random_56_bit_integer()
-                read_ids_in_current_func.add(read_id)
-                self._read_id_to_download_ranges_id[read_id] = _func_id
-                self._read_id_to_writable_buffer_dict[read_id] = read_range[2]
-                bytes_requested = read_range[1]
-                read_ranges_for_bidi_req.append(
-                    _storage_v2.ReadRange(
-                        read_offset=read_range[0],
-                        read_length=bytes_requested,
-                        read_id=read_id,
-                    )
-                )
-            async with lock:
-                await self.read_obj_str.send(
-                    _storage_v2.BidiReadObjectRequest(
-                        read_ranges=read_ranges_for_bidi_req
-                    )
-                )
-        self._download_ranges_id_to_pending_read_ids[
-            _func_id
-        ] = read_ids_in_current_func
+        # Initialize Global State for Retry Strategy
+        download_states = {}
+        for read_range in read_ranges:
+            read_id = generate_random_56_bit_integer()
+            download_states[read_id] = _DownloadState(
+                initial_offset=read_range[0],
+                initial_length=read_range[1],
+                user_buffer=read_range[2]
+            )
 
-        while len(self._download_ranges_id_to_pending_read_ids[_func_id]) > 0:
-            async with lock:
-                response = await self.read_obj_str.recv()
+        initial_state = {
+            "download_states": download_states,
+            "read_handle": self.read_handle,
+            "routing_token": None
+        }
 
-            if response is None:
-                raise Exception("None response received, something went wrong.")
+        # Track attempts to manage stream reuse
+        is_first_attempt = True
 
-            for object_data_range in response.object_data_ranges:
-                if object_data_range.read_range is None:
-                    raise Exception("Invalid response, read_range is None")
+        def stream_opener(requests: List[_storage_v2.ReadRange], state: Dict[str, Any]):
 
-                checksummed_data = object_data_range.checksummed_data
-                data = checksummed_data.content
-                server_checksum = checksummed_data.crc32c
+            async def generator():
+                nonlocal is_first_attempt
 
-                client_crc32c = Checksum(data).digest()
-                client_checksum = int.from_bytes(client_crc32c, "big")
+                async with lock:
+                    current_handle = state.get("read_handle")
+                    current_token = state.get("routing_token")
 
-                if server_checksum != client_checksum:
-                    raise DataCorruption(
-                        response,
-                        f"Checksum mismatch for read_id {object_data_range.read_range.read_id}. "
-                        f"Server sent {server_checksum}, client calculated {client_checksum}.",
-                    )
+                    # We reopen if it's a redirect (token exists) OR if this is a retry
+                    # (not first attempt). This prevents trying to send data on a dead
+                    # stream from a previous failed attempt.
+                    should_reopen = (not is_first_attempt) or (current_token is not None)
 
-                read_id = object_data_range.read_range.read_id
-                buffer = self._read_id_to_writable_buffer_dict[read_id]
-                buffer.write(data)
+                    if should_reopen:
+                        # Close existing stream if any
+                        if self.read_obj_str:
+                            await self.read_obj_str.close()
 
-                if object_data_range.range_end:
-                    tmp_dn_ranges_id = self._read_id_to_download_ranges_id[read_id]
-                    self._download_ranges_id_to_pending_read_ids[
-                        tmp_dn_ranges_id
-                    ].remove(read_id)
-                    del self._read_id_to_download_ranges_id[read_id]
+                        # Re-initialize stream
+                        self.read_obj_str = _AsyncReadObjectStream(
+                            client=self.client,
+                            bucket_name=self.bucket_name,
+                            object_name=self.object_name,
+                            generation_number=self.generation_number,
+                            read_handle=current_handle,
+                        )
+
+                        # Inject routing_token into metadata if present
+                        metadata = []
+                        if current_token:
+                            metadata.append(("x-goog-request-params", f"routing_token={current_token}"))
+
+                        await self.read_obj_str.open(metadata=metadata if metadata else None)
+                        self._is_stream_open = True
+
+                    # Mark first attempt as done; next time this runs it will be a retry
+                    is_first_attempt = False
+
+                    # Send Requests
+                    for i in range(0, len(requests), _MAX_READ_RANGES_PER_BIDI_READ_REQUEST):
+                        batch = requests[i : i + _MAX_READ_RANGES_PER_BIDI_READ_REQUEST]
+                        await self.read_obj_str.send(
+                            _storage_v2.BidiReadObjectRequest(read_ranges=batch)
+                        )
+
+                    while True:
+                        response = await self.read_obj_str.recv()
+                        if response is None:
+                            break
+                        yield response
+
+            return generator()
+
+        strategy = _ReadResumptionStrategy()
+        retry_manager = _BidiStreamRetryManager(strategy, stream_opener)
+
+        await retry_manager.execute(initial_state, retry_policy)
+
+        if initial_state.get("read_handle"):
+            self.read_handle = initial_state["read_handle"]
 
     async def close(self):
         """
@@ -331,7 +354,9 @@ class AsyncMultiRangeDownloader:
         """
         if not self._is_stream_open:
             raise ValueError("Underlying bidi-gRPC stream is not open")
-        await self.read_obj_str.close()
+
+        if self.read_obj_str:
+            await self.read_obj_str.close()
         self.read_obj_str = None
         self._is_stream_open = False
 
