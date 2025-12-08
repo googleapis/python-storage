@@ -27,7 +27,6 @@ from google.cloud.storage import _media
 import google.cloud.storage._media.requests as resumable_requests
 from google.cloud.storage._media import _helpers
 from .. import utils
-from google.cloud.storage._media import _upload
 from google.cloud.storage.exceptions import InvalidResponse
 from google.cloud.storage.exceptions import DataCorruption
 
