@@ -23,14 +23,12 @@ import json
 import os
 import warnings
 
-from google.auth.credentials import AnonymousCredentials
 from google.api_core import page_iterator
 from google.cloud.exceptions import NotFound
 from google.cloud.storage._helpers import _add_generation_match_parameters
 from google.cloud.storage._helpers import _bucket_bound_hostname_url
 from google.cloud.storage._helpers import _get_environ_project
 from google.cloud.storage._helpers import _virtual_hosted_style_base_url
-from google.cloud.storage._helpers import _DEFAULT_UNIVERSE_DOMAIN
 from google.cloud.storage._helpers import _NOW
 from google.cloud.storage._helpers import _UTC
 from google.cloud.storage._opentelemetry_tracing import create_trace_span
@@ -150,103 +148,6 @@ class Client(base_client.BaseClient):
         connection.extra_headers = extra_headers
         self._connection = connection
 
-
-    @classmethod
-    def create_anonymous_client(cls):
-        """Factory: return client with anonymous credentials.
-
-        .. note::
-
-           Such a client has only limited access to "public" buckets:
-           listing their contents and downloading their blobs.
-
-        :rtype: :class:`google.cloud.storage.client.Client`
-        :returns: Instance w/ anonymous credentials and no project.
-        """
-        client = cls(project="<none>", credentials=AnonymousCredentials())
-        client.project = None
-        return client
-
-    @property
-    def universe_domain(self):
-        return self._universe_domain or _DEFAULT_UNIVERSE_DOMAIN
-
-    @property
-    def api_endpoint(self):
-        return self._connection.API_BASE_URL
-
-    def update_user_agent(self, user_agent):
-        """Update the user-agent string for this client.
-
-        :type user_agent: str
-        :param user_agent: The string to add to the user-agent.
-        """
-        existing_user_agent = self._connection._client_info.user_agent
-        if existing_user_agent is None:
-            self._connection.user_agent = user_agent
-        else:
-            self._connection.user_agent = f"{user_agent} {existing_user_agent}"
-
-    @property
-    def _connection(self):
-        """Get connection or batch on the client.
-
-        :rtype: :class:`google.cloud.storage._http.Connection`
-        :returns: The connection set on the client, or the batch
-                  if one is set.
-        """
-        if self.current_batch is not None:
-            return self.current_batch
-        else:
-            return self._base_connection
-
-    @_connection.setter
-    def _connection(self, value):
-        """Set connection on the client.
-
-        Intended to be used by constructor (since the base class calls)
-            self._connection = connection
-        Will raise if the connection is set more than once.
-
-        :type value: :class:`google.cloud.storage._http.Connection`
-        :param value: The connection set on the client.
-
-        :raises: :class:`ValueError` if connection has already been set.
-        """
-        if self._base_connection is not None:
-            raise ValueError("Connection already set on client")
-        self._base_connection = value
-
-    def _push_batch(self, batch):
-        """Push a batch onto our stack.
-
-        "Protected", intended for use by batch context mgrs.
-
-        :type batch: :class:`google.cloud.storage.batch.Batch`
-        :param batch: newly-active batch
-        """
-        self._batch_stack.push(batch)
-
-    def _pop_batch(self):
-        """Pop a batch from our stack.
-
-        "Protected", intended for use by batch context mgrs.
-
-        :raises: IndexError if the stack is empty.
-        :rtype: :class:`google.cloud.storage.batch.Batch`
-        :returns: the top-most batch/transaction, after removing it.
-        """
-        return self._batch_stack.pop()
-
-    @property
-    def current_batch(self):
-        """Currently-active batch.
-
-        :rtype: :class:`google.cloud.storage.batch.Batch` or ``NoneType`` (if
-                no batch is active).
-        :returns: The batch at the top of the batch stack.
-        """
-        return self._batch_stack.top
 
     def get_service_account_email(
         self, project=None, timeout=_DEFAULT_TIMEOUT, retry=DEFAULT_RETRY
