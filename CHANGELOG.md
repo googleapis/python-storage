@@ -10,37 +10,13 @@
 ### Features
 
 * Auto enable mTLS when supported certificates are detected ([#1637](https://github.com/googleapis/python-storage/issues/1637)) ([4e91c54](https://github.com/googleapis/python-storage/commit/4e91c541363f0e583bf9dd1b81a95ff2cb618bac))
-* Send entire object checksum in the final api call of resumable ([ddce7e5](https://github.com/googleapis/python-storage/commit/ddce7e53a13e6c0487221bb14e88161da7ed9e08))
 * Send entire object checksum in the final api call of resumable upload ([#1654](https://github.com/googleapis/python-storage/issues/1654)) ([ddce7e5](https://github.com/googleapis/python-storage/commit/ddce7e53a13e6c0487221bb14e88161da7ed9e08))
-* Support urllib3 &gt;= 2.6.0 ([57405e9](https://github.com/googleapis/python-storage/commit/57405e956a7ca579b20582bf6435cec42743c478))
 * Support urllib3 &gt;= 2.6.0 ([#1658](https://github.com/googleapis/python-storage/issues/1658)) ([57405e9](https://github.com/googleapis/python-storage/commit/57405e956a7ca579b20582bf6435cec42743c478))
-* **zb-experimental:** Add Async_appendable_object_writer.py ([fdd0a50](https://github.com/googleapis/python-storage/commit/fdd0a50146d7b5f50f04c1871d43329a10938ff5))
-* **zb-experimental:** Add Async_appendable_object_writer.py ([#1616](https://github.com/googleapis/python-storage/issues/1616)) ([fdd0a50](https://github.com/googleapis/python-storage/commit/fdd0a50146d7b5f50f04c1871d43329a10938ff5))
-* **zb-experimental:** Implement "open" for write_object_stream ([786af55](https://github.com/googleapis/python-storage/commit/786af5556023144001f1375f1c6265bd46326b24))
-* **zb-experimental:** Implement "open" for write_object_stream ([#1613](https://github.com/googleapis/python-storage/issues/1613)) ([786af55](https://github.com/googleapis/python-storage/commit/786af5556023144001f1375f1c6265bd46326b24))
-* **zb-experimental:** Implement append ([1c6b76f](https://github.com/googleapis/python-storage/commit/1c6b76f055a5d37fa35197198bfa68902832d1b5))
-* **zb-experimental:** Implement append ([#1620](https://github.com/googleapis/python-storage/issues/1620)) ([1c6b76f](https://github.com/googleapis/python-storage/commit/1c6b76f055a5d37fa35197198bfa68902832d1b5))
-* **zb-experimental:** Implement close ([7a53221](https://github.com/googleapis/python-storage/commit/7a532216a9a3da728bd3d7f196372f8f6528ef75))
-* **zb-experimental:** Implement close ([#1614](https://github.com/googleapis/python-storage/issues/1614)) ([7a53221](https://github.com/googleapis/python-storage/commit/7a532216a9a3da728bd3d7f196372f8f6528ef75))
-* **zb-experimental:** Implement flush, close and finalize ([b413405](https://github.com/googleapis/python-storage/commit/b4134054f57e8767df3d62ee36dcbe3a83e6bfaa))
-* **zb-experimental:** Implement flush, close and finalize ([#1619](https://github.com/googleapis/python-storage/issues/1619)) ([b413405](https://github.com/googleapis/python-storage/commit/b4134054f57e8767df3d62ee36dcbe3a83e6bfaa))
-* **zb-experimental:** Implement open in writer ([dfe4566](https://github.com/googleapis/python-storage/commit/dfe4566e4b087ee217a7d05fc388ab5bfb760f39))
-* **zb-experimental:** Implement open in writer ([#1618](https://github.com/googleapis/python-storage/issues/1618)) ([dfe4566](https://github.com/googleapis/python-storage/commit/dfe4566e4b087ee217a7d05fc388ab5bfb760f39))
-* **zb-experimental:** Implement send & recv ([6da1186](https://github.com/googleapis/python-storage/commit/6da118652c97ba11d82c25347080188c7cf7a338))
-* **zb-experimental:** Implement send & recv ([#1615](https://github.com/googleapis/python-storage/issues/1615)) ([6da1186](https://github.com/googleapis/python-storage/commit/6da118652c97ba11d82c25347080188c7cf7a338))
-* **zb-experimental:** Implement state_lookup ([7d17922](https://github.com/googleapis/python-storage/commit/7d17922e671aa2d975262984ba50bfcfa29ff4a5))
-* **zb-experimental:** Implement state_lookup ([#1617](https://github.com/googleapis/python-storage/issues/1617)) ([7d17922](https://github.com/googleapis/python-storage/commit/7d17922e671aa2d975262984ba50bfcfa29ff4a5))
 
 
 ### Bug Fixes
 
-* Add simple flush for optimized writes ([9e6fefd](https://github.com/googleapis/python-storage/commit/9e6fefdc24a12a9189f7119bc9119e84a061842f))
-* Add simple flush for optimized writes ([#1633](https://github.com/googleapis/python-storage/issues/1633)) ([9e6fefd](https://github.com/googleapis/python-storage/commit/9e6fefdc24a12a9189f7119bc9119e84a061842f))
-* **bucket:** Move blob fails when the new blob name contains characters that need to be url encoded ([#1605](https://github.com/googleapis/python-storage/issues/1605)) ([ec470a2](https://github.com/googleapis/python-storage/commit/ec470a270e189e137c7229cc359367d5a897cdb9))
-* **bucket:** Url encode new_name parameter in move_blob() ([ec470a2](https://github.com/googleapis/python-storage/commit/ec470a270e189e137c7229cc359367d5a897cdb9))
-* Skip flaky test ([#1622](https://github.com/googleapis/python-storage/issues/1622)) ([53ced01](https://github.com/googleapis/python-storage/commit/53ced015a7a584cbf88197424e92538f8f18915c))
-* **zb-experimental:** Pass creds to grpc channel ([8c25c1b](https://github.com/googleapis/python-storage/commit/8c25c1b5689fa0e8f3d38b9b03bc9d0267a9a2aa))
-* **zb-experimental:** Pass creds to grpc channel ([#1623](https://github.com/googleapis/python-storage/issues/1623)) ([8c25c1b](https://github.com/googleapis/python-storage/commit/8c25c1b5689fa0e8f3d38b9b03bc9d0267a9a2aa))
+* Fix for [move_blob](https://github.com/googleapis/python-storage/blob/57405e956a7ca579b20582bf6435cec42743c478/google/cloud/storage/bucket.py#L2256) failure when the new blob name contains characters that need to be url encoded ([#1605](https://github.com/googleapis/python-storage/issues/1605)) ([ec470a2](https://github.com/googleapis/python-storage/commit/ec470a270e189e137c7229cc359367d5a897cdb9))
 
 ## [3.6.0](https://github.com/googleapis/python-storage/compare/v3.5.0...v3.6.0) (2025-11-17)
 
