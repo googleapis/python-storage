@@ -711,7 +711,7 @@ class _GzipDecoder(urllib3.response.GzipDecoder):
         super().__init__()
         self._checksum = checksum
 
-    def decompress(self, data, max_length=None):
+    def decompress(self, data, max_length=-1):
         """Decompress the bytes.
 
         Args:
@@ -724,7 +724,7 @@ class _GzipDecoder(urllib3.response.GzipDecoder):
         try:
             return super().decompress(data, max_length=max_length)
         except TypeError:
-            # FB for urllib3 <2.6.0
+            # Fallback for urllib3 < 2.6.0 which lacks `max_length` support.
             return super().decompress(data)
 
 
@@ -751,7 +751,7 @@ if hasattr(urllib3.response, "BrotliDecoder"):
             self._decoder = urllib3.response.BrotliDecoder()
             self._checksum = checksum
 
-        def decompress(self, data, max_length=None):
+        def decompress(self, data, max_length=-1):
             """Decompress the bytes.
 
             Args:
@@ -764,7 +764,7 @@ if hasattr(urllib3.response, "BrotliDecoder"):
             try:
                 return self._decoder.decompress(data, max_length=max_length)
             except TypeError:
-                # FB for urllib3 <2.6.0
+                # Fallback for urllib3 < 2.6.0 which lacks `max_length` support.
                 return self._decoder.decompress(data)
 
         def flush(self):
