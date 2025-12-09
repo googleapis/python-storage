@@ -770,5 +770,10 @@ if hasattr(urllib3.response, "BrotliDecoder"):
         def flush(self):
             return self._decoder.flush()
 
+        @property
+        def has_unconsumed_tail(self) -> bool:
+            return self._decoder.has_unconsumed_tail
+
+
 else:  # pragma: NO COVER
     _BrotliDecoder = None  # type: ignore # pragma: NO COVER
