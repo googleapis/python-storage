@@ -20,6 +20,8 @@ from google.cloud.storage import __version__
 from google.cloud.storage import _helpers
 from google.cloud.storage._opentelemetry_tracing import create_trace_span
 
+AGENT_VERSION = f"gcloud-python/{__version__}"
+
 
 class Connection(_http.JSONConnection):
     """A connection to Google Cloud Storage via the JSON REST API.
@@ -54,9 +56,8 @@ class Connection(_http.JSONConnection):
         # TODO: When metrics all use gccl, this should be removed #9552
         if self._client_info.user_agent is None:  # pragma: no branch
             self._client_info.user_agent = ""
-        agent_version = f"gcloud-python/{__version__}"
-        if agent_version not in self._client_info.user_agent:
-            self._client_info.user_agent += f" {agent_version} "
+        if AGENT_VERSION not in self._client_info.user_agent:
+            self._client_info.user_agent += f" {AGENT_VERSION} "
 
     API_VERSION = _helpers._API_VERSION
     """The version of the API, used in building the API call's URL."""
