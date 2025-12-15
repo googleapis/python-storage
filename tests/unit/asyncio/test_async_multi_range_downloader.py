@@ -36,7 +36,6 @@ _TEST_READ_HANDLE = b"test-handle"
 
 
 class TestAsyncMultiRangeDownloader:
-
     def create_read_ranges(self, num_ranges):
         ranges = []
         for i in range(num_ranges):
