@@ -15,8 +15,12 @@
 from __future__ import annotations
 import asyncio
 import google_crc32c
+import grpc
 from google.api_core import exceptions
 from google.api_core.retry_async import AsyncRetry
+from google.cloud._storage_v2.types.storage import BidiReadObjectRedirectedError
+from google.rpc import status_pb2
+from google.protobuf.any_pb2 import Any as AnyProto
 
 from typing import List, Optional, Tuple, Any, Dict
 
@@ -43,7 +47,57 @@ from google.cloud.storage._helpers import generate_random_56_bit_integer
 
 
 _MAX_READ_RANGES_PER_BIDI_READ_REQUEST = 100
+_BIDI_READ_REDIRECTED_TYPE_URL = "type.googleapis.com/google.storage.v2.BidiReadObjectRedirectedError"
 
+
+def _is_read_retryable(exc):
+    """Predicate to determine if a read operation should be retried."""
+    print(f"--- Checking if retryable: {type(exc)}: {exc}")
+    if isinstance(exc, (exceptions.ServiceUnavailable, exceptions.DeadlineExceeded, exceptions.TooManyRequests)):
+        return True
+
+    grpc_error = None
+    if isinstance(exc, exceptions.GoogleAPICallError) and exc.errors:
+        if isinstance(exc.errors[0], grpc.aio.AioRpcError):
+            grpc_error = exc.errors[0]
+
+    if grpc_error:
+        print(f"--- Wrapped grpc.aio.AioRpcError code: {grpc_error.code()}")
+        if grpc_error.code() in (
+             grpc.StatusCode.UNAVAILABLE,
+             grpc.StatusCode.INTERNAL,
+             grpc.StatusCode.DEADLINE_EXCEEDED,
+             grpc.StatusCode.RESOURCE_EXHAUSTED,
+        ):
+            return True
+        if grpc_error.code() == grpc.StatusCode.ABORTED:
+            trailers = grpc_error.trailing_metadata()
+            if not trailers:
+                print("--- No trailers")
+                return False
+
+            status_details_bin = None
+            # *** CORRECTED TRAILER ACCESS ***
+            for key, value in trailers:
+                if key == 'grpc-status-details-bin':
+                    status_details_bin = value
+                    break
+
+            if status_details_bin:
+                status_proto = status_pb2.Status()
+                try:
+                    status_proto.ParseFromString(status_details_bin)
+                    for detail in status_proto.details:
+                        if detail.type_url == _BIDI_READ_REDIRECTED_TYPE_URL:
+                            print("--- Found BidiReadObjectRedirectedError, is retryable")
+                            return True
+                    print("--- BidiReadObjectRedirectedError type URL not found in details")
+                except Exception as e:
+                    print(f"--- Error parsing status_details_bin: {e}")
+                    return False
+            else:
+                print("--- No grpc-status-details-bin in trailers")
+    return False
 
 class AsyncMultiRangeDownloader:
     """Provides an interface for downloading multiple ranges of a GCS ``Object``
@@ -154,6 +208,50 @@ class AsyncMultiRangeDownloader:
         self.read_handle = read_handle
         self.read_obj_str: Optional[_AsyncReadObjectStream] = None
         self._is_stream_open: bool = False
+        self._routing_token: Optional[str] = None
+
+    async def _on_open_error(self, exc):
+        """Extracts routing token and read handle on redirect error during open."""
+        print(f"--- _on_open_error called with {type(exc)}: {exc}")
+        grpc_error = None
+        if isinstance(exc, exceptions.GoogleAPICallError) and exc.errors:
+            if isinstance(exc.errors[0], grpc.aio.AioRpcError):
+                grpc_error = exc.errors[0]
+
+        if grpc_error and grpc_error.code() == grpc.StatusCode.ABORTED:
+            trailers = grpc_error.trailing_metadata()
+            if not trailers: return
+
+            status_details_bin = None
+            # *** CORRECTED TRAILER ACCESS ***
+            for key, value in trailers:
+                if key == 'grpc-status-details-bin':
+                    status_details_bin = value
+                    break
+
+            if status_details_bin:
+                status_proto = status_pb2.Status()
+                try:
+                    status_proto.ParseFromString(status_details_bin)
+                    for detail in status_proto.details:
+                        if detail.type_url == _BIDI_READ_REDIRECTED_TYPE_URL:
+                            redirect_proto = BidiReadObjectRedirectedError()
+                            detail.Unpack(redirect_proto)
+                            if redirect_proto.routing_token:
+                                self._routing_token = redirect_proto.routing_token
+                            if redirect_proto.read_handle and redirect_proto.read_handle.handle:
+                                self.read_handle = redirect_proto.read_handle.handle
+                            print(f"--- BidiReadObjectRedirectedError caught in open, new token: {self._routing_token}, handle: {self.read_handle}")
+                            break
+                except Exception as e:
+                    print(f"--- Error unpacking redirect in _on_open_error: {e}")
+
+        if self.read_obj_str and self.read_obj_str._is_open:
+             try:
+                 await self.read_obj_str.close()
+             except Exception:
+                 pass
+        self._is_stream_open = False
 
         self._read_id_to_writable_buffer_dict = {}
         self._read_id_to_download_ranges_id = {}
@@ -161,24 +259,25 @@ class AsyncMultiRangeDownloader:
         self.persisted_size: Optional[int] = None  # updated after opening the stream
 
     async def open(self, retry_policy: Optional[AsyncRetry] = None) -> None:
-        """Opens the bidi-gRPC connection to read from the object.
-
-        This method initializes and opens an `_AsyncReadObjectStream` (bidi-gRPC stream) to
-        for downloading ranges of data from GCS ``Object``.
-
-        "Opening" constitutes fetching object metadata such as generation number
-        and read handle and sets them as attributes if not already set.
-        """
+        """Opens the bidi-gRPC connection to read from the object."""
         if self._is_stream_open:
             raise ValueError("Underlying bidi-gRPC stream is already open")
 
         if retry_policy is None:
-            # Default policy: retry generic transient errors
-            retry_policy = AsyncRetry(
-                predicate=lambda e: isinstance(e, (exceptions.ServiceUnavailable, exceptions.DeadlineExceeded))
-            )
+            retry_policy = AsyncRetry(predicate=_is_read_retryable, on_error=self._on_open_error)
+        else:
+            original_on_error = retry_policy._on_error
+            async def combined_on_error(exc):
+                await self._on_open_error(exc)
+                if original_on_error:
+                    await original_on_error(exc)
+            retry_policy = retry_policy.with_predicate(_is_read_retryable).with_on_error(combined_on_error)
 
         async def _do_open():
+            print("--- Attempting _do_open")
+            if self._is_stream_open:
+                 self._is_stream_open = False
+
             self.read_obj_str = _AsyncReadObjectStream(
                 client=self.client,
                 bucket_name=self.bucket_name,
@@ -186,7 +285,14 @@ class AsyncMultiRangeDownloader:
                 generation_number=self.generation_number,
                 read_handle=self.read_handle,
             )
-            await self.read_obj_str.open()
+
+            metadata = []
+            if self._routing_token:
+                metadata.append(("x-goog-request-params", f"routing_token={self._routing_token}"))
+                print(f"--- Using routing_token for open: {self._routing_token}")
+                self._routing_token = None
+
+            await self.read_obj_str.open(metadata=metadata if metadata else None)
 
             if self.read_obj_str.generation_number:
                 self.generation_number = self.read_obj_str.generation_number
@@ -196,8 +302,8 @@ class AsyncMultiRangeDownloader:
                 self.persisted_size = self.read_obj_str.persisted_size
 
             self._is_stream_open = True
+            print("--- Stream opened successfully")
 
-        # Execute open with retry policy
         await retry_policy(_do_open)()
 
     async def download_ranges(
@@ -263,9 +369,7 @@ class AsyncMultiRangeDownloader:
             lock = asyncio.Lock()
 
         if retry_policy is None:
-            retry_policy = AsyncRetry(
-                predicate=lambda e: isinstance(e, (exceptions.ServiceUnavailable, exceptions.DeadlineExceeded))
-            )
+            retry_policy = AsyncRetry(predicate=_is_read_retryable)
 
         # Initialize Global State for Retry Strategy
         download_states = {}

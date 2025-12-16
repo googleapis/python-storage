@@ -140,3 +140,6 @@ class _ReadResumptionStrategy(_BaseResumptionStrategy):
         cause = getattr(error, "cause", error)
         if isinstance(cause, BidiReadObjectRedirectedError):
             state["routing_token"] = cause.routing_token
+            if cause.read_handle and cause.read_handle.handle:
+                state["read_handle"] = cause.read_handle.handle
+                print(f"Recover state: Updated read_handle from redirect: {state['read_handle']}")
