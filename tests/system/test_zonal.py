@@ -28,7 +28,11 @@ _BYTES_TO_UPLOAD = b"dummy_bytes_to_write_read_and_delete_appendable_object"
 
 
 @pytest.mark.asyncio
-async def test_basic_wrd(storage_client, blobs_to_delete):
+@pytest.mark.parametrize(
+    "attempt_direct_path",
+    [True, False],
+)
+async def test_basic_wrd(storage_client, blobs_to_delete, attempt_direct_path):
     object_name = f"test_basic_wrd-{str(uuid.uuid4())}"
 
     # Client instantiation; it cannot be part of fixture because.
@@ -39,31 +43,7 @@ async def test_basic_wrd(storage_client, blobs_to_delete):
     # 2. we can keep the same event loop for entire module but that may
     #  create issues if tests are run in parallel and one test hogs the event
     #  loop slowing down other tests.
-    grpc_client = AsyncGrpcClient().grpc_client
-
-    writer = AsyncAppendableObjectWriter(grpc_client, _ZONAL_BUCKET, object_name)
-    await writer.open()
-    await writer.append(_BYTES_TO_UPLOAD)
-    object_metadata = await writer.close(finalize_on_close=True)
-    assert object_metadata.size == len(_BYTES_TO_UPLOAD)
-
-    mrd = AsyncMultiRangeDownloader(grpc_client, _ZONAL_BUCKET, object_name)
-    buffer = BytesIO()
-    await mrd.open()
-    # (0, 0) means read the whole object
-    await mrd.download_ranges([(0, 0, buffer)])
-    await mrd.close()
-    assert buffer.getvalue() == _BYTES_TO_UPLOAD
-
-    # Clean up; use json client (i.e. `storage_client` fixture) to delete.
-    blobs_to_delete.append(storage_client.bucket(_ZONAL_BUCKET).blob(object_name))
-
-
-@pytest.mark.asyncio
-async def test_basic_wrd_cloud_path(storage_client, blobs_to_delete):
-    object_name = f"test_basic_wrd-{str(uuid.uuid4())}"
-
-    grpc_client = AsyncGrpcClient(attempt_direct_path=False).grpc_client
+    grpc_client = AsyncGrpcClient(attempt_direct_path=attempt_direct_path).grpc_client
 
     writer = AsyncAppendableObjectWriter(grpc_client, _ZONAL_BUCKET, object_name)
     await writer.open()
