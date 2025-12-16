@@ -472,6 +472,36 @@ def test_bucket_move_blob_hns(
     assert source_gen != dest.generation
 
 
+def test_bucket_move_blob_with_name_needs_encoding(
+    storage_client,
+    buckets_to_delete,
+    blobs_to_delete,
+):
+    payload = b"move_blob_with_name_which_has_a_char_that_needs_url_encoding"
+
+    bucket_name = _helpers.unique_name("move-blob")
+    bucket_obj = storage_client.bucket(bucket_name)
+    created = _helpers.retry_429_503(storage_client.create_bucket)(bucket_obj)
+    buckets_to_delete.append(created)
+
+    source = created.blob("source")
+    source_gen = source.generation
+    source.upload_from_string(payload)
+    blobs_to_delete.append(source)
+
+    dest = created.move_blob(
+        source,
+        "dest/dest_file.txt",
+        if_source_generation_match=source.generation,
+        if_source_metageneration_match=source.metageneration,
+    )
+    blobs_to_delete.append(dest)
+
+    assert dest.download_as_bytes() == payload
+    assert dest.generation is not None
+    assert source_gen != dest.generation
+
+
 def test_bucket_get_blob_with_user_project(
     storage_client,
     buckets_to_delete,
@@ -1339,6 +1369,7 @@ def test_bucket_ip_filter_patch(storage_client, buckets_to_delete):
     assert len(reloaded_filter.vpc_network_sources) == 1
 
 
+@pytest.mark.skip(reason="[https://github.com/googleapis/python-storage/issues/1611]")
 def test_list_buckets_with_ip_filter(storage_client, buckets_to_delete):
     """Test that listing buckets returns a summarized IP filter."""
     bucket_name = _helpers.unique_name("ip-filter-list")

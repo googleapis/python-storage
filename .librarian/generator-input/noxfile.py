@@ -28,16 +28,7 @@ BLACK_PATHS = ["docs", "google", "tests", "noxfile.py", "setup.py"]
 
 DEFAULT_PYTHON_VERSION = "3.12"
 SYSTEM_TEST_PYTHON_VERSIONS = ["3.12"]
-UNIT_TEST_PYTHON_VERSIONS = [
-    "3.7",
-    "3.8",
-    "3.9",
-    "3.10",
-    "3.11",
-    "3.12",
-    "3.13",
-    "3.14",
-]
+UNIT_TEST_PYTHON_VERSIONS = ["3.7", "3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
 CONFORMANCE_TEST_PYTHON_VERSIONS = ["3.12"]
 
 CURRENT_DIRECTORY = pathlib.Path(__file__).parent.absolute()
@@ -60,7 +51,6 @@ nox.options.sessions = [
     "unit-3.11",
     "unit-3.12",
     "unit-3.13",
-    "unit-3.14",
     # cover must be last to avoid error `No data to report`
     "cover",
 ]
@@ -127,8 +117,6 @@ def default(session, install_extras=True):
         session.install("opentelemetry-api", "opentelemetry-sdk")
 
     session.install("-e", ".", "-c", constraints_path)
-
-    session.run("python", "-m", "pip", "freeze")
 
     # This dependency is included in setup.py for backwards compatibility only
     # and the client library is expected to pass all tests without it. See
@@ -244,7 +232,7 @@ def conftest_retry(session):
         test_cmd = ["py.test", "-n", "auto", "--quiet", conformance_test_folder_path]
 
     # Run py.test against the conformance tests.
-    session.run(*test_cmd, env={"DOCKER_API_VERSION": "1.39"})
+    session.run(*test_cmd)
 
 
 @nox.session(python=DEFAULT_PYTHON_VERSION)

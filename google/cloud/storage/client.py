@@ -20,11 +20,12 @@ import collections
 import datetime
 import functools
 import json
+import os
 import warnings
 import google.api_core.client_options
 
 from google.auth.credentials import AnonymousCredentials
-
+from google.auth.transport import mtls
 from google.api_core import page_iterator
 from google.cloud._helpers import _LocalStack
 from google.cloud.client import ClientWithProject
@@ -35,7 +36,6 @@ from google.cloud.storage._helpers import _bucket_bound_hostname_url
 from google.cloud.storage._helpers import _get_api_endpoint_override
 from google.cloud.storage._helpers import _get_environ_project
 from google.cloud.storage._helpers import _get_storage_emulator_override
-from google.cloud.storage._helpers import _use_client_cert
 from google.cloud.storage._helpers import _virtual_hosted_style_base_url
 from google.cloud.storage._helpers import _DEFAULT_UNIVERSE_DOMAIN
 from google.cloud.storage._helpers import _DEFAULT_SCHEME
@@ -62,6 +62,16 @@ from google.cloud.storage.retry import DEFAULT_RETRY
 
 
 _marker = object()
+
+
+def _buckets_page_start(iterator, page, response):
+    """Grab unreachable buckets after a :class:`~google.cloud.iterator.Page` started."""
+    unreachable = response.get("unreachable", [])
+    if not isinstance(unreachable, list):
+        raise TypeError(
+            f"expected unreachable to be list, but obtained {type(unreachable)}"
+        )
+    page.unreachable = unreachable
 
 
 class Client(ClientWithProject):
@@ -208,7 +218,15 @@ class Client(ClientWithProject):
             # The final decision of whether to use mTLS takes place in
             # google-auth-library-python. We peek at the environment variable
             # here only to issue an exception in case of a conflict.
-            if _use_client_cert():
+            use_client_cert = False
+            if hasattr(mtls, "should_use_client_cert"):
+                use_client_cert = mtls.should_use_client_cert()
+            else:
+                use_client_cert = (
+                    os.getenv("GOOGLE_API_USE_CLIENT_CERTIFICATE") == "true"
+                )
+
+            if use_client_cert:
                 raise ValueError(
                     'The "GOOGLE_API_USE_CLIENT_CERTIFICATE" env variable is '
                     'set to "true" and a non-default universe domain is '
@@ -296,6 +314,18 @@ class Client(ClientWithProject):
     @property
     def api_endpoint(self):
         return self._connection.API_BASE_URL
+
+    def update_user_agent(self, user_agent):
+        """Update the user-agent string for this client.
+
+        :type user_agent: str
+        :param user_agent: The string to add to the user-agent.
+        """
+        existing_user_agent = self._connection._client_info.user_agent
+        if existing_user_agent is None:
+            self._connection.user_agent = user_agent
+        else:
+            self._connection.user_agent = f"{user_agent} {existing_user_agent}"
 
     @property
     def _connection(self):
@@ -1446,6 +1476,7 @@ class Client(ClientWithProject):
         retry=DEFAULT_RETRY,
         *,
         soft_deleted=None,
+        return_partial_success=None,
     ):
         """Get all buckets in the project associated to the client.
 
@@ -1504,6 +1535,13 @@ class Client(ClientWithProject):
             generation number. This parameter can only be used successfully if the bucket has a soft delete policy.
             See: https://cloud.google.com/storage/docs/soft-delete
 
+        :type return_partial_success: bool
+        :param return_partial_success:
+            (Optional) If True, the response will also contain a list of
+            unreachable buckets if the buckets are unavailable. The
+            unreachable buckets will be available on the ``unreachable``
+            attribute of the returned iterator.
+
         :rtype: :class:`~google.api_core.page_iterator.Iterator`
         :raises ValueError: if both ``project`` is ``None`` and the client's
                             project is also ``None``.
@@ -1539,7 +1577,10 @@ class Client(ClientWithProject):
             if soft_deleted is not None:
                 extra_params["softDeleted"] = soft_deleted
 
-            return self._list_resource(
+            if return_partial_success is not None:
+                extra_params["returnPartialSuccess"] = return_partial_success
+
+            iterator = self._list_resource(
                 "/b",
                 _item_to_bucket,
                 page_token=page_token,
@@ -1548,7 +1589,9 @@ class Client(ClientWithProject):
                 page_size=page_size,
                 timeout=timeout,
                 retry=retry,
+                page_start=_buckets_page_start,
             )
+            return iterator
 
     def restore_bucket(
         self,
