@@ -132,11 +132,11 @@ Running System Tests
 
 - To run system tests, you can execute::
 
-   $ nox -s system-3.12
+   $ nox -s system-3.14
 
   .. note::
 
-      System tests are configured to run under Python 3.12 in ``noxfile.py``.
+      System tests are configured to run under Python 3.14 in ``noxfile.py``.
 
   This alone will not run the tests. You'll need to change some local
   auth settings and change some configuration in your project to
