@@ -4,6 +4,16 @@
 
 [1]: https://pypi.org/project/google-cloud-storage/#history
 
+## [3.7.1](https://github.com/googleapis/python-storage/compare/v3.7.0...v3.7.1) (2025-12-16)
+
+
+### Bug Fixes
+
+* Close write object stream always ([#1661](https://github.com/googleapis/python-storage/issues/1661)) ([4a609a4](https://github.com/googleapis/python-storage/commit/4a609a4b3f4ba1396825911cb02f8a9649135cd5))
+* Close write object stream always.  ([4a609a4](https://github.com/googleapis/python-storage/commit/4a609a4b3f4ba1396825911cb02f8a9649135cd5))
+* **experimental:** No state lookup while opening bidi-write stream ([2d5a7b1](https://github.com/googleapis/python-storage/commit/2d5a7b16846a69f3a911844971241899f60cce14))
+* **experimental:** No state lookup while opening bidi-write stream ([#1636](https://github.com/googleapis/python-storage/issues/1636)) ([2d5a7b1](https://github.com/googleapis/python-storage/commit/2d5a7b16846a69f3a911844971241899f60cce14))
+
 ## [3.7.0](https://github.com/googleapis/python-storage/compare/v3.6.0...v3.7.0) (2025-12-09)
 
 
