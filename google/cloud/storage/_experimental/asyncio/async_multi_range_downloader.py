@@ -180,6 +180,7 @@ class AsyncMultiRangeDownloader:
         self._read_id_to_writable_buffer_dict = {}
         self._read_id_to_download_ranges_id = {}
         self._download_ranges_id_to_pending_read_ids = {}
+        self.persisted_size: Optional[int] = None  # updated after opening the stream
 
     async def open(self) -> None:
         """Opens the bidi-gRPC connection to read from the object.

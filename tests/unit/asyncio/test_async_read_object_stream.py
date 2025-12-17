@@ -25,7 +25,7 @@ from google.cloud.storage._experimental.asyncio.async_read_object_stream import 
 _TEST_BUCKET_NAME = "test-bucket"
 _TEST_OBJECT_NAME = "test-object"
 _TEST_GENERATION_NUMBER = 12345
-_TEST_OBJECT_SIZE = 1024 * 1024  # 1 MB
+_TEST_OBJECT_SIZE = 1024 * 1024  # 1 MiB
 _TEST_READ_HANDLE = b"test-read-handle"
 
 
