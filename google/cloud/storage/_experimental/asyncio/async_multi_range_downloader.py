@@ -206,6 +206,8 @@ class AsyncMultiRangeDownloader:
         if self.generation_number is None:
             self.generation_number = self.read_obj_str.generation_number
         self.read_handle = self.read_obj_str.read_handle
+        if self.read_obj_str.persisted_size is not None:
+            self.persisted_size = self.read_obj_str.persisted_size
         return
 
     async def download_ranges(
