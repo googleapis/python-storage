@@ -16,7 +16,6 @@ from __future__ import annotations
 import asyncio
 from typing import List, Optional, Tuple
 
-from google.api_core import exceptions
 from google_crc32c import Checksum
 
 from ._utils import raise_if_no_fast_crc32c
