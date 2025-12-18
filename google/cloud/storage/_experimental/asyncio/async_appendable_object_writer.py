@@ -21,10 +21,8 @@ GA(Generally Available) yet, please contact your TAM (Technical Account Manager)
 if you want to use these Rapid Storage APIs.
 
 """
-import time
 from typing import Optional, Union
 
-from google.api_core import exceptions
 from google_crc32c import Checksum
 
 from ._utils import raise_if_no_fast_crc32c
