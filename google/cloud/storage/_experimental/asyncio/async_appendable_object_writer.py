@@ -22,6 +22,8 @@ if you want to use these Rapid Storage APIs.
 
 """
 from typing import Optional, Union
+from google.api_core import exceptions
+from google_crc32c import Checksum, implementation as crc32c_impl
 from google.cloud import _storage_v2
 from google.cloud.storage._experimental.asyncio.async_grpc_client import (
     AsyncGrpcClient,
@@ -100,6 +102,14 @@ class AsyncAppendableObjectWriter:
         :param write_handle: (Optional) An existing handle for writing the object.
                             If provided, opening the bidi-gRPC connection will be faster.
         """
+        # Verify that the fast, C-accelerated version of crc32c is available.
+        # If not, raise an error to prevent silent performance degradation.
+        if crc32c_impl != "c":
+            raise exceptions.NotFound(
+                "The google-crc32c package is not installed with C support. "
+                "Bidi reads require the C extension for data integrity checks."
+                "For more information, see https://github.com/googleapis/python-crc32c."
+            )
         self.client = client
         self.bucket_name = bucket_name
         self.object_name = object_name
@@ -191,11 +201,13 @@ class AsyncAppendableObjectWriter:
         bytes_to_flush = 0
         while start_idx < total_bytes:
             end_idx = min(start_idx + _MAX_CHUNK_SIZE_BYTES, total_bytes)
+            data_chunk = data[start_idx:end_idx]
             await self.write_obj_stream.send(
                 _storage_v2.BidiWriteObjectRequest(
                     write_offset=self.offset,
                     checksummed_data=_storage_v2.ChecksummedData(
-                        content=data[start_idx:end_idx]
+                        content=data_chunk,
+                        crc32c=int.from_bytes(Checksum(data_chunk).digest(), "big"),
                     ),
                 )
             )
