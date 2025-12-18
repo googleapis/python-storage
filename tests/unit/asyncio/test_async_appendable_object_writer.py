@@ -19,6 +19,9 @@ from google.api_core import exceptions
 from google.cloud.storage._experimental.asyncio.async_appendable_object_writer import (
     AsyncAppendableObjectWriter,
 )
+from google.cloud.storage._experimental.asyncio.async_appendable_object_writer import (
+    _MAX_CHUNK_SIZE_BYTES,
+)
 from google.cloud import _storage_v2
 
 
@@ -111,6 +114,36 @@ def test_init_with_writer_options(mock_write_object_stream, mock_client):
         generation_number=None,
         write_handle=None,
     )
+
+
+@mock.patch(
+    "google.cloud.storage._experimental.asyncio.async_appendable_object_writer._AsyncWriteObjectStream"
+)
+def test_init_with_flush_interval_less_than_chunk_size_raises_error(mock_client):
+    """Test that an OutOfRange error is raised if flush_interval is less than the chunk size."""
+
+    with pytest.raises(exceptions.OutOfRange):
+        AsyncAppendableObjectWriter(
+            mock_client,
+            BUCKET,
+            OBJECT,
+            writer_options={"FLUSH_INTERVAL_BYTES": _MAX_CHUNK_SIZE_BYTES - 1},
+        )
+
+
+@mock.patch(
+    "google.cloud.storage._experimental.asyncio.async_appendable_object_writer._AsyncWriteObjectStream"
+)
+def test_init_with_flush_interval_not_multiple_of_chunk_size_raises_error(mock_client):
+    """Test that an OutOfRange error is raised if flush_interval is not a multiple of the chunk size."""
+
+    with pytest.raises(exceptions.OutOfRange):
+        AsyncAppendableObjectWriter(
+            mock_client,
+            BUCKET,
+            OBJECT,
+            writer_options={"FLUSH_INTERVAL_BYTES": _MAX_CHUNK_SIZE_BYTES + 1},
+        )
 
 
 @mock.patch("google.cloud.storage._experimental.asyncio._utils.google_crc32c")

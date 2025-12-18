@@ -137,9 +137,9 @@ class AsyncAppendableObjectWriter:
             raise exceptions.OutOfRange(
                 f"flush_interval must be >= {_MAX_CHUNK_SIZE_BYTES} , but provided {self.flush_interval}"
             )
-        if not self.flush_interval % _MAX_CHUNK_SIZE_BYTES == 0:
+        if self.flush_interval % _MAX_CHUNK_SIZE_BYTES != 0:
             raise exceptions.OutOfRange(
-                f"flush interval - {self.flush_interval} should be multiple of  {_MAX_CHUNK_SIZE_BYTES}"
+                f"flush_interval must be a multiple of {_MAX_CHUNK_SIZE_BYTES}, but provided {self.flush_interval}"
             )
         self.bytes_appended_since_last_flush = 0
 
@@ -210,7 +210,6 @@ class AsyncAppendableObjectWriter:
             self.offset = self.persisted_size
 
         start_idx = 0
-        # bytes_to_flush = 0
         while start_idx < total_bytes:
             end_idx = min(start_idx + _MAX_CHUNK_SIZE_BYTES, total_bytes)
             data_chunk = data[start_idx:end_idx]
