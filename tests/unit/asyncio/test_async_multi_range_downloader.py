@@ -358,7 +358,7 @@ class TestAsyncMultiRangeDownloader:
     ):
         mock_google_crc32c.implementation = "python"
 
-        with pytest.raises(exceptions.NotFound) as exc_info:
+        with pytest.raises(exceptions.FailedPrecondition) as exc_info:
             AsyncMultiRangeDownloader(mock_grpc_client, "bucket", "object")
 
         assert "The google-crc32c package is not installed with C support" in str(

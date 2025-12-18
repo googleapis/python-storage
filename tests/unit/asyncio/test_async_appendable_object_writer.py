@@ -95,7 +95,7 @@ def test_init_raises_if_crc32c_c_extension_is_missing(
 ):
     mock_google_crc32c.implementation = "python"
 
-    with pytest.raises(exceptions.NotFound) as exc_info:
+    with pytest.raises(exceptions.FailedPrecondition) as exc_info:
         AsyncAppendableObjectWriter(mock_grpc_client, "bucket", "object")
 
     assert "The google-crc32c package is not installed with C support" in str(
