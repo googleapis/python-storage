@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from io import BytesIO
 import pytest
 from unittest import mock
 
@@ -21,6 +22,7 @@ from google.cloud.storage._experimental.asyncio.async_appendable_object_writer i
 )
 from google.cloud.storage._experimental.asyncio.async_appendable_object_writer import (
     _MAX_CHUNK_SIZE_BYTES,
+    _DEFAULT_FLUSH_INTERVAL_BYTES,
 )
 from google.cloud import _storage_v2
 
@@ -285,9 +287,6 @@ async def test_unimplemented_methods_raise_error(mock_client):
     with pytest.raises(NotImplementedError):
         await writer.append_from_stream(mock.Mock())
 
-    with pytest.raises(NotImplementedError):
-        await writer.append_from_file("file.txt")
-
 
 @pytest.mark.asyncio
 @mock.patch(
@@ -529,9 +528,6 @@ async def test_append_flushes_when_buffer_is_full(
     mock_write_object_stream, mock_client
 ):
     """Test that append flushes the stream when the buffer size is reached."""
-    from google.cloud.storage._experimental.asyncio.async_appendable_object_writer import (
-        _DEFAULT_FLUSH_INTERVAL_BYTES,
-    )
 
     writer = AsyncAppendableObjectWriter(mock_client, BUCKET, OBJECT)
     writer._is_stream_open = True
@@ -595,3 +591,29 @@ async def test_append_data_two_times(mock_write_object_stream, mock_client):
     total_data_length = len(data1) + len(data2)
     assert writer.offset == total_data_length
     assert writer.simple_flush.await_count == 0
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "file_size, block_size",
+    [
+        (10, 4 * 1024),
+        (20 * 1024 * 1024, _DEFAULT_FLUSH_INTERVAL_BYTES),
+        (16 * 1024 * 1024, _DEFAULT_FLUSH_INTERVAL_BYTES),
+    ],
+)
+async def test_append_from_file(file_size, block_size, mock_client):
+    # arrange
+    fp = BytesIO(b"a" * file_size)
+    writer = AsyncAppendableObjectWriter(mock_client, BUCKET, OBJECT)
+    writer._is_stream_open = True
+    writer.append = mock.AsyncMock()
+
+    # act
+    await writer.append_from_file(fp, block_size=block_size)
+
+    # assert
+    if file_size % block_size == 0:
+        writer.append.await_count == file_size // block_size
+    else:
+        writer.append.await_count == file_size // block_size + 1

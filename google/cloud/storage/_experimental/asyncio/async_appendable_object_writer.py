@@ -339,6 +339,16 @@ class AsyncAppendableObjectWriter:
         """
         raise NotImplementedError("append_from_stream is not implemented yet.")
 
-    async def append_from_file(self, file_path: str):
-        """Create a file object from `file_path` and call append_from_stream(file_obj)"""
-        raise NotImplementedError("append_from_file is not implemented yet.")
+    async def append_from_file(
+        self, file_obj: BufferedReader, block_size: int = _DEFAULT_FLUSH_INTERVAL_BYTES
+    ):
+        """
+        Appends data to an Appendable Object using file_handle which is opened
+        for reading in binary mode.
+
+        :type file_obj: file
+        :param file_obj: A file handle opened in binary mode for reading.
+
+        """
+        while block := file_obj.read(block_size):
+            await self.append(block)
