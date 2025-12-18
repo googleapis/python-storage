@@ -1,6 +1,6 @@
 import google_crc32c
 
-from google.cloud.storage import exceptions
+from google.api_core import exceptions
 
 def raise_if_no_fast_crc32c():
     """Check if the C-accelerated version of google-crc32c is available.

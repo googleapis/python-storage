@@ -349,9 +349,7 @@ class TestAsyncMultiRangeDownloader:
         assert str(exc.value) == "Underlying bidi-gRPC stream is not open"
         assert not mrd.is_stream_open
 
-    @mock.patch(
-        "google.cloud.storage._experimental.asyncio.async_multi_range_downloader.google_crc32c"
-    )
+    @mock.patch("google.cloud.storage._experimental.asyncio._utils.google_crc32c")
     @mock.patch(
         "google.cloud.storage._experimental.asyncio.async_grpc_client.AsyncGrpcClient.grpc_client"
     )

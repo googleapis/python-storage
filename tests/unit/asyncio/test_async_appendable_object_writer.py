@@ -15,6 +15,7 @@
 import pytest
 from unittest import mock
 
+from google.api_core import exceptions
 from google.cloud.storage._experimental.asyncio.async_appendable_object_writer import (
     AsyncAppendableObjectWriter,
 )
@@ -82,6 +83,23 @@ def test_init_with_optional_args(mock_write_object_stream, mock_client):
         object_name=OBJECT,
         generation_number=GENERATION,
         write_handle=WRITE_HANDLE,
+    )
+
+
+@mock.patch("google.cloud.storage._experimental.asyncio._utils.google_crc32c")
+@mock.patch(
+    "google.cloud.storage._experimental.asyncio.async_grpc_client.AsyncGrpcClient.grpc_client"
+)
+def test_init_raises_if_crc32c_c_extension_is_missing(
+    mock_grpc_client, mock_google_crc32c
+):
+    mock_google_crc32c.implementation = "python"
+
+    with pytest.raises(exceptions.NotFound) as exc_info:
+        AsyncAppendableObjectWriter(mock_grpc_client, "bucket", "object")
+
+    assert "The google-crc32c package is not installed with C support" in str(
+        exc_info.value
     )
 
 
