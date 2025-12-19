@@ -75,6 +75,7 @@ steps:
         exit $$EXIT_CODE
     waitFor:
       - "create-vm"
+      - "generate-ssh-key"
 
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
     id: "cleanup-ssh-key"
