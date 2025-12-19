@@ -455,13 +455,13 @@ async def test_append_sends_data_in_chunks(mock_write_object_stream, mock_client
     assert first_call[0][0].write_offset == 100
     assert len(first_call[0][0].checksummed_data.content) == _MAX_CHUNK_SIZE_BYTES
     assert first_call[0][0].checksummed_data.crc32c == int.from_bytes(
-        Checksum(data[:_MAX_CHUNK_SIZE_BYTES]).digest()
+        Checksum(data[:_MAX_CHUNK_SIZE_BYTES]).digest(), byteorder="big"
     )
     # Second chunk
     assert second_call[0][0].write_offset == 100 + _MAX_CHUNK_SIZE_BYTES
     assert len(second_call[0][0].checksummed_data.content) == 1
     assert second_call[0][0].checksummed_data.crc32c == int.from_bytes(
-        Checksum(data[_MAX_CHUNK_SIZE_BYTES:]).digest()
+        Checksum(data[_MAX_CHUNK_SIZE_BYTES:]).digest(), byteorder="big"
     )
 
     assert writer.offset == 100 + len(data)
