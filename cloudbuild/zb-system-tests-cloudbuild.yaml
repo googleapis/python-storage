@@ -2,6 +2,7 @@ substitutions:
   _REGION: "us-central1"
   _ZONE: "us-central1-a"
   _SHORT_BUILD_ID: ${BUILD_ID:0:8}
+  _VM_NAME: "py-sdk-sys-test-${_SHORT_BUILD_ID}"
 
 steps:
   # Step 0: Generate a persistent SSH key for this build run.
@@ -29,7 +30,7 @@ steps:
       - "compute"
       - "instances"
       - "create"
-      - "gcsfs-test-vm-${_SHORT_BUILD_ID}"
+      - "${_VM_NAME}"
       - "--project=${PROJECT_ID}"
       - "--zone=${_ZONE}"
       - "--machine-type=e2-medium"
@@ -52,24 +53,24 @@ steps:
         set -e
         # Wait for the VM to be fully initialized and SSH to be ready.
         for i in {1..10}; do
-          if gcloud compute ssh gcsfs-test-vm-${_SHORT_BUILD_ID} --zone=${_ZONE} --internal-ip --ssh-key-file=/workspace/.ssh/google_compute_engine --command="echo VM is ready"; then
+          if gcloud compute ssh ${_VM_NAME} --zone=${_ZONE} --internal-ip --ssh-key-file=/workspace/.ssh/google_compute_engine --command="echo VM is ready"; then
             break
           fi
           echo "Waiting for VM to become available... (attempt $i/10)"
           sleep 15
         done
         # copy the script to the VM
-        gcloud compute scp cloudbuild/run_zonal_tests.sh gcsfs-test-vm-${_SHORT_BUILD_ID}:~ --zone=${_ZONE} --internal-ip --ssh-key-file=/workspace/.ssh/google_compute_engine
+        gcloud compute scp cloudbuild/run_zonal_tests.sh ${_VM_NAME}:~ --zone=${_ZONE} --internal-ip --ssh-key-file=/workspace/.ssh/google_compute_engine
 
         # Execute the script on the VM via SSH.
         # Capture the exit code to ensure cleanup happens before the build fails.
         set +e
-        gcloud compute ssh gcsfs-test-vm-${_SHORT_BUILD_ID} --zone=${_ZONE} --internal-ip --ssh-key-file=/workspace/.ssh/google_compute_engine --command="COMMIT_SHA=${COMMIT_SHA} _ZONAL_BUCKET=${_ZONAL_BUCKET} bash run_zonal_tests.sh"
+        gcloud compute ssh ${_VM_NAME} --zone=${_ZONE} --internal-ip --ssh-key-file=/workspace/.ssh/google_compute_engine --command="COMMIT_SHA=${COMMIT_SHA} _ZONAL_BUCKET=${_ZONAL_BUCKET} bash run_zonal_tests.sh"
         EXIT_CODE=$?
         set -e
 
         echo "--- Deleting GCE VM ---"
-        gcloud compute instances delete "gcsfs-test-vm-${_SHORT_BUILD_ID}" --zone=${_ZONE} --quiet
+        gcloud compute instances delete "${_VM_NAME}" --zone=${_ZONE} --quiet
 
         # Exit with the original exit code from the test script.
         exit $$EXIT_CODE
