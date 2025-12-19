@@ -598,6 +598,7 @@ async def test_append_data_two_times(mock_write_object_stream, mock_client):
     "file_size, block_size",
     [
         (10, 4 * 1024),
+        (0, _DEFAULT_FLUSH_INTERVAL_BYTES),
         (20 * 1024 * 1024, _DEFAULT_FLUSH_INTERVAL_BYTES),
         (16 * 1024 * 1024, _DEFAULT_FLUSH_INTERVAL_BYTES),
     ],
@@ -613,7 +614,9 @@ async def test_append_from_file(file_size, block_size, mock_client):
     await writer.append_from_file(fp, block_size=block_size)
 
     # assert
-    if file_size % block_size == 0:
-        writer.append.await_count == file_size // block_size
-    else:
-        writer.append.await_count == file_size // block_size + 1
+    exepected_calls = (
+        file_size // block_size
+        if file_size % block_size == 0
+        else file_size // block_size + 1
+    )
+    assert writer.append.await_count == exepected_calls
