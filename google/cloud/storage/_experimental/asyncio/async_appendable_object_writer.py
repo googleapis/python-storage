@@ -25,6 +25,7 @@ from io import BufferedReader
 from typing import Optional, Union
 
 from google_crc32c import Checksum
+from google.api_core import exceptions
 
 from ._utils import raise_if_no_fast_crc32c
 from google.cloud import _storage_v2

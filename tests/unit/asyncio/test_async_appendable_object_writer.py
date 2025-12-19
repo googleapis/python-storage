@@ -555,9 +555,6 @@ async def test_append_flushes_when_buffer_is_full(
 )
 async def test_append_handles_large_data(mock_write_object_stream, mock_client):
     """Test that append handles data larger than the buffer size."""
-    from google.cloud.storage._experimental.asyncio.async_appendable_object_writer import (
-        _DEFAULT_FLUSH_INTERVAL_BYTES,
-    )
 
     writer = AsyncAppendableObjectWriter(mock_client, BUCKET, OBJECT)
     writer._is_stream_open = True
