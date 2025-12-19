@@ -3,7 +3,6 @@ import asyncio
 import os
 import uuid
 from io import BytesIO
-import random
 
 # python additional imports
 import google_crc32c
@@ -14,7 +13,6 @@ import pytest
 from google.cloud.storage._experimental.asyncio.async_grpc_client import AsyncGrpcClient
 from google.cloud.storage._experimental.asyncio.async_appendable_object_writer import (
     AsyncAppendableObjectWriter,
-    _MAX_BUFFER_SIZE_BYTES,
 )
 from google.cloud.storage._experimental.asyncio.async_multi_range_downloader import (
     AsyncMultiRangeDownloader,
