@@ -67,6 +67,8 @@ def notification_topic(storage_client, publisher_client, topic_path, no_mtls):
         f"serviceAccount:{storage_client.get_service_account_email()}"
     )
     publisher_client.set_iam_policy(request={"resource": topic_path, "policy": policy})
+    yield topic_path
+    publisher_client.delete_topic(request={"topic": topic_path})
 
 
 def test_notification_create_minimal(
