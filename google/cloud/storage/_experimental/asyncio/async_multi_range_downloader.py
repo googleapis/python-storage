@@ -180,6 +180,7 @@ class AsyncMultiRangeDownloader:
         self._read_id_to_writable_buffer_dict = {}
         self._read_id_to_download_ranges_id = {}
         self._download_ranges_id_to_pending_read_ids = {}
+        self.persisted_size: Optional[int] = None  # updated after opening the stream
 
     async def open(self) -> None:
         """Opens the bidi-gRPC connection to read from the object.
@@ -192,20 +193,20 @@ class AsyncMultiRangeDownloader:
         """
         if self._is_stream_open:
             raise ValueError("Underlying bidi-gRPC stream is already open")
-
-        if self.read_obj_str is None:
-            self.read_obj_str = _AsyncReadObjectStream(
-                client=self.client,
-                bucket_name=self.bucket_name,
-                object_name=self.object_name,
-                generation_number=self.generation_number,
-                read_handle=self.read_handle,
-            )
+        self.read_obj_str = _AsyncReadObjectStream(
+            client=self.client,
+            bucket_name=self.bucket_name,
+            object_name=self.object_name,
+            generation_number=self.generation_number,
+            read_handle=self.read_handle,
+        )
         await self.read_obj_str.open()
         self._is_stream_open = True
         if self.generation_number is None:
             self.generation_number = self.read_obj_str.generation_number
         self.read_handle = self.read_obj_str.read_handle
+        if self.read_obj_str.persisted_size is not None:
+            self.persisted_size = self.read_obj_str.persisted_size
         return
 
     async def download_ranges(
@@ -216,7 +217,8 @@ class AsyncMultiRangeDownloader:
 
         :type read_ranges: List[Tuple[int, int, "BytesIO"]]
         :param read_ranges: A list of tuples, where each tuple represents a
-            byte range (start_byte, bytes_to_read, writeable_buffer). Buffer has
+            combintaion of byte_range and writeable buffer in format -
+            (`start_byte`, `bytes_to_read`, `writeable_buffer`). Buffer has
             to be provided by the user, and user has to make sure appropriate
             memory is available in the application to avoid out-of-memory crash.
 
@@ -338,6 +340,7 @@ class AsyncMultiRangeDownloader:
         if not self._is_stream_open:
             raise ValueError("Underlying bidi-gRPC stream is not open")
         await self.read_obj_str.close()
+        self.read_obj_str = None
         self._is_stream_open = False
 
     @property
