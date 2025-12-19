@@ -100,7 +100,7 @@ import storage_upload_from_stream
 import storage_upload_with_kms_key
 
 KMS_KEY = os.environ.get("CLOUD_KMS_KEY")
-IS_PYTHON_3_14 = sys.version_info == (3, 14)
+IS_PYTHON_3_14 = sys.version_info[:2] == (3, 14)
 
 
 @pytest.mark.skipif(IS_PYTHON_3_14, reason="b/470276398")
