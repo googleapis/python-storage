@@ -7,14 +7,14 @@ substitutions:
 
 
 steps:
-- name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
-  id: "create-vm"
-  entrypoint: "gcloud"
-  args:
-    - "compute"
-    - "os-login"
-    - "describe-profile"
-  waitFor: ["-"]
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    id: "create-vm"
+    entrypoint: "gcloud"
+    args:
+      - "compute"
+      - "os-login"
+      - "describe-profile"
+    waitFor: ["-"]
   # Step 0: Generate a persistent SSH key for this build run.
   # This prevents gcloud from adding a new key to the OS Login profile on every ssh/scp command.
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
