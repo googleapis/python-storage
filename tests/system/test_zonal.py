@@ -120,16 +120,12 @@ async def test_basic_wrd(
 @pytest.mark.parametrize(
     "object_size",
     [
-        20 * 1024 * 1024,  # greater than _MAX_BUFFER_SIZE
+        10,  # less than _chunk size,
+        10 * 1024 * 1024,  # less than _MAX_BUFFER_SIZE_BYTES
+        20 * 1024 * 1024,  # greater than _MAX_BUFFER_SIZE_BYTES
     ],
 )
-@pytest.mark.parametrize(
-    "attempt_direct_path",
-    [True],
-)
-async def test_basic_wrd_in_slices(
-    storage_client, blobs_to_delete, attempt_direct_path, object_size
-):
+async def test_basic_wrd_in_slices(storage_client, blobs_to_delete, object_size):
     object_name = f"test_basic_wrd-{str(uuid.uuid4())}"
 
     # Client instantiation; it cannot be part of fixture because.
@@ -142,7 +138,7 @@ async def test_basic_wrd_in_slices(
     #  loop slowing down other tests.
     object_data = os.urandom(object_size)
     object_checksum = google_crc32c.value(object_data)
-    grpc_client = AsyncGrpcClient(attempt_direct_path=attempt_direct_path).grpc_client
+    grpc_client = AsyncGrpcClient().grpc_client
 
     writer = AsyncAppendableObjectWriter(grpc_client, _ZONAL_BUCKET, object_name)
     await writer.open()
