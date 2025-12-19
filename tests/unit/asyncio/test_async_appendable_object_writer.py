@@ -107,6 +107,7 @@ def mock_appendable_writer():
     mock_stream.persisted_size = 0
     mock_stream.generation_number = GENERATION
     mock_stream.write_handle = WRITE_HANDLE
+    mock_stream.persisted_size = PERSISTED_SIZE
 
     yield {
         "mock_client": mock_client,
