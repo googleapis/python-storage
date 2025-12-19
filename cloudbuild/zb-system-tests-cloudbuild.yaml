@@ -8,7 +8,7 @@ substitutions:
 
 steps:
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
-    id: "create-vm"
+    id: "describe-profile"
     entrypoint: "gcloud"
     args:
       - "compute"
