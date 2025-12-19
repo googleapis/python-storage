@@ -30,7 +30,7 @@ OBJECT = "test-object"
 GENERATION = 123
 WRITE_HANDLE = b"test-write-handle"
 PERSISTED_SIZE = 456
-_ONE_MIB = 1024 * 1024
+EIGHT_MIB = 8 * 1024 * 1024
 
 
 @pytest.fixture
@@ -101,10 +101,10 @@ def test_init_with_writer_options(mock_write_object_stream, mock_client):
         mock_client,
         BUCKET,
         OBJECT,
-        writer_options={"FLUSH_INTERVAL_BYTES": 8 * _ONE_MIB},
+        writer_options={"FLUSH_INTERVAL_BYTES": EIGHT_MIB},
     )
 
-    assert writer.flush_interval == 8 * _ONE_MIB
+    assert writer.flush_interval == EIGHT_MIB
     assert writer.bytes_appended_since_last_flush == 0
 
     mock_write_object_stream.assert_called_once_with(
