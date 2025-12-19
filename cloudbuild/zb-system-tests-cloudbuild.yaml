@@ -18,8 +18,6 @@ steps:
         mkdir -p /workspace/.ssh
         # Generate the SSH key
         ssh-keygen -t rsa -f /workspace/.ssh/google_compute_engine -N '' -C gcb
-        # Save the public key content to a file for the cleanup step
-        cat /workspace/.ssh/google_compute_engine.pub > /workspace/gcb_ssh_key.pub
     waitFor: ["-"]
 
   # Step 1 Create a GCE VM to run the tests.
@@ -88,7 +86,7 @@ steps:
       - |
         echo "--- Removing SSH key from OS Login profile to prevent accumulation ---"
         gcloud compute os-login ssh-keys remove \
-          --key-file=/workspace/gcb_ssh_key.pub || true
+          --key-file=/.ssh/google_compute_engine.pub || true
     waitFor:
       - "run-tests-and-delete-vm"
 
