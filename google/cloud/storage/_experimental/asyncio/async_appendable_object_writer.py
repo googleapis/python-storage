@@ -23,7 +23,6 @@ if you want to use these Rapid Storage APIs.
 """
 from typing import Optional, Union
 
-from google.api_core import exceptions
 from google_crc32c import Checksum
 
 from ._utils import raise_if_no_fast_crc32c
