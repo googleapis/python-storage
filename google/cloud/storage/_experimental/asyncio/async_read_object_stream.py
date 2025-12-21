@@ -84,14 +84,10 @@ class _AsyncReadObjectStream(_AsyncAbstractObjectStream):
         self.rpc = self.client._client._transport._wrapped_methods[
             self.client._client._transport.bidi_read_object
         ]
-        self.first_bidi_read_req = _storage_v2.BidiReadObjectRequest(
-            read_object_spec=_storage_v2.BidiReadObjectSpec(
-                bucket=self._full_bucket_name, object=object_name
-            ),
-        )
         self.metadata = (("x-goog-request-params", f"bucket={self._full_bucket_name}"),)
         self.socket_like_rpc: Optional[AsyncBidiRpc] = None
         self._is_stream_open: bool = False
+        self.persisted_size: Optional[int] = None
 
     async def open(self) -> None:
         """Opens the bidi-gRPC connection to read from the object.
@@ -101,13 +97,25 @@ class _AsyncReadObjectStream(_AsyncAbstractObjectStream):
         """
         if self._is_stream_open:
             raise ValueError("Stream is already open")
+        self.first_bidi_read_req = _storage_v2.BidiReadObjectRequest(
+            read_object_spec=_storage_v2.BidiReadObjectSpec(
+                bucket=self._full_bucket_name,
+                object=self.object_name,
+                read_handle=self.read_handle,
+            ),
+        )
         self.socket_like_rpc = AsyncBidiRpc(
             self.rpc, initial_request=self.first_bidi_read_req, metadata=self.metadata
         )
         await self.socket_like_rpc.open()  # this is actually 1 send
         response = await self.socket_like_rpc.recv()
-        if self.generation_number is None:
-            self.generation_number = response.metadata.generation
+        # populated only in the first response of bidi-stream and when opened
+        # without using `read_handle`
+        if hasattr(response, "metadata") and response.metadata:
+            if self.generation_number is None:
+                self.generation_number = response.metadata.generation
+            # update persisted size
+            self.persisted_size = response.metadata.size
 
         self.read_handle = response.read_handle
 
