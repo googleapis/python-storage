@@ -23,5 +23,4 @@ echo '--- Setting up environment variables on VM ---'
 export ZONAL_BUCKET=${_ZONAL_BUCKET}
 export RUN_ZONAL_SYSTEM_TESTS=True
 echo '--- Running Zonal tests on VM ---'
-ulimit -n 1048576
 pytest -vv -s --log-format='%(asctime)s %(levelname)s %(message)s' --log-date-format='%H:%M:%S' tests/system/test_zonal.py
