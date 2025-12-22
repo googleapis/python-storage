@@ -1,5 +1,3 @@
-# test_retry.py (Comprehensive gRPC-Only Test Suite)
-
 import asyncio
 import io
 import uuid
