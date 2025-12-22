@@ -52,11 +52,11 @@ steps:
     args:
       - "-c"
       - |
-        ulimit -Sn 4096
+        ulimit -n 4096
         # Double-check the limit was applied
-        CURRENT_LIMIT=$(ulimit -n)
-        if [ "$CURRENT_LIMIT" -lt 4096 ]; then
-          echo "ERROR: Failed to set ulimit to 4096. Current limit is $CURRENT_LIMIT  "
+        _CURRENT_LIMIT=$(ulimit -n)
+        if [ "$_CURRENT_LIMIT" -lt 4096 ]; then
+          echo "ERROR: Failed to set ulimit to 4096. Current limit is $_CURRENT_LIMIT  "
           exit 1
         fi
         set -e
