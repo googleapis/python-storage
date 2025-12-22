@@ -52,14 +52,6 @@ steps:
     args:
       - "-c"
       - |
-        ulimit -n 1048576
-        # Double-check the limit was applied
-        _CURRENT_LIMIT=$(ulimit -n)
-        if [ "$$_CURRENT_LIMIT" -lt 1048576 ]; then
-          echo "ERROR: Failed to set ulimit to 1048576. Current limit is $$_CURRENT_LIMIT  "
-          exit 1
-        fi
-        echo "current ulimit: $$_CURRENT_LIMIT"
         set -e
         # Wait for the VM to be fully initialized and SSH to be ready.
         for i in {1..10}; do
