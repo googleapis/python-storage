@@ -322,9 +322,9 @@ class AsyncMultiRangeDownloader:
                     tmp_dn_ranges_id = self._read_id_to_download_ranges_id[read_id]
                     self._download_ranges_id_to_pending_read_ids[
                         tmp_dn_ranges_id
-                    ].remove(read_id)
-                    del self._read_id_to_download_ranges_id[read_id]
-                    del self._read_id_to_writable_buffer_dict[read_id]
+                    ].discard(read_id)
+                    self._read_id_to_download_ranges_id.pop(read_id, None)
+                    self._read_id_to_writable_buffer_dict.pop(read_id, None)
 
     async def close(self):
         """
