@@ -46,15 +46,10 @@ class TestDownloadState(unittest.TestCase):
 
 
 class TestReadResumptionStrategy(unittest.TestCase):
-
     def setUp(self):
         self.strategy = _ReadResumptionStrategy()
 
-        self.state = {
-            "download_states": {},
-            "read_handle": None,
-            "routing_token": None
-        }
+        self.state = {"download_states": {}, "read_handle": None, "routing_token": None}
 
     def _add_download(self, read_id, offset=0, length=100, buffer=None):
         """Helper to inject a download state into the correct nested location."""
@@ -66,7 +61,16 @@ class TestReadResumptionStrategy(unittest.TestCase):
         self.state["download_states"][read_id] = state
         return state
 
-    def _create_response(self, content, read_id, offset, crc=None, range_end=False, handle=None, has_read_range=True):
+    def _create_response(
+        self,
+        content,
+        read_id,
+        offset,
+        crc=None,
+        range_end=False,
+        handle=None,
+        has_read_range=True,
+    ):
         """Helper to create a response object."""
         checksummed_data = None
         if content is not None:
@@ -301,7 +305,7 @@ class TestReadResumptionStrategy(unittest.TestCase):
         """Verify recover_state_on_failure correctly extracts routing_token."""
         token = "dummy-routing-token"
         redirect_error = BidiReadObjectRedirectedError(routing_token=token)
-        final_error = exceptions.RetryError("Retry failed", cause=redirect_error)
+        final_error = exceptions.Aborted("Retry failed", errors=[redirect_error])
 
         async def run():
             await self.strategy.recover_state_on_failure(final_error, self.state)

@@ -1,223 +1,216 @@
-# Copyright 2025 Google LLC
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# test_retry.py (Comprehensive gRPC-Only Test Suite)
 
 import asyncio
-import hashlib
-import logging
-import os
-import random
-import subprocess
-import time
-import requests
+import io
+import uuid
 import grpc
-from io import BytesIO
+import requests
 
-# Configure Logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger("bidi_integration_test")
+from google.api_core import exceptions
+from google.api_core.retry_async import AsyncRetry
+from google.auth import credentials as auth_credentials
+from google.cloud import _storage_v2 as storage_v2
 
-# --- Configuration ---
-TESTBENCH_PORT = 9000
-TESTBENCH_HOST = f"localhost:{TESTBENCH_PORT}"
-BUCKET_NAME = f"bidi-retry-bucket-{random.randint(1000, 9999)}"
-OBJECT_NAME = "test-blob-10mb"
-OBJECT_SIZE = 10 * 1024 * 1024  # 10 MiB
-
-# --- Imports from SDK ---
+# Import the components you are building
 from google.cloud.storage._experimental.asyncio.async_grpc_client import AsyncGrpcClient
 from google.cloud.storage._experimental.asyncio.async_multi_range_downloader import AsyncMultiRangeDownloader
-from google.cloud.storage._experimental.asyncio.async_read_object_stream import _AsyncReadObjectStream
 
-# --- Infrastructure Management ---
+# --- Configuration ---
+PROJECT_NUMBER = "12345"  # A dummy project number is fine for the testbench.
+GRPC_ENDPOINT = "localhost:8888"
+HTTP_ENDPOINT = "http://localhost:9000"
 
-def start_testbench():
-    """Starts the storage-testbench using Docker."""
-    logger.info("Starting Storage Testbench container...")
+def _is_retriable(exc):
+    """Predicate for identifying retriable errors."""
+    return isinstance(exc, (
+        exceptions.ServiceUnavailable,
+        exceptions.Aborted,  # Required to retry on redirect
+        exceptions.InternalServerError,
+        exceptions.ResourceExhausted,
+    ))
+
+async def run_test_scenario(gapic_client, http_client, bucket_name, object_name, scenario):
+    """Runs a single fault-injection test scenario."""
+    print(f"\n--- RUNNING SCENARIO: {scenario['name']} ---")
+
+    retry_test_id = None
     try:
-        # Check if already running
-        requests.get(f"http://{TESTBENCH_HOST}/")
-        logger.info("Testbench is already running.")
-        return None
-    except requests.ConnectionError:
-        pass
+        # 1. Create a Retry Test resource on the testbench.
+        retry_test_config = {
+            "instructions": {scenario['method']: [scenario['instruction']]},
+            "transport": "GRPC"
+        }
+        resp = http_client.post(f"{HTTP_ENDPOINT}/retry_test", json=retry_test_config)
+        resp.raise_for_status()
+        retry_test_id = resp.json()["id"]
 
-    cmd = [
-        "docker", "run", "-d", "--rm",
-        "-p", f"{TESTBENCH_PORT}:{TESTBENCH_PORT}",
-        "gcr.io/google.com/cloudsdktool/cloud-sdk:latest",
-        "gcloud", "beta", "emulators", "storage", "start",
-        f"--host-port=0.0.0.0:{TESTBENCH_PORT}"
-    ]
-    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        # 2. Set up downloader and metadata for fault injection.
+        downloader = await AsyncMultiRangeDownloader.create_mrd(
+            gapic_client, bucket_name, object_name
+        )
+        fault_injection_metadata = (("x-retry-test-id", retry_test_id),)
 
-    # Wait for it to be ready
-    for _ in range(20):
+        buffer = io.BytesIO()
+        fast_retry = AsyncRetry(predicate=_is_retriable, deadline=15, initial=0.1)
+
+        # 3. Execute the download and assert the outcome.
         try:
-            requests.get(f"http://{TESTBENCH_HOST}/")
-            logger.info("Testbench started successfully.")
-            return process
-        except requests.ConnectionError:
-            time.sleep(1)
-
-    raise RuntimeError("Timed out waiting for Testbench to start.")
-
-def stop_testbench(process):
-    if process:
-        logger.info("Stopping Testbench container...")
-        subprocess.run(["docker", "stop", process.args[2]]) # Stop container ID (not robust, assumes simple run)
-        # Better: Since we used --rm, killing the python process might not kill docker immediately
-        # without capturing container ID.
-        # For simplicity in this script, we assume the user might manually clean up if this fails,
-        # or we just rely on standard docker commands.
-        # Actually, let's just kill the container by image name or port if needed later.
-        pass
-
-# --- Test Data Setup ---
-
-def setup_resources():
-    """Creates bucket and object via HTTP."""
-    logger.info(f"Creating resources on {TESTBENCH_HOST}...")
-
-    # 1. Create Bucket
-    resp = requests.post(
-        f"http://{TESTBENCH_HOST}/storage/v1/b?project=test-project",
-        json={"name": BUCKET_NAME}
-    )
-    if resp.status_code not in (200, 409):
-        raise RuntimeError(f"Bucket creation failed: {resp.text}")
-
-    # 2. Upload Object
-    data = os.urandom(OBJECT_SIZE)
-    resp = requests.post(
-        f"http://{TESTBENCH_HOST}/upload/storage/v1/b/{BUCKET_NAME}/o?uploadType=media&name={OBJECT_NAME}",
-        data=data,
-        headers={"Content-Type": "application/octet-stream"}
-    )
-    if resp.status_code != 200:
-        raise RuntimeError(f"Object upload failed: {resp.text}")
-
-    return data
-
-# --- Fault Injection Logic ---
-
-def inject_failure_instruction(test_case):
-    """
-    Monkeypatches _AsyncReadObjectStream.open to inject x-goog-testbench-instructions.
-
-    Supported test_cases:
-    - 'broken-stream': Aborts stream mid-way.
-    - 'stall-always': Stalls immediately (timeout simulation).
-    - 'transient-error': Returns an error status code.
-    """
-    real_open = _AsyncReadObjectStream.open
-    attempt_counter = 0
-
-    async def monkeypatched_open(self, metadata=None):
-        nonlocal attempt_counter
-        attempt_counter += 1
-
-        if metadata is None:
-            metadata = []
-        else:
-            metadata = list(metadata)
-
-        # Inject fault only on the first attempt
-        if attempt_counter == 1:
-            instruction = ""
-            if test_case == 'broken-stream':
-                instruction = "return-broken-stream"
-            elif test_case == 'transient-error':
-                instruction = "return-503-after-256K" # Simulate Service Unavailable later
-
-            if instruction:
-                logger.info(f">>> INJECTING FAULT: '{instruction}' <<<")
-                metadata.append(("x-goog-testbench-instructions", instruction))
-        else:
-            logger.info(f">>> Attempt {attempt_counter}: Clean retry <<<")
-
-        await real_open(self, metadata=metadata)
-
-    _AsyncReadObjectStream.open = monkeypatched_open
-    return real_open
-
-# --- Main Test Runner ---
-
-async def run_tests():
-    # 1. Start Infrastructure
-    tb_process = start_testbench()
-
-    try:
-        # 2. Setup Data
-        original_data = setup_resources()
-
-        # 3. Setup Client
-        channel = grpc.aio.insecure_channel(TESTBENCH_HOST)
-        client = AsyncGrpcClient(channel=channel)
-
-        # Test Scenarios
-        scenarios = ['broken-stream', 'transient-error']
-
-        for scenario in scenarios:
-            logger.info(f"\n--- Running Scenario: {scenario} ---")
-
-            # Reset MRD state
-            mrd = await AsyncMultiRangeDownloader.create_mrd(
-                client=client.grpc_client,
-                bucket_name=BUCKET_NAME,
-                object_name=OBJECT_NAME
+            await downloader.download_ranges(
+                [(0, 4, buffer)], metadata=fault_injection_metadata
             )
+            # If an exception was expected, this line should not be reached.
+            if scenario['expected_error'] is not None:
+                raise AssertionError(f"Expected exception {scenario['expected_error']} was not raised.")
 
-            # Apply Fault Injection
-            original_open_method = inject_failure_instruction(scenario)
+            assert buffer.getvalue() == b"This"
 
-            # Buffers
-            b1 = BytesIO()
-            b2 = BytesIO()
+        except scenario['expected_error'] as e:
+            print(f"Caught expected exception for {scenario['name']}: {e}")
 
-            # Split ranges
-            mid = OBJECT_SIZE // 2
-            ranges = [(0, mid, b1), (mid, OBJECT_SIZE - mid, b2)]
-
-            try:
-                await mrd.download_ranges(ranges)
-                logger.info(f"Scenario {scenario}: Download call returned successfully.")
-
-                # Verify Content
-                downloaded = b1.getvalue() + b2.getvalue()
-                if downloaded == original_data:
-                    logger.info(f"Scenario {scenario}: PASSED - Data integrity verified.")
-                else:
-                    logger.error(f"Scenario {scenario}: FAILED - Data mismatch.")
-
-            except Exception as e:
-                logger.error(f"Scenario {scenario}: FAILED with exception: {e}")
-            finally:
-                # Cleanup and Restore
-                _AsyncReadObjectStream.open = original_open_method
-                await mrd.close()
+        await downloader.close()
 
     finally:
-        # Stop Infrastructure (if we started it)
-        # Note: In a real script, we'd be more rigorous about finding the PID/Container ID
-        if tb_process:
-            logger.info("Killing Testbench process...")
-            tb_process.kill()
+        # 4. Clean up the Retry Test resource.
+        if retry_test_id:
+            http_client.delete(f"{HTTP_ENDPOINT}/retry_test/{retry_test_id}")
+
+async def main():
+    """Main function to set up resources and run all test scenarios."""
+    channel = grpc.aio.insecure_channel(GRPC_ENDPOINT)
+    creds = auth_credentials.AnonymousCredentials()
+    transport = storage_v2.services.storage.transports.StorageGrpcAsyncIOTransport(channel=channel, credentials=creds)
+    gapic_client = storage_v2.StorageAsyncClient(transport=transport)
+    http_client = requests.Session()
+
+    bucket_name = f"grpc-test-bucket-{uuid.uuid4().hex[:8]}"
+    object_name = "retry-test-object"
+
+    # Define all test scenarios
+    test_scenarios = [
+        {
+            "name": "Retry on Service Unavailable (503)",
+            "method": "storage.objects.get",
+            "instruction": "return-503",
+            "expected_error": None,
+        },
+        {
+            "name": "Retry on 500",
+            "method": "storage.objects.get",
+            "instruction": "return-500",
+            "expected_error": None,
+        },
+        {
+            "name": "Retry on 504",
+            "method": "storage.objects.get",
+            "instruction": "return-504",
+            "expected_error": None,
+        },
+        {
+            "name": "Retry on 429",
+            "method": "storage.objects.get",
+            "instruction": "return-429",
+            "expected_error": None,
+        },
+        {
+            "name": "Retry on BidiReadObjectRedirectedError",
+            "method": "storage.objects.get",
+            "instruction": "redirect-send-handle-and-token-tokenval", # Testbench instruction for redirect
+            "expected_error": None,
+        },
+    ]
+
+    try:
+        # Create a single bucket and object for all tests to use.
+        bucket_resource = storage_v2.Bucket(project=f"projects/{PROJECT_NUMBER}")
+        create_bucket_request = storage_v2.CreateBucketRequest(parent="projects/_", bucket_id=bucket_name, bucket=bucket_resource)
+        await gapic_client.create_bucket(request=create_bucket_request)
+
+        write_spec = storage_v2.WriteObjectSpec(resource=storage_v2.Object(bucket=f"projects/_/buckets/{bucket_name}", name=object_name))
+        async def write_req_gen():
+            yield storage_v2.WriteObjectRequest(write_object_spec=write_spec, checksummed_data={"content": b"This is test data"}, finish_write=True)
+        await gapic_client.write_object(requests=write_req_gen())
+
+        # Run all defined test scenarios.
+        for scenario in test_scenarios:
+            await run_test_scenario(gapic_client, http_client, bucket_name, object_name, scenario)
+
+        # Define and run test scenarios specifically for the open() method
+        open_test_scenarios = [
+            {
+                "name": "Open: Retry on 503",
+                "method": "storage.objects.get",
+                "instruction": "return-503",
+                "expected_error": None,
+            },
+            {
+                "name": "Open: Retry on BidiReadObjectRedirectedError",
+                "method": "storage.objects.get",
+                "instruction": "redirect-send-handle-and-token-tokenval",
+                "expected_error": None,
+            },
+            {
+                "name": "Open: Fail Fast on 401",
+                "method": "storage.objects.get",
+                "instruction": "return-401",
+                "expected_error": exceptions.Unauthorized,
+            }
+        ]
+        for scenario in open_test_scenarios:
+            await run_open_test_scenario(gapic_client, http_client, bucket_name, object_name, scenario)
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+    finally:
+        # Clean up the test bucket.
+        try:
+            delete_bucket_req = storage_v2.DeleteBucketRequest(name=f"projects/_/buckets/{bucket_name}")
+            await gapic_client.delete_bucket(request=delete_bucket_req)
+        except Exception as e:
+            print(f"Warning: Cleanup failed: {e}")
+
+async def run_open_test_scenario(gapic_client, http_client, bucket_name, object_name, scenario):
+    """Runs a fault-injection test scenario specifically for the open() method."""
+    print(f"\n--- RUNNING SCENARIO: {scenario['name']} ---")
+
+    retry_test_id = None
+    try:
+        # 1. Create a Retry Test resource on the testbench.
+        retry_test_config = {
+            "instructions": {scenario['method']: [scenario['instruction']]},
+            "transport": "GRPC"
+        }
+        resp = http_client.post(f"{HTTP_ENDPOINT}/retry_test", json=retry_test_config)
+        resp.raise_for_status()
+        retry_test_id = resp.json()["id"]
+        print(f"Retry Test created with ID: {retry_test_id}")
+
+        # 2. Set up metadata for fault injection.
+        fault_injection_metadata = (("x-retry-test-id", retry_test_id),)
+
+        # 3. Execute the open (via create_mrd) and assert the outcome.
+        try:
+            downloader = await AsyncMultiRangeDownloader.create_mrd(
+                gapic_client, bucket_name, object_name, metadata=fault_injection_metadata
+            )
+
+            # If open was successful, perform a simple download to ensure the stream is usable.
+            buffer = io.BytesIO()
+            await downloader.download_ranges([(0, 4, buffer)])
+            await downloader.close()
+            assert buffer.getvalue() == b"This"
+
+            # If an exception was expected, this line should not be reached.
+            if scenario['expected_error'] is not None:
+                raise AssertionError(f"Expected exception {scenario['expected_error']} was not raised.")
+
+        except scenario['expected_error'] as e:
+            print(f"Caught expected exception for {scenario['name']}: {e}")
+
+    finally:
+        # 4. Clean up the Retry Test resource.
+        if retry_test_id:
+            http_client.delete(f"{HTTP_ENDPOINT}/retry_test/{retry_test_id}")
 
 if __name__ == "__main__":
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    try:
-        loop.run_until_complete(run_tests())
-    except KeyboardInterrupt:
-        pass
+    asyncio.run(main())

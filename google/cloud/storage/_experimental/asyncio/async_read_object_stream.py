@@ -102,11 +102,13 @@ class _AsyncReadObjectStream(_AsyncAbstractObjectStream):
         if self._is_stream_open:
             raise ValueError("Stream is already open")
 
+        read_handle = self.read_handle if self.read_handle else None
+
         read_object_spec = _storage_v2.BidiReadObjectSpec(
             bucket=self._full_bucket_name,
             object=self.object_name,
             generation=self.generation_number if self.generation_number else None,
-            read_handle=self.read_handle if self.read_handle else None,
+            read_handle=read_handle,
         )
         self.first_bidi_read_req = _storage_v2.BidiReadObjectRequest(
             read_object_spec=read_object_spec

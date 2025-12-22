@@ -36,13 +36,10 @@ _TEST_READ_HANDLE = b"test-handle"
 
 
 class TestAsyncMultiRangeDownloader:
-
     def create_read_ranges(self, num_ranges):
         ranges = []
         for i in range(num_ranges):
-            ranges.append(
-                (i, 1, BytesIO())
-            )
+            ranges.append((i, 1, BytesIO()))
         return ranges
 
     # helper method
@@ -146,7 +143,6 @@ class TestAsyncMultiRangeDownloader:
                     )
                 ]
             ),
-            None,
             _storage_v2.BidiReadObjectResponse(
                 object_data_ranges=[
                     _storage_v2.ObjectRangeData(
@@ -219,7 +215,7 @@ class TestAsyncMultiRangeDownloader:
                     )
                 ],
             ),
-            None
+            None,
         ]
 
         # Act
@@ -363,7 +359,9 @@ class TestAsyncMultiRangeDownloader:
     async def test_download_ranges_raises_on_checksum_mismatch(
         self, mock_client, mock_checksum_class
     ):
-        from google.cloud.storage._experimental.asyncio.async_multi_range_downloader import AsyncMultiRangeDownloader
+        from google.cloud.storage._experimental.asyncio.async_multi_range_downloader import (
+            AsyncMultiRangeDownloader,
+        )
 
         mock_stream = mock.AsyncMock(
             spec=async_read_object_stream._AsyncReadObjectStream
@@ -380,7 +378,9 @@ class TestAsyncMultiRangeDownloader:
                     checksummed_data=_storage_v2.ChecksummedData(
                         content=test_data, crc32c=server_checksum
                     ),
-                    read_range=_storage_v2.ReadRange(read_id=0, read_offset=0, read_length=len(test_data)),
+                    read_range=_storage_v2.ReadRange(
+                        read_id=0, read_offset=0, read_length=len(test_data)
+                    ),
                     range_end=True,
                 )
             ]
@@ -393,7 +393,10 @@ class TestAsyncMultiRangeDownloader:
         mrd._is_stream_open = True
 
         with pytest.raises(DataCorruption) as exc_info:
-            with mock.patch("google.cloud.storage._experimental.asyncio.async_multi_range_downloader.generate_random_56_bit_integer", return_value=0):
+            with mock.patch(
+                "google.cloud.storage._experimental.asyncio.async_multi_range_downloader.generate_random_56_bit_integer",
+                return_value=0,
+            ):
                 await mrd.download_ranges([(0, len(test_data), BytesIO())])
 
         assert "Checksum mismatch" in str(exc_info.value)
