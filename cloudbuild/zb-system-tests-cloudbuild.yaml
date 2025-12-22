@@ -52,7 +52,7 @@ steps:
     args:
       - "-c"
       - |
-        ulimit -n 4096
+        ulimit -n 1048576
         # Double-check the limit was applied
         _CURRENT_LIMIT=$(ulimit -n)
         if [ "$_CURRENT_LIMIT" -lt 4096 ]; then
