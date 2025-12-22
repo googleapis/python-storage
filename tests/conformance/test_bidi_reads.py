@@ -7,7 +7,6 @@ import grpc
 import requests
 
 from google.api_core import exceptions
-from google.api_core.retry_async import AsyncRetry
 from google.auth import credentials as auth_credentials
 from google.cloud import _storage_v2 as storage_v2
 
