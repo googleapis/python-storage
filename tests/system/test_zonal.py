@@ -19,34 +19,6 @@ from google.cloud.storage._experimental.asyncio.async_appendable_object_writer i
 from google.cloud.storage._experimental.asyncio.async_multi_range_downloader import (
     AsyncMultiRangeDownloader,
 )
-import psutil
-
-pid = os.getpid()
-print(f"Test running in process ID,sleeping: {pid}")
-import time
-
-# time.sleep(10)
-
-
-def log_num_of_open_fd(position):
-    """Helper function to log the number of open file descriptors."""
-    import inspect
-
-    func_name = inspect.stack()[1].function
-    print(f"\n----------- In function: {func_name} at {position} -----------")
-    process = psutil.Process(pid)
-    print(
-        f"Number of TCP connections for process: {len(process.net_connections(kind='tcp'))}"
-    )
-    try:
-        system_tcp_connections = len(psutil.net_connections(kind="tcp"))
-        print(
-            f"Total number of TCP connections on the system: {system_tcp_connections}"
-        )
-    except psutil.AccessDenied:
-        print(
-            "Could not determine total number of TCP connections on the system (permission denied)."
-        )
 
 
 pytestmark = pytest.mark.skipif(
@@ -66,36 +38,6 @@ def _get_equal_dist(a: int, b: int) -> tuple[int, int]:
     return a + step, a + 2 * step
 
 
-# async def write_one_appendable_object(
-#     bucket_name: str,
-#     object_name: str,
-#     data: bytes,
-# ) -> None:
-#     """Helper to write an appendable object."""
-#     grpc_client = AsyncGrpcClient(attempt_direct_path=True).grpc_client
-#     writer = AsyncAppendableObjectWriter(grpc_client, bucket_name, object_name)
-#     await writer.open()
-#     await writer.append(data)
-#     await writer.close()
-
-
-# @pytest.fixture(scope="function")
-# def appendable_object(storage_client, blobs_to_delete):
-#     """Fixture to create and cleanup an appendable object."""
-#     object_name = f"appendable_obj_for_mrd-{str(uuid.uuid4())[:4]}"
-#     asyncio.run(
-#         write_one_appendable_object(
-#             _ZONAL_BUCKET,
-#             object_name,
-#             _BYTES_TO_UPLOAD,
-#         )
-#     )
-#     yield object_name
-
-#     # Clean up; use json client (i.e. `storage_client` fixture) to delete.
-#     blobs_to_delete.append(storage_client.bucket(_ZONAL_BUCKET).blob(object_name))
-
-
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "object_size",
@@ -112,7 +54,6 @@ def _get_equal_dist(a: int, b: int) -> tuple[int, int]:
 async def test_basic_wrd(
     storage_client, blobs_to_delete, attempt_direct_path, object_size
 ):
-    log_num_of_open_fd("start")
     object_name = f"test_basic_wrd-{str(uuid.uuid4())}"
 
     # Client instantiation; it cannot be part of fixture because.
@@ -148,7 +89,6 @@ async def test_basic_wrd(
     del writer
     del mrd
     gc.collect()
-    log_num_of_open_fd("end")
 
 
 @pytest.mark.asyncio
@@ -161,7 +101,6 @@ async def test_basic_wrd(
     ],
 )
 async def test_basic_wrd_in_slices(storage_client, blobs_to_delete, object_size):
-    log_num_of_open_fd("start")
     object_name = f"test_basic_wrd-{str(uuid.uuid4())}"
 
     # Client instantiation; it cannot be part of fixture because.
@@ -200,7 +139,6 @@ async def test_basic_wrd_in_slices(storage_client, blobs_to_delete, object_size)
     del writer
     del mrd
     gc.collect()
-    log_num_of_open_fd("end")
 
 
 @pytest.mark.asyncio
@@ -218,7 +156,6 @@ async def test_wrd_with_non_default_flush_interval(
     blobs_to_delete,
     flush_interval,
 ):
-    log_num_of_open_fd("start")
     object_name = f"test_basic_wrd-{str(uuid.uuid4())}"
     object_size = 9 * 1024 * 1024
 
@@ -263,12 +200,10 @@ async def test_wrd_with_non_default_flush_interval(
     del writer
     del mrd
     gc.collect()
-    log_num_of_open_fd("end")
 
 
 @pytest.mark.asyncio
 async def test_read_unfinalized_appendable_object(storage_client, blobs_to_delete):
-    log_num_of_open_fd("start")
     object_name = f"read_unfinalized_appendable_object-{str(uuid.uuid4())[:4]}"
     grpc_client = AsyncGrpcClient(attempt_direct_path=True).grpc_client
 
@@ -291,12 +226,10 @@ async def test_read_unfinalized_appendable_object(storage_client, blobs_to_delet
     del writer
     del mrd
     gc.collect()
-    log_num_of_open_fd("end")
 
 
 @pytest.mark.asyncio
 async def test_mrd_open_with_read_handle():
-    log_num_of_open_fd("start")
     grpc_client = AsyncGrpcClient().grpc_client
     object_name = f"test_read_handl-{str(uuid.uuid4())[:4]}"
     writer = AsyncAppendableObjectWriter(grpc_client, _ZONAL_BUCKET, object_name)
@@ -323,4 +256,3 @@ async def test_mrd_open_with_read_handle():
     del mrd
     del new_mrd
     gc.collect()
-    log_num_of_open_fd("end")
