@@ -59,6 +59,7 @@ steps:
           echo "ERROR: Failed to set ulimit to 4096. Current limit is $_CURRENT_LIMIT  "
           exit 1
         fi
+        echo "current ulimit: $_CURRENT_LIMIT"
         set -e
         # Wait for the VM to be fully initialized and SSH to be ready.
         for i in {1..10}; do
