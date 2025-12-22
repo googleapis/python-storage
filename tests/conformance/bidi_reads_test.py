@@ -164,6 +164,12 @@ async def main():
     finally:
         # Clean up the test bucket.
         try:
+            delete_object_req = storage_v2.DeleteObjectRequest(
+                bucket="projects/_/buckets/" + bucket_name,
+                object=object_name
+            )
+            await gapic_client.delete_object(request=delete_object_req)
+
             delete_bucket_req = storage_v2.DeleteBucketRequest(name=f"projects/_/buckets/{bucket_name}")
             await gapic_client.delete_bucket(request=delete_bucket_req)
         except Exception as e:

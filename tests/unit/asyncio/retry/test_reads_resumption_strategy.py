@@ -221,7 +221,7 @@ class TestReadResumptionStrategy(unittest.TestCase):
         response = self._create_response(b"data", _READ_ID, 0, handle=new_handle)
 
         self.strategy.update_state_from_response(response, self.state)
-        self.assertEqual(self.state["read_handle"], new_handle)
+        self.assertEqual(self.state["read_handle"].handle, new_handle)
 
     def test_update_state_unknown_id(self):
         """Verify we ignore data for IDs not in our tracking state."""
