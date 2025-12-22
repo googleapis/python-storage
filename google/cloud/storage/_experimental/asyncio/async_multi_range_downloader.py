@@ -14,15 +14,12 @@
 
 from __future__ import annotations
 import asyncio
-import google_crc32c
 from google.api_core import exceptions
 from google.api_core.retry_async import AsyncRetry
 from google.cloud._storage_v2.types import BidiReadObjectRedirectedError
 from google.rpc import status_pb2
 
 from typing import List, Optional, Tuple, Any, Dict
-
-from google_crc32c import Checksum
 
 from ._utils import raise_if_no_fast_crc32c
 from google.cloud.storage._experimental.asyncio.async_read_object_stream import (
@@ -278,8 +275,6 @@ class AsyncMultiRangeDownloader:
             ).with_on_error(combined_on_error)
 
         async def _do_open():
-            nonlocal metadata
-
             current_metadata = list(metadata) if metadata else []
 
             # Cleanup stream from previous failed attempt, if any.

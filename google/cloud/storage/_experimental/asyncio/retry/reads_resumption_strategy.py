@@ -14,7 +14,6 @@
 
 from typing import Any, Dict, List, IO
 
-import grpc
 from google.api_core import exceptions
 from google.rpc import status_pb2
 from google_crc32c import Checksum

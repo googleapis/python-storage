@@ -11,8 +11,6 @@ from google.api_core.retry_async import AsyncRetry
 from google.auth import credentials as auth_credentials
 from google.cloud import _storage_v2 as storage_v2
 
-# Import the components you are building
-from google.cloud.storage._experimental.asyncio.async_grpc_client import AsyncGrpcClient
 from google.cloud.storage._experimental.asyncio.async_multi_range_downloader import AsyncMultiRangeDownloader
 
 # --- Configuration ---
@@ -51,7 +49,6 @@ async def run_test_scenario(gapic_client, http_client, bucket_name, object_name,
         fault_injection_metadata = (("x-retry-test-id", retry_test_id),)
 
         buffer = io.BytesIO()
-        fast_retry = AsyncRetry(predicate=_is_retriable, deadline=15, initial=0.1)
 
         # 3. Execute the download and assert the outcome.
         try:
@@ -158,7 +155,7 @@ async def main():
         for scenario in open_test_scenarios:
             await run_open_test_scenario(gapic_client, http_client, bucket_name, object_name, scenario)
 
-    except Exception as e:
+    except Exception:
         import traceback
         traceback.print_exc()
     finally:
