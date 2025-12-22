@@ -3,7 +3,7 @@ substitutions:
   _ZONE: "us-central1-a"
   _SHORT_BUILD_ID: ${BUILD_ID:0:8}
   _VM_NAME: "py-sdk-sys-test-${_SHORT_BUILD_ID}"
-  _ULIMIT: 10000 # 10k, for gRPC bidi streams
+  _ULIMIT: "10000" # 10k, for gRPC bidi streams
 
 
 
