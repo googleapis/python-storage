@@ -17,7 +17,6 @@ echo 'Install testing libraries explicitly, as they are not in setup.py'
 pip install --upgrade pip
 pip install pytest pytest-timeout pytest-subtests pytest-asyncio
 pip install google-cloud-testutils google-cloud-kms
-pip install psutil==7.1.3
 pip install -e .
 
 echo '--- Setting up environment variables on VM ---'
