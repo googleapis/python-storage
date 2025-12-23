@@ -15,10 +15,16 @@
 from typing import Any, Dict, IO, Iterable, Optional, Union
 
 import google_crc32c
+from google.api_core import exceptions
+from google.rpc import status_pb2
 from google.cloud._storage_v2.types import storage as storage_type
 from google.cloud._storage_v2.types.storage import BidiWriteObjectRedirectedError
 from google.cloud.storage._experimental.asyncio.retry.base_strategy import (
     _BaseResumptionStrategy,
+)
+
+_BIDI_WRITE_REDIRECTED_TYPE_URL = (
+    "type.googleapis.com/google.storage.v2.BidiWriteObjectRedirectedError"
 )
 
 
@@ -127,15 +133,52 @@ class _WriteResumptionStrategy(_BaseResumptionStrategy):
     ) -> None:
         """Handles errors, specifically BidiWriteObjectRedirectedError, and rewinds state."""
         write_state: _WriteState = state["write_state"]
-        cause = getattr(error, "cause", error)
 
-        # Extract routing token and potentially a new write handle.
-        if isinstance(cause, BidiWriteObjectRedirectedError):
-            if cause.routing_token:
-                write_state.routing_token = cause.routing_token
+        grpc_error = None
+        if isinstance(error, exceptions.Aborted) and error.errors:
+            grpc_error = error.errors[0]
 
-            if hasattr(cause, "write_handle") and cause.write_handle:
-                write_state.write_handle = cause.write_handle
+        if grpc_error:
+            if isinstance(grpc_error, BidiWriteObjectRedirectedError):
+                if grpc_error.routing_token:
+                    write_state.routing_token = grpc_error.routing_token
+                if grpc_error.write_handle:
+                    write_state.write_handle = grpc_error.write_handle
+                return
+
+            if hasattr(grpc_error, "trailing_metadata"):
+                trailers = grpc_error.trailing_metadata()
+                if not trailers:
+                    return
+                status_details_bin = None
+                for key, value in trailers:
+                    if key == "grpc-status-details-bin":
+                        status_details_bin = value
+                        break
+
+                if status_details_bin:
+                    status_proto = status_pb2.Status()
+                    try:
+                        status_proto.ParseFromString(status_details_bin)
+                        for detail in status_proto.details:
+                            if detail.type_url == _BIDI_WRITE_REDIRECTED_TYPE_URL:
+                                redirect_proto = (
+                                    BidiWriteObjectRedirectedError.deserialize(
+                                        detail.value
+                                    )
+                                )
+                                if redirect_proto.routing_token:
+                                    write_state.routing_token = (
+                                        redirect_proto.routing_token
+                                    )
+                                if redirect_proto.write_handle:
+                                    write_state.write_handle = (
+                                        redirect_proto.write_handle
+                                    )
+                                break
+                    except Exception:
+                        # Could not parse the error, ignore
+                        pass
 
         # We must assume any data sent beyond 'persisted_size' was lost.
         # Reset the user buffer to the last known good byte.
