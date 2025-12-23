@@ -258,7 +258,8 @@ class TestReadResumptionStrategy(unittest.TestCase):
         """Test mismatch between expected length and actual bytes written on completion."""
         self._add_download(_READ_ID, length=100)
 
-        response = self._create_response(b"data", _READ_ID, offset=0, range_end=True)
+        data = b"data" * 30
+        response = self._create_response(data, _READ_ID, offset=0, range_end=True)
 
         with self.assertRaisesRegex(DataCorruption, "Byte count mismatch"):
             self.strategy.update_state_from_response(response, self.state)
