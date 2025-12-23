@@ -21,7 +21,13 @@ GA(Generally Available) yet, please contact your TAM (Technical Account Manager)
 if you want to use these Rapid Storage APIs.
 
 """
+from io import BufferedReader
 from typing import Optional, Union
+
+from google_crc32c import Checksum
+from google.api_core import exceptions
+
+from ._utils import raise_if_no_fast_crc32c
 from google.cloud import _storage_v2
 from google.cloud.storage._experimental.asyncio.async_grpc_client import (
     AsyncGrpcClient,
@@ -32,7 +38,7 @@ from google.cloud.storage._experimental.asyncio.async_write_object_stream import
 
 
 _MAX_CHUNK_SIZE_BYTES = 2 * 1024 * 1024  # 2 MiB
-_MAX_BUFFER_SIZE_BYTES = 16 * 1024 * 1024  # 16 MiB
+_DEFAULT_FLUSH_INTERVAL_BYTES = 16 * 1024 * 1024  # 16 MiB
 
 
 class AsyncAppendableObjectWriter:
@@ -45,6 +51,7 @@ class AsyncAppendableObjectWriter:
         object_name: str,
         generation=None,
         write_handle=None,
+        writer_options: Optional[dict] = None,
     ):
         """
         Class for appending data to a GCS Appendable Object.
@@ -100,6 +107,7 @@ class AsyncAppendableObjectWriter:
         :param write_handle: (Optional) An existing handle for writing the object.
                             If provided, opening the bidi-gRPC connection will be faster.
         """
+        raise_if_no_fast_crc32c()
         self.client = client
         self.bucket_name = bucket_name
         self.object_name = object_name
@@ -114,8 +122,27 @@ class AsyncAppendableObjectWriter:
             write_handle=self.write_handle,
         )
         self._is_stream_open: bool = False
+        # `offset` is the latest size of the object without staleless.
         self.offset: Optional[int] = None
+        # `persisted_size` is the total_bytes persisted in the GCS server.
+        # Please note: `offset` and `persisted_size` are same when the stream is
+        # opened.
         self.persisted_size: Optional[int] = None
+        if writer_options is None:
+            writer_options = {}
+        self.flush_interval = writer_options.get(
+            "FLUSH_INTERVAL_BYTES", _DEFAULT_FLUSH_INTERVAL_BYTES
+        )
+        # TODO: add test case for this.
+        if self.flush_interval < _MAX_CHUNK_SIZE_BYTES:
+            raise exceptions.OutOfRange(
+                f"flush_interval must be >= {_MAX_CHUNK_SIZE_BYTES} , but provided {self.flush_interval}"
+            )
+        if self.flush_interval % _MAX_CHUNK_SIZE_BYTES != 0:
+            raise exceptions.OutOfRange(
+                f"flush_interval must be a multiple of {_MAX_CHUNK_SIZE_BYTES}, but provided {self.flush_interval}"
+            )
+        self.bytes_appended_since_last_flush = 0
 
     async def state_lookup(self) -> int:
         """Returns the persisted_size
@@ -152,17 +179,17 @@ class AsyncAppendableObjectWriter:
         if self.generation is None:
             self.generation = self.write_obj_stream.generation_number
         self.write_handle = self.write_obj_stream.write_handle
-
-        # Update self.persisted_size
-        _ = await self.state_lookup()
+        self.persisted_size = self.write_obj_stream.persisted_size
 
     async def append(self, data: bytes) -> None:
         """Appends data to the Appendable object.
 
-        This method sends the provided data to the GCS server in chunks. It
-        maintains an internal threshold `_MAX_BUFFER_SIZE_BYTES` and will
-        automatically flush the data to make it visible to readers when that
-        threshold has reached.
+        calling `self.append` will append bytes at the end of the current size
+        ie. `self.offset` bytes relative to the begining of the object.
+
+        This method sends the provided `data` to the GCS server in chunks.
+        and persists data in GCS at every `_MAX_BUFFER_SIZE_BYTES` bytes by
+        calling `self.simple_flush`.
 
         :type data: bytes
         :param data: The bytes to append to the object.
@@ -184,23 +211,24 @@ class AsyncAppendableObjectWriter:
             self.offset = self.persisted_size
 
         start_idx = 0
-        bytes_to_flush = 0
         while start_idx < total_bytes:
             end_idx = min(start_idx + _MAX_CHUNK_SIZE_BYTES, total_bytes)
+            data_chunk = data[start_idx:end_idx]
             await self.write_obj_stream.send(
                 _storage_v2.BidiWriteObjectRequest(
                     write_offset=self.offset,
                     checksummed_data=_storage_v2.ChecksummedData(
-                        content=data[start_idx:end_idx]
+                        content=data_chunk,
+                        crc32c=int.from_bytes(Checksum(data_chunk).digest(), "big"),
                     ),
                 )
             )
             chunk_size = end_idx - start_idx
             self.offset += chunk_size
-            bytes_to_flush += chunk_size
-            if bytes_to_flush >= _MAX_BUFFER_SIZE_BYTES:
+            self.bytes_appended_since_last_flush += chunk_size
+            if self.bytes_appended_since_last_flush >= self.flush_interval:
                 await self.simple_flush()
-                bytes_to_flush = 0
+                self.bytes_appended_since_last_flush = 0
             start_idx = end_idx
 
     async def simple_flush(self) -> None:
@@ -267,7 +295,8 @@ class AsyncAppendableObjectWriter:
             await self.finalize()
         else:
             await self.flush()
-            await self.write_obj_stream.close()
+
+        await self.write_obj_stream.close()
 
         self._is_stream_open = False
         self.offset = None
@@ -311,6 +340,16 @@ class AsyncAppendableObjectWriter:
         """
         raise NotImplementedError("append_from_stream is not implemented yet.")
 
-    async def append_from_file(self, file_path: str):
-        """Create a file object from `file_path` and call append_from_stream(file_obj)"""
-        raise NotImplementedError("append_from_file is not implemented yet.")
+    async def append_from_file(
+        self, file_obj: BufferedReader, block_size: int = _DEFAULT_FLUSH_INTERVAL_BYTES
+    ):
+        """
+        Appends data to an Appendable Object using file_handle which is opened
+        for reading in binary mode.
+
+        :type file_obj: file
+        :param file_obj: A file handle opened in binary mode for reading.
+
+        """
+        while block := file_obj.read(block_size):
+            await self.append(block)

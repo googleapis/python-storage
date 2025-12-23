@@ -30,6 +30,7 @@ from google.cloud.storage.exceptions import DataCorruption
 
 _TEST_BUCKET_NAME = "test-bucket"
 _TEST_OBJECT_NAME = "test-object"
+_TEST_OBJECT_SIZE = 1024 * 1024  # 1 MiB
 _TEST_GENERATION_NUMBER = 123456789
 _TEST_READ_HANDLE = b"test-handle"
 
@@ -57,6 +58,7 @@ class TestAsyncMultiRangeDownloader:
         mock_stream = mock_cls_async_read_object_stream.return_value
         mock_stream.open = AsyncMock()
         mock_stream.generation_number = _TEST_GENERATION_NUMBER
+        mock_stream.persisted_size = _TEST_OBJECT_SIZE
         mock_stream.read_handle = _TEST_READ_HANDLE
 
         mrd = await AsyncMultiRangeDownloader.create_mrd(
@@ -106,6 +108,7 @@ class TestAsyncMultiRangeDownloader:
         assert mrd.object_name == _TEST_OBJECT_NAME
         assert mrd.generation_number == _TEST_GENERATION_NUMBER
         assert mrd.read_handle == _TEST_READ_HANDLE
+        assert mrd.persisted_size == _TEST_OBJECT_SIZE
         assert mrd.is_stream_open
 
     @mock.patch(
@@ -346,9 +349,7 @@ class TestAsyncMultiRangeDownloader:
         assert str(exc.value) == "Underlying bidi-gRPC stream is not open"
         assert not mrd.is_stream_open
 
-    @mock.patch(
-        "google.cloud.storage._experimental.asyncio.async_multi_range_downloader.google_crc32c"
-    )
+    @mock.patch("google.cloud.storage._experimental.asyncio._utils.google_crc32c")
     @mock.patch(
         "google.cloud.storage._experimental.asyncio.async_grpc_client.AsyncGrpcClient.grpc_client"
     )
@@ -357,7 +358,7 @@ class TestAsyncMultiRangeDownloader:
     ):
         mock_google_crc32c.implementation = "python"
 
-        with pytest.raises(exceptions.NotFound) as exc_info:
+        with pytest.raises(exceptions.FailedPrecondition) as exc_info:
             AsyncMultiRangeDownloader(mock_grpc_client, "bucket", "object")
 
         assert "The google-crc32c package is not installed with C support" in str(
