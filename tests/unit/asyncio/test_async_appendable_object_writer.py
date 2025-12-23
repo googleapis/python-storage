@@ -671,3 +671,57 @@ async def test_append_from_file(file_size, block_size, mock_client):
         else file_size // block_size + 1
     )
     assert writer.append.await_count == exepected_calls
+
+
+@pytest.mark.asyncio
+@mock.patch(
+    "google.cloud.storage._experimental.asyncio.async_appendable_object_writer._BidiStreamRetryManager"
+)
+async def test_append_with_retry_on_service_unavailable(
+    mock_retry_manager_class, mock_client
+):
+    """Test that append retries on ServiceUnavailable."""
+    # Arrange
+    writer = AsyncAppendableObjectWriter(mock_client, BUCKET, OBJECT)
+    writer._is_stream_open = True
+    writer.write_handle = WRITE_HANDLE
+
+    mock_retry_manager = mock_retry_manager_class.return_value
+    mock_retry_manager.execute = mock.AsyncMock(
+        side_effect=[exceptions.ServiceUnavailable("testing"), None]
+    )
+
+    data_to_append = b"some data"
+
+    # Act
+    await writer.append(data_to_append)
+
+    # Assert
+    assert mock_retry_manager.execute.await_count == 2
+
+
+@pytest.mark.asyncio
+@mock.patch(
+    "google.cloud.storage._experimental.asyncio.async_appendable_object_writer._BidiStreamRetryManager"
+)
+async def test_append_with_non_retryable_error(
+    mock_retry_manager_class, mock_client
+):
+    """Test that append does not retry on non-retriable errors."""
+    # Arrange
+    writer = AsyncAppendableObjectWriter(mock_client, BUCKET, OBJECT)
+    writer._is_stream_open = True
+    writer.write_handle = WRITE_HANDLE
+
+    mock_retry_manager = mock_retry_manager_class.return_value
+    mock_retry_manager.execute = mock.AsyncMock(
+        side_effect=exceptions.BadRequest("testing")
+    )
+
+    data_to_append = b"some data"
+
+    # Act & Assert
+    with pytest.raises(exceptions.BadRequest):
+        await writer.append(data_to_append)
+
+    assert mock_retry_manager.execute.await_count == 1

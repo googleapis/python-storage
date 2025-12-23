@@ -15,10 +15,16 @@
 from typing import Any, Dict, IO, Iterable, Optional, Union
 
 import google_crc32c
+from google.api_core import exceptions
+from google.rpc import status_pb2
 from google.cloud._storage_v2.types import storage as storage_type
 from google.cloud._storage_v2.types.storage import BidiWriteObjectRedirectedError
 from google.cloud.storage._experimental.asyncio.retry.base_strategy import (
     _BaseResumptionStrategy,
+)
+
+_BIDI_WRITE_REDIRECTED_TYPE_URL = (
+    "type.googleapis.com/google.storage.v2.BidiWriteObjectRedirectedError"
 )
 
 
