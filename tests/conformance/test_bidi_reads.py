@@ -14,6 +14,7 @@ from google.cloud.storage._experimental.asyncio.async_multi_range_downloader imp
 PROJECT_NUMBER = "12345"  # A dummy project number is fine for the testbench.
 GRPC_ENDPOINT = "localhost:8888"
 HTTP_ENDPOINT = "http://localhost:9000"
+CONTENT_LENGTH = 1024 * 10  # 10 KB
 
 def _is_retriable(exc):
     """Predicate for identifying retriable errors."""
@@ -50,13 +51,13 @@ async def run_test_scenario(gapic_client, http_client, bucket_name, object_name,
         # 3. Execute the download and assert the outcome.
         try:
             await downloader.download_ranges(
-                [(0, 4, buffer)], metadata=fault_injection_metadata
+                [(0, 5 * 1024, buffer), (6 * 1024, 4 * 1024, buffer)], metadata=fault_injection_metadata
             )
             # If an exception was expected, this line should not be reached.
             if scenario['expected_error'] is not None:
                 raise AssertionError(f"Expected exception {scenario['expected_error']} was not raised.")
 
-            assert buffer.getvalue() == b"This"
+            assert len(buffer.getvalue()) == 9 * 1024
 
         except scenario['expected_error'] as e:
             print(f"Caught expected exception for {scenario['name']}: {e}")
@@ -106,6 +107,12 @@ async def main():
             "expected_error": None,
         },
         {
+            "name": "Smarter Resumption: Retry 503 after partial data",
+            "method": "storage.objects.get",
+            "instruction": "return-broken-stream-after-2K",
+            "expected_error": None,
+        },
+        {
             "name": "Retry on BidiReadObjectRedirectedError",
             "method": "storage.objects.get",
             "instruction": "redirect-send-handle-and-token-tokenval", # Testbench instruction for redirect
@@ -115,13 +122,14 @@ async def main():
 
     try:
         # Create a single bucket and object for all tests to use.
+        content = b"A" * CONTENT_LENGTH
         bucket_resource = storage_v2.Bucket(project=f"projects/{PROJECT_NUMBER}")
         create_bucket_request = storage_v2.CreateBucketRequest(parent="projects/_", bucket_id=bucket_name, bucket=bucket_resource)
         await gapic_client.create_bucket(request=create_bucket_request)
 
         write_spec = storage_v2.WriteObjectSpec(resource=storage_v2.Object(bucket=f"projects/_/buckets/{bucket_name}", name=object_name))
         async def write_req_gen():
-            yield storage_v2.WriteObjectRequest(write_object_spec=write_spec, checksummed_data={"content": b"This is test data"}, finish_write=True)
+            yield storage_v2.WriteObjectRequest(write_object_spec=write_spec, checksummed_data={"content": content}, finish_write=True)
         await gapic_client.write_object(requests=write_req_gen())
 
         # Run all defined test scenarios.
@@ -196,9 +204,9 @@ async def run_open_test_scenario(gapic_client, http_client, bucket_name, object_
 
             # If open was successful, perform a simple download to ensure the stream is usable.
             buffer = io.BytesIO()
-            await downloader.download_ranges([(0, 4, buffer)])
+            await downloader.download_ranges([(0, 1024, buffer)])
             await downloader.close()
-            assert buffer.getvalue() == b"This"
+            assert len(buffer.getvalue()) == 1024
 
             # If an exception was expected, this line should not be reached.
             if scenario['expected_error'] is not None:

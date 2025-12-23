@@ -302,7 +302,7 @@ class AsyncMultiRangeDownloader:
                 self._routing_token = None
 
             await self.read_obj_str.open(
-                metadata=current_metadata if metadata else None
+                metadata=current_metadata if current_metadata else None
             )
 
             if self.read_obj_str.generation_number:

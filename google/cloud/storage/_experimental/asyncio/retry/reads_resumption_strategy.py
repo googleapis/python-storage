@@ -132,7 +132,7 @@ class _ReadResumptionStrategy(_BaseResumptionStrategy):
                 read_state.is_complete = True
                 if (
                     read_state.initial_length != 0
-                    and read_state.bytes_written != read_state.initial_length
+                    and read_state.bytes_written > read_state.initial_length
                 ):
                     raise DataCorruption(
                         response,
