@@ -13,12 +13,14 @@
 # limitations under the License.
 
 from typing import Any, Dict, List, IO
+import logging
 
-from google.api_core import exceptions
-from google.rpc import status_pb2
 from google_crc32c import Checksum
 from google.cloud import _storage_v2 as storage_v2
 from google.cloud.storage.exceptions import DataCorruption
+from google.cloud.storage._experimental.asyncio.retry._helpers import (
+    _handle_redirect,
+)
 from google.cloud.storage._experimental.asyncio.retry.base_strategy import (
     _BaseResumptionStrategy,
 )
@@ -142,47 +144,8 @@ class _ReadResumptionStrategy(_BaseResumptionStrategy):
 
     async def recover_state_on_failure(self, error: Exception, state: Any) -> None:
         """Handles BidiReadObjectRedirectedError for reads."""
-        # This would parse the gRPC error details, extract the routing_token,
-        # and store it on the shared state object.
-        grpc_error = None
-        if isinstance(error, exceptions.Aborted) and error.errors:
-            grpc_error = error.errors[0]
-
-        if grpc_error:
-            if isinstance(grpc_error, BidiReadObjectRedirectedError):
-                if grpc_error.routing_token:
-                    state["routing_token"] = grpc_error.routing_token
-                if grpc_error.read_handle:
-                    state["read_handle"] = grpc_error.read_handle
-                return
-
-            if hasattr(grpc_error, "trailing_metadata"):
-                trailers = grpc_error.trailing_metadata()
-                if not trailers:
-                    return
-                status_details_bin = None
-                for key, value in trailers:
-                    if key == "grpc-status-details-bin":
-                        status_details_bin = value
-                        break
-
-                if status_details_bin:
-                    status_proto = status_pb2.Status()
-                    try:
-                        status_proto.ParseFromString(status_details_bin)
-                        for detail in status_proto.details:
-                            if detail.type_url == _BIDI_READ_REDIRECTED_TYPE_URL:
-                                redirect_proto = (
-                                    BidiReadObjectRedirectedError.deserialize(
-                                        detail.value
-                                    )
-                                )
-                                if redirect_proto.routing_token:
-                                    state[
-                                        "routing_token"
-                                    ] = redirect_proto.routing_token
-                                if redirect_proto.read_handle:
-                                    state["read_handle"] = redirect_proto.read_handle
-                                break
-                    except Exception as e:
-                        print(f"--- Error unpacking redirect in _on_open_error: {e}")
+        routing_token, read_handle = _handle_redirect(error)
+        if routing_token:
+            state["routing_token"] = routing_token
+        if read_handle:
+            state["read_handle"] = read_handle

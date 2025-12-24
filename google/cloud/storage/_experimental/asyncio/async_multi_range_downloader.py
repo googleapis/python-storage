@@ -14,9 +14,10 @@
 
 from __future__ import annotations
 import asyncio
+import logging
 from google.api_core import exceptions
 from google.api_core.retry_async import AsyncRetry
-from google.cloud._storage_v2.types import BidiReadObjectRedirectedError
+from google.cloud.storage._experimental.asyncio.retry._helpers import _handle_redirect
 from google.rpc import status_pb2
 
 from typing import List, Optional, Tuple, Any, Dict
@@ -45,6 +46,8 @@ _MAX_READ_RANGES_PER_BIDI_READ_REQUEST = 100
 _BIDI_READ_REDIRECTED_TYPE_URL = (
     "type.googleapis.com/google.storage.v2.BidiReadObjectRedirectedError"
 )
+
+logger = logging.getLogger(__name__)
 
 
 def _is_read_retryable(exc):
@@ -81,7 +84,7 @@ def _is_read_retryable(exc):
                     if detail.type_url == _BIDI_READ_REDIRECTED_TYPE_URL:
                         return True
             except Exception as e:
-                print(f"--- Error parsing status_details_bin: {e}")
+                logger.error(f"Error parsing status_details_bin: {e}")
                 return False
     return False
 
@@ -208,46 +211,11 @@ class AsyncMultiRangeDownloader:
 
     def _on_open_error(self, exc):
         """Extracts routing token and read handle on redirect error during open."""
-        grpc_error = None
-        if isinstance(exc, exceptions.Aborted) and exc.errors:
-            grpc_error = exc.errors[0]
-
-        if grpc_error:
-            if isinstance(grpc_error, BidiReadObjectRedirectedError):
-                self._routing_token = grpc_error.routing_token
-                if grpc_error.read_handle:
-                    self.read_handle = grpc_error.read_handle
-                return
-
-            if hasattr(grpc_error, "trailing_metadata"):
-                trailers = grpc_error.trailing_metadata()
-                if not trailers:
-                    return
-
-                status_details_bin = None
-                for key, value in trailers:
-                    if key == "grpc-status-details-bin":
-                        status_details_bin = value
-                        break
-
-                if status_details_bin:
-                    status_proto = status_pb2.Status()
-                    try:
-                        status_proto.ParseFromString(status_details_bin)
-                        for detail in status_proto.details:
-                            if detail.type_url == _BIDI_READ_REDIRECTED_TYPE_URL:
-                                redirect_proto = (
-                                    BidiReadObjectRedirectedError.deserialize(
-                                        detail.value
-                                    )
-                                )
-                                if redirect_proto.routing_token:
-                                    self._routing_token = redirect_proto.routing_token
-                                if redirect_proto.read_handle:
-                                    self.read_handle = redirect_proto.read_handle
-                                break
-                    except Exception as e:
-                        print(f"--- Error unpacking redirect in _on_open_error: {e}")
+        routing_token, read_handle = _handle_redirect(exc)
+        if routing_token:
+            self._routing_token = routing_token
+        if read_handle:
+            self.read_handle = read_handle
 
     async def open(
         self,
@@ -412,6 +380,9 @@ class AsyncMultiRangeDownloader:
                 nonlocal attempt_count
                 attempt_count += 1
 
+                if attempt_count > 1:
+                    logger.info(f"Resuming download (attempt {attempt_count-1}) for {len(requests)} ranges.")
+
                 async with lock:
                     current_handle = state.get("read_handle")
                     current_token = state.get("routing_token")
@@ -426,6 +397,8 @@ class AsyncMultiRangeDownloader:
                     )
 
                     if should_reopen:
+                        if current_token:
+                            logger.info(f"Re-opening stream with routing token: {current_token}")
                         # Close existing stream if any
                         if self.read_obj_str and self.read_obj_str._is_stream_open:
                             await self.read_obj_str.close()

@@ -12,12 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
 from typing import Any, AsyncIterator, Callable
 
 from google.cloud.storage._experimental.asyncio.retry.base_strategy import (
     _BaseResumptionStrategy,
 )
 
+logger = logging.getLogger(__name__)
 
 class _BidiStreamRetryManager:
     """Manages the generic retry loop for a bidi streaming operation."""
@@ -55,6 +57,7 @@ class _BidiStreamRetryManager:
                 return
             except Exception as e:
                 if retry_policy._predicate(e):
+                    logger.info(f"Bidi stream operation failed: {e}. Attempting state recovery and retry.")
                     await self._strategy.recover_state_on_failure(e, state)
                 raise e
 
