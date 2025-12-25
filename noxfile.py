@@ -229,10 +229,17 @@ def conftest_retry(session):
         CURRENT_DIRECTORY / "testing" / f"constraints-{session.python}.txt"
     )
 
-
     # Install all test dependencies and pytest plugin to run tests in parallel.
     # Then install this package in-place.
-    session.install("pytest", "pytest-xdist", "grpcio", "grpcio-status", "grpc-google-iam-v1", "-c", constraints_path)
+    session.install(
+        "pytest",
+        "pytest-xdist",
+        "grpcio",
+        "grpcio-status",
+        "grpc-google-iam-v1",
+        "-c",
+        constraints_path,
+    )
     session.install("-e", ".", "-c", constraints_path)
 
     # Run #CPU processes in parallel if no test session arguments are passed in.

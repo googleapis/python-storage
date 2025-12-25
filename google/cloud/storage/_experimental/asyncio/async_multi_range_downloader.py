@@ -63,30 +63,31 @@ def _is_read_retryable(exc):
     ):
         return True
 
-    grpc_error = None
-    if isinstance(exc, exceptions.Aborted):
+    if not isinstance(exc, exceptions.Aborted) or not exc.errors:
+        return False
+
+    try:
         grpc_error = exc.errors[0]
         trailers = grpc_error.trailing_metadata()
         if not trailers:
             return False
 
-        status_details_bin = None
-        for key, value in trailers:
-            if key == "grpc-status-details-bin":
-                status_details_bin = value
-                break
+        status_details_bin = next(
+            (v for k, v in trailers if k == "grpc-status-details-bin"), None
+        )
 
-        if status_details_bin:
-            status_proto = status_pb2.Status()
-            try:
-                status_proto.ParseFromString(status_details_bin)
-                for detail in status_proto.details:
-                    if detail.type_url == _BIDI_READ_REDIRECTED_TYPE_URL:
-                        return True
-            except Exception as e:
-                logger.error(f"Error parsing status_details_bin: {e}")
-                return False
-    return False
+        if not status_details_bin:
+            return False
+
+        status_proto = status_pb2.Status()
+        status_proto.ParseFromString(status_details_bin)
+        return any(
+            detail.type_url == _BIDI_READ_REDIRECTED_TYPE_URL
+            for detail in status_proto.details
+        )
+    except Exception as e:
+        logger.error(f"Error parsing status_details_bin: {e}")
+        return False
 
 
 class AsyncMultiRangeDownloader:
@@ -208,7 +209,6 @@ class AsyncMultiRangeDownloader:
         self._download_ranges_id_to_pending_read_ids = {}
         self.persisted_size: Optional[int] = None  # updated after opening the stream
 
-
     def _on_open_error(self, exc):
         """Extracts routing token and read handle on redirect error during open."""
         routing_token, read_handle = _handle_redirect(exc)
@@ -238,20 +238,27 @@ class AsyncMultiRangeDownloader:
                 if original_on_error:
                     original_on_error(exc)
 
-            retry_policy = retry_policy.with_predicate(
-                _is_read_retryable
-            ).with_on_error(combined_on_error)
+            retry_policy = AsyncRetry(
+                predicate=_is_read_retryable,
+                initial=retry_policy._initial,
+                maximum=retry_policy._maximum,
+                multiplier=retry_policy._multiplier,
+                deadline=retry_policy._deadline,
+                on_error=combined_on_error,
+            )
 
         async def _do_open():
             current_metadata = list(metadata) if metadata else []
 
             # Cleanup stream from previous failed attempt, if any.
             if self.read_obj_str:
-                if self._is_stream_open:
+                if self.read_obj_str.is_stream_open:
                     try:
                         await self.read_obj_str.close()
-                    except Exception:  # ignore cleanup errors
-                        pass
+                    except exceptions.GoogleAPICallError as e:
+                        logger.warning(
+                            f"Failed to close existing stream during resumption: {e}"
+                        )
                 self.read_obj_str = None
                 self._is_stream_open = False
 
@@ -288,7 +295,7 @@ class AsyncMultiRangeDownloader:
         self,
         read_ranges: List[Tuple[int, int, BytesIO]],
         lock: asyncio.Lock = None,
-        retry_policy: AsyncRetry = None,
+        retry_policy: Optional[AsyncRetry] = None,
         metadata: Optional[List[Tuple[str, str]]] = None,
     ) -> None:
         """Downloads multiple byte ranges from the object into the buffers
@@ -367,21 +374,21 @@ class AsyncMultiRangeDownloader:
         }
 
         # Track attempts to manage stream reuse
-        is_first_attempt = True
         attempt_count = 0
 
-        def stream_opener(
+        def send_ranges_and_get_bytes(
             requests: List[_storage_v2.ReadRange],
             state: Dict[str, Any],
             metadata: Optional[List[Tuple[str, str]]] = None,
         ):
             async def generator():
-                nonlocal is_first_attempt
                 nonlocal attempt_count
                 attempt_count += 1
 
                 if attempt_count > 1:
-                    logger.info(f"Resuming download (attempt {attempt_count-1}) for {len(requests)} ranges.")
+                    logger.info(
+                        f"Resuming download (attempt {attempt_count - 1}) for {len(requests)} ranges."
+                    )
 
                 async with lock:
                     current_handle = state.get("read_handle")
@@ -398,9 +405,11 @@ class AsyncMultiRangeDownloader:
 
                     if should_reopen:
                         if current_token:
-                            logger.info(f"Re-opening stream with routing token: {current_token}")
+                            logger.info(
+                                f"Re-opening stream with routing token: {current_token}"
+                            )
                         # Close existing stream if any
-                        if self.read_obj_str and self.read_obj_str._is_stream_open:
+                        if self.read_obj_str and self.read_obj_str.is_stream_open:
                             await self.read_obj_str.close()
 
                         # Re-initialize stream
@@ -427,8 +436,6 @@ class AsyncMultiRangeDownloader:
                         )
                         self._is_stream_open = True
 
-                    # Mark first attempt as done; next time this runs it will be a retry
-                    is_first_attempt = False
                     pending_read_ids = {r.read_id for r in requests}
 
                     # Send Requests
@@ -456,7 +463,7 @@ class AsyncMultiRangeDownloader:
 
         strategy = _ReadResumptionStrategy()
         retry_manager = _BidiStreamRetryManager(
-            strategy, lambda r, s: stream_opener(r, s, metadata=metadata)
+            strategy, lambda r, s: send_ranges_and_get_bytes(r, s, metadata=metadata)
         )
 
         await retry_manager.execute(initial_state, retry_policy)

@@ -128,9 +128,11 @@ class _AsyncReadObjectStream(_AsyncAbstractObjectStream):
         current_metadata.append(("x-goog-request-params", ",".join(request_params)))
 
         self.socket_like_rpc = AsyncBidiRpc(
-            self.rpc, initial_request=self.first_bidi_read_req, metadata=current_metadata
+            self.rpc,
+            initial_request=self.first_bidi_read_req,
+            metadata=current_metadata,
         )
-        await self.socket_like_rpc.open()
+        await self.socket_like_rpc.open()  # this is actually 1 send
         response = await self.socket_like_rpc.recv()
         # populated only in the first response of bidi-stream and when opened
         # without using `read_handle`

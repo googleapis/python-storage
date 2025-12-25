@@ -24,12 +24,12 @@ from google.cloud.storage._experimental.asyncio.retry._helpers import (
 from google.cloud.storage._experimental.asyncio.retry.base_strategy import (
     _BaseResumptionStrategy,
 )
-from google.cloud._storage_v2.types.storage import BidiReadObjectRedirectedError
 
 
 _BIDI_READ_REDIRECTED_TYPE_URL = (
     "type.googleapis.com/google.storage.v2.BidiReadObjectRedirectedError"
 )
+logger = logging.getLogger(__name__)
 
 
 class _DownloadState:
@@ -92,10 +92,16 @@ class _ReadResumptionStrategy(_BaseResumptionStrategy):
             # Ignore empty ranges or ranges for IDs not in our state
             # (e.g., from a previously cancelled request on the same stream).
             if not object_data_range.read_range:
+                logger.warning(
+                    "Received response with missing read_range field; ignoring."
+                )
                 continue
 
             read_id = object_data_range.read_range.read_id
             if read_id not in download_states:
+                logger.warning(
+                    f"Received data for unknown or stale read_id {read_id}; ignoring."
+                )
                 continue
 
             read_state = download_states[read_id]
@@ -125,9 +131,9 @@ class _ReadResumptionStrategy(_BaseResumptionStrategy):
 
             # Update State & Write Data
             chunk_size = len(data)
+            read_state.user_buffer.write(data)
             read_state.bytes_written += chunk_size
             read_state.next_expected_offset += chunk_size
-            read_state.user_buffer.write(data)
 
             # Final Byte Count Verification
             if object_data_range.range_end:
