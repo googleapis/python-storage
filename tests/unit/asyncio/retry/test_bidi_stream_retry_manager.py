@@ -36,11 +36,11 @@ class TestBidiStreamRetryManager:
     async def test_execute_success_on_first_try(self):
         mock_strategy = mock.AsyncMock(spec=base_strategy._BaseResumptionStrategy)
 
-        async def mock_stream_opener(*args, **kwargs):
+        async def mock_send_and_recv(*args, **kwargs):
             yield "response_1"
 
         retry_manager = manager._BidiStreamRetryManager(
-            strategy=mock_strategy, stream_opener=mock_stream_opener
+            strategy=mock_strategy, send_and_recv=mock_send_and_recv
         )
         await retry_manager.execute(initial_state={}, retry_policy=DEFAULT_TEST_RETRY)
         mock_strategy.generate_requests.assert_called_once()
@@ -53,12 +53,12 @@ class TestBidiStreamRetryManager:
     async def test_execute_success_on_empty_stream(self):
         mock_strategy = mock.AsyncMock(spec=base_strategy._BaseResumptionStrategy)
 
-        async def mock_stream_opener(*args, **kwargs):
+        async def mock_send_and_recv(*args, **kwargs):
             if False:
                 yield
 
         retry_manager = manager._BidiStreamRetryManager(
-            strategy=mock_strategy, stream_opener=mock_stream_opener
+            strategy=mock_strategy, send_and_recv=mock_send_and_recv
         )
         await retry_manager.execute(initial_state={}, retry_policy=DEFAULT_TEST_RETRY)
 
@@ -71,7 +71,7 @@ class TestBidiStreamRetryManager:
         mock_strategy = mock.AsyncMock(spec=base_strategy._BaseResumptionStrategy)
         attempt_count = 0
 
-        async def mock_stream_opener(*args, **kwargs):
+        async def mock_send_and_recv(*args, **kwargs):
             nonlocal attempt_count
             attempt_count += 1
             if attempt_count == 1:
@@ -80,7 +80,7 @@ class TestBidiStreamRetryManager:
                 yield "response_2"
 
         retry_manager = manager._BidiStreamRetryManager(
-            strategy=mock_strategy, stream_opener=mock_stream_opener
+            strategy=mock_strategy, send_and_recv=mock_send_and_recv
         )
         retry_policy = AsyncRetry(predicate=_is_retriable, initial=0.01)
 
@@ -105,7 +105,7 @@ class TestBidiStreamRetryManager:
             ["response_2"],
         ]
 
-        async def mock_stream_opener(*args, **kwargs):
+        async def mock_send_and_recv(*args, **kwargs):
             nonlocal attempt_count
             content = stream_content[attempt_count]
             attempt_count += 1
@@ -116,7 +116,7 @@ class TestBidiStreamRetryManager:
                     yield item
 
         retry_manager = manager._BidiStreamRetryManager(
-            strategy=mock_strategy, stream_opener=mock_stream_opener
+            strategy=mock_strategy, send_and_recv=mock_send_and_recv
         )
         retry_policy = AsyncRetry(predicate=_is_retriable, initial=0.01)
 
@@ -140,13 +140,13 @@ class TestBidiStreamRetryManager:
     async def test_execute_fails_immediately_on_non_retriable_error(self):
         mock_strategy = mock.AsyncMock(spec=base_strategy._BaseResumptionStrategy)
 
-        async def mock_stream_opener(*args, **kwargs):
+        async def mock_send_and_recv(*args, **kwargs):
             if False:
                 yield
             raise exceptions.PermissionDenied("Auth error")
 
         retry_manager = manager._BidiStreamRetryManager(
-            strategy=mock_strategy, stream_opener=mock_stream_opener
+            strategy=mock_strategy, send_and_recv=mock_send_and_recv
         )
         with pytest.raises(exceptions.PermissionDenied):
             await retry_manager.execute(

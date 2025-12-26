@@ -28,16 +28,16 @@ class _BidiStreamRetryManager:
     def __init__(
         self,
         strategy: _BaseResumptionStrategy,
-        stream_opener: Callable[..., AsyncIterator[Any]],
+        send_and_recv: Callable[..., AsyncIterator[Any]],
     ):
         """Initializes the retry manager.
         Args:
             strategy: The strategy for managing the state of a specific
                 bidi operation (e.g., reads or writes).
-            stream_opener: An async callable that opens a new gRPC stream.
+            send_and_recv: An async callable that opens a new gRPC stream.
         """
         self._strategy = strategy
-        self._stream_opener = stream_opener
+        self._send_and_recv = send_and_recv
 
     async def execute(self, initial_state: Any, retry_policy):
         """
@@ -51,7 +51,7 @@ class _BidiStreamRetryManager:
 
         async def attempt():
             requests = self._strategy.generate_requests(state)
-            stream = self._stream_opener(requests, state)
+            stream = self._send_and_recv(requests, state)
             try:
                 async for response in stream:
                     self._strategy.update_state_from_response(response, state)
