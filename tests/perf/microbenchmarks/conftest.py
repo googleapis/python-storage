@@ -74,15 +74,17 @@ async def upload_appendable_object(bucket_name, object_name, object_size, chunk_
         bytes_to_upload = min(chunk_size, object_size - uploaded_bytes)
         await writer.append(os.urandom(bytes_to_upload))
         uploaded_bytes += bytes_to_upload
-    await writer.close(finalize_on_close=True)
+    object_metdata = await writer.close(finalize_on_close=True)
+    assert object_metdata.size == uploaded_bytes
+    return uploaded_bytes
 
 
 def _upload_worker(args):
     bucket_name, object_name, object_size, chunk_size = args
-    asyncio.run(
+    uploaded_bytes = asyncio.run(
         upload_appendable_object(bucket_name, object_name, object_size, chunk_size)
     )
-    return object_name
+    return object_name, uploaded_bytes
 
 
 def _create_files(num_files, bucket_name, object_size, chunk_size=128 * 1024 * 1024):
@@ -93,12 +95,19 @@ def _create_files(num_files, bucket_name, object_size, chunk_size=128 * 1024 * 1
         f"{_OBJECT_NAME_PREFIX}-{uuid.uuid4().hex[:5]}" for _ in range(num_files)
     ]
 
-    results = []
-    for i in range(num_files):
-        args = (bucket_name, object_names[i], object_size, chunk_size)
-        results.append(_upload_worker(args))
+    args_list = [
+        (bucket_name, object_names[i], object_size, chunk_size)
+        for i in range(num_files)
+    ]
 
-    return results
+    ctx = multiprocessing.get_context("spawn")
+    with ctx.Pool() as pool:
+        results = pool.map(_upload_worker, args_list)
+
+    total_uploaded_bytes = sum(r[1] for r in results)
+    assert total_uploaded_bytes == object_size * num_files
+
+    return [r[0] for r in results]
 
 
 @pytest.fixture

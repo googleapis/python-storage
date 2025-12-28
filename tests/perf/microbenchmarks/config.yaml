@@ -3,10 +3,10 @@ common:
     - "regional"
     - "zonal"
   file_sizes_mib:
-    - 100 # 1GB
+    - 1024 # 1GB
   # chunk_sizes_mib: [1, 2, 8, 64, 100, 128]
   chunk_sizes_mib: [64]
-  rounds: 3
+  rounds: 10
 
 workload:
 
@@ -25,30 +25,19 @@ workload:
     processes: [2, 4]
 
   # num_processs * num_coros files will be created.
-  - name: "read_seq"
-    pattern: "seq"
-    coros: [1,2,4,8]
-    processes: [1]
-
-  # num_processs * num_coros files will be created.
   - name: "read_seq_multi_process"
     pattern: "seq"
     # coros: [1,2,4,8]
     # processes: [2, 4, 8, 16, 32, 64]
-    coros: [1]
-    processes: [2, 4, 8]
+    coros: [1, 2]
+    processes: [1, 2, 4, 8]
 
 
   # for random reads always `num_processs * num_coros` will be created.
   - name: "read_rand"
     pattern: "rand"
-    coros: [1, 2,4,8]
-    processes: [1]
-
-  - name: "read_rand_multi_process"
-    pattern: "rand"
-    coros: [1,2,4,8]
-    processes: [2, 4, 8, 16, 32, 64]
+    coros: [1,2]
+    processes: [1, 2, 4, 8]
 
 defaults:
   DEFAULT_RAPID_ZONAL_BUCKET: "chandrasiri-rs"

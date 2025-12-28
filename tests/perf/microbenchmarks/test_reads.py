@@ -14,6 +14,7 @@ import os
 import time
 import asyncio
 import math
+import random
 from io import BytesIO
 
 import pytest
@@ -99,51 +100,6 @@ def download_one_object_in_parts(loop, client, filename, other_params):
     loop.run_until_complete(main())
 
 
-@pytest.mark.parametrize(
-    "workload_params",
-    all_zonal_params["read_seq_single_file"],
-    indirect=True,
-    ids=lambda p: p.name,
-)
-def test_downloads_one_object(
-    benchmark, storage_client, blobs_to_delete, monitor, workload_params
-):
-    """
-    this test should use pytest-benchmark, 
-
-    target_function should be `download_object`
-    setup function should be `my_setup`
-    no teardown function for now.
-    
-    """
-    params, files_names = workload_params
-
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    client = loop.run_until_complete(create_client())
-
-    try:
-        with monitor() as m:
-            benchmark.pedantic(
-                target=download_one_object_in_parts,
-                iterations=1,
-                rounds=params.rounds,
-                args=(loop, client, files_names[0], params),
-            )
-    finally:
-        tasks = asyncio.all_tasks(loop=loop)
-        for task in tasks:
-            task.cancel()
-        loop.run_until_complete(asyncio.gather(*tasks, return_exceptions=True))
-        loop.close()
-    publish_benchmark_extra_info(benchmark, params)
-    publish_resource_metrics(benchmark, m)
-
-    blobs_to_delete.extend(
-        storage_client.bucket(params.bucket_name).blob(f) for f in files_names
-    )
-
-
 import multiprocessing
 
 
@@ -204,40 +160,6 @@ def download_one_object_in_mn_parts(filename, other_params):
     assert total_downloaded == object_size
 
 
-@pytest.mark.parametrize(
-    "workload_params",
-    all_zonal_params["read_seq_multi_process_single_file"],
-    indirect=True,
-    ids=lambda p: p.name,
-)
-def test_downloads_one_object_mp(
-    benchmark, storage_client, blobs_to_delete, monitor, workload_params
-):
-    """
-    benchmarks download_one_object_in_mn_parts
-
-    """
-    params, files_names = workload_params
-
-    try:
-        with monitor() as m:
-            benchmark.pedantic(
-                target=download_one_object_in_mn_parts,
-                iterations=1,
-                rounds=params.rounds,
-                args=(files_names[0], params),
-            )
-    finally:
-        pass  # No event loop to clean up
-
-    publish_benchmark_extra_info(benchmark, params)
-    publish_resource_metrics(benchmark, m)
-
-    blobs_to_delete.extend(
-        storage_client.bucket(params.bucket_name).blob(f) for f in files_names
-    )
-
-
 async def _download_object_async(
     client, bucket_name, object_name, object_size, chunk_size
 ):
@@ -260,6 +182,92 @@ def _download_objects_worker(bucket_name, object_names, object_size, chunk_size)
         return sum(results)
 
     return asyncio.run(main())
+
+
+async def _download_object_async_random(
+    client, bucket_name, object_name, object_size, chunk_size
+):
+    mrd = AsyncMultiRangeDownloader(client, bucket_name, object_name)
+    await mrd.open()
+
+    # 1. Generate chunks
+    num_chunks = math.ceil(object_size / chunk_size)
+    chunks_to_download = []
+    for i in range(num_chunks):
+        offset = i * chunk_size
+        size = min(chunk_size, object_size - offset)
+        chunks_to_download.append((offset, size))
+
+    # 2. Shuffle chunks
+    random.shuffle(chunks_to_download)
+
+    downloaded_chunks = {}
+    total_downloaded = 0
+
+    for offset, size in chunks_to_download:
+        chunk_buffer = BytesIO()
+        await mrd.download_ranges([(offset, size, chunk_buffer)])
+        downloaded_chunks[offset] = chunk_buffer.getvalue()
+        total_downloaded += len(downloaded_chunks[offset])
+
+    await mrd.close()
+    assert total_downloaded == object_size
+    return total_downloaded
+
+
+def _download_objects_worker_random(bucket_name, object_names, object_size, chunk_size):
+    async def main():
+        client = await create_client()
+        tasks = []
+        for object_name in object_names:
+            tasks.append(
+                _download_object_async_random(
+                    client, bucket_name, object_name, object_size, chunk_size
+                )
+            )
+        results = await asyncio.gather(*tasks)
+        return sum(results)
+
+    return asyncio.run(main())
+
+
+def download_mn_objects_using_m_process_n_coros_random(filenames, other_params):
+    """
+
+    there are m*n objects , distribute them among m process and n coroutine.
+    Each processs should run `n` coro simultaneously and download one entire object.
+
+
+    However, `download_mn_objects_using_m_process_n_coros` unlike each coroutine
+    should divide the entire object size into chunks of `other_params.chunk_size_bytes` and randomly issues
+    calls to `mrd.download_ranges` for all chunks.
+
+    essentially get all chunks, shuffle chunks and call download_ranges.
+
+    all object sizes are same.
+    """
+    num_processes = other_params.num_processes  # m
+    num_coros = other_params.num_coros  # n
+    bucket_name = other_params.bucket_name
+    object_size = other_params.file_size_bytes
+    chunk_size = other_params.chunk_size_bytes
+
+    # Distribute filenames to processes
+    filenames_per_process = [
+        filenames[i : i + num_coros] for i in range(0, len(filenames), num_coros)
+    ]
+
+    args = [
+        (bucket_name, names, object_size, chunk_size) for names in filenames_per_process
+    ]
+
+    ctx = multiprocessing.get_context("spawn")
+    with ctx.Pool(processes=num_processes) as pool:
+        results = pool.starmap(_download_objects_worker_random, args)
+
+    total_downloaded = sum(results)
+    expected_download = len(filenames) * object_size
+    assert total_downloaded == expected_download
 
 
 def download_mn_objects_using_m_process_n_coros(filenames, other_params):
@@ -297,6 +305,82 @@ def download_mn_objects_using_m_process_n_coros(filenames, other_params):
 
 @pytest.mark.parametrize(
     "workload_params",
+    all_zonal_params["read_seq_single_file"],
+    indirect=True,
+    ids=lambda p: p.name,
+)
+def test_downloads_one_object(
+    benchmark, storage_client, blobs_to_delete, monitor, workload_params
+):
+    """
+    this test should use pytest-benchmark,
+
+    target_function should be `download_object`
+    setup function should be `my_setup`
+    no teardown function for now.
+
+    """
+    params, files_names = workload_params
+
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    client = loop.run_until_complete(create_client())
+
+    try:
+        with monitor() as m:
+            benchmark.pedantic(
+                target=download_one_object_in_parts,
+                iterations=1,
+                rounds=params.rounds,
+                args=(loop, client, files_names[0], params),
+            )
+    finally:
+        tasks = asyncio.all_tasks(loop=loop)
+        for task in tasks:
+            task.cancel()
+        loop.run_until_complete(asyncio.gather(*tasks, return_exceptions=True))
+        loop.close()
+    publish_benchmark_extra_info(benchmark, params)
+    publish_resource_metrics(benchmark, m)
+
+    blobs_to_delete.extend(
+        storage_client.bucket(params.bucket_name).blob(f) for f in files_names
+    )
+
+
+@pytest.mark.parametrize(
+    "workload_params",
+    all_zonal_params["read_seq_multi_process_single_file"],
+    indirect=True,
+    ids=lambda p: p.name,
+)
+def test_downloads_one_object_mp(
+    benchmark, storage_client, blobs_to_delete, monitor, workload_params
+):
+    """
+    benchmarks download_one_object_in_mn_parts
+
+    """
+    params, files_names = workload_params
+
+    with monitor() as m:
+        benchmark.pedantic(
+            target=download_one_object_in_mn_parts,
+            iterations=1,
+            rounds=params.rounds,
+            args=(files_names[0], params),
+        )
+
+    publish_benchmark_extra_info(benchmark, params)
+    publish_resource_metrics(benchmark, m)
+
+    blobs_to_delete.extend(
+        storage_client.bucket(params.bucket_name).blob(f) for f in files_names
+    )
+
+
+@pytest.mark.parametrize(
+    "workload_params",
     all_zonal_params["read_seq_multi_process"],
     indirect=True,
     ids=lambda p: p.name,
@@ -310,16 +394,44 @@ def test_downloads_mn_objects_m_process_n_coros(
     """
     params, files_names = workload_params
 
-    try:
-        with monitor() as m:
-            benchmark.pedantic(
-                target=download_mn_objects_using_m_process_n_coros,
-                iterations=1,
-                rounds=params.rounds,
-                args=(files_names, params),
-            )
-    finally:
-        pass  # No event loop to clean up
+    with monitor() as m:
+        benchmark.pedantic(
+            target=download_mn_objects_using_m_process_n_coros,
+            iterations=1,
+            rounds=params.rounds,
+            args=(files_names, params),
+        )
+
+    publish_benchmark_extra_info(benchmark, params)
+    publish_resource_metrics(benchmark, m)
+
+    blobs_to_delete.extend(
+        storage_client.bucket(params.bucket_name).blob(f) for f in files_names
+    )
+
+
+@pytest.mark.parametrize(
+    "workload_params",
+    all_zonal_params["read_rand"],
+    indirect=True,
+    ids=lambda p: p.name,
+)
+def test_downloads_mn_objects_m_process_n_coros_random(
+    benchmark, storage_client, blobs_to_delete, monitor, workload_params
+):
+    """
+    benchmarks for downloads_mn_objects using m_process and n_coros
+
+    """
+    params, files_names = workload_params
+
+    with monitor() as m:
+        benchmark.pedantic(
+            target=download_mn_objects_using_m_process_n_coros_random,
+            iterations=1,
+            rounds=params.rounds,
+            args=(files_names, params),
+        )
 
     publish_benchmark_extra_info(benchmark, params)
     publish_resource_metrics(benchmark, m)
