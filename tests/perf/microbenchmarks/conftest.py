@@ -21,7 +21,7 @@ from google.cloud.storage._experimental.asyncio.async_appendable_object_writer i
 )
 from google.cloud.storage._experimental.asyncio.async_grpc_client import AsyncGrpcClient
 
-_OBJECT_NAME_PREFIX = "micro-benchmark-"
+_OBJECT_NAME_PREFIX = "micro-benchmark"
 
 
 @pytest.fixture(scope="function")
@@ -90,11 +90,10 @@ def _create_files(num_files, bucket_name, object_size, chunk_size=128 * 1024 * 1
     1. using upload_appendable_object implement this and return a list of file names.
     """
     object_names = [
-        f"{_OBJECT_NAME_PREFIX}{uuid.uuid4().hex[:5]}" for _ in range(num_files)
+        f"{_OBJECT_NAME_PREFIX}-{uuid.uuid4().hex[:5]}" for _ in range(num_files)
     ]
 
     results = []
-    print(f"uploading {num_files} files")
     for i in range(num_files):
         args = (bucket_name, object_names[i], object_size, chunk_size)
         results.append(_upload_worker(args))
