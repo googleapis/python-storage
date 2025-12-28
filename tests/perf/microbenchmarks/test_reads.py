@@ -1,15 +1,15 @@
-
 """
 Docstring for tests.perf.microbenchmarks.test_reads
 
 File for benchmarking zonal reads (i.e. downloads)
 
-1. 1 object 1 coro with variable chunk_size 
+1. 1 object 1 coro with variable chunk_size
 
 calculate latency, throughput, etc for downloads.
 
 
 """
+
 import os
 import time
 import asyncio
@@ -27,40 +27,45 @@ from google.cloud.storage._experimental.asyncio.async_multi_range_downloader imp
 from google.cloud.storage._experimental.asyncio.async_appendable_object_writer import (
     AsyncAppendableObjectWriter,
 )
+from tests.perf.microbenchmarks._utils import publish_benchmark_extra_info
 from tests.perf.microbenchmarks.conftest import (
-    # publish_benchmark_extra_info,
     # publish_multi_process_benchmark_extra_info,
     publish_resource_metrics,
 )
+
 # from tests.perf.microbenchmarks.config import RAPID_ZONAL_BUCKET, STANDARD_BUCKET
-# from tests.perf.microbenchmarks import config
+import tests.perf.microbenchmarks.config as config
+
+
 # from functools import partial
 
 # Pytest-asyncio mode needs to be auto
 pytest_plugins = "pytest_asyncio"
 
-OBJECT_SIZE = 100 * (1024 ** 2)  # 1 GiB
+# OBJECT_SIZE = 1024 * (1024**2)  # 1 GiB
 UPLOAD_CHUNK_SIZE = 128 * 1024 * 1024
 DOWNLOAD_CHUNK_SIZES = [
     # 4 * 1024 * 1024,
     # 16 * 1024 * 1024,
     # 32 * 1024 * 1024,
-    100 * 1024 * 1024,
+    64
+    * 1024
+    * 1024,
 ]
 
+all_zonal_params = config._get_params()
+all_regional_params = config._get_params(bucket_type_filter="regional")
 
 
-async def _download_one_async(
-    async_grpc_client, bucket_name, object_name, download_size, chunk_size
-):
-    """
-    Helper function to UPLOAD and then DOWNLOAD a single object asynchronously.
-    This is the function that will be benchmarked.
-    """
+async def _download_one_async(async_grpc_client, object_name, other_params):
 
+    download_size = other_params.file_size_bytes
+    chunk_size = other_params.chunk_size_bytes
 
     # DOWNLOAD
-    mrd = AsyncMultiRangeDownloader(async_grpc_client, bucket_name, object_name)
+    mrd = AsyncMultiRangeDownloader(
+        async_grpc_client, other_params.bucket_name, object_name
+    )
     await mrd.open()
 
     output_buffer = BytesIO()
@@ -78,13 +83,14 @@ async def _download_one_async(
     await mrd.close()
 
 
-
 async def create_client():
     """Initializes async client and gets the current event loop."""
     return AsyncGrpcClient().grpc_client
 
-async def upload_appendable_object(client, bucket_name, object_name, object_size, chunk_size):
-    
+
+async def upload_appendable_object(
+    client, bucket_name, object_name, object_size, chunk_size
+):
     writer = AsyncAppendableObjectWriter(client, bucket_name, object_name)
     await writer.open()
     uploaded_bytes = 0
@@ -96,38 +102,30 @@ async def upload_appendable_object(client, bucket_name, object_name, object_size
     # print('uploading took', time.)
 
 
+def my_setup(
+    loop, client, bucket_name: str, object_name: str, upload_size: int, chunk_size: int
+):
+    loop.run_until_complete(
+        upload_appendable_object(
+            client, bucket_name, object_name, upload_size, chunk_size
+        )
+    )
 
 
-def my_setup(loop, client, bucket_name: str, object_name: str, upload_size: int, chunk_size: int):
-    """
-    1. create a async method , name it my_setup_async
-    2. call that method , 
-        "my_setup_async" should initialize client.
-        get the event_loop
-        return client, event_loop
-    3. this method should return client, event_loop
-    
-    """
-
-    # client = loop.run_until_complete(create_client())
+def download_one_object_wrapper(loop, client, filename, other_params):
+    loop.run_until_complete(_download_one_async(client, filename, other_params))
 
 
-    loop.run_until_complete(upload_appendable_object(client, bucket_name, object_name, upload_size, chunk_size))
-    # return client
-
-def download_object(loop, client, bucket_name, object_name, download_size, chunk_size):
-    loop.run_until_complete(_download_one_async(client, bucket_name, object_name, download_size, chunk_size))
-
-
-
-
-
-
-
-
-@pytest.mark.parametrize("chunk_size", DOWNLOAD_CHUNK_SIZES)
-# params - num_rounds or env var ? 
-def test_read_one_object_one_stream(benchmark, chunk_size, storage_client, blobs_to_delete, monitor):
+@pytest.mark.parametrize(
+    "workload_params",
+    all_zonal_params["read_seq_single_file"],
+    indirect=True,
+    ids=lambda p: p.name,
+)
+# params - num_rounds or env var ?
+def test_downloads_one_object(
+    benchmark, storage_client, blobs_to_delete, monitor, workload_params
+):
     """
     this test should use pytest-benchmark, 
 
@@ -136,51 +134,33 @@ def test_read_one_object_one_stream(benchmark, chunk_size, storage_client, blobs
     no teardown function for now.
     
     """
-    benchmark.extra_info["object_size"] = OBJECT_SIZE
-    benchmark.extra_info["chunk_size"] = chunk_size
+    params, files_names = workload_params
+    publish_benchmark_extra_info(benchmark, params)
 
-    bucket_name = "chandrasiri-rs"
-    
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     client = loop.run_until_complete(create_client())
 
-    def setup_for_benchmark():
-        start_time = time.time()
-        # upload num_rounds of objects all at once.
-        object_name = f"benchmark-object-cs-{os.urandom(4).hex()}"
-        my_setup(loop, client, bucket_name, object_name, OBJECT_SIZE, chunk_size)
-        end_time = time.time()
-        print(f"\nSetup time: {end_time - start_time:.4f} seconds")
-        return (loop, client, bucket_name, object_name, OBJECT_SIZE, chunk_size), {}
-    
-    def teardown(loop, client, bucket_name, object_name, OBJECT_SIZE, chunk_size):
-        # _, _, _, object_name, _, _ = target_args
-
-        # Clean up; use json client (i.e. `storage_client` fixture) to delete.
-        blobs_to_delete.append(storage_client.bucket(bucket_name).blob(object_name))
-        
-
     try:
         with monitor() as m:
             benchmark.pedantic(
-            download_object,
-            setup=setup_for_benchmark,
-            teardown=teardown,
-            iterations=1,
-            rounds=10,
-        )
+                target=download_one_object_wrapper,
+                iterations=1,
+                rounds=params.rounds,
+                args=(loop, client, files_names[0], params),
+            )
     finally:
         tasks = asyncio.all_tasks(loop=loop)
         for task in tasks:
             task.cancel()
         loop.run_until_complete(asyncio.gather(*tasks, return_exceptions=True))
         loop.close()
+    object_size = params.file_size_bytes
 
-    min_throughput = (OBJECT_SIZE / (1024 * 1024)) / benchmark.stats['max']
-    max_throughput = (OBJECT_SIZE / (1024 * 1024)) / benchmark.stats['min']
-    mean_throughput = (OBJECT_SIZE / (1024 * 1024)) / benchmark.stats['mean']
-    median_throughput = (OBJECT_SIZE / (1024 * 1024)) / benchmark.stats['median']
+    min_throughput = (object_size / (1024 * 1024)) / benchmark.stats["max"]
+    max_throughput = (object_size / (1024 * 1024)) / benchmark.stats["min"]
+    mean_throughput = (object_size / (1024 * 1024)) / benchmark.stats["mean"]
+    median_throughput = (object_size / (1024 * 1024)) / benchmark.stats["median"]
 
     benchmark.extra_info["throughput_MiB_s_min"] = min_throughput
     benchmark.extra_info["throughput_MiB_s_max"] = max_throughput
@@ -214,21 +194,9 @@ def test_read_one_object_one_stream(benchmark, chunk_size, storage_client, blobs
     print("-" * 125)
 
     publish_resource_metrics(benchmark, m)
+    print("this is bucket -name ", params.bucket_name)
+    print("this is filenames", files_names)
 
-
-#  def run_test():
-#     loop = asyncio.new_event_loop()
-#     asyncio.set_event_loop(loop)
-
-#     try:
-#         client = my_setup(loop, 'chandrasiri-rs', 'test-loop2', 100*1024*1024, 16*1024*1024)
-#         download_object(loop, client, 'chandrasiri-rs', 'test-loop2', 100*1024*1024, 16*1024*1024)
-#     finally:
-#         tasks = asyncio.all_tasks(loop=loop)
-#         for task in tasks:
-#             task.cancel()
-#         loop.run_until_complete(asyncio.gather(*tasks, return_exceptions=True))
-#         loop.close()
-
-# if __name__ == "__main__":
-#     run_test()
+    blobs_to_delete.extend(
+        storage_client.bucket(params.bucket_name).blob(f) for f in files_names
+    )
