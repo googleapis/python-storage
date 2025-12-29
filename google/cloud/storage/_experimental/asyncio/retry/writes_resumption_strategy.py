@@ -47,7 +47,7 @@ class _WriteState:
         self.user_buffer = user_buffer
         self.persisted_size: int = 0
         self.bytes_sent: int = 0
-        self.write_handle: Union[bytes, Any, None] = None
+        self.write_handle: Union[bytes, storage_type.BidiWriteHandle, None] = None
         self.routing_token: Optional[str] = None
         self.is_complete: bool = False
 
@@ -64,9 +64,6 @@ class _WriteResumptionStrategy(_BaseResumptionStrategy):
         AppendObjectSpec. If resuming, the `write_handle` is added to that spec.
         """
         write_state: _WriteState = state["write_state"]
-
-        # Mark that we have generated the first request for this stream attempt
-        state["first_request"] = False
 
         if write_state.write_handle:
             write_state.spec.write_handle = write_state.write_handle
@@ -141,6 +138,3 @@ class _WriteResumptionStrategy(_BaseResumptionStrategy):
         # Reset the user buffer to the last known good byte.
         write_state.user_buffer.seek(write_state.persisted_size)
         write_state.bytes_sent = write_state.persisted_size
-
-        # Mark next pass as a retry (not the absolute first request)
-        state["first_request"] = False

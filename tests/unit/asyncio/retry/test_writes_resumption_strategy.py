@@ -218,7 +218,11 @@ class TestWriteResumptionStrategy(unittest.TestCase):
     def test_update_state_from_response_ignores_smaller_persisted_size(self):
         strategy = self._make_one()
         state = {
-            "write_state": _WriteState(None, 0, None),
+            "write_state": _WriteState(
+                mock.Mock(spec=storage_type.AppendObjectSpec),
+                0,
+                mock.Mock(spec=io.BytesIO),
+            ),
         }
         write_state = state["write_state"]
         write_state.persisted_size = 2048
