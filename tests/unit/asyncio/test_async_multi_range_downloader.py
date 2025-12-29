@@ -143,7 +143,6 @@ class TestAsyncMultiRangeDownloader:
                     )
                 ]
             ),
-            None,
             _storage_v2.BidiReadObjectResponse(
                 object_data_ranges=[
                     _storage_v2.ObjectRangeData(
