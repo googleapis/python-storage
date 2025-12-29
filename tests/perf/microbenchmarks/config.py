@@ -62,8 +62,8 @@ def _get_params(bucket_type_filter: str ='zonal') -> Dict[str, List[ReadParamete
                 num_files = num_processes * num_coros
 
             # Create a descriptive name for the parameter set
-            # name = f"{workload_name}_{bucket_type}_{file_size_mib}mib_{chunk_size_mib}mib_{num_processes}p_{num_coros}c"
-            name = f"{workload_name}"
+            name = f"{workload_name}_{num_processes}p_{num_coros}c"
+            # name = f"{workload_name}"
 
             params[workload_name].append(
                 ReadParameters(

@@ -9,28 +9,33 @@ from google.cloud.storage._experimental.asyncio.async_grpc_client import AsyncGr
 from google.cloud.storage._experimental.asyncio.async_appendable_object_writer import (
     AsyncAppendableObjectWriter,
 )
+import math
 
 async def upload_one_async(bucket_name, object_name, upload_size, chunk_size):
     """Uploads a single object of size `upload_size`, in chunks of `chunk_size`"""
     print(f"Uploading {object_name} of size {upload_size} in chunks of {chunk_size} to {bucket_name} from process {os.getpid()} and thread {threading.get_ident()}")
     client = AsyncGrpcClient().grpc_client
+    start_time = time.perf_counter()
     writer = AsyncAppendableObjectWriter(
         client=client, bucket_name=bucket_name, object_name=object_name
     )
 
     await writer.open()
-    
-    start_time = time.perf_counter()
-    
     uploaded_bytes = 0
+    count = 0
     while uploaded_bytes < upload_size:
         bytes_to_upload = min(chunk_size, upload_size - uploaded_bytes)
         data = os.urandom(bytes_to_upload)
+        # if bytes_to_upload != chunk_size:
+        #     assert bytes_to_upload < chunk_size, 'bytes_to_upload should be less than chunk_size'
+        #     data = data[:bytes_to_upload]
         await writer.append(data)
         uploaded_bytes += bytes_to_upload
-    
+        count += 1
     await writer.close()
-    
+    assert uploaded_bytes == upload_size
+    assert count == math.ceil(upload_size / chunk_size)
+
     end_time = time.perf_counter()
     latency = end_time - start_time
     throughput = (upload_size / latency) / (1000 * 1000)  # MB/s
@@ -55,8 +60,6 @@ def main():
     parser.add_argument("--executor", type=str, choices=['thread', 'process'], default='process', help="Executor to use: 'thread' for ThreadPoolExecutor, 'process' for ProcessPoolExecutor")
     args = parser.parse_args()
 
-    
-    
     total_start_time = time.perf_counter()
 
     ExecutorClass = ThreadPoolExecutor if args.executor == 'thread' else ProcessPoolExecutor
@@ -67,7 +70,7 @@ def main():
             object_name = f"py-sdk-mb-mt-{i}"
             future = executor.submit(upload_one_sync, args.bucket_name, object_name, args.upload_size, args.chunk_size)
             futures.append(future)
-        
+
         for future in futures:
             future.result() # wait for all workers to complete
 

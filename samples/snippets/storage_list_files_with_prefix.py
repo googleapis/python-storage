@@ -67,17 +67,17 @@ def list_blobs_with_prefix(bucket_name, prefix, delimiter=None):
     # Note: The call returns a response only when the iterator is consumed.
     print("Blobs:")
     for blob in blobs:
-        print(blob.name)
+        print(blob.name, "deleting it")
 
-    if delimiter:
-        print("Prefixes:")
-        for prefix in blobs.prefixes:
-            print(prefix)
+        blob.delete()
+
+    # if delimiter:
+    #     print("Prefixes:")
+    #     for prefix in blobs.prefixes:
+    #         print(prefix)
 
 
 # [END storage_list_files_with_prefix]
 
 if __name__ == "__main__":
-    list_blobs_with_prefix(
-        bucket_name=sys.argv[1], prefix=sys.argv[2], delimiter=sys.argv[3]
-    )
+    list_blobs_with_prefix(bucket_name=sys.argv[1], prefix=sys.argv[2])
