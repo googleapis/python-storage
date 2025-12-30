@@ -25,15 +25,14 @@ from google.cloud.storage._experimental.asyncio.retry.base_strategy import (
 class _WriteState:
     """A helper class to track the state of a single upload operation.
 
-    Attributes:
-        spec (AppendObjectSpec): The specification for the object to write.
-        chunk_size (int): The size of chunks to read from the buffer.
-        user_buffer (IO[bytes]): The data source.
-        persisted_size (int): The amount of data confirmed as persisted by the server.
-        bytes_sent (int): The amount of data currently sent in the active stream.
-        write_handle (bytes | BidiWriteHandle | None): The handle for the append session.
-        routing_token (str | None): Token for routing to the correct backend.
-        is_complete (bool): Whether the upload has finished.
+    :type spec: :class:`google.cloud.storage_v2.types.AppendObjectSpec`
+    :param spec: The specification for the object to write.
+
+    :type chunk_size: int
+    :param chunk_size: The size of chunks to write to the server.
+
+    :type user_buffer: IO[bytes]
+    :param user_buffer: The data source.
     """
 
     def __init__(
@@ -71,10 +70,21 @@ class _WriteResumptionStrategy(_BaseResumptionStrategy):
         if write_state.routing_token:
             write_state.spec.routing_token = write_state.routing_token
 
+        # Initial request of the stream must provide the specification.
+        # If we have a write_handle, we request a state lookup to verify persisted offset.
         do_state_lookup = write_state.write_handle is not None
-        yield storage_type.BidiWriteObjectRequest(
-            append_object_spec=write_state.spec, state_lookup=do_state_lookup
+
+        # Determine if we need to send WriteObjectSpec or AppendObjectSpec
+        initial_request = storage_type.BidiWriteObjectRequest(
+            state_lookup=do_state_lookup
         )
+
+        if isinstance(write_state.spec, storage_type.WriteObjectSpec):
+            initial_request.write_object_spec = write_state.spec
+        else:
+            initial_request.append_object_spec = write_state.spec
+
+        yield initial_request
 
         # The buffer should already be seeked to the correct position (persisted_size)
         # by the `recover_state_on_failure` method before this is called.
@@ -83,11 +93,6 @@ class _WriteResumptionStrategy(_BaseResumptionStrategy):
 
             # End of File detection
             if not chunk:
-                write_state.is_complete = True
-                yield storage_type.BidiWriteObjectRequest(
-                    write_offset=write_state.bytes_sent,
-                    finish_write=True,
-                )
                 return
 
             checksummed_data = storage_type.ChecksummedData(content=chunk)
@@ -122,19 +127,25 @@ class _WriteResumptionStrategy(_BaseResumptionStrategy):
     async def recover_state_on_failure(
         self, error: Exception, state: Dict[str, Any]
     ) -> None:
-        """Handles errors, specifically BidiWriteObjectRedirectedError, and rewinds state."""
+        """
+        Handles errors, specifically BidiWriteObjectRedirectedError, and rewinds state.
+
+        This method rewinds the user buffer and internal byte tracking to the
+        last confirmed 'persisted_size' from the server.
+        """
         write_state: _WriteState = state["write_state"]
         cause = getattr(error, "cause", error)
 
-        # Extract routing token and potentially a new write handle.
+        # Extract routing token and potentially a new write handle for redirection.
         if isinstance(cause, BidiWriteObjectRedirectedError):
             if cause.routing_token:
                 write_state.routing_token = cause.routing_token
 
-            if hasattr(cause, "write_handle") and cause.write_handle:
-                write_state.write_handle = cause.write_handle
+            redirect_handle = getattr(cause, "write_handle", None)
+            if redirect_handle:
+                write_state.write_handle = redirect_handle
 
         # We must assume any data sent beyond 'persisted_size' was lost.
-        # Reset the user buffer to the last known good byte.
+        # Reset the user buffer to the last known good byte confirmed by the server.
         write_state.user_buffer.seek(write_state.persisted_size)
         write_state.bytes_sent = write_state.persisted_size
