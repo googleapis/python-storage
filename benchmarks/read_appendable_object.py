@@ -18,10 +18,10 @@ async def get_persisted_size_async(bucket_name, object_name):
     mrd = AsyncMultiRangeDownloader(client, bucket_name, object_name)
     await mrd.open()
 
-    one_gib = 1024 * 1024 * 1024
-    if mrd.persisted_size != one_gib:
-        await mrd.close()
-        raise ValueError(f"Object {object_name} has an unexpected size. Expected {one_gib}, but got {mrd.persisted_size}")
+    # one_gib = 1024 * 1024 * 1024
+    # if mrd.persisted_size != one_gib:
+    #     await mrd.close()
+    #     raise ValueError(f"Object {object_name} has an unexpected size. Expected {one_gib}, but got {mrd.persisted_size}")
     # if random.randint(0, 100) % 5 == 0:
     print(f"Object: {object_name}, Persisted Size: {mrd.persisted_size}")
     # with open('b.txt','wb') as fp:
@@ -55,7 +55,4 @@ def get_persisted_size_sync(bucket_name, object_name):
 #             future.result()
 
 if __name__ == "__main__":
-    get_persisted_size_sync(
-        "chandrasiri-rs",
-        "py-sdk-mb-mt-0",
-    )
+    get_persisted_size_sync("chandrasiri-rs", sys.argv[1])
