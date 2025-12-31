@@ -255,3 +255,52 @@ async def test_mrd_open_with_read_handle():
     del mrd
     del new_mrd
     gc.collect()
+
+
+@pytest.mark.asyncio
+async def test_read_unfinalized_appendable_object_with_generation(
+    storage_client, blobs_to_delete
+):
+    object_name = f"read_unfinalized_appendable_object-{str(uuid.uuid4())[:4]}"
+    grpc_client = AsyncGrpcClient(attempt_direct_path=True).grpc_client
+
+    # First write
+    writer = AsyncAppendableObjectWriter(grpc_client, _ZONAL_BUCKET, object_name)
+    await writer.open()
+    await writer.append(_BYTES_TO_UPLOAD)
+    await writer.flush()
+    generation = writer.generation
+
+    # First read
+    mrd = AsyncMultiRangeDownloader(grpc_client, _ZONAL_BUCKET, object_name)
+    buffer = BytesIO()
+    await mrd.open()
+    assert mrd.persisted_size == len(_BYTES_TO_UPLOAD)
+    await mrd.download_ranges([(0, 0, buffer)])
+    await mrd.close()
+    assert buffer.getvalue() == _BYTES_TO_UPLOAD
+
+    # Second write, using generation from the first write.
+    writer_2 = AsyncAppendableObjectWriter(
+        grpc_client, _ZONAL_BUCKET, object_name, generation=generation
+    )
+    await writer_2.open()
+    await writer_2.append(_BYTES_TO_UPLOAD)
+    await writer_2.flush()
+
+    # Second read
+    mrd_2 = AsyncMultiRangeDownloader(grpc_client, _ZONAL_BUCKET, object_name)
+    buffer_2 = BytesIO()
+    await mrd_2.open()
+    assert mrd_2.persisted_size == 2 * len(_BYTES_TO_UPLOAD)
+    await mrd_2.download_ranges([(0, 0, buffer_2)])
+    await mrd_2.close()
+    assert buffer_2.getvalue() == _BYTES_TO_UPLOAD + _BYTES_TO_UPLOAD
+
+    # Clean up
+    blobs_to_delete.append(storage_client.bucket(_ZONAL_BUCKET).blob(object_name))
+    del writer
+    del writer_2
+    del mrd
+    del mrd_2
+    gc.collect()
