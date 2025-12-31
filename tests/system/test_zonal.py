@@ -289,7 +289,9 @@ async def test_read_unfinalized_appendable_object_with_generation(
     await writer_2.flush()
 
     # Second read
-    mrd_2 = AsyncMultiRangeDownloader(grpc_client, _ZONAL_BUCKET, object_name)
+    mrd_2 = AsyncMultiRangeDownloader(
+        grpc_client, _ZONAL_BUCKET, object_name, generation_number=generation
+    )
     buffer_2 = BytesIO()
     await mrd_2.open()
     assert mrd_2.persisted_size == 2 * len(_BYTES_TO_UPLOAD)
