@@ -50,8 +50,8 @@ def _get_params(bucket_type_filter: str ='zonal') -> Dict[str, List[ReadParamete
         )
 
         for bucket_type, file_size_mib, chunk_size_mib, num_processes, num_coros in product:
-            if bucket_type_filter != bucket_type:
-                continue
+            # if bucket_type_filter != bucket_type:
+            #     continue
             file_size_bytes = file_size_mib * 1024 * 1024
             chunk_size_bytes = chunk_size_mib * 1024 * 1024
             bucket_name = bucket_map[bucket_type]
@@ -80,6 +80,7 @@ def _get_params(bucket_type_filter: str ='zonal') -> Dict[str, List[ReadParamete
                     file_size_bytes=file_size_bytes,
                 )
             )
+    # print(params)
     return params
 if __name__ == "__main__":
     import sys

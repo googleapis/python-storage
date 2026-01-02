@@ -79,24 +79,38 @@ async def upload_appendable_object(bucket_name, object_name, object_size, chunk_
     return uploaded_bytes
 
 
+def upload_simple_object(bucket_name, object_name, object_size, chunk_size):
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(object_name)
+    blob.chunk_size = chunk_size
+    data = os.urandom(object_size)
+    blob.upload_from_string(data)
+    return object_size
+
+
 def _upload_worker(args):
-    bucket_name, object_name, object_size, chunk_size = args
-    uploaded_bytes = asyncio.run(
-        upload_appendable_object(bucket_name, object_name, object_size, chunk_size)
-    )
+    bucket_name, object_name, object_size, chunk_size, bucket_type = args
+    if bucket_type == "zonal":
+        uploaded_bytes = asyncio.run(
+            upload_appendable_object(bucket_name, object_name, object_size, chunk_size)
+        )
+    else:
+        uploaded_bytes = upload_simple_object(bucket_name, object_name, object_size, chunk_size)
     return object_name, uploaded_bytes
 
 
-def _create_files(num_files, bucket_name, object_size, chunk_size=128 * 1024 * 1024):
+def _create_files(num_files, bucket_name, bucket_type, object_size, chunk_size=128 * 1024 * 1024):
     """
     1. using upload_appendable_object implement this and return a list of file names.
+    TODO: adapt this to REGIONAL BUCKETS as well.
     """
     object_names = [
         f"{_OBJECT_NAME_PREFIX}-{uuid.uuid4().hex[:5]}" for _ in range(num_files)
     ]
 
     args_list = [
-        (bucket_name, object_names[i], object_size, chunk_size)
+        (bucket_name, object_names[i], object_size, chunk_size, bucket_type)
         for i in range(num_files)
     ]
 
@@ -116,6 +130,7 @@ def workload_params(request):
     files_names = _create_files(
         params.num_files,
         params.bucket_name,
+        params.bucket_type,
         params.file_size_bytes,
     )
     return params, files_names

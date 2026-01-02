@@ -1,12 +1,17 @@
-from typing import Any
+from typing import Any, List
+import statistics
 
 
 def publish_benchmark_extra_info(
-    benchmark: Any, params: Any, benchmark_group: str = "read"
+    benchmark: Any,
+    params: Any,
+    benchmark_group: str = "read",
+    true_times: List[float] = [],
 ) -> None:
     """
     Helper function to publish benchmark parameters to the extra_info property.
     """
+
     benchmark.extra_info["num_files"] = params.num_files
     benchmark.extra_info["file_size"] = params.file_size_bytes
     benchmark.extra_info["chunk_size"] = params.chunk_size_bytes
@@ -37,6 +42,24 @@ def publish_benchmark_extra_info(
     print(f"  Max:    {max_throughput:.2f} (from min time)")
     print(f"  Mean:   {mean_throughput:.2f} (approx, from mean time)")
     print(f"  Median: {median_throughput:.2f} (approx, from median time)")
+
+    if true_times:
+        throughputs = [(object_size / (1024 * 1024) * num_files) / t for t in true_times]
+        true_min_throughput = min(throughputs)
+        true_max_throughput = max(throughputs)
+        true_mean_throughput = statistics.mean(throughputs)
+        true_median_throughput = statistics.median(throughputs)
+
+        benchmark.extra_info["true_throughput_MiB_s_min"] = true_min_throughput
+        benchmark.extra_info["true_throughput_MiB_s_max"] = true_max_throughput
+        benchmark.extra_info["true_throughput_MiB_s_mean"] = true_mean_throughput
+        benchmark.extra_info["true_throughput_MiB_s_median"] = true_median_throughput
+
+        print(f"\nThroughput Statistics from true_times (MiB/s):")
+        print(f"  Min:    {true_min_throughput:.2f}")
+        print(f"  Max:    {true_max_throughput:.2f}")
+        print(f"  Mean:   {true_mean_throughput:.2f}")
+        print(f"  Median: {true_median_throughput:.2f}")
 
     # Get benchmark name, rounds, and iterations
     name = benchmark.name

@@ -16,6 +16,7 @@ import asyncio
 import math
 import random
 from io import BytesIO
+import logging
 
 import pytest
 from google.api_core import exceptions
@@ -32,6 +33,7 @@ from tests.perf.microbenchmarks.conftest import (
 import tests.perf.microbenchmarks.config as config
 
 all_zonal_params = config._get_params()
+print(all_zonal_params["read_rand"])
 all_regional_params = config._get_params(bucket_type_filter="regional")
 
 
@@ -341,6 +343,124 @@ def test_downloads_one_object(
         loop.run_until_complete(asyncio.gather(*tasks, return_exceptions=True))
         loop.close()
     publish_benchmark_extra_info(benchmark, params)
+    publish_resource_metrics(benchmark, m)
+
+    blobs_to_delete.extend(
+        storage_client.bucket(params.bucket_name).blob(f) for f in files_names
+    )
+
+
+async def download_chunks_using_mrd_async(client, filename, other_params, chunks):
+    # start timer.
+    start_time = time.monotonic_ns()
+
+    total_bytes_downloaded = 0
+    mrd = AsyncMultiRangeDownloader(client, other_params.bucket_name, filename)
+    await mrd.open()
+    for offset, size in chunks:
+        buffer = BytesIO()
+        await mrd.download_ranges([(offset, size, buffer)])
+        total_bytes_downloaded += buffer.tell()
+    await mrd.close()
+
+    assert total_bytes_downloaded == other_params.file_size_bytes
+
+    # end timer.
+    end_time = time.monotonic_ns()
+    elapsed_time = end_time - start_time
+    logging.debug(f"Time taken to download all chunks: {elapsed_time} ns")
+    return elapsed_time / 1_000_000_000
+
+
+def download_chunks_using_mrd(loop, client, filename, other_params, chunks):
+    return loop.run_until_complete(
+        download_chunks_using_mrd_async(client, filename, other_params, chunks)
+    )
+
+
+def download_chunks_using_json(_, json_client, filename, other_params, chunks):
+    bucket = json_client.bucket(other_params.bucket_name)
+    blob = bucket.blob(filename)
+    start_time = time.monotonic_ns()
+    for offset, size in chunks:
+        _ = blob.download_as_bytes(start=offset, end=offset + size)
+    return (time.monotonic_ns() - start_time) / 1_000_000_000
+
+
+@pytest.mark.parametrize(
+    "workload_params",
+    all_zonal_params["read_rand"],
+    indirect=True,
+    ids=lambda p: p.name,
+)
+def test_downloads_single_thread_single_coro(
+    benchmark, storage_client, blobs_to_delete, monitor, workload_params
+):
+    """
+    1. create chunks based on the object size and chunk_size. [(start_byte, min(chunk_size, remaining_size))]
+    2. Pass the list of chunks to `download_chunks_using_mrd` for zonal bucket
+                                   `download_chunks_using_json` for regional bucket.
+        above function are target methods.
+    3. benchmark target method, using benchmark.pedantic
+
+
+
+    """
+    params, files_names = workload_params
+
+    object_size = params.file_size_bytes
+    chunk_size = params.chunk_size_bytes
+    chunks = []
+    for offset in range(0, object_size, chunk_size):
+        size = min(chunk_size, object_size - offset)
+        chunks.append((offset, size))
+
+    if params.pattern == "rand":
+        logging.info("randomizing chunks")
+        random.shuffle(chunks)
+
+    if params.bucket_type == "zonal":
+        logging.info("bucket type zonal")
+        target_func = download_chunks_using_mrd
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        client = loop.run_until_complete(create_client())
+    else:
+        logging.info("bucket type regional")
+        target_func = download_chunks_using_json
+        loop = None
+        client = storage_client
+
+    output_times = []
+
+    def target_wrapper(*args, **kwargs):
+        result = target_func(*args, **kwargs)
+        output_times.append(result)
+        return output_times
+
+    try:
+        with monitor() as m:
+            output_times = benchmark.pedantic(
+                target=target_wrapper,
+                iterations=1,
+                rounds=params.rounds,
+                args=(
+                    loop,
+                    client,
+                    files_names[0],
+                    params,
+                    chunks,
+                ),
+            )
+            print("type of output", type(output_times), output_times)
+    finally:
+        if loop is not None:
+            tasks = asyncio.all_tasks(loop=loop)
+            for task in tasks:
+                task.cancel()
+            loop.run_until_complete(asyncio.gather(*tasks, return_exceptions=True))
+            loop.close()
+    publish_benchmark_extra_info(benchmark, params, true_times=output_times)
     publish_resource_metrics(benchmark, m)
 
     blobs_to_delete.extend(
