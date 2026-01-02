@@ -37,7 +37,7 @@ class _WriteState:
 
     def __init__(
         self,
-        spec: storage_type.AppendObjectSpec,
+        spec: Union[storage_type.AppendObjectSpec, storage_type.WriteObjectSpec],
         chunk_size: int,
         user_buffer: IO[bytes],
     ):
@@ -48,7 +48,7 @@ class _WriteState:
         self.bytes_sent: int = 0
         self.write_handle: Union[bytes, storage_type.BidiWriteHandle, None] = None
         self.routing_token: Optional[str] = None
-        self.is_complete: bool = False
+        self.is_finalized: bool = False
 
 
 class _WriteResumptionStrategy(_BaseResumptionStrategy):
@@ -61,34 +61,29 @@ class _WriteResumptionStrategy(_BaseResumptionStrategy):
 
         For Appendable Objects, every stream opening should send an
         AppendObjectSpec. If resuming, the `write_handle` is added to that spec.
+
+        This method is not applicable for `open` methods.
         """
         write_state: _WriteState = state["write_state"]
 
-        if write_state.write_handle:
-            write_state.spec.write_handle = write_state.write_handle
-
-        if write_state.routing_token:
-            write_state.spec.routing_token = write_state.routing_token
-
-        # Initial request of the stream must provide the specification.
-        # If we have a write_handle, we request a state lookup to verify persisted offset.
-        do_state_lookup = write_state.write_handle is not None
+        initial_request = storage_type.BidiWriteObjectRequest()
 
         # Determine if we need to send WriteObjectSpec or AppendObjectSpec
-        initial_request = storage_type.BidiWriteObjectRequest(
-            state_lookup=do_state_lookup
-        )
-
         if isinstance(write_state.spec, storage_type.WriteObjectSpec):
             initial_request.write_object_spec = write_state.spec
         else:
+            if write_state.write_handle:
+                write_state.spec.write_handle = write_state.write_handle
+
+            if write_state.routing_token:
+                write_state.spec.routing_token = write_state.routing_token
             initial_request.append_object_spec = write_state.spec
 
         yield initial_request
 
         # The buffer should already be seeked to the correct position (persisted_size)
         # by the `recover_state_on_failure` method before this is called.
-        while not write_state.is_complete:
+        while not write_state.is_finalized:
             chunk = write_state.user_buffer.read(write_state.chunk_size)
 
             # End of File detection
@@ -113,16 +108,16 @@ class _WriteResumptionStrategy(_BaseResumptionStrategy):
         """Processes a server response and updates the write state."""
         write_state: _WriteState = state["write_state"]
 
-        if response.persisted_size is not None:
-            if response.persisted_size > write_state.persisted_size:
-                write_state.persisted_size = response.persisted_size
+        if response.persisted_size:
+            write_state.persisted_size = response.persisted_size
 
         if response.write_handle:
             write_state.write_handle = response.write_handle
 
         if response.resource:
-            write_state.is_complete = True
             write_state.persisted_size = response.resource.size
+            if response.resource.finalize_time:
+                write_state.is_finalized = True
 
     async def recover_state_on_failure(
         self, error: Exception, state: Dict[str, Any]

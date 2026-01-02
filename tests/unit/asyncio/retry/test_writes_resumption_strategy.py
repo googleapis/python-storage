@@ -15,6 +15,7 @@
 import io
 import unittest
 import unittest.mock as mock
+from datetime import datetime
 
 import pytest
 import google_crc32c
@@ -137,7 +138,6 @@ class TestWriteResumptionStrategy(unittest.TestCase):
         self.assertEqual(
             requests[0].append_object_spec.write_handle.handle, b"test-handle"
         )
-        self.assertTrue(requests[0].state_lookup)
 
         # Check data starts from offset 4
         self.assertEqual(requests[1].write_offset, 4)
@@ -206,28 +206,11 @@ class TestWriteResumptionStrategy(unittest.TestCase):
         strategy.update_state_from_response(response2, state)
         self.assertEqual(write_state.persisted_size, 1024)
 
-        final_resource = storage_type.Object(name="test-object", bucket="b", size=2048)
+        final_resource = storage_type.Object(name="test-object", bucket="b", size=2048, finalize_time=datetime.now())
         response3 = storage_type.BidiWriteObjectResponse(resource=final_resource)
         strategy.update_state_from_response(response3, state)
-        self.assertTrue(write_state.is_complete)
         self.assertEqual(write_state.persisted_size, 2048)
-
-    def test_update_state_from_response_ignores_smaller_persisted_size(self):
-        strategy = self._make_one()
-        state = {
-            "write_state": _WriteState(
-                mock.Mock(spec=storage_type.AppendObjectSpec),
-                0,
-                mock.Mock(spec=io.BytesIO),
-            ),
-        }
-        write_state = state["write_state"]
-        write_state.persisted_size = 2048
-
-        response = storage_type.BidiWriteObjectResponse(persisted_size=1024)
-        strategy.update_state_from_response(response, state)
-
-        self.assertEqual(write_state.persisted_size, 2048)
+        self.assertTrue(write_state.is_finalized)
 
     @pytest.mark.asyncio
     async def test_recover_state_on_failure_handles_redirect(self):
