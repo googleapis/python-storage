@@ -3,45 +3,26 @@ common:
     - "regional"
     - "zonal"
   file_sizes_mib:
-    - 100 # 1GB
+    - 10 # 1GB
   # chunk_sizes_mib: [1, 2, 8, 64, 100, 128]
-  chunk_sizes_mib: [64]
-  rounds: 3
+  chunk_sizes_mib: [6]
+  rounds: 10
 
 workload:
-  ############# special cases start #########
-   # one file will be divided equally among coros
-  - name: "read_seq_single_file"
-    pattern: "seq"
-    coros: [1, 2]
-    processes: [1]
 
-  # one file will be divided equally among processes and coros
-  - name: "read_seq_multi_process_single_file"
-    pattern: "seq"
-    # coros: [1,2,4,8]
-    # processes: [2, 4, 8, 16, 32, 64]
-    coros: [1,2]
-    processes: [2, 4]
-  ############# special cases end #########
-
-  ############# 1p 1c #########
-
-  # num_processs * num_coros files will be created.
+  ############# single proc single coroutines #########
   - name: "read_seq"
     pattern: "seq"
     coros: [1]
     processes: [1]
 
-
-  # for random reads always `num_processs * num_coros` will be created.
   - name: "read_rand"
     pattern: "rand"
     coros: [1]
     processes: [1]
 
-  ############# 1p nc #########
-  # num_processs * num_coros files will be created.
+  ############# single proc multiple coroutines #########
+
   - name: "read_seq_multi_coros"
     pattern: "seq"
     coros: [2, 4]
@@ -52,16 +33,16 @@ workload:
     coros: [2, 4]
     processes: [1]
 
-  ############# mp nc #########
+  ############# multiple proc multiple coroutines #########
   - name: "read_seq_multi_process"
     pattern: "seq"
-    coros: [2, 4]
-    processes: [2, 4, 8]
+    coros: [1, 2]
+    processes: [2]
 
   - name: "read_rand_multi_process"
     pattern: "rand"
-    coros: [2, 4]
-    processes: [2, 4, 8]
+    coros: [1,2]
+    processes: [2,4]
 
 
 defaults:
