@@ -31,9 +31,9 @@ from tests.perf.microbenchmarks.conftest import (
     publish_resource_metrics,
 )
 import tests.perf.microbenchmarks.config as config
+from concurrent.futures import ThreadPoolExecutor
 
-all_zonal_params = config._get_params()
-print(all_zonal_params["read_rand"])
+all_params = config._get_params()
 all_regional_params = config._get_params(bucket_type_filter="regional")
 
 
@@ -307,7 +307,7 @@ def download_mn_objects_using_m_process_n_coros(filenames, other_params):
 
 @pytest.mark.parametrize(
     "workload_params",
-    all_zonal_params["read_seq_single_file"],
+    all_params["read_seq_single_file"],
     indirect=True,
     ids=lambda p: p.name,
 )
@@ -389,11 +389,11 @@ def download_chunks_using_json(_, json_client, filename, other_params, chunks):
 
 @pytest.mark.parametrize(
     "workload_params",
-    all_zonal_params["read_rand"],
+    all_params["read_rand"] + all_params["read_seq"],
     indirect=True,
     ids=lambda p: p.name,
 )
-def test_downloads_single_thread_single_coro(
+def test_downloads_single_proc_single_coro(
     benchmark, storage_client, blobs_to_delete, monitor, workload_params
 ):
     """
@@ -468,9 +468,153 @@ def test_downloads_single_thread_single_coro(
     )
 
 
+def download_files_using_mrd_multi_coro(loop, client, files, other_params, chunks):
+    """
+    Docstring for download_files_using_mrd
+
+    1. for each file
+        1. create chunks of size other_params.chunk_size_bytes
+        2. create a coroutine/task using download_chunks_using_mrd
+        3. execute all coroutines/task using asyncio.gather in loop.
+        3. capture latency (output time)
+    2. output max time.
+
+    :param loop: Description
+    :param client: Description
+    :param files: Description
+    :param other_params: Description
+    """
+
+    async def main():
+        tasks = []
+        for f in files:
+            tasks.append(
+                download_chunks_using_mrd_async(client, f, other_params, chunks)
+            )
+        return await asyncio.gather(*tasks)
+
+    results = loop.run_until_complete(main())
+    return max(results)
+
+
+def download_files_using_json_multi_threaded(
+    _, json_client, files, other_params, chunks
+):
+    """
+    Docstring for download_files_using_json
+
+    1. for each file
+        1. create chunks of size other_params.chunk_size_bytes
+        2. using threaPoolexecutor send each file chunks to download_chunks_using_json
+        3. capture latency (output time)
+    2. output max time.
+
+    :param _: Description
+    :param json_client: Description
+    :param files: Description
+    :param other_params: Description
+    """
+    results = []
+    # In the context of multi-coro, num_coros is the number of files to download concurrently.
+    # So we can use it as max_workers for the thread pool.
+    with ThreadPoolExecutor(max_workers=other_params.num_coros) as executor:
+        futures = []
+        for f in files:
+            future = executor.submit(
+                download_chunks_using_json, None, json_client, f, other_params, chunks
+            )
+            futures.append(future)
+
+        for future in futures:
+            results.append(future.result())
+
+    return max(results)
+
+
 @pytest.mark.parametrize(
     "workload_params",
-    all_zonal_params["read_seq_multi_process_single_file"],
+    all_params["read_seq_multi_coros"] + all_params["read_rand_multi_coros"],
+    indirect=True,
+    ids=lambda p: p.name,
+)
+def test_downloads_single_proc_multi_coro(
+    benchmark, storage_client, blobs_to_delete, monitor, workload_params
+):
+    """
+    1. create chunks based on the object size and chunk_size. [(start_byte, min(chunk_size, remaining_size))]
+    2. Pass the list of chunks to `download_chunks_using_mrd` for zonal bucket
+                                   `download_chunks_using_json` for regional bucket.
+        above function are target methods.
+    3. benchmark target method, using benchmark.pedantic
+
+
+
+    """
+    params, files_names = workload_params
+
+    object_size = params.file_size_bytes
+    chunk_size = params.chunk_size_bytes
+    chunks = []
+    for offset in range(0, object_size, chunk_size):
+        size = min(chunk_size, object_size - offset)
+        chunks.append((offset, size))
+
+    if params.pattern == "rand":
+        logging.info("randomizing chunks")
+        random.shuffle(chunks)
+
+    if params.bucket_type == "zonal":
+        logging.info("bucket type zonal")
+        target_func = download_files_using_mrd_multi_coro
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        client = loop.run_until_complete(create_client())
+    else:
+        logging.info("bucket type regional")
+        target_func = download_files_using_json_multi_threaded
+        loop = None
+        client = storage_client
+
+    output_times = []
+
+    def target_wrapper(*args, **kwargs):
+        result = target_func(*args, **kwargs)
+        output_times.append(result)
+        return output_times
+
+    try:
+        with monitor() as m:
+            output_times = benchmark.pedantic(
+                target=target_wrapper,
+                iterations=1,
+                rounds=params.rounds,
+                args=(
+                    loop,
+                    client,
+                    files_names,
+                    params,
+                    chunks,
+                ),
+            )
+            print("type of output", type(output_times), output_times)
+    finally:
+        if loop is not None:
+            tasks = asyncio.all_tasks(loop=loop)
+            for task in tasks:
+                task.cancel()
+            loop.run_until_complete(asyncio.gather(*tasks, return_exceptions=True))
+            loop.close()
+    publish_benchmark_extra_info(benchmark, params, true_times=output_times)
+    publish_resource_metrics(benchmark, m)
+
+    blobs_to_delete.extend(
+        storage_client.bucket(params.bucket_name).blob(f) for f in files_names
+    )
+
+
+@pytest.mark.parametrize(
+    "workload_params",
+    all_params["read_seq_multi_process_single_file"],
     indirect=True,
     ids=lambda p: p.name,
 )
@@ -501,7 +645,7 @@ def test_downloads_one_object_mp(
 
 @pytest.mark.parametrize(
     "workload_params",
-    all_zonal_params["read_seq_multi_process"],
+    all_params["read_seq_multi_process"],
     indirect=True,
     ids=lambda p: p.name,
 )
@@ -532,7 +676,7 @@ def test_downloads_mn_objects_m_process_n_coros(
 
 @pytest.mark.parametrize(
     "workload_params",
-    all_zonal_params["read_rand"],
+    all_params["read_rand"],
     indirect=True,
     ids=lambda p: p.name,
 )
