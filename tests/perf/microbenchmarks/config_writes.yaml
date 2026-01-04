@@ -3,46 +3,31 @@ common:
     - "regional"
     - "zonal"
   file_sizes_mib:
-    - 10 # 1GB
+    - 1024 # 1GB
   # chunk_sizes_mib: [1, 2, 8, 64, 100, 128]
-  chunk_sizes_mib: [6]
-  rounds: 10
+  chunk_sizes_mib: [64]
+  rounds: 3
 
 workload:
 
   ############# single proc single coroutines #########
-  - name: "read_seq"
+  - name: "write_seq"
     pattern: "seq"
-    coros: [1]
-    processes: [1]
-
-  - name: "read_rand"
-    pattern: "rand"
     coros: [1]
     processes: [1]
 
   ############# single proc multiple coroutines #########
 
-  - name: "read_seq_multi_coros"
+  - name: "write_seq_multi_coros"
     pattern: "seq"
-    coros: [2, 4]
-    processes: [1]
-
-  - name: "read_rand_multi_coros"
-    pattern: "rand"
     coros: [2, 4]
     processes: [1]
 
   ############# multiple proc multiple coroutines #########
-  - name: "read_seq_multi_process"
+  - name: "write_seq_multi_process"
     pattern: "seq"
     coros: [1, 2]
     processes: [2]
-
-  - name: "read_rand_multi_process"
-    pattern: "rand"
-    coros: [1,2]
-    processes: [2,4]
 
 
 defaults:

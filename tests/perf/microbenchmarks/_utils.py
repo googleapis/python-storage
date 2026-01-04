@@ -15,7 +15,10 @@ def publish_benchmark_extra_info(
     benchmark.extra_info["num_files"] = params.num_files
     benchmark.extra_info["file_size"] = params.file_size_bytes
     benchmark.extra_info["chunk_size"] = params.chunk_size_bytes
-    benchmark.extra_info["pattern"] = params.pattern
+    if benchmark_group == "write":
+        benchmark.extra_info["pattern"] = "seq"
+    else:
+        benchmark.extra_info["pattern"] = params.pattern
     benchmark.extra_info["coros"] = params.num_coros
     benchmark.extra_info["rounds"] = params.rounds
     benchmark.extra_info["bucket_name"] = params.bucket_name
