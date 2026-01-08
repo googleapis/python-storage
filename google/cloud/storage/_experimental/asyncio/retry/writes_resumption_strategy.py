@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Dict, IO, Iterable, Optional, Union
+from typing import Any, Dict, IO, Iterable, List, Optional, Union
 
 import google_crc32c
 from google.api_core import exceptions
@@ -62,7 +62,7 @@ class _WriteResumptionStrategy(_BaseResumptionStrategy):
 
     def generate_requests(
         self, state: Dict[str, Any]
-    ) -> Iterable[storage_type.BidiWriteObjectRequest]:
+    ) -> List[storage_type.BidiWriteObjectRequest]:
         """Generates BidiWriteObjectRequests to resume or continue the upload.
 
         For Appendable Objects, every stream opening should send an
@@ -72,21 +72,9 @@ class _WriteResumptionStrategy(_BaseResumptionStrategy):
         """
         write_state: _WriteState = state["write_state"]
 
-        initial_request = storage_type.BidiWriteObjectRequest()
+        print("Generating requests from write state:", write_state)
 
-        # Determine if we need to send WriteObjectSpec or AppendObjectSpec
-        if isinstance(write_state.spec, storage_type.WriteObjectSpec):
-            initial_request.write_object_spec = write_state.spec
-        else:
-            if write_state.write_handle:
-                write_state.spec.write_handle = write_state.write_handle
-
-            if write_state.routing_token:
-                write_state.spec.routing_token = write_state.routing_token
-            initial_request.append_object_spec = write_state.spec
-
-        yield initial_request
-
+        requests = []
         # The buffer should already be seeked to the correct position (persisted_size)
         # by the `recover_state_on_failure` method before this is called.
         while not write_state.is_finalized:
@@ -94,7 +82,8 @@ class _WriteResumptionStrategy(_BaseResumptionStrategy):
 
             # End of File detection
             if not chunk:
-                return
+                print("No more data to read; ending request generation")
+                break
 
             checksummed_data = storage_type.ChecksummedData(content=chunk)
             checksum = google_crc32c.Checksum(chunk)
@@ -106,14 +95,17 @@ class _WriteResumptionStrategy(_BaseResumptionStrategy):
             )
             write_state.bytes_sent += len(chunk)
 
-            yield request
+            print("Yielding request", len(request.checksummed_data.content))
+            requests.append(request)
+        return requests
 
     def update_state_from_response(
         self, response: storage_type.BidiWriteObjectResponse, state: Dict[str, Any]
     ) -> None:
         """Processes a server response and updates the write state."""
         write_state: _WriteState = state["write_state"]
-
+        if response is None:
+            return
         if response.persisted_size:
             write_state.persisted_size = response.persisted_size
 

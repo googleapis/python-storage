@@ -49,10 +49,14 @@ class _BidiStreamRetryManager:
         """
         state = initial_state
 
+        print("Starting retry manager execute")
+
         async def attempt():
             requests = self._strategy.generate_requests(state)
+            print("Generated requests:", len(requests))
             stream = self._send_and_recv(requests, state)
             try:
+                print("Starting to receive responses in attempt")
                 async for response in stream:
                     self._strategy.update_state_from_response(response, state)
                 return
