@@ -189,7 +189,7 @@ class AsyncAppendableObjectWriter:
 
         This method sends the provided `data` to the GCS server in chunks.
         and persists data in GCS at every `_MAX_BUFFER_SIZE_BYTES` bytes by
-        calling `self.simple_flush`.
+        sending `flush=true`.
 
         :type data: bytes
         :param data: The bytes to append to the object.
@@ -214,21 +214,28 @@ class AsyncAppendableObjectWriter:
         while start_idx < total_bytes:
             end_idx = min(start_idx + _MAX_CHUNK_SIZE_BYTES, total_bytes)
             data_chunk = data[start_idx:end_idx]
-            await self.write_obj_stream.send(
-                _storage_v2.BidiWriteObjectRequest(
-                    write_offset=self.offset,
-                    checksummed_data=_storage_v2.ChecksummedData(
-                        content=data_chunk,
-                        crc32c=int.from_bytes(Checksum(data_chunk).digest(), "big"),
-                    ),
-                )
+            is_last_chunk = end_idx == total_bytes
+
+            request = _storage_v2.BidiWriteObjectRequest(
+                write_offset=self.offset,
+                checksummed_data=_storage_v2.ChecksummedData(
+                    content=data_chunk,
+                    crc32c=int.from_bytes(Checksum(data_chunk).digest(), "big"),
+                ),
             )
             chunk_size = end_idx - start_idx
             self.offset += chunk_size
             self.bytes_appended_since_last_flush += chunk_size
+
             if self.bytes_appended_since_last_flush >= self.flush_interval:
-                await self.simple_flush()
+                request.flush = True
                 self.bytes_appended_since_last_flush = 0
+
+            if is_last_chunk:
+                request.state_lookup = True
+                request.flush = True
+
+            await self.write_obj_stream.send(request)
             start_idx = end_idx
 
     async def simple_flush(self) -> None:
@@ -292,15 +299,13 @@ class AsyncAppendableObjectWriter:
             raise ValueError("Stream is not open. Call open() before close().")
 
         if finalize_on_close:
-            await self.finalize()
-        else:
-            await self.flush()
+            return await self.finalize()
 
         await self.write_obj_stream.close()
 
         self._is_stream_open = False
         self.offset = None
-        return self.object_resource if finalize_on_close else self.persisted_size
+        return self.persisted_size
 
     async def finalize(self) -> _storage_v2.Object:
         """Finalizes the Appendable Object.
@@ -322,6 +327,10 @@ class AsyncAppendableObjectWriter:
         response = await self.write_obj_stream.recv()
         self.object_resource = response.resource
         self.persisted_size = self.object_resource.size
+        await self.write_obj_stream.close()
+
+        self._is_stream_open = False
+        self.offset = None
         return self.object_resource
 
     # helper methods.
