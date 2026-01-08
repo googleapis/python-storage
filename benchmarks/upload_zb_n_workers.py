@@ -11,6 +11,10 @@ from google.cloud.storage._experimental.asyncio.async_appendable_object_writer i
 )
 import math
 import uuid
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from tests.perf.microbenchmarks.resource_monitor import ResourceMonitor
 
 async def upload_one_async(bucket_name, object_name, upload_size, chunk_size):
     """Uploads a single object of size `upload_size`, in chunks of `chunk_size`"""
@@ -18,7 +22,10 @@ async def upload_one_async(bucket_name, object_name, upload_size, chunk_size):
     client = AsyncGrpcClient().grpc_client
     start_time = time.perf_counter()
     writer = AsyncAppendableObjectWriter(
-        client=client, bucket_name=bucket_name, object_name=object_name
+        client=client,
+        bucket_name=bucket_name,
+        object_name=object_name,
+        writer_options={"FLUSH_INTERVAL_BYTES": 1026 * 1024**2},
     )
 
     await writer.open()
@@ -30,7 +37,7 @@ async def upload_one_async(bucket_name, object_name, upload_size, chunk_size):
         await writer.append(data)
         uploaded_bytes += bytes_to_upload
         count += 1
-    await writer.close()
+    await writer.close(finalize_on_close=True)
     assert uploaded_bytes == upload_size
     assert count == math.ceil(upload_size / chunk_size)
 
@@ -42,54 +49,87 @@ async def upload_one_async(bucket_name, object_name, upload_size, chunk_size):
     print(f"Latency: {latency:.2f} seconds")
     print(f"Throughput: {throughput:.2f} MB/s")
 
-# def upload_one_sync(bucket_name, object_name, upload_size, chunk_size):
-#     """Wrapper to run the async upload_one in a new event loop."""
-#     asyncio.run(upload_one_async(bucket_name, object_name, upload_size, chunk_size))
+
+def upload_one_sync(bucket_name, object_name, upload_size, chunk_size):
+    """Wrapper to run the async upload_one in a new event loop."""
+    asyncio.run(upload_one_async(bucket_name, object_name, upload_size, chunk_size))
 
 
-# def main():
-#     parser = argparse.ArgumentParser()
-#     parser.add_argument("--bucket_name", type=str, default='chandrasiri-rs')
-#     parser.add_argument("--upload_size", type=int, default=1024 * 1024 * 1024)  # 1 GiB
-#     parser.add_argument("--chunk_size", type=int, default=100 * 1024 * 1024)  # 100 MiB
-#     parser.add_argument("--count", type=int, default=100)
-#     parser.add_argument("--start_object_num", type=int, default=0)
-#     parser.add_argument("-n", "--num_workers", type=int, default=2, help="Number of worker threads or processes.")
-#     parser.add_argument("--executor", type=str, choices=['thread', 'process'], default='process', help="Executor to use: 'thread' for ThreadPoolExecutor, 'process' for ProcessPoolExecutor")
-#     args = parser.parse_args()
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--bucket_name", type=str, default="chandrasiri-rs")
+    parser.add_argument("--upload_size_mib", type=int, default=1024)  # 1 GiB
+    parser.add_argument("--chunk_size_mib", type=int, default=100)  # 100 MiB
+    parser.add_argument("--count", type=int, default=100)
+    parser.add_argument("--start_object_num", type=int, default=0)
+    parser.add_argument(
+        "-n",
+        "--num_workers",
+        type=int,
+        default=2,
+        help="Number of worker threads or processes.",
+    )
+    parser.add_argument(
+        "--executor",
+        type=str,
+        choices=["thread", "process"],
+        default="process",
+        help="Executor to use: 'thread' for ThreadPoolExecutor, 'process' for ProcessPoolExecutor",
+    )
+    args = parser.parse_args()
 
-#     total_start_time = time.perf_counter()
+    total_start_time = time.perf_counter()
 
-#     ExecutorClass = ThreadPoolExecutor if args.executor == 'thread' else ProcessPoolExecutor
+    ExecutorClass = (
+        ThreadPoolExecutor if args.executor == "thread" else ProcessPoolExecutor
+    )
 
-#     with ExecutorClass(max_workers=args.num_workers) as executor:
-#         futures = []
-#         for i in range(args.start_object_num, args.start_object_num + args.count):
-#             object_name = f"py-sdk-mb-mt-{i}"
-#             future = executor.submit(upload_one_sync, args.bucket_name, object_name, args.upload_size, args.chunk_size)
-#             futures.append(future)
+    with ResourceMonitor() as m:
+        with ExecutorClass(max_workers=args.num_workers) as executor:
+            futures = []
+            for i in range(args.start_object_num, args.start_object_num + args.count):
+                object_name = f"py-sdk-mb-mt-{i}"
+                future = executor.submit(
+                    upload_one_sync,
+                    args.bucket_name,
+                    object_name,
+                    args.upload_size_mib * 1024 * 1024,
+                    args.chunk_size_mib * 1024 * 1024,
+                )
+                futures.append(future)
 
-#         for future in futures:
-#             future.result() # wait for all workers to complete
+            for future in futures:
+                future.result()  # wait for all workers to complete
+    
 
-#     total_end_time = time.perf_counter()
-#     total_latency = total_end_time - total_start_time
-#     total_uploaded_bytes = args.upload_size * args.count
-#     aggregate_throughput = (total_uploaded_bytes / total_latency) / (1000 * 1000)  # MB/s
+    total_end_time = time.perf_counter()
+    total_latency = total_end_time - total_start_time
+    total_uploaded_bytes = args.upload_size_mib * 1024 * 1024 * args.count
+    aggregate_throughput = (total_uploaded_bytes / total_latency) / (
+        1000 * 1000
+    )  # MB/s
 
-#     print("\n--- Aggregate Results ---")
-#     print(f"Total objects uploaded: {args.count}")
-#     print(f"Total data uploaded: {total_uploaded_bytes / (1024*1024*1024):.2f} GiB")
-#     print(f"Total time taken: {total_latency:.2f} seconds")
-#     print(f"Aggregate throughput: {aggregate_throughput:.2f} MB/s")
+    print("\n--- Aggregate Results ---")
+    print(f"Total objects uploaded: {args.count}")
+    print(f"Total data uploaded: {total_uploaded_bytes / (1024*1024*1024):.2f} GiB")
+    print(f"Total time taken: {total_latency:.2f} seconds")
+    print(f"Aggregate throughput: {aggregate_throughput:.2f} MB/s")
+
+    print("\n--- Resource Monitor Results ---")
+    print(f"Max CPU: {m.max_cpu}")
+    print(f"Max Memory: {m.max_mem}")
+    print(f"Throughput (MB/s): {m.throughput_mb_s}")
+    print(f"vCPUs: {m.vcpus}")
+
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--bucket_name", type=str, default='chandrasiri-rs')
-    # parser.add_argument("--object_suffix", type=str, required=True)
-    parser.add_argument("--upload_size", type=int, default=1024 * 1024 * 1024)  # 1 GiB
-    parser.add_argument("--chunk_size", type=int, default=100 * 1024 * 1024)  # 100 MiB
-    args = parser.parse_args()
-    object_name = f'upload-test-{str(uuid.uuid4())[:4]}'
-    asyncio.run(upload_one_async(args.bucket_name, object_name, args.upload_size, args.chunk_size))
+    main()
+    # parser = argparse.ArgumentParser()
+    # parser.add_argument("--bucket_name", type=str, default='chandrasiri-rs')
+    # # parser.add_argument("--object_suffix", type=str, required=True)
+    # parser.add_argument("--upload_size", type=int, default=1024 * 1024 * 1024)  # 1 GiB
+    # parser.add_argument("--chunk_size", type=int, default=100 * 1024 * 1024)  # 100 MiB
+    # args = parser.parse_args()
+    # object_name = f'upload-test-{str(uuid.uuid4())[:4]}'
+    # asyncio.run(upload_one_async(args.bucket_name, object_name, args.upload_size, args.chunk_size))

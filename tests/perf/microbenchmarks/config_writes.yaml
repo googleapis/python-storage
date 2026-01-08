@@ -5,8 +5,8 @@ common:
   file_sizes_mib:
     - 1024 # 1GB
   # chunk_sizes_mib: [1, 2, 8, 64, 100, 128]
-  chunk_sizes_mib: [64]
-  rounds: 3
+  chunk_sizes_mib: [100]
+  rounds: 10
 
 workload:
 
@@ -20,16 +20,16 @@ workload:
 
   - name: "write_seq_multi_coros"
     pattern: "seq"
-    coros: [2, 4]
+    coros: [2, 4, 8, 16]
     processes: [1]
 
   ############# multiple proc multiple coroutines #########
   - name: "write_seq_multi_process"
     pattern: "seq"
     coros: [1, 2]
-    processes: [2]
+    processes: [8, 16, 32, 64]
 
 
 defaults:
-  DEFAULT_RAPID_ZONAL_BUCKET: "chandrasiri-rs"
-  DEFAULT_STANDARD_BUCKET: "gcs-pytest-benchmark-standard-bucket" 
+  DEFAULT_RAPID_ZONAL_BUCKET: "chandrasiri-benchmarks-zb"
+  DEFAULT_STANDARD_BUCKET: "chandrasiri-benchmarks-rb"

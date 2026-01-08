@@ -67,7 +67,7 @@ def publish_resource_metrics(benchmark: Any, monitor: ResourceMonitor) -> None:
 
 async def upload_appendable_object(bucket_name, object_name, object_size, chunk_size):
     writer = AsyncAppendableObjectWriter(
-        AsyncGrpcClient().grpc_client, bucket_name, object_name
+        AsyncGrpcClient().grpc_client, bucket_name, object_name, writer_options={"FLUSH_INTERVAL_BYTES": 1026 * 1024 * 1024}
     )
     await writer.open()
     uploaded_bytes = 0
@@ -101,7 +101,7 @@ def _upload_worker(args):
     return object_name, uploaded_bytes
 
 
-def _create_files(num_files, bucket_name, bucket_type, object_size, chunk_size=128 * 1024 * 1024):
+def _create_files(num_files, bucket_name, bucket_type, object_size, chunk_size=1024 * 1024 * 1024):
     """
     1. using upload_appendable_object implement this and return a list of file names.
     TODO: adapt this to REGIONAL BUCKETS as well.

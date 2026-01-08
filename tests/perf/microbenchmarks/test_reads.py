@@ -56,7 +56,7 @@ async def download_chunks_using_mrd_async(client, filename, other_params, chunks
     # end timer.
     end_time = time.monotonic_ns()
     elapsed_time = end_time - start_time
-    logging.debug(f"Time taken to download all chunks: {elapsed_time} ns")
+    print(f"INFO: Time taken to download all chunks: {elapsed_time} ns")
     return elapsed_time / 1_000_000_000
 
 
@@ -173,12 +173,18 @@ def download_files_using_mrd_multi_coro(loop, client, files, other_params, chunk
     """
 
     async def main():
-        tasks = []
-        for f in files:
-            tasks.append(
-                download_chunks_using_mrd_async(client, f, other_params, chunks)
+        if len(files) == 1:
+            result = await download_chunks_using_mrd_async(
+                client, files[0], other_params, chunks
             )
-        return await asyncio.gather(*tasks)
+            return [result]
+        else:
+            tasks = []
+            for f in files:
+                tasks.append(
+                    download_chunks_using_mrd_async(client, f, other_params, chunks)
+                )
+            return await asyncio.gather(*tasks)
 
     results = loop.run_until_complete(main())
     return max(results)
@@ -220,7 +226,7 @@ def download_files_using_json_multi_threaded(
 
 @pytest.mark.parametrize(
     "workload_params",
-    all_params["read_seq_multi_coros"] + all_params["read_rand_multi_coros"],
+    all_params["read_seq_multi_coros"],
     indirect=True,
     ids=lambda p: p.name,
 )
@@ -300,6 +306,7 @@ def _download_files_worker(files_to_download, other_params, chunks, bucket_type)
             result = download_files_using_mrd_multi_coro(
                 loop, client, files_to_download, other_params, chunks
             )
+            # logging.info(f"downloading complete for ")
         finally:
             tasks = asyncio.all_tasks(loop=loop)
             for task in tasks:
@@ -345,7 +352,8 @@ def download_files_mp_mc_wrapper(files_names, params, chunks, bucket_type):
 
 @pytest.mark.parametrize(
     "workload_params",
-    all_params["read_seq_multi_process"] + all_params["read_rand_multi_process"],
+    all_params["read_seq_multi_process"] + 
+    all_params["read_rand_multi_process"],
     indirect=True,
     ids=lambda p: p.name,
 )
@@ -361,6 +369,7 @@ def test_downloads_multi_proc_multi_coro(
     create processes in spwan mode. Output time (latency) for each round should be the maximum latency of all process.
     """
     params, files_names = workload_params
+    logging.info(f"num files: {len(files_names)}")
 
     object_size = params.file_size_bytes
     chunk_size = params.chunk_size_bytes

@@ -28,7 +28,7 @@ async def upload_object_async(bucket_name, object_name):
 
 def upload_worker(object_name):
     """A synchronous wrapper to be called by multiprocessing."""
-    bucket_name = "chandrasiri-rs"
+    bucket_name = "chandrasiri-benchmarks-zb"  # Replace with your bucket name
     try:
         asyncio.run(upload_object_async(bucket_name, object_name))
         return f"Successfully uploaded {object_name}"
@@ -40,9 +40,9 @@ def upload_worker(object_name):
 def main():
     """Main function to orchestrate parallel uploads."""
     num_objects = 3000
-    num_processes = 24
+    num_processes = 64
 
-    object_names = [f"para_64-{i}" for i in range(num_objects)]
+    object_names = [f"high_mem_long_running-{i}" for i in range(num_objects)]
 
     with Pool(processes=num_processes) as pool:
         for result in pool.imap_unordered(upload_worker, object_names):

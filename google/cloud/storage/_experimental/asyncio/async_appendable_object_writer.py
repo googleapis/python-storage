@@ -293,8 +293,8 @@ class AsyncAppendableObjectWriter:
 
         if finalize_on_close:
             await self.finalize()
-        else:
-            await self.flush()
+        # else:
+        #     await self.flush()
 
         await self.write_obj_stream.close()
 

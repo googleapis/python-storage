@@ -55,4 +55,4 @@ def get_persisted_size_sync(bucket_name, object_name):
 #             future.result()
 
 if __name__ == "__main__":
-    get_persisted_size_sync("chandrasiri-rs", sys.argv[1])
+    get_persisted_size_sync(sys.argv[1], sys.argv[2])

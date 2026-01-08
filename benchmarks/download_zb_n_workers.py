@@ -43,7 +43,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--bucket_name", type=str, default='chandrasiri-rs')
     parser.add_argument("--download_size", type=int, default=1024 * 1024 * 1024)  # 1 GiB
-    parser.add_argument("--chunk_size", type=int, default=100 * 1024 * 1024)  # 100 MiB
+    parser.add_argument("--chunk_size", type=int, default=64 * 1024 * 1024)  # 100 MiB
     parser.add_argument("--count", type=int, default=100)
     parser.add_argument("--start_object_num", type=int, default=0)
     parser.add_argument("-n", "--num_workers", type=int, default=2, help="Number of worker threads or processes.")

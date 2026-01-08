@@ -66,10 +66,14 @@ def list_blobs_with_prefix(bucket_name, prefix, delimiter=None):
 
     # Note: The call returns a response only when the iterator is consumed.
     print("Blobs:")
+    count = 0
     for blob in blobs:
-        print(blob.name, "deleting it")
+        if count % 500 == 0:
+            print(blob.name)
+        count += 1
+    print(f"Total blobs with prefix {prefix}: {count}")
 
-        blob.delete()
+        # blob.delete()
 
     # if delimiter:
     #     print("Prefixes:")

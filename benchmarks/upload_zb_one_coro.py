@@ -7,6 +7,11 @@ from google.cloud.storage._experimental.asyncio.async_grpc_client import AsyncGr
 from google.cloud.storage._experimental.asyncio.async_appendable_object_writer import (
     AsyncAppendableObjectWriter,
 )
+import logging
+import sys
+
+
+logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
 async def upload_one(client, bucket_name, object_name, upload_size, chunk_size):
     """Uploads a single object of size `upload_size`, in chunks of `chunk_size`"""
@@ -33,7 +38,7 @@ async def upload_one(client, bucket_name, object_name, upload_size, chunk_size):
     latency = end_time - start_time
     throughput = (upload_size / latency) / (10**6)  # MB/s
 
-    print(f"Finished uploading {object_name}")
+    print(f"Finished uploading {object_name}, with generation, {writer.generation}")
     print(f"Latency: {latency:.2f} seconds")
     print(f"Throughput: {throughput:.2f} MB/s")
 
@@ -45,9 +50,11 @@ async def main():
     args = parser.parse_args()
 
     client = AsyncGrpcClient().grpc_client
-    object_name = f"py-sdk-mb-1GiB-1"
+    # object_name = f"test-half-close-current-code" # generation 1767887565143753
+    # object_name = f"test-half-close-with-good-close"
+    object_name = f"test-logs"
 
     await upload_one(client, args.bucket_name, object_name, args.upload_size, args.chunk_size)
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(main(), debug=True)
