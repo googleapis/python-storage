@@ -448,6 +448,8 @@ async def test_finalize(mock_write_object_stream, mock_client):
     assert writer.object_resource == mock_resource
     assert writer.persisted_size == 123
     assert gcs_object == mock_resource
+    assert writer._is_stream_open is False
+    assert writer.offset is None
 
 
 @pytest.mark.asyncio
@@ -506,6 +508,12 @@ async def test_append_sends_data_in_chunks(mock_write_object_stream, mock_client
     mock_stream.send = mock.AsyncMock()
 
     data = b"a" * (_MAX_CHUNK_SIZE_BYTES + 1)
+    mock_stream.recv = mock.AsyncMock(
+        return_value=_storage_v2.BidiWriteObjectResponse(
+            persisted_size=100 + len(data)
+        )
+    )
+
     await writer.append(data)
 
     assert mock_stream.send.await_count == 2
@@ -547,6 +555,7 @@ async def test_append_flushes_when_buffer_is_full(
     writer.persisted_size = 0
     mock_stream = mock_write_object_stream.return_value
     mock_stream.send = mock.AsyncMock()
+    mock_stream.recv = mock.AsyncMock()
 
     data = b"a" * _DEFAULT_FLUSH_INTERVAL_BYTES
     await writer.append(data)
@@ -579,6 +588,7 @@ async def test_append_handles_large_data(mock_write_object_stream, mock_client):
     writer.persisted_size = 0
     mock_stream = mock_write_object_stream.return_value
     mock_stream.send = mock.AsyncMock()
+    mock_stream.recv = mock.AsyncMock()
 
     data = b"a" * (_DEFAULT_FLUSH_INTERVAL_BYTES * 2 + 1)
     await writer.append(data)
@@ -609,6 +619,11 @@ async def test_append_data_two_times(mock_write_object_stream, mock_client):
     mock_stream.send = mock.AsyncMock()
 
     data1 = b"a" * (_MAX_CHUNK_SIZE_BYTES + 10)
+    mock_stream.recv = mock.AsyncMock(
+        return_value=_storage_v2.BidiWriteObjectResponse(
+            persisted_size= len(data1)
+        )
+    )
     await writer.append(data1)
 
     assert mock_stream.send.await_count == 2
@@ -617,6 +632,11 @@ async def test_append_data_two_times(mock_write_object_stream, mock_client):
     assert last_request_data1.state_lookup
 
     data2 = b"b" * (_MAX_CHUNK_SIZE_BYTES + 20)
+    mock_stream.recv = mock.AsyncMock(
+        return_value=_storage_v2.BidiWriteObjectResponse(
+            persisted_size= len(data2) + len(data1)
+        )
+    )
     await writer.append(data2)
 
     assert mock_stream.send.await_count == 4

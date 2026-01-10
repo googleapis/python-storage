@@ -352,6 +352,11 @@ async def test_append_flushes_and_state_lookup(storage_client, blobs_to_delete):
 
     # Verify the full content of the object.
     full_data = small_data + large_data
-    blob = storage_client.bucket(_ZONAL_BUCKET).get_blob(object_name)
-    content = blob.download_as_bytes()
+    mrd = AsyncMultiRangeDownloader(grpc_client, _ZONAL_BUCKET, object_name)
+    buffer = BytesIO()
+    await mrd.open()
+    # (0, 0) means read the whole object
+    await mrd.download_ranges([(0, 0, buffer)])
+    await mrd.close()
+    content = buffer.getvalue()
     assert content == full_data

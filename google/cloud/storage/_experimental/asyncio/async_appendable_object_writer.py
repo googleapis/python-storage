@@ -188,8 +188,9 @@ class AsyncAppendableObjectWriter:
         ie. `self.offset` bytes relative to the begining of the object.
 
         This method sends the provided `data` to the GCS server in chunks.
-        and persists data in GCS at every `_MAX_BUFFER_SIZE_BYTES` bytes by
-        sending `flush=true`.
+        and persists data in GCS at every `_DEFAULT_FLUSH_INTERVAL_BYTES` bytes
+        or at the last chunk whichever is earlier. Persisting is done by setting
+        `flush=True` on request.
 
         :type data: bytes
         :param data: The bytes to append to the object.
@@ -215,27 +216,33 @@ class AsyncAppendableObjectWriter:
             end_idx = min(start_idx + _MAX_CHUNK_SIZE_BYTES, total_bytes)
             data_chunk = data[start_idx:end_idx]
             is_last_chunk = end_idx == total_bytes
-
-            request = _storage_v2.BidiWriteObjectRequest(
-                write_offset=self.offset,
-                checksummed_data=_storage_v2.ChecksummedData(
-                    content=data_chunk,
-                    crc32c=int.from_bytes(Checksum(data_chunk).digest(), "big"),
-                ),
-            )
             chunk_size = end_idx - start_idx
+            await self.write_obj_stream.send(
+                _storage_v2.BidiWriteObjectRequest(
+                    write_offset=self.offset,
+                    checksummed_data=_storage_v2.ChecksummedData(
+                        content=data_chunk,
+                        crc32c=int.from_bytes(Checksum(data_chunk).digest(), "big"),
+                    ),
+                    state_lookup=is_last_chunk,
+                    flush=is_last_chunk
+                    or (
+                        self.bytes_appended_since_last_flush + chunk_size
+                        >= self.flush_interval
+                    ),
+                )
+            )
             self.offset += chunk_size
             self.bytes_appended_since_last_flush += chunk_size
 
             if self.bytes_appended_since_last_flush >= self.flush_interval:
-                request.flush = True
                 self.bytes_appended_since_last_flush = 0
 
             if is_last_chunk:
-                request.state_lookup = True
-                request.flush = True
-
-            await self.write_obj_stream.send(request)
+                response = await self.write_obj_stream.recv()
+                self.persisted_size = response.persisted_size
+                self.offset = self.persisted_size
+                self.bytes_appended_since_last_flush = 0
             start_idx = end_idx
 
     async def simple_flush(self) -> None:
@@ -311,6 +318,12 @@ class AsyncAppendableObjectWriter:
         """Finalizes the Appendable Object.
 
         Note: Once finalized no more data can be appended.
+        This method is different from `close`. if `.close()` is called data may
+        still be appended to object at a later point in time by opening with
+        generation number.
+        (i.e. `open(..., generation=<object_generation_number>)`.
+        However if `.finalize()` is called no more data can be appended to the
+        object.
 
         rtype: google.cloud.storage_v2.types.Object
         returns: The finalized object resource.
