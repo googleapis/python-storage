@@ -1,5 +1,7 @@
 from typing import Any, List
 import statistics
+import io
+import os
 
 
 def publish_benchmark_extra_info(
@@ -83,3 +85,67 @@ def publish_benchmark_extra_info(
     print(header)
     print(row)
     print("-" * 125)
+
+class RandomBytesIO(io.RawIOBase):
+    """
+    A file-like object that generates random bytes using os.urandom.
+    It enforces a fixed size and an upper safety cap.
+    """
+    # 10 GiB default safety cap
+    DEFAULT_CAP = 10 * 1024 * 1024 * 1024 
+
+    def __init__(self, size, max_size=DEFAULT_CAP):
+        """
+        Args:
+            size (int): The exact size of the virtual file in bytes.
+            max_size (int): The maximum allowed size to prevent safety issues.
+        """
+        if size is None:
+            raise ValueError("Size must be defined (cannot be infinite).")
+        
+        if size > max_size:
+            raise ValueError(f"Requested size {size} exceeds the maximum limit of {max_size} bytes (10 GiB).")
+
+        self._size = size
+        self._pos = 0
+
+    def read(self, n=-1):
+        # 1. Handle "read all" (n=-1)
+        if n is None or n < 0:
+            n = self._size - self._pos
+        
+        # 2. Handle EOF (End of File)
+        if self._pos >= self._size:
+            return b""
+            
+        # 3. Clamp read amount to remaining size
+        # This ensures we stop exactly at `size` bytes.
+        n = min(n, self._size - self._pos)
+        
+        # 4. Generate data
+        data = os.urandom(n)
+        self._pos += len(data)
+        return data
+
+    def readable(self):
+        return True
+
+    def seekable(self):
+        return True
+
+    def tell(self):
+        return self._pos
+
+    def seek(self, offset, whence=io.SEEK_SET):
+        if whence == io.SEEK_SET:
+            new_pos = offset
+        elif whence == io.SEEK_CUR:
+            new_pos = self._pos + offset
+        elif whence == io.SEEK_END:
+            new_pos = self._size + offset
+        else:
+            raise ValueError(f"Invalid whence: {whence}")
+
+        # Clamp position to valid range [0, size]
+        self._pos = max(0, min(new_pos, self._size))
+        return self._pos

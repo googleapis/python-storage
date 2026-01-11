@@ -73,7 +73,6 @@ def _get_params() -> Dict[str, List[ReadParameters]]:
 
             # Create a descriptive name for the parameter set
             name = f"{pattern}_{bucket_type}_{num_processes}p_{num_coros}c"
-            # name = f"{workload_name}"
 
             params[workload_name].append(
                 ReadParameters(
@@ -90,7 +89,6 @@ def _get_params() -> Dict[str, List[ReadParameters]]:
                     file_size_bytes=file_size_bytes,
                 )
             )
-    # print(params)
     return params
 
 
@@ -168,22 +166,3 @@ def get_write_params() -> Dict[str, List[WriteParameters]]:
                 )
             )
     return params
-
-
-if __name__ == "__main__":
-    import sys
-    # params = _get_params()
-    # print("Read params:")
-    # print('keys (num_workload in params', len(params), sys.getsizeof(params))
-    # if 'read_seq' in params:
-    #     print(params['read_seq'], len(params['read_seq']))
-
-    write_params = get_write_params()
-
-    print(write_params)
-    print("\nWrite params:")
-    print(
-        "keys (num_workload in params", len(write_params), sys.getsizeof(write_params)
-    )
-    # if 'write_seq' in write_params:
-    #     print(write_params['write_seq'], len(write_params['write_seq']))

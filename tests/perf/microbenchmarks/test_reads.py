@@ -71,7 +71,7 @@ def download_chunks_using_json(_, json_client, filename, other_params, chunks):
     blob = bucket.blob(filename)
     start_time = time.monotonic_ns()
     for offset, size in chunks:
-        _ = blob.download_as_bytes(start=offset, end=offset + size)
+        _ = blob.download_as_bytes(start=offset, end=offset + size - 1)
     return (time.monotonic_ns() - start_time) / 1_000_000_000
 
 

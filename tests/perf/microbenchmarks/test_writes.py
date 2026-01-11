@@ -16,7 +16,7 @@ import pytest
 from google.cloud.storage._experimental.asyncio.async_grpc_client import AsyncGrpcClient
 from google.cloud.storage._experimental.asyncio.async_appendable_object_writer import AsyncAppendableObjectWriter
 
-from tests.perf.microbenchmarks._utils import publish_benchmark_extra_info
+from tests.perf.microbenchmarks._utils import publish_benchmark_extra_info, RandomBytesIO
 from tests.perf.microbenchmarks.conftest import publish_resource_metrics
 import tests.perf.microbenchmarks.config as config
 
@@ -63,9 +63,11 @@ def upload_using_json(_, json_client, filename, other_params):
     bucket = json_client.bucket(other_params.bucket_name)
     blob = bucket.blob(filename)
     upload_size = other_params.file_size_bytes
-    data = os.urandom(upload_size)
-    
-    blob.upload_from_string(data)
+    # Don't use BytesIO because it'll report high memory usage for large files.
+    # `RandomBytesIO` generates random bytes on the fly.
+    in_mem_file = RandomBytesIO(upload_size)
+    # data = os.urandom(upload_size)
+    blob.upload_from_file(in_mem_file)
 
     end_time = time.monotonic_ns()
     elapsed_time = end_time - start_time

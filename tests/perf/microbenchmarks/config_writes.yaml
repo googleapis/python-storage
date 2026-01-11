@@ -3,8 +3,7 @@ common:
     - "regional"
     - "zonal"
   file_sizes_mib:
-    - 1024 # 1GB
-  # chunk_sizes_mib: [1, 2, 8, 64, 100, 128]
+    - 1024 # 1GiB
   chunk_sizes_mib: [100]
   rounds: 10
 

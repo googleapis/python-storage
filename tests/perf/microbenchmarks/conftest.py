@@ -1,10 +1,3 @@
-# from tests.system.conftest import blobs_to_delete
-
-# __all__ = [
-
-# "blobs_to_delete",
-# ]
-
 import contextlib
 from typing import Any
 from tests.perf.microbenchmarks.resource_monitor import ResourceMonitor
@@ -66,8 +59,11 @@ def publish_resource_metrics(benchmark: Any, monitor: ResourceMonitor) -> None:
 
 
 async def upload_appendable_object(bucket_name, object_name, object_size, chunk_size):
+    # flush interval set to little over 1GiB to minimize number of flushes.
+    # this method is to write "appendable" objects which will be used for 
+    # benchmarking reads, hence not concerned performance of writes here.
     writer = AsyncAppendableObjectWriter(
-        AsyncGrpcClient().grpc_client, bucket_name, object_name, writer_options={"FLUSH_INTERVAL_BYTES": 1026 * 1024 * 1024}
+        AsyncGrpcClient().grpc_client, bucket_name, object_name, writer_options={"FLUSH_INTERVAL_BYTES": 1026 * 1024 ** 2}
     )
     await writer.open()
     uploaded_bytes = 0
