@@ -2,7 +2,6 @@ import json
 import csv
 import argparse
 import logging
-import os
 import numpy as np
 
 MB = 1024 * 1024
