@@ -1,6 +1,6 @@
 common:
   bucket_types:
-    # - "regional"
+    - "regional"
     - "zonal"
   file_sizes_mib:
     - 1024 # 1GiB
@@ -35,13 +35,13 @@ workload:
   ############# multi process multi coroutine #########
   - name: "read_seq_multi_process"
     pattern: "seq"
-    coros: [4]
-    processes: [16]
+    coros: [1, 2, 4]
+    processes: [2, 16, 48, 96]
 
   - name: "read_rand_multi_process"
     pattern: "rand"
-    coros: [4]
-    processes: [16]
+    coros: [1, 2, 4]
+    processes: [2, 16, 48, 96]
 
 
 defaults:

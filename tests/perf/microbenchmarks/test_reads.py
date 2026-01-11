@@ -226,7 +226,8 @@ def download_files_using_json_multi_threaded(
 
 @pytest.mark.parametrize(
     "workload_params",
-    all_params["read_seq_multi_coros"],
+    all_params["read_seq_multi_coros"] + 
+    all_params["read_rand_multi_coros"],
     indirect=True,
     ids=lambda p: p.name,
 )
