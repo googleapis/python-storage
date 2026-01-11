@@ -42,7 +42,7 @@ def publish_benchmark_extra_info(
     benchmark.extra_info["throughput_MiB_s_mean"] = mean_throughput
     benchmark.extra_info["throughput_MiB_s_median"] = median_throughput
 
-    print(f"\nThroughput Statistics (MiB/s):")
+    print("\nThroughput Statistics (MiB/s):")
     print(f"  Min:    {min_throughput:.2f} (from max time)")
     print(f"  Max:    {max_throughput:.2f} (from min time)")
     print(f"  Mean:   {mean_throughput:.2f} (approx, from mean time)")
@@ -60,7 +60,7 @@ def publish_benchmark_extra_info(
         benchmark.extra_info["true_throughput_MiB_s_mean"] = true_mean_throughput
         benchmark.extra_info["true_throughput_MiB_s_median"] = true_median_throughput
 
-        print(f"\nThroughput Statistics from true_times (MiB/s):")
+        print("\nThroughput Statistics from true_times (MiB/s):")
         print(f"  Min:    {true_min_throughput:.2f}")
         print(f"  Max:    {true_max_throughput:.2f}")
         print(f"  Mean:   {true_mean_throughput:.2f}")

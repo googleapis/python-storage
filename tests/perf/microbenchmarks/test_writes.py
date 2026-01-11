@@ -7,7 +7,6 @@ File for benchmarking zonal writes (i.e. uploads)
 import os
 import time
 import asyncio
-import math
 from concurrent.futures import ThreadPoolExecutor
 import multiprocessing
 import logging
