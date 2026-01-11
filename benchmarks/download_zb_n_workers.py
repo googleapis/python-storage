@@ -14,13 +14,14 @@ from google.cloud.storage._experimental.asyncio.async_multi_range_downloader imp
 
 async def download_one_async(bucket_name, object_name, download_size, chunk_size):
     """Downloads a single object of size `download_size`, in chunks of `chunk_size`"""
-    print(f"Downloading {object_name} of size {download_size} in chunks of {chunk_size} from {bucket_name} from process {os.getpid()} and thread {threading.get_ident()}")
-    # raise NotImplementedError("This function is not yet implemented.")
     client = AsyncGrpcClient().grpc_client
 
-    # log_peak_memory_usage()
     mrd = AsyncMultiRangeDownloader(client, bucket_name, object_name)
     await mrd.open()
+    # during benchmarking I've keyboard interrupted some uploads.
+    # So the requested download size may be larger than the actual object size.
+    download_size = min(download_size, mrd.persisted_size)
+    print(f"Downloading {object_name} of size {download_size} in chunks of {chunk_size} from {bucket_name} from process {os.getpid()} and thread {threading.get_ident()}")
     
     # download in chunks of `chunk_size`
     offset = 0
@@ -29,7 +30,6 @@ async def download_one_async(bucket_name, object_name, download_size, chunk_size
         bytes_to_download = min(chunk_size, download_size - offset)    
         await mrd.download_ranges([(offset, bytes_to_download, output_buffer)])
         offset += bytes_to_download
-    # await mrd.download_ranges([(offset, 0, output_buffer)])
     assert output_buffer.getbuffer().nbytes == download_size, f"downloaded size incorrect for {object_name}"
     
     await mrd.close()
@@ -41,10 +41,10 @@ def download_one_sync(bucket_name, object_name, download_size, chunk_size):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--bucket_name", type=str, default='chandrasiri-rs')
+    parser.add_argument("--bucket_name", type=str, default='chandrasiri-benchmarks-zb')
     parser.add_argument("--download_size", type=int, default=1024 * 1024 * 1024)  # 1 GiB
     parser.add_argument("--chunk_size", type=int, default=64 * 1024 * 1024)  # 100 MiB
-    parser.add_argument("--count", type=int, default=100)
+    parser.add_argument("--count", type=int, default=4)
     parser.add_argument("--start_object_num", type=int, default=0)
     parser.add_argument("-n", "--num_workers", type=int, default=2, help="Number of worker threads or processes.")
     parser.add_argument("--executor", type=str, choices=['thread', 'process'], default='process', help="Executor to use: 'thread' for ThreadPoolExecutor, 'process' for ProcessPoolExecutor")

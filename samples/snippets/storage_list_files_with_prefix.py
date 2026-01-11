@@ -46,15 +46,6 @@ def list_blobs_with_prefix(bucket_name, prefix, delimiter=None):
     that lists the "subfolders" under `a/`:
 
         a/b/
-
-
-    Note: If you only want to list prefixes a/b/ and don't want to iterate over
-    blobs, you can do
-
-    ```
-    for page in blobs.pages:
-        print(page.prefixes)
-    ```
     """
 
     storage_client = storage.Client()
@@ -66,19 +57,13 @@ def list_blobs_with_prefix(bucket_name, prefix, delimiter=None):
 
     # Note: The call returns a response only when the iterator is consumed.
     print("Blobs:")
-    count = 0
     for blob in blobs:
-        if count % 500 == 0:
-            print(blob.name)
-        count += 1
-    print(f"Total blobs with prefix {prefix}: {count}")
+        print(blob.name)
 
-        # blob.delete()
-
-    # if delimiter:
-    #     print("Prefixes:")
-    #     for prefix in blobs.prefixes:
-    #         print(prefix)
+    if delimiter:
+        print("Prefixes:")
+        for prefix in blobs.prefixes:
+            print(prefix)
 
 
 # [END storage_list_files_with_prefix]
