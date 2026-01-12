@@ -4,6 +4,52 @@
 
 [1]: https://pypi.org/project/google-cloud-storage/#history
 
+## [3.7.0](https://github.com/googleapis/python-storage/compare/v3.6.0...v3.7.0) (2026-01-12)
+
+
+### Features
+
+* flush the last chunk in append method (#1699) ([89bfe7a5fcd0391da35e9ceccc185279782b5420](https://github.com/googleapis/python-storage/commit/89bfe7a5fcd0391da35e9ceccc185279782b5420))
+* add write resumption strategy (#1663) ([a57ea0ec786a84c7ae9ed82c6ae5d38ecadba4af](https://github.com/googleapis/python-storage/commit/a57ea0ec786a84c7ae9ed82c6ae5d38ecadba4af))
+* add bidi stream retry manager. (#1632) ([d90f0ee09902a21b186106bcf0a8cb0b81b34340](https://github.com/googleapis/python-storage/commit/d90f0ee09902a21b186106bcf0a8cb0b81b34340))
+* implement "append_from_file" (#1686) ([1333c956da18b4db753cda98c41c3619c84caf69](https://github.com/googleapis/python-storage/commit/1333c956da18b4db753cda98c41c3619c84caf69))
+* make flush size configurable (#1677) ([f7095faf0a81239894ff9d277849788b62eb6ac5](https://github.com/googleapis/python-storage/commit/f7095faf0a81239894ff9d277849788b62eb6ac5))
+* compute chunk wise checksum for bidi_writes (#1675) ([139390cb01f93a2d61e7ec201e3637dffe0b2a34](https://github.com/googleapis/python-storage/commit/139390cb01f93a2d61e7ec201e3637dffe0b2a34))
+* expose persisted size in mrd (#1671) ([0e2961bef285fc064174a5c18e3db05c7a682521](https://github.com/googleapis/python-storage/commit/0e2961bef285fc064174a5c18e3db05c7a682521))
+* Support urllib3 >= 2.6.0 (#1658) ([57405e956a7ca579b20582bf6435cec42743c478](https://github.com/googleapis/python-storage/commit/57405e956a7ca579b20582bf6435cec42743c478))
+* send entire object checksum in the final api call of resumable upload (#1654) ([ddce7e53a13e6c0487221bb14e88161da7ed9e08](https://github.com/googleapis/python-storage/commit/ddce7e53a13e6c0487221bb14e88161da7ed9e08))
+* Auto enable mTLS when supported certificates are detected (#1637) ([4e91c541363f0e583bf9dd1b81a95ff2cb618bac](https://github.com/googleapis/python-storage/commit/4e91c541363f0e583bf9dd1b81a95ff2cb618bac))
+* implement append (#1620) ([1c6b76f055a5d37fa35197198bfa68902832d1b5](https://github.com/googleapis/python-storage/commit/1c6b76f055a5d37fa35197198bfa68902832d1b5))
+* implement append ([1c6b76f055a5d37fa35197198bfa68902832d1b5](https://github.com/googleapis/python-storage/commit/1c6b76f055a5d37fa35197198bfa68902832d1b5))
+* implement flush, close and finalize (#1619) ([b4134054f57e8767df3d62ee36dcbe3a83e6bfaa](https://github.com/googleapis/python-storage/commit/b4134054f57e8767df3d62ee36dcbe3a83e6bfaa))
+* implement flush, close and finalize ([b4134054f57e8767df3d62ee36dcbe3a83e6bfaa](https://github.com/googleapis/python-storage/commit/b4134054f57e8767df3d62ee36dcbe3a83e6bfaa))
+* implement open in writer (#1618) ([dfe4566e4b087ee217a7d05fc388ab5bfb760f39](https://github.com/googleapis/python-storage/commit/dfe4566e4b087ee217a7d05fc388ab5bfb760f39))
+* implement open in writer ([dfe4566e4b087ee217a7d05fc388ab5bfb760f39](https://github.com/googleapis/python-storage/commit/dfe4566e4b087ee217a7d05fc388ab5bfb760f39))
+* implement state_lookup (#1617) ([7d17922e671aa2d975262984ba50bfcfa29ff4a5](https://github.com/googleapis/python-storage/commit/7d17922e671aa2d975262984ba50bfcfa29ff4a5))
+* implement state_lookup ([7d17922e671aa2d975262984ba50bfcfa29ff4a5](https://github.com/googleapis/python-storage/commit/7d17922e671aa2d975262984ba50bfcfa29ff4a5))
+* Add Async_appendable_object_writer.py (#1616) ([fdd0a50146d7b5f50f04c1871d43329a10938ff5](https://github.com/googleapis/python-storage/commit/fdd0a50146d7b5f50f04c1871d43329a10938ff5))
+* Add Async_appendable_object_writer.py ([fdd0a50146d7b5f50f04c1871d43329a10938ff5](https://github.com/googleapis/python-storage/commit/fdd0a50146d7b5f50f04c1871d43329a10938ff5))
+* implement send & recv (#1615) ([6da118652c97ba11d82c25347080188c7cf7a338](https://github.com/googleapis/python-storage/commit/6da118652c97ba11d82c25347080188c7cf7a338))
+* implement send & recv ([6da118652c97ba11d82c25347080188c7cf7a338](https://github.com/googleapis/python-storage/commit/6da118652c97ba11d82c25347080188c7cf7a338))
+* implement close (#1614) ([7a532216a9a3da728bd3d7f196372f8f6528ef75](https://github.com/googleapis/python-storage/commit/7a532216a9a3da728bd3d7f196372f8f6528ef75))
+* implement close ([7a532216a9a3da728bd3d7f196372f8f6528ef75](https://github.com/googleapis/python-storage/commit/7a532216a9a3da728bd3d7f196372f8f6528ef75))
+* implement "open" for write_object_stream (#1613) ([786af5556023144001f1375f1c6265bd46326b24](https://github.com/googleapis/python-storage/commit/786af5556023144001f1375f1c6265bd46326b24))
+* implement "open" for write_object_stream ([786af5556023144001f1375f1c6265bd46326b24](https://github.com/googleapis/python-storage/commit/786af5556023144001f1375f1c6265bd46326b24))
+
+
+### Bug Fixes
+
+* add system test for opening with read_handle (#1672) ([6dc711dacd4d38c573aa4ca9ad71fe412c0e49c1](https://github.com/googleapis/python-storage/commit/6dc711dacd4d38c573aa4ca9ad71fe412c0e49c1))
+* no state lookup while opening bidi-write stream (#1636) ([2d5a7b16846a69f3a911844971241899f60cce14](https://github.com/googleapis/python-storage/commit/2d5a7b16846a69f3a911844971241899f60cce14))
+* no state lookup while opening bidi-write stream ([2d5a7b16846a69f3a911844971241899f60cce14](https://github.com/googleapis/python-storage/commit/2d5a7b16846a69f3a911844971241899f60cce14))
+* close write object stream always (#1661) ([4a609a4b3f4ba1396825911cb02f8a9649135cd5](https://github.com/googleapis/python-storage/commit/4a609a4b3f4ba1396825911cb02f8a9649135cd5))
+* Add simple flush for optimized writes (#1633) ([9e6fefdc24a12a9189f7119bc9119e84a061842f](https://github.com/googleapis/python-storage/commit/9e6fefdc24a12a9189f7119bc9119e84a061842f))
+* pass creds to grpc channel (#1623) ([8c25c1b5689fa0e8f3d38b9b03bc9d0267a9a2aa](https://github.com/googleapis/python-storage/commit/8c25c1b5689fa0e8f3d38b9b03bc9d0267a9a2aa))
+* pass creds to grpc channel ([8c25c1b5689fa0e8f3d38b9b03bc9d0267a9a2aa](https://github.com/googleapis/python-storage/commit/8c25c1b5689fa0e8f3d38b9b03bc9d0267a9a2aa))
+* Skip flaky test (#1622) ([53ced015a7a584cbf88197424e92538f8f18915c](https://github.com/googleapis/python-storage/commit/53ced015a7a584cbf88197424e92538f8f18915c))
+* Move blob fails when the new blob name contains characters that need to be url encoded (#1605) ([ec470a270e189e137c7229cc359367d5a897cdb9](https://github.com/googleapis/python-storage/commit/ec470a270e189e137c7229cc359367d5a897cdb9))
+* url encode new_name parameter in move_blob() ([ec470a270e189e137c7229cc359367d5a897cdb9](https://github.com/googleapis/python-storage/commit/ec470a270e189e137c7229cc359367d5a897cdb9))
+
 ## [3.7.0](https://github.com/googleapis/python-storage/compare/v3.6.0...v3.7.0) (2025-12-09)
 
 
