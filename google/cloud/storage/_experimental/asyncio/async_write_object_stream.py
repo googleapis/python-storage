@@ -71,7 +71,8 @@ class _AsyncWriteObjectStream(_AsyncAbstractObjectStream):
         bucket_name: str,
         object_name: str,
         generation_number: Optional[int] = None,  # None means new object
-        write_handle: Optional[_storage_v2.BidiWriteHandle] = None,
+        write_handle: Optional[bytes] = None,
+        routing_token: Optional[str] = None,
     ) -> None:
         if client is None:
             raise ValueError("client must be provided")
@@ -86,7 +87,8 @@ class _AsyncWriteObjectStream(_AsyncAbstractObjectStream):
             generation_number=generation_number,
         )
         self.client: AsyncGrpcClient.grpc_client = client
-        self.write_handle: Optional[_storage_v2.BidiWriteHandle] = write_handle
+        self.write_handle: Optional[bytes] = write_handle
+        self.routing_token: Optional[str] = routing_token
 
         self._full_bucket_name = f"projects/_/buckets/{self.bucket_name}"
 
@@ -143,6 +145,7 @@ class _AsyncWriteObjectStream(_AsyncAbstractObjectStream):
                     object=self.object_name,
                     generation=self.generation_number,
                     write_handle=write_handle,
+                    routing_token=self.routing_token if self.routing_token else None,
                 ),
             )
 
@@ -158,44 +161,44 @@ class _AsyncWriteObjectStream(_AsyncAbstractObjectStream):
         current_metadata = other_metadata
         current_metadata.append(("x-goog-request-params", ",".join(request_params)))
 
-        print("Before sending first_bidi_write_req in open:", self.first_bidi_write_req)
-
         self.socket_like_rpc = AsyncBidiRpc(
-            self.rpc, initial_request=self.first_bidi_write_req, metadata=current_metadata
+            self.rpc,
+            initial_request=self.first_bidi_write_req,
+            metadata=current_metadata,
         )
 
         await self.socket_like_rpc.open()  # this is actually 1 send
         response = await self.socket_like_rpc.recv()
-        print("Received response on open")
         self._is_stream_open = True
-        if is_open_via_write_handle:
-            # Don't use if not response.persisted_size because this will be true
-            # if persisted_size==0 (0 is considered "Falsy" in Python)
-            if response.persisted_size is None:
-                raise ValueError(
-                    "Failed to obtain persisted_size after opening the stream via write_handle"
-                )
+
+        if response.persisted_size >= 0:
             self.persisted_size = response.persisted_size
-        else:
-            if not response.resource:
-                raise ValueError(
-                    "Failed to obtain object resource after opening the stream"
-                )
-            if not response.resource.generation:
-                raise ValueError(
-                    "Failed to obtain object generation after opening the stream"
-                )
+
+            if response.write_handle:
+                self.write_handle = response.write_handle
+            # return
+
+        # if not response.resource:
+        #     raise ValueError(
+        #         "Failed to obtain object resource after opening the stream"
+        #     )
+        # if not response.resource.generation:
+        #     raise ValueError(
+        #         "Failed to obtain object generation after opening the stream"
+        #     )
+
+        # if not response.write_handle:
+        #     raise ValueError("Failed to obtain write_handle after opening the stream")
+
+        if response.resource:
             if not response.resource.size:
                 # Appending to a 0 byte appendable object.
                 self.persisted_size = 0
             else:
                 self.persisted_size = response.resource.size
 
-        if not response.write_handle:
-            raise ValueError("Failed to obtain write_handle after opening the stream")
-
-        self.generation_number = response.resource.generation
-        self.write_handle = response.write_handle
+            self.generation_number = response.resource.generation
+            self.write_handle = response.write_handle
 
     async def close(self) -> None:
         """Closes the bidi-gRPC connection."""

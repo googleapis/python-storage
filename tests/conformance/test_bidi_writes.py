@@ -7,6 +7,7 @@ from google.api_core import exceptions
 from google.auth import credentials as auth_credentials
 from google.cloud import _storage_v2 as storage_v2
 
+from google.api_core.retry_async import AsyncRetry
 from google.cloud.storage._experimental.asyncio.async_appendable_object_writer import (
     AsyncAppendableObjectWriter,
 )
@@ -18,6 +19,19 @@ HTTP_ENDPOINT = "http://localhost:9000"
 CONTENT = b"A" * 1024 * 10  # 10 KB
 
 
+def _is_retryable(exc):
+    return isinstance(
+        exc,
+        (
+            exceptions.InternalServerError,
+            exceptions.ServiceUnavailable,
+            exceptions.DeadlineExceeded,
+            exceptions.TooManyRequests,
+            exceptions.Aborted,  # For Redirects
+        ),
+    )
+
+
 async def run_test_scenario(
     gapic_client,
     http_client,
@@ -27,6 +41,22 @@ async def run_test_scenario(
 ):
     """Runs a single fault-injection test scenario."""
     print(f"\n--- RUNNING SCENARIO: {scenario['name']} ---")
+    retry_count = 0
+
+    def on_retry_error(exc):
+        nonlocal retry_count
+        retry_count += 1
+        print(f"Retry attempt {retry_count} triggered by: {type(exc).__name__}")
+
+    custom_retry = AsyncRetry(
+        predicate=_is_retryable,
+        on_error=on_retry_error,
+        initial=0.1,  # Short backoff for fast tests
+        multiplier=1.0,
+    )
+
+    use_default = scenario.get("use_default_policy", False)
+    policy_to_pass = None if use_default else custom_retry
 
     retry_test_id = None
     try:
@@ -49,10 +79,12 @@ async def run_test_scenario(
 
         # 3. Execute the write and assert the outcome.
         try:
-            print("Before calling open()")
-            await writer.open(metadata=fault_injection_metadata)
-            print("After calling open()")
-            await writer.append(CONTENT, metadata=fault_injection_metadata)
+            await writer.open(
+                metadata=fault_injection_metadata, retry_policy=policy_to_pass
+            )
+            await writer.append(
+                CONTENT, metadata=fault_injection_metadata, retry_policy=policy_to_pass
+            )
             await writer.finalize()
             await writer.close()
 
@@ -72,13 +104,28 @@ async def run_test_scenario(
             async for chunk in read_stream:
                 data += chunk.checksummed_data.content
             assert data == CONTENT
+            if scenario["expected_error"] is None:
+                # Scenarios like 503, 500, smarter resumption, and redirects
+                # SHOULD trigger at least one retry attempt.
+                if not use_default:
+                    assert (
+                        retry_count > 0
+                    ), f"Test passed but no retry was actually triggered for {scenario['name']}!"
+                else:
+                    print("Successfully recovered using library's default policy.")
+                print(f"Success: {scenario['name']}")
 
         except Exception as e:
             if scenario["expected_error"] is None or not isinstance(
                 e, scenario["expected_error"]
             ):
                 raise
-            print(f"Caught expected exception for {scenario['name']}: {e}")
+
+            if not use_default:
+                assert (
+                    retry_count == 0
+                ), f"Retry was incorrectly triggered for non-retriable error in {scenario['name']}!"
+                print(f"Success: caught expected exception for {scenario['name']}: {e}")
 
     finally:
         # 5. Clean up the Retry Test resource.
@@ -102,34 +149,34 @@ async def main():
 
     # Define all test scenarios
     test_scenarios = [
-        # {
-        #     "name": "Retry on Service Unavailable (503)",
-        #     "method": "storage.objects.insert",
-        #     "instruction": "return-503",
-        #     "expected_error": None,
-        # },
-        # {
-        #     "name": "Retry on 500",
-        #     "method": "storage.objects.insert",
-        #     "instruction": "return-500",
-        #     "expected_error": None,
-        # },
-        # {
-        #     "name": "Retry on 504",
-        #     "method": "storage.objects.insert",
-        #     "instruction": "return-504",
-        #     "expected_error": None,
-        # },
-        # {
-        #     "name": "Retry on 429",
-        #     "method": "storage.objects.insert",
-        #     "instruction": "return-429",
-        #     "expected_error": None,
-        # },
+        {
+            "name": "Retry on Service Unavailable (503)",
+            "method": "storage.objects.insert",
+            "instruction": "return-503",
+            "expected_error": None,
+        },
+        {
+            "name": "Retry on 500",
+            "method": "storage.objects.insert",
+            "instruction": "return-500",
+            "expected_error": None,
+        },
+        {
+            "name": "Retry on 504",
+            "method": "storage.objects.insert",
+            "instruction": "return-504",
+            "expected_error": None,
+        },
+        {
+            "name": "Retry on 429",
+            "method": "storage.objects.insert",
+            "instruction": "return-429",
+            "expected_error": None,
+        },
         {
             "name": "Smarter Resumption: Retry 503 after partial data",
             "method": "storage.objects.insert",
-            "instruction": "return-broken-stream-after-2K",
+            "instruction": "return-503-after-2K",
             "expected_error": None,
         },
         {
@@ -143,6 +190,34 @@ async def main():
             "method": "storage.objects.insert",
             "instruction": "return-401",
             "expected_error": exceptions.Unauthorized,
+        },
+        {
+            "name": "Default Policy: Retry on 503",
+            "method": "storage.objects.insert",
+            "instruction": "return-503",
+            "expected_error": None,
+            "use_default_policy": True,
+        },
+        {
+            "name": "Default Policy: Retry on 503",
+            "method": "storage.objects.insert",
+            "instruction": "return-500",
+            "expected_error": None,
+            "use_default_policy": True,
+        },
+        {
+            "name": "Default Policy: Retry on BidiWriteObjectRedirectedError",
+            "method": "storage.objects.insert",
+            "instruction": "redirect-send-handle-and-token-tokenval",
+            "expected_error": None,
+            "use_default_policy": True,
+        },
+        {
+            "name": "Default Policy: Smarter Ressumption",
+            "method": "storage.objects.insert",
+            "instruction": "return-503-after-2K",
+            "expected_error": None,
+            "use_default_policy": True,
         },
     ]
 
@@ -162,37 +237,6 @@ async def main():
                 object_name,
                 scenario,
             )
-
-        # Define and run test scenarios specifically for the open() method
-        # open_test_scenarios = [
-        #     {
-        #         "name": "Open: Retry on 503",
-        #         "method": "storage.objects.insert",
-        #         "instruction": "return-503",
-        #         "expected_error": None,
-        #     },
-        #     {
-        #         "name": "Open: Retry on BidiWriteObjectRedirectedError",
-        #         "method": "storage.objects.insert",
-        #         "instruction": "redirect-send-handle-and-token-tokenval",
-        #         "expected_error": None,
-        #     },
-        #     {
-        #         "name": "Open: Fail Fast on 401",
-        #         "method": "storage.objects.insert",
-        #         "instruction": "return-401",
-        #         "expected_error": exceptions.Unauthorized,
-        #     },
-        # ]
-        # for i, scenario in enumerate(open_test_scenarios):
-        #     object_name = f"{object_name_prefix}-open-{i}"
-        #     await run_open_test_scenario(
-        #         gapic_client,
-        #         http_client,
-        #         bucket_name,
-        #         object_name,
-        #         scenario,
-        #     )
 
     except Exception:
         import traceback
@@ -217,64 +261,6 @@ async def main():
             await gapic_client.delete_bucket(request=delete_bucket_req)
         except Exception as e:
             print(f"Warning: Cleanup failed: {e}")
-
-
-async def run_open_test_scenario(
-    gapic_client,
-    http_client,
-    bucket_name,
-    object_name,
-    scenario,
-):
-    """Runs a fault-injection test scenario specifically for the open() method."""
-    print(f"\n--- RUNNING SCENARIO: {scenario['name']} ---")
-
-    retry_test_id = None
-    try:
-        # 1. Create a Retry Test resource on the testbench.
-        retry_test_config = {
-            "instructions": {scenario["method"]: [scenario["instruction"]]},
-            "transport": "GRPC",
-        }
-        resp = http_client.post(f"{HTTP_ENDPOINT}/retry_test", json=retry_test_config)
-        resp.raise_for_status()
-        retry_test_id = resp.json()["id"]
-        print(f"Retry Test created with ID: {retry_test_id}")
-
-        # 2. Set up metadata for fault injection.
-        fault_injection_metadata = (("x-retry-test-id", retry_test_id),)
-
-        # 3. Execute the open and assert the outcome.
-        try:
-            writer = AsyncAppendableObjectWriter(
-                gapic_client,
-                bucket_name,
-                object_name,
-            )
-            await writer.open(metadata=fault_injection_metadata)
-
-            # If open was successful, perform a simple write to ensure the stream is usable.
-            await writer.append(CONTENT)
-            await writer.finalize()
-            await writer.close()
-
-            # If an exception was expected, this line should not be reached.
-            if scenario["expected_error"] is not None:
-                raise AssertionError(
-                    f"Expected exception {scenario['expected_error']} was not raised."
-                )
-
-        except Exception as e:
-            if scenario["expected_error"] is None or not isinstance(
-                e, scenario["expected_error"]
-            ):
-                raise
-            print(f"Caught expected exception for {scenario['name']}: {e}")
-
-    finally:
-        # 4. Clean up the Retry Test resource.
-        if retry_test_id:
-            http_client.delete(f"{HTTP_ENDPOINT}/retry_test/{retry_test_id}")
 
 
 if __name__ == "__main__":

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Dict, IO, Iterable, List, Optional, Union
+from typing import Any, Dict, IO, List, Optional, Union
 
 import google_crc32c
 from google.api_core import exceptions
@@ -31,27 +31,28 @@ _BIDI_WRITE_REDIRECTED_TYPE_URL = (
 class _WriteState:
     """A helper class to track the state of a single upload operation.
 
-    :type spec: :class:`google.cloud.storage_v2.types.AppendObjectSpec`
-    :param spec: The specification for the object to write.
-
     :type chunk_size: int
     :param chunk_size: The size of chunks to write to the server.
 
     :type user_buffer: IO[bytes]
     :param user_buffer: The data source.
+
+    :type flush_interval: Optional[int]
+    :param flush_interval: The flush interval at which the data is flushed.
     """
 
     def __init__(
         self,
-        spec: Union[storage_type.AppendObjectSpec, storage_type.WriteObjectSpec],
         chunk_size: int,
         user_buffer: IO[bytes],
+        flush_interval: Optional[int] = None,
     ):
-        self.spec = spec
         self.chunk_size = chunk_size
         self.user_buffer = user_buffer
         self.persisted_size: int = 0
         self.bytes_sent: int = 0
+        self.bytes_since_last_flush: int = 0
+        self.flush_interval: Optional[int] = flush_interval
         self.write_handle: Union[bytes, storage_type.BidiWriteHandle, None] = None
         self.routing_token: Optional[str] = None
         self.is_finalized: bool = False
@@ -65,14 +66,9 @@ class _WriteResumptionStrategy(_BaseResumptionStrategy):
     ) -> List[storage_type.BidiWriteObjectRequest]:
         """Generates BidiWriteObjectRequests to resume or continue the upload.
 
-        For Appendable Objects, every stream opening should send an
-        AppendObjectSpec. If resuming, the `write_handle` is added to that spec.
-
         This method is not applicable for `open` methods.
         """
         write_state: _WriteState = state["write_state"]
-
-        print("Generating requests from write state:", write_state)
 
         requests = []
         # The buffer should already be seeked to the correct position (persisted_size)
@@ -82,7 +78,6 @@ class _WriteResumptionStrategy(_BaseResumptionStrategy):
 
             # End of File detection
             if not chunk:
-                print("No more data to read; ending request generation")
                 break
 
             checksummed_data = storage_type.ChecksummedData(content=chunk)
@@ -93,9 +88,18 @@ class _WriteResumptionStrategy(_BaseResumptionStrategy):
                 write_offset=write_state.bytes_sent,
                 checksummed_data=checksummed_data,
             )
-            write_state.bytes_sent += len(chunk)
+            chunk_len = len(chunk)
+            write_state.bytes_sent += chunk_len
+            write_state.bytes_since_last_flush += chunk_len
 
-            print("Yielding request", len(request.checksummed_data.content))
+            if (
+                write_state.flush_interval
+                and write_state.bytes_since_last_flush >= write_state.flush_interval
+            ):
+                request.flush = True
+                # reset counter after marking flush
+                write_state.bytes_since_last_flush = 0
+
             requests.append(request)
         return requests
 
@@ -127,18 +131,50 @@ class _WriteResumptionStrategy(_BaseResumptionStrategy):
         last confirmed 'persisted_size' from the server.
         """
         write_state: _WriteState = state["write_state"]
-        cause = getattr(error, "cause", error)
 
-        # Extract routing token and potentially a new write handle for redirection.
-        if isinstance(cause, BidiWriteObjectRedirectedError):
-            if cause.routing_token:
-                write_state.routing_token = cause.routing_token
+        grpc_error = None
+        if isinstance(error, exceptions.Aborted) and error.errors:
+            grpc_error = error.errors[0]
 
-            redirect_handle = getattr(cause, "write_handle", None)
-            if redirect_handle:
-                write_state.write_handle = redirect_handle
+        if grpc_error:
+            # Extract routing token and potentially a new write handle for redirection.
+            if isinstance(grpc_error, BidiWriteObjectRedirectedError):
+                self._routing_token = grpc_error.routing_token
+                if grpc_error.write_handle:
+                    self.write_handle = grpc_error.write_handle
+                return
+            if hasattr(grpc_error, "trailing_metadata"):
+                trailers = grpc_error.trailing_metadata()
+                if not trailers:
+                    return
+
+                status_details_bin = None
+                for key, value in trailers:
+                    if key == "grpc-status-details-bin":
+                        status_details_bin = value
+                        break
+
+                if status_details_bin:
+                    status_proto = status_pb2.Status()
+                    try:
+                        status_proto.ParseFromString(status_details_bin)
+                        for detail in status_proto.details:
+                            if detail.type_url == _BIDI_WRITE_REDIRECTED_TYPE_URL:
+                                redirect_proto = (
+                                    BidiWriteObjectRedirectedError.deserialize(
+                                        detail.value
+                                    )
+                                )
+                                if redirect_proto.routing_token:
+                                    write_state._routing_token = redirect_proto.routing_token
+                                if redirect_proto.write_handle:
+                                    write_state.write_handle = redirect_proto.write_handle
+                                break
+                    except Exception:
+                        pass
 
         # We must assume any data sent beyond 'persisted_size' was lost.
         # Reset the user buffer to the last known good byte confirmed by the server.
         write_state.user_buffer.seek(write_state.persisted_size)
         write_state.bytes_sent = write_state.persisted_size
+        write_state.bytes_since_last_flush = 0
