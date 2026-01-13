@@ -74,7 +74,7 @@ def _is_write_retryable(exc):
             exceptions.ServiceUnavailable,
             exceptions.DeadlineExceeded,
             exceptions.TooManyRequests,
-            BidiWriteObjectRedirectedError
+            BidiWriteObjectRedirectedError,
         ),
     ):
         logger.info(f"Retryable write exception encountered: {exc}")

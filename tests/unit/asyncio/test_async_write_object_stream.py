@@ -29,7 +29,7 @@ WRITE_HANDLE = b"test-handle"
 FULL_BUCKET_PATH = f"projects/_/buckets/{BUCKET}"
 
 
-class TestAsyncWriteObjectStream(unittest.IsolatedAsyncioTestCase):
+class TestAsyncWriteObjectStream(unittest.TestCase):
     def setUp(self):
         self.mock_client = MagicMock()
         # Mocking transport internal structures
@@ -49,7 +49,9 @@ class TestAsyncWriteObjectStream(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(stream.bucket_name, BUCKET)
         self.assertEqual(stream.object_name, OBJECT)
         self.assertEqual(stream._full_bucket_name, FULL_BUCKET_PATH)
-        self.assertEqual(stream.metadata, (("x-goog-request-params", f"bucket={FULL_BUCKET_PATH}"),))
+        self.assertEqual(
+            stream.metadata, (("x-goog-request-params", f"bucket={FULL_BUCKET_PATH}"),)
+        )
         self.assertFalse(stream.is_stream_open)
 
     def test_init_raises_value_error(self):
@@ -64,7 +66,10 @@ class TestAsyncWriteObjectStream(unittest.IsolatedAsyncioTestCase):
     # Open Stream Tests
     # -------------------------------------------------------------------------
 
-    @mock.patch("google.cloud.storage._experimental.asyncio.async_write_object_stream.AsyncBidiRpc")
+    @mock.patch(
+        "google.cloud.storage._experimental.asyncio.async_write_object_stream.AsyncBidiRpc"
+    )
+    @pytest.mark.asyncio
     async def test_open_new_object(self, mock_rpc_cls):
         mock_rpc = mock_rpc_cls.return_value
         mock_rpc.open = AsyncMock()
@@ -91,7 +96,10 @@ class TestAsyncWriteObjectStream(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(stream.write_handle, WRITE_HANDLE)
         self.assertEqual(stream.generation_number, GENERATION)
 
-    @mock.patch("google.cloud.storage._experimental.asyncio.async_write_object_stream.AsyncBidiRpc")
+    @mock.patch(
+        "google.cloud.storage._experimental.asyncio.async_write_object_stream.AsyncBidiRpc"
+    )
+    @pytest.mark.asyncio
     async def test_open_existing_object_with_token(self, mock_rpc_cls):
         mock_rpc = mock_rpc_cls.return_value
         mock_rpc.open = AsyncMock()
@@ -104,9 +112,11 @@ class TestAsyncWriteObjectStream(unittest.IsolatedAsyncioTestCase):
         mock_rpc.recv = AsyncMock(return_value=mock_response)
 
         stream = _AsyncWriteObjectStream(
-            self.mock_client, BUCKET, OBJECT,
+            self.mock_client,
+            BUCKET,
+            OBJECT,
             generation_number=GENERATION,
-            routing_token="token-123"
+            routing_token="token-123",
         )
         await stream.open()
 
@@ -117,7 +127,10 @@ class TestAsyncWriteObjectStream(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(initial_request.append_object_spec.routing_token, "token-123")
         self.assertEqual(stream.persisted_size, 1024)
 
-    @mock.patch("google.cloud.storage._experimental.asyncio.async_write_object_stream.AsyncBidiRpc")
+    @mock.patch(
+        "google.cloud.storage._experimental.asyncio.async_write_object_stream.AsyncBidiRpc"
+    )
+    @pytest.mark.asyncio
     async def test_open_metadata_merging(self, mock_rpc_cls):
         mock_rpc = mock_rpc_cls.return_value
         mock_rpc.open = AsyncMock()
@@ -137,6 +150,7 @@ class TestAsyncWriteObjectStream(unittest.IsolatedAsyncioTestCase):
         self.assertIn(f"bucket={FULL_BUCKET_PATH}", params)
         self.assertIn("extra=param", params)
 
+    @pytest.mark.asyncio
     async def test_open_already_open_raises(self):
         stream = _AsyncWriteObjectStream(self.mock_client, BUCKET, OBJECT)
         stream._is_stream_open = True
@@ -147,12 +161,15 @@ class TestAsyncWriteObjectStream(unittest.IsolatedAsyncioTestCase):
     # Send & Recv & Close Tests
     # -------------------------------------------------------------------------
 
-    @mock.patch("google.cloud.storage._experimental.asyncio.async_write_object_stream.AsyncBidiRpc")
+    @mock.patch(
+        "google.cloud.storage._experimental.asyncio.async_write_object_stream.AsyncBidiRpc"
+    )
+    @pytest.mark.asyncio
     async def test_send_and_recv_logic(self, mock_rpc_cls):
         # Setup open stream
         mock_rpc = mock_rpc_cls.return_value
         mock_rpc.open = AsyncMock()
-        mock_rpc.send = AsyncMock() # Crucial: Must be AsyncMock
+        mock_rpc.send = AsyncMock()  # Crucial: Must be AsyncMock
         mock_rpc.recv = AsyncMock(return_value=MagicMock(resource=None))
 
         stream = _AsyncWriteObjectStream(self.mock_client, BUCKET, OBJECT)
@@ -175,6 +192,7 @@ class TestAsyncWriteObjectStream(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(stream.persisted_size, 5000)
         self.assertEqual(stream.write_handle, b"new-handle")
 
+    @pytest.mark.asyncio
     async def test_close_success(self):
         stream = _AsyncWriteObjectStream(self.mock_client, BUCKET, OBJECT)
         stream._is_stream_open = True
@@ -185,6 +203,7 @@ class TestAsyncWriteObjectStream(unittest.IsolatedAsyncioTestCase):
         stream.socket_like_rpc.close.assert_awaited_once()
         self.assertFalse(stream.is_stream_open)
 
+    @pytest.mark.asyncio
     async def test_methods_require_open_raises(self):
         stream = _AsyncWriteObjectStream(self.mock_client, BUCKET, OBJECT)
         with self.assertRaisesRegex(ValueError, "Stream is not open"):

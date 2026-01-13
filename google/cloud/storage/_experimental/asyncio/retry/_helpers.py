@@ -18,7 +18,10 @@ import logging
 from typing import Tuple, Optional
 
 from google.api_core import exceptions
-from google.cloud._storage_v2.types import BidiReadObjectRedirectedError, BidiWriteObjectRedirectedError
+from google.cloud._storage_v2.types import (
+    BidiReadObjectRedirectedError,
+    BidiWriteObjectRedirectedError,
+)
 from google.rpc import status_pb2
 
 _BIDI_READ_REDIRECTED_TYPE_URL = (
@@ -86,6 +89,7 @@ def _handle_redirect(
 
     return routing_token, read_handle
 
+
 def _extract_bidi_writes_redirect_proto(exc: Exception):
     grpc_error = None
     if isinstance(exc, exceptions.Aborted) and exc.errors:
@@ -112,14 +116,10 @@ def _extract_bidi_writes_redirect_proto(exc: Exception):
                     status_proto.ParseFromString(status_details_bin)
                     for detail in status_proto.details:
                         if detail.type_url == _BIDI_WRITE_REDIRECTED_TYPE_URL:
-                            redirect_proto = (
-                                BidiWriteObjectRedirectedError.deserialize(
-                                    detail.value
-                                )
+                            redirect_proto = BidiWriteObjectRedirectedError.deserialize(
+                                detail.value
                             )
                             return redirect_proto
                 except Exception:
-                    logger.error(
-                        "Error unpacking redirect details from gRPC error."
-                    )
+                    logger.error("Error unpacking redirect details from gRPC error.")
                     pass

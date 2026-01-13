@@ -112,9 +112,7 @@ class TestWriteResumptionStrategy(unittest.TestCase):
         strategy = self._make_one()
         chunk_data = b"test_data"
         mock_buffer = io.BytesIO(chunk_data)
-        write_state = _WriteState(
-            chunk_size=10, user_buffer=mock_buffer
-        )
+        write_state = _WriteState(chunk_size=10, user_buffer=mock_buffer)
         state = {"write_state": write_state}
 
         requests = strategy.generate_requests(state)
@@ -129,9 +127,7 @@ class TestWriteResumptionStrategy(unittest.TestCase):
         mock_buffer = io.BytesIO(b"A" * 12)
         # 2 byte chunks, flush every 4 bytes
         write_state = _WriteState(
-                        chunk_size=2,
-            user_buffer=mock_buffer,
-            flush_interval=4
+            chunk_size=2, user_buffer=mock_buffer, flush_interval=4
         )
         state = {"write_state": write_state}
 
@@ -153,9 +149,7 @@ class TestWriteResumptionStrategy(unittest.TestCase):
         strategy = self._make_one()
         mock_buffer = io.BytesIO(b"A" * 10)
         write_state = _WriteState(
-                        chunk_size=2,
-            user_buffer=mock_buffer,
-            flush_interval=None
+            chunk_size=2, user_buffer=mock_buffer, flush_interval=None
         )
         state = {"write_state": write_state}
 
@@ -170,9 +164,7 @@ class TestWriteResumptionStrategy(unittest.TestCase):
         mock_buffer = io.BytesIO(b"A" * 5)
         # Flush every 10 bytes
         write_state = _WriteState(
-                        chunk_size=2,
-            user_buffer=mock_buffer,
-            flush_interval=10
+            chunk_size=2, user_buffer=mock_buffer, flush_interval=10
         )
         state = {"write_state": write_state}
 
@@ -188,9 +180,7 @@ class TestWriteResumptionStrategy(unittest.TestCase):
         """If state is already finalized, no requests should be generated."""
         strategy = self._make_one()
         mock_buffer = io.BytesIO(b"data")
-        write_state = _WriteState(
-            chunk_size=4, user_buffer=mock_buffer
-        )
+        write_state = _WriteState(chunk_size=4, user_buffer=mock_buffer)
         write_state.is_finalized = True
         state = {"write_state": write_state}
 
@@ -203,7 +193,7 @@ class TestWriteResumptionStrategy(unittest.TestCase):
         Verify recovery and resumption flow (Integration of recover + generate).
         """
         strategy = self._make_one()
-        mock_buffer = io.BytesIO(b"0123456789abcdef") # 16 bytes
+        mock_buffer = io.BytesIO(b"0123456789abcdef")  # 16 bytes
         mock_spec = storage_type.AppendObjectSpec(object_="test-object")
         write_state = _WriteState(mock_spec, chunk_size=4, user_buffer=mock_buffer)
         state = {"write_state": write_state}
@@ -246,9 +236,7 @@ class TestWriteResumptionStrategy(unittest.TestCase):
     def test_update_state_from_response_all_fields(self):
         """Verify all fields from a BidiWriteObjectResponse update the state."""
         strategy = self._make_one()
-        write_state = _WriteState(
-            chunk_size=4, user_buffer=io.BytesIO()
-        )
+        write_state = _WriteState(chunk_size=4, user_buffer=io.BytesIO())
         state = {"write_state": write_state}
 
         # 1. Update persisted_size
@@ -275,9 +263,7 @@ class TestWriteResumptionStrategy(unittest.TestCase):
     def test_update_state_from_response_none(self):
         """Verify None response doesn't crash."""
         strategy = self._make_one()
-        write_state = _WriteState(
-            chunk_size=4, user_buffer=io.BytesIO()
-        )
+        write_state = _WriteState(chunk_size=4, user_buffer=io.BytesIO())
         state = {"write_state": write_state}
         strategy.update_state_from_response(None, state)
         self.assertEqual(write_state.persisted_size, 0)
@@ -291,9 +277,7 @@ class TestWriteResumptionStrategy(unittest.TestCase):
         """Verify buffer seek and counter resets on generic failure (Non-redirect)."""
         strategy = self._make_one()
         mock_buffer = io.BytesIO(b"0123456789")
-        write_state = _WriteState(
-            chunk_size=2, user_buffer=mock_buffer
-        )
+        write_state = _WriteState(chunk_size=2, user_buffer=mock_buffer)
 
         # Simulate progress: sent 8 bytes, but server only persisted 4
         write_state.bytes_sent = 8
@@ -302,7 +286,9 @@ class TestWriteResumptionStrategy(unittest.TestCase):
         mock_buffer.seek(8)
 
         # Simulate generic 503 error without trailers
-        await strategy.recover_state_on_failure(exceptions.ServiceUnavailable("busy"), {"write_state": write_state})
+        await strategy.recover_state_on_failure(
+            exceptions.ServiceUnavailable("busy"), {"write_state": write_state}
+        )
 
         # Buffer must be seeked back to 4
         self.assertEqual(mock_buffer.tell(), 4)
@@ -314,12 +300,12 @@ class TestWriteResumptionStrategy(unittest.TestCase):
     async def test_recover_state_on_failure_direct_redirect(self):
         """Verify handling when the error is a BidiWriteObjectRedirectedError."""
         strategy = self._make_one()
-        write_state = _WriteState(
-            chunk_size=4, user_buffer=io.BytesIO()
-        )
+        write_state = _WriteState(chunk_size=4, user_buffer=io.BytesIO())
         state = {"write_state": write_state}
 
-        redirect = BidiWriteObjectRedirectedError(routing_token="tok-1", write_handle=b"h-1")
+        redirect = BidiWriteObjectRedirectedError(
+            routing_token="tok-1", write_handle=b"h-1"
+        )
 
         await strategy.recover_state_on_failure(redirect, state)
 
@@ -330,9 +316,7 @@ class TestWriteResumptionStrategy(unittest.TestCase):
     async def test_recover_state_on_failure_wrapped_redirect(self):
         """Verify handling when RedirectedError is inside Aborted.errors."""
         strategy = self._make_one()
-        write_state = _WriteState(
-            chunk_size=4, user_buffer=io.BytesIO()
-        )
+        write_state = _WriteState(chunk_size=4, user_buffer=io.BytesIO())
 
         redirect = BidiWriteObjectRedirectedError(routing_token="tok-wrapped")
         # google-api-core Aborted often wraps multiple errors
@@ -346,9 +330,7 @@ class TestWriteResumptionStrategy(unittest.TestCase):
     async def test_recover_state_on_failure_trailer_metadata_redirect(self):
         """Verify complex parsing from 'grpc-status-details-bin' in trailers."""
         strategy = self._make_one()
-        write_state = _WriteState(
-            chunk_size=4, user_buffer=io.BytesIO()
-        )
+        write_state = _WriteState(chunk_size=4, user_buffer=io.BytesIO())
 
         # 1. Setup Redirect Proto
         redirect_proto = BidiWriteObjectRedirectedError(routing_token="metadata-token")
@@ -356,29 +338,34 @@ class TestWriteResumptionStrategy(unittest.TestCase):
         # 2. Setup Status Proto Detail
         status = status_pb2.Status()
         detail = status.details.add()
-        detail.type_url = "type.googleapis.com/google.storage.v2.BidiWriteObjectRedirectedError"
+        detail.type_url = (
+            "type.googleapis.com/google.storage.v2.BidiWriteObjectRedirectedError"
+        )
         # In a real environment, detail.value is the serialized proto
         detail.value = BidiWriteObjectRedirectedError.to_json(redirect_proto).encode()
 
         # 3. Create Mock Error with Trailers
         mock_error = mock.MagicMock(spec=exceptions.Aborted)
-        mock_error.errors = [] # No direct errors
+        mock_error.errors = []  # No direct errors
         mock_error.trailing_metadata.return_value = [
             ("grpc-status-details-bin", status.SerializeToString())
         ]
 
         # 4. Patch deserialize to handle the binary value
-        with mock.patch("google.cloud._storage_v2.types.storage.BidiWriteObjectRedirectedError.deserialize", return_value=redirect_proto):
-            await strategy.recover_state_on_failure(mock_error, {"write_state": write_state})
+        with mock.patch(
+            "google.cloud._storage_v2.types.storage.BidiWriteObjectRedirectedError.deserialize",
+            return_value=redirect_proto,
+        ):
+            await strategy.recover_state_on_failure(
+                mock_error, {"write_state": write_state}
+            )
 
         self.assertEqual(write_state.routing_token, "metadata-token")
 
     def test_write_state_initialization(self):
         """Verify WriteState starts with clean counters."""
         buffer = io.BytesIO(b"test")
-        ws = _WriteState(
-            chunk_size=10, user_buffer=buffer, flush_interval=100
-        )
+        ws = _WriteState(chunk_size=10, user_buffer=buffer, flush_interval=100)
 
         self.assertEqual(ws.persisted_size, 0)
         self.assertEqual(ws.bytes_sent, 0)

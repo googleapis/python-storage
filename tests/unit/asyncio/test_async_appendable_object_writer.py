@@ -60,7 +60,9 @@ class TestIsWriteRetryable(unittest.TestCase):
         # Setup Status with Redirect Detail
         status = status_pb2.Status()
         detail = status.details.add()
-        detail.type_url = "type.googleapis.com/google.storage.v2.BidiWriteObjectRedirectedError"
+        detail.type_url = (
+            "type.googleapis.com/google.storage.v2.BidiWriteObjectRedirectedError"
+        )
 
         # Mock error with trailing_metadata method
         mock_grpc_error = MagicMock()
@@ -83,7 +85,7 @@ class TestIsWriteRetryable(unittest.TestCase):
         self.assertFalse(_is_write_retryable(exceptions.NotFound("404")))
 
 
-class TestAsyncAppendableObjectWriter(unittest.IsolatedAsyncioTestCase):
+class TestAsyncAppendableObjectWriter(unittest.TestCase):
     def setUp(self):
         self.mock_client = mock.AsyncMock()
         # Internal stream class patch
@@ -109,9 +111,7 @@ class TestAsyncAppendableObjectWriter(unittest.IsolatedAsyncioTestCase):
         self.mock_stream_patcher.stop()
 
     def _make_one(self, **kwargs):
-        return AsyncAppendableObjectWriter(
-            self.mock_client, BUCKET, OBJECT, **kwargs
-        )
+        return AsyncAppendableObjectWriter(self.mock_client, BUCKET, OBJECT, **kwargs)
 
     # -------------------------------------------------------------------------
     # Initialization & Configuration Tests
@@ -131,14 +131,20 @@ class TestAsyncAppendableObjectWriter(unittest.IsolatedAsyncioTestCase):
 
     def test_init_validation_chunk_size_raises(self):
         with self.assertRaises(exceptions.OutOfRange):
-            self._make_one(writer_options={"FLUSH_INTERVAL_BYTES": _MAX_CHUNK_SIZE_BYTES - 1})
+            self._make_one(
+                writer_options={"FLUSH_INTERVAL_BYTES": _MAX_CHUNK_SIZE_BYTES - 1}
+            )
 
     def test_init_validation_multiple_raises(self):
         with self.assertRaises(exceptions.OutOfRange):
-            self._make_one(writer_options={"FLUSH_INTERVAL_BYTES": _MAX_CHUNK_SIZE_BYTES + 1})
+            self._make_one(
+                writer_options={"FLUSH_INTERVAL_BYTES": _MAX_CHUNK_SIZE_BYTES + 1}
+            )
 
     def test_init_raises_if_crc32c_missing(self):
-        with mock.patch("google.cloud.storage._experimental.asyncio._utils.google_crc32c") as mock_crc:
+        with mock.patch(
+            "google.cloud.storage._experimental.asyncio._utils.google_crc32c"
+        ) as mock_crc:
             mock_crc.implementation = "python"
             with self.assertRaises(exceptions.FailedPrecondition):
                 self._make_one()
@@ -147,12 +153,15 @@ class TestAsyncAppendableObjectWriter(unittest.IsolatedAsyncioTestCase):
     # Stream Lifecycle Tests
     # -------------------------------------------------------------------------
 
+    @pytest.mark.asyncio
     async def test_state_lookup_success(self):
         writer = self._make_one()
         writer._is_stream_open = True
         writer.write_obj_stream = self.mock_stream
 
-        self.mock_stream.recv.return_value = storage_type.BidiWriteObjectResponse(persisted_size=100)
+        self.mock_stream.recv.return_value = storage_type.BidiWriteObjectResponse(
+            persisted_size=100
+        )
 
         size = await writer.state_lookup()
 
@@ -160,11 +169,13 @@ class TestAsyncAppendableObjectWriter(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(size, 100)
         self.assertEqual(writer.persisted_size, 100)
 
+    @pytest.mark.asyncio
     async def test_state_lookup_raises_if_not_open(self):
         writer = self._make_one()
         with self.assertRaisesRegex(ValueError, "Stream is not open"):
             await writer.state_lookup()
 
+    @pytest.mark.asyncio
     async def test_open_success(self):
         writer = self._make_one()
         self.mock_stream.generation_number = 456
@@ -178,22 +189,27 @@ class TestAsyncAppendableObjectWriter(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(writer.write_handle, b"new-h")
         self.mock_stream.open.assert_awaited_once()
 
+    @pytest.mark.asyncio
     async def test_open_already_open_raises(self):
         writer = self._make_one()
         writer._is_stream_open = True
         with self.assertRaisesRegex(ValueError, "already open"):
             await writer.open()
 
+    @pytest.mark.asyncio
     def test_on_open_error_redirection(self):
         """Verify redirect info is extracted from helper."""
         writer = self._make_one()
         redirect = BidiWriteObjectRedirectedError(
             routing_token="rt1",
             write_handle=storage_type.BidiWriteHandle(handle=b"h1"),
-            generation=777
+            generation=777,
         )
 
-        with mock.patch("google.cloud.storage._experimental.asyncio.async_appendable_object_writer._extract_bidi_writes_redirect_proto", return_value=redirect):
+        with mock.patch(
+            "google.cloud.storage._experimental.asyncio.async_appendable_object_writer._extract_bidi_writes_redirect_proto",
+            return_value=redirect,
+        ):
             writer._on_open_error(exceptions.Aborted("redirect"))
 
         self.assertEqual(writer._routing_token, "rt1")
@@ -204,6 +220,7 @@ class TestAsyncAppendableObjectWriter(unittest.IsolatedAsyncioTestCase):
     # Append & Integration Tests
     # -------------------------------------------------------------------------
 
+    @pytest.mark.asyncio
     async def test_append_integration_basic(self):
         """Verify append orchestrates manager and drives the internal generator."""
         writer = self._make_one()
@@ -213,7 +230,10 @@ class TestAsyncAppendableObjectWriter(unittest.IsolatedAsyncioTestCase):
 
         data = b"test-data"
 
-        with mock.patch("google.cloud.storage._experimental.asyncio.async_appendable_object_writer._BidiStreamRetryManager") as MockManager:
+        with mock.patch(
+            "google.cloud.storage._experimental.asyncio.async_appendable_object_writer._BidiStreamRetryManager"
+        ) as MockManager:
+
             async def mock_execute(state, policy):
                 factory = MockManager.call_args[0][1]
                 dummy_reqs = [storage_type.BidiWriteObjectRequest()]
@@ -222,11 +242,12 @@ class TestAsyncAppendableObjectWriter(unittest.IsolatedAsyncioTestCase):
                 self.mock_stream.recv.side_effect = [
                     storage_type.BidiWriteObjectResponse(
                         persisted_size=len(data),
-                        write_handle=storage_type.BidiWriteHandle(handle=b"h2")
+                        write_handle=storage_type.BidiWriteHandle(handle=b"h2"),
                     ),
-                    None
+                    None,
                 ]
-                async for _ in gen: pass
+                async for _ in gen:
+                    pass
 
             MockManager.return_value.execute.side_effect = mock_execute
             await writer.append(data)
@@ -236,6 +257,7 @@ class TestAsyncAppendableObjectWriter(unittest.IsolatedAsyncioTestCase):
             self.assertTrue(sent_req.state_lookup)
             self.assertTrue(sent_req.flush)
 
+    @pytest.mark.asyncio
     async def test_append_recovery_reopens_stream(self):
         """Verifies re-opening logic on retry."""
         writer = self._make_one(write_handle=b"h1")
@@ -250,18 +272,26 @@ class TestAsyncAppendableObjectWriter(unittest.IsolatedAsyncioTestCase):
             writer.persisted_size = 5
             writer.write_handle = b"h_recovered"
 
-        with mock.patch.object(writer, "open", side_effect=mock_open) as mock_writer_open:
-            with mock.patch("google.cloud.storage._experimental.asyncio.async_appendable_object_writer._BidiStreamRetryManager") as MockManager:
+        with mock.patch.object(
+            writer, "open", side_effect=mock_open
+        ) as mock_writer_open:
+            with mock.patch(
+                "google.cloud.storage._experimental.asyncio.async_appendable_object_writer._BidiStreamRetryManager"
+            ) as MockManager:
+
                 async def mock_execute(state, policy):
                     factory = MockManager.call_args[0][1]
                     # Simulate Attempt 1 fail
                     gen1 = factory([], state)
-                    try: await gen1.__anext__()
-                    except: pass
+                    try:
+                        await gen1.__anext__()
+                    except Exception:
+                        pass
                     # Simulate Attempt 2
                     gen2 = factory([], state)
                     self.mock_stream.recv.return_value = None
-                    async for _ in gen2: pass
+                    async for _ in gen2:
+                        pass
 
                 MockManager.return_value.execute.side_effect = mock_execute
                 await writer.append(b"0123456789")
@@ -270,6 +300,7 @@ class TestAsyncAppendableObjectWriter(unittest.IsolatedAsyncioTestCase):
                 mock_writer_open.assert_awaited()
                 self.assertEqual(writer.persisted_size, 5)
 
+    @pytest.mark.asyncio
     async def test_append_unimplemented_string_raises(self):
         writer = self._make_one()
         with self.assertRaises(NotImplementedError):
@@ -279,19 +310,23 @@ class TestAsyncAppendableObjectWriter(unittest.IsolatedAsyncioTestCase):
     # Flush, Close, Finalize
     # -------------------------------------------------------------------------
 
+    @pytest.mark.asyncio
     async def test_flush_resets_counters(self):
         writer = self._make_one()
         writer._is_stream_open = True
         writer.write_obj_stream = self.mock_stream
         writer.bytes_appended_since_last_flush = 100
 
-        self.mock_stream.recv.return_value = storage_type.BidiWriteObjectResponse(persisted_size=200)
+        self.mock_stream.recv.return_value = storage_type.BidiWriteObjectResponse(
+            persisted_size=200
+        )
 
         await writer.flush()
 
         self.assertEqual(writer.bytes_appended_since_last_flush, 0)
         self.assertEqual(writer.persisted_size, 200)
 
+    @pytest.mark.asyncio
     async def test_simple_flush(self):
         writer = self._make_one()
         writer._is_stream_open = True
@@ -300,9 +335,12 @@ class TestAsyncAppendableObjectWriter(unittest.IsolatedAsyncioTestCase):
 
         await writer.simple_flush()
 
-        self.mock_stream.send.assert_awaited_with(storage_type.BidiWriteObjectRequest(flush=True))
+        self.mock_stream.send.assert_awaited_with(
+            storage_type.BidiWriteObjectRequest(flush=True)
+        )
         self.assertEqual(writer.bytes_appended_since_last_flush, 0)
 
+    @pytest.mark.asyncio
     async def test_close_without_finalize(self):
         writer = self._make_one()
         writer._is_stream_open = True
@@ -315,22 +353,28 @@ class TestAsyncAppendableObjectWriter(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(writer._is_stream_open)
         self.assertEqual(size, 50)
 
+    @pytest.mark.asyncio
     async def test_finalize_lifecycle(self):
         writer = self._make_one()
         writer._is_stream_open = True
         writer.write_obj_stream = self.mock_stream
 
         resource = storage_type.Object(size=999)
-        self.mock_stream.recv.return_value = storage_type.BidiWriteObjectResponse(resource=resource)
+        self.mock_stream.recv.return_value = storage_type.BidiWriteObjectResponse(
+            resource=resource
+        )
 
         res = await writer.finalize()
 
         self.assertEqual(res, resource)
         self.assertEqual(writer.persisted_size, 999)
-        self.mock_stream.send.assert_awaited_with(storage_type.BidiWriteObjectRequest(finish_write=True))
+        self.mock_stream.send.assert_awaited_with(
+            storage_type.BidiWriteObjectRequest(finish_write=True)
+        )
         self.mock_stream.close.assert_awaited()
         self.assertFalse(writer._is_stream_open)
 
+    @pytest.mark.asyncio
     async def test_close_with_finalize_on_close(self):
         writer = self._make_one()
         writer._is_stream_open = True
@@ -343,6 +387,7 @@ class TestAsyncAppendableObjectWriter(unittest.IsolatedAsyncioTestCase):
     # Helper Integration Tests
     # -------------------------------------------------------------------------
 
+    @pytest.mark.asyncio
     async def test_append_from_file_integration(self):
         writer = self._make_one()
         writer._is_stream_open = True
@@ -353,6 +398,7 @@ class TestAsyncAppendableObjectWriter(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(writer.append.await_count, 3)
 
+    @pytest.mark.asyncio
     async def test_methods_require_open_stream_raises(self):
         writer = self._make_one()
         methods = [
@@ -361,7 +407,7 @@ class TestAsyncAppendableObjectWriter(unittest.IsolatedAsyncioTestCase):
             writer.simple_flush(),
             writer.close(),
             writer.finalize(),
-            writer.state_lookup()
+            writer.state_lookup(),
         ]
         for coro in methods:
             with self.assertRaisesRegex(ValueError, "Stream is not open"):
