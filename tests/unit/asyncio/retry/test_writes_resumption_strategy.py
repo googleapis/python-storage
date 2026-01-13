@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import io
-import unittest
 import unittest.mock as mock
 from datetime import datetime
 
@@ -30,17 +29,21 @@ from google.cloud.storage._experimental.asyncio.retry.writes_resumption_strategy
 from google.cloud._storage_v2.types.storage import BidiWriteObjectRedirectedError
 
 
-class TestWriteResumptionStrategy(unittest.TestCase):
-    def _make_one(self):
-        return _WriteResumptionStrategy()
+@pytest.fixture
+def strategy():
+    """Fixture to provide a WriteResumptionStrategy instance."""
+    return _WriteResumptionStrategy()
+
+
+class TestWriteResumptionStrategy:
+    """Test suite for WriteResumptionStrategy."""
 
     # -------------------------------------------------------------------------
     # Tests for generate_requests
     # -------------------------------------------------------------------------
 
-    def test_generate_requests_initial_chunking(self):
+    def test_generate_requests_initial_chunking(self, strategy):
         """Verify initial data generation starts at offset 0 and chunks correctly."""
-        strategy = self._make_one()
         mock_buffer = io.BytesIO(b"abcdefghij")
         write_state = _WriteState(chunk_size=3, user_buffer=mock_buffer)
         state = {"write_state": write_state}
@@ -48,30 +51,29 @@ class TestWriteResumptionStrategy(unittest.TestCase):
         requests = strategy.generate_requests(state)
 
         # Expected: 4 requests (3, 3, 3, 1)
-        self.assertEqual(len(requests), 4)
+        assert len(requests) == 4
 
         # Verify Request 1
-        self.assertEqual(requests[0].write_offset, 0)
-        self.assertEqual(requests[0].checksummed_data.content, b"abc")
+        assert requests[0].write_offset == 0
+        assert requests[0].checksummed_data.content == b"abc"
 
         # Verify Request 2
-        self.assertEqual(requests[1].write_offset, 3)
-        self.assertEqual(requests[1].checksummed_data.content, b"def")
+        assert requests[1].write_offset == 3
+        assert requests[1].checksummed_data.content == b"def"
 
         # Verify Request 3
-        self.assertEqual(requests[2].write_offset, 6)
-        self.assertEqual(requests[2].checksummed_data.content, b"ghi")
+        assert requests[2].write_offset == 6
+        assert requests[2].checksummed_data.content == b"ghi"
 
         # Verify Request 4
-        self.assertEqual(requests[3].write_offset, 9)
-        self.assertEqual(requests[3].checksummed_data.content, b"j")
+        assert requests[3].write_offset == 9
+        assert requests[3].checksummed_data.content == b"j"
 
-    def test_generate_requests_resumption(self):
+    def test_generate_requests_resumption(self, strategy):
         """
         Verify request generation when resuming.
         The strategy should generate chunks starting from the current 'bytes_sent'.
         """
-        strategy = self._make_one()
         mock_buffer = io.BytesIO(b"0123456789")
         write_state = _WriteState(chunk_size=4, user_buffer=mock_buffer)
 
@@ -86,30 +88,28 @@ class TestWriteResumptionStrategy(unittest.TestCase):
         requests = strategy.generate_requests(state)
 
         # Since 4 bytes are done, we expect remaining 6 bytes: [4 bytes, 2 bytes]
-        self.assertEqual(len(requests), 2)
+        assert len(requests) == 2
 
         # Check first generated request starts at offset 4
-        self.assertEqual(requests[0].write_offset, 4)
-        self.assertEqual(requests[0].checksummed_data.content, b"4567")
+        assert requests[0].write_offset == 4
+        assert requests[0].checksummed_data.content == b"4567"
 
         # Check second generated request starts at offset 8
-        self.assertEqual(requests[1].write_offset, 8)
-        self.assertEqual(requests[1].checksummed_data.content, b"89")
+        assert requests[1].write_offset == 8
+        assert requests[1].checksummed_data.content == b"89"
 
-    def test_generate_requests_empty_file(self):
+    def test_generate_requests_empty_file(self, strategy):
         """Verify request sequence for an empty file."""
-        strategy = self._make_one()
         mock_buffer = io.BytesIO(b"")
         write_state = _WriteState(chunk_size=4, user_buffer=mock_buffer)
         state = {"write_state": write_state}
 
         requests = strategy.generate_requests(state)
 
-        self.assertEqual(len(requests), 0)
+        assert len(requests) == 0
 
-    def test_generate_requests_checksum_verification(self):
+    def test_generate_requests_checksum_verification(self, strategy):
         """Verify CRC32C is calculated correctly for each chunk."""
-        strategy = self._make_one()
         chunk_data = b"test_data"
         mock_buffer = io.BytesIO(chunk_data)
         write_state = _WriteState(chunk_size=10, user_buffer=mock_buffer)
@@ -119,11 +119,10 @@ class TestWriteResumptionStrategy(unittest.TestCase):
 
         expected_crc = google_crc32c.Checksum(chunk_data).digest()
         expected_int = int.from_bytes(expected_crc, "big")
-        self.assertEqual(requests[0].checksummed_data.crc32c, expected_int)
+        assert requests[0].checksummed_data.crc32c == expected_int
 
-    def test_generate_requests_flush_logic_exact_interval(self):
+    def test_generate_requests_flush_logic_exact_interval(self, strategy):
         """Verify the flush bit is set exactly when the interval is reached."""
-        strategy = self._make_one()
         mock_buffer = io.BytesIO(b"A" * 12)
         # 2 byte chunks, flush every 4 bytes
         write_state = _WriteState(
@@ -134,19 +133,22 @@ class TestWriteResumptionStrategy(unittest.TestCase):
         requests = strategy.generate_requests(state)
 
         # Request index 1 (4 bytes total) should have flush=True
-        self.assertFalse(requests[0].flush)
-        self.assertTrue(requests[1].flush)
+        assert requests[0].flush == False
+        assert requests[1].flush == True
 
-        # Request index 3 (8 bytes total) should have flush=True
-        self.assertFalse(requests[2].flush)
-        self.assertTrue(requests[3].flush)
+        # Request index 2 (8 bytes total) should have flush=True
+        assert requests[2].flush == False
+        assert requests[3].flush == True
+
+        # Request index 3 (12 bytes total) should have flush=True
+        assert requests[4].flush == False
+        assert requests[5].flush == True
 
         # Verify counter reset in state
-        self.assertEqual(write_state.bytes_since_last_flush, 0)
+        assert write_state.bytes_since_last_flush == 0
 
-    def test_generate_requests_flush_logic_none_interval(self):
+    def test_generate_requests_flush_logic_none_interval(self, strategy):
         """Verify flush is never set if interval is None."""
-        strategy = self._make_one()
         mock_buffer = io.BytesIO(b"A" * 10)
         write_state = _WriteState(
             chunk_size=2, user_buffer=mock_buffer, flush_interval=None
@@ -156,11 +158,10 @@ class TestWriteResumptionStrategy(unittest.TestCase):
         requests = strategy.generate_requests(state)
 
         for req in requests:
-            self.assertFalse(req.flush)
+            assert req.flush == False
 
-    def test_generate_requests_flush_logic_data_less_than_interval(self):
+    def test_generate_requests_flush_logic_data_less_than_interval(self, strategy):
         """Verify flush is not set if data sent is less than interval."""
-        strategy = self._make_one()
         mock_buffer = io.BytesIO(b"A" * 5)
         # Flush every 10 bytes
         write_state = _WriteState(
@@ -172,30 +173,27 @@ class TestWriteResumptionStrategy(unittest.TestCase):
 
         # Total 5 bytes < 10 bytes interval
         for req in requests:
-            self.assertFalse(req.flush)
+            assert req.flush == False
 
-        self.assertEqual(write_state.bytes_since_last_flush, 5)
+        assert write_state.bytes_since_last_flush == 5
 
-    def test_generate_requests_honors_finalized_state(self):
+    def test_generate_requests_honors_finalized_state(self, strategy):
         """If state is already finalized, no requests should be generated."""
-        strategy = self._make_one()
         mock_buffer = io.BytesIO(b"data")
         write_state = _WriteState(chunk_size=4, user_buffer=mock_buffer)
         write_state.is_finalized = True
         state = {"write_state": write_state}
 
         requests = strategy.generate_requests(state)
-        self.assertEqual(len(requests), 0)
+        assert len(requests) == 0
 
     @pytest.mark.asyncio
-    async def test_generate_requests_after_failure_and_recovery(self):
+    async def test_generate_requests_after_failure_and_recovery(self, strategy):
         """
         Verify recovery and resumption flow (Integration of recover + generate).
         """
-        strategy = self._make_one()
         mock_buffer = io.BytesIO(b"0123456789abcdef")  # 16 bytes
-        mock_spec = storage_type.AppendObjectSpec(object_="test-object")
-        write_state = _WriteState(mock_spec, chunk_size=4, user_buffer=mock_buffer)
+        write_state = _WriteState(chunk_size=4, user_buffer=mock_buffer)
         state = {"write_state": write_state}
 
         # Simulate initial progress: sent 8 bytes
@@ -215,27 +213,26 @@ class TestWriteResumptionStrategy(unittest.TestCase):
 
         # Assertions after recovery
         # 1. Buffer should rewind to persisted_size (4)
-        self.assertEqual(mock_buffer.tell(), 4)
+        assert mock_buffer.tell() == 4
         # 2. bytes_sent should track persisted_size (4)
-        self.assertEqual(write_state.bytes_sent, 4)
+        assert write_state.bytes_sent == 4
 
         requests = strategy.generate_requests(state)
 
         # Remaining data from offset 4 to 16 (12 bytes total)
         # Chunks: [4-8], [8-12], [12-16]
-        self.assertEqual(len(requests), 3)
+        assert len(requests) == 3
 
         # Verify resumption offset
-        self.assertEqual(requests[0].write_offset, 4)
-        self.assertEqual(requests[0].checksummed_data.content, b"4567")
+        assert requests[0].write_offset == 4
+        assert requests[0].checksummed_data.content == b"4567"
 
     # -------------------------------------------------------------------------
     # Tests for update_state_from_response
     # -------------------------------------------------------------------------
 
-    def test_update_state_from_response_all_fields(self):
+    def test_update_state_from_response_all_fields(self, strategy):
         """Verify all fields from a BidiWriteObjectResponse update the state."""
-        strategy = self._make_one()
         write_state = _WriteState(chunk_size=4, user_buffer=io.BytesIO())
         state = {"write_state": write_state}
 
@@ -243,39 +240,37 @@ class TestWriteResumptionStrategy(unittest.TestCase):
         strategy.update_state_from_response(
             storage_type.BidiWriteObjectResponse(persisted_size=123), state
         )
-        self.assertEqual(write_state.persisted_size, 123)
+        assert write_state.persisted_size == 123
 
         # 2. Update write_handle
         handle = storage_type.BidiWriteHandle(handle=b"new-handle")
         strategy.update_state_from_response(
             storage_type.BidiWriteObjectResponse(write_handle=handle), state
         )
-        self.assertEqual(write_state.write_handle, handle)
+        assert write_state.write_handle == handle
 
         # 3. Update from Resource (finalization)
         resource = storage_type.Object(size=1000, finalize_time=datetime.now())
         strategy.update_state_from_response(
             storage_type.BidiWriteObjectResponse(resource=resource), state
         )
-        self.assertEqual(write_state.persisted_size, 1000)
-        self.assertTrue(write_state.is_finalized)
+        assert write_state.persisted_size == 1000
+        assert write_state.is_finalized
 
-    def test_update_state_from_response_none(self):
+    def test_update_state_from_response_none(self, strategy):
         """Verify None response doesn't crash."""
-        strategy = self._make_one()
         write_state = _WriteState(chunk_size=4, user_buffer=io.BytesIO())
         state = {"write_state": write_state}
         strategy.update_state_from_response(None, state)
-        self.assertEqual(write_state.persisted_size, 0)
+        assert write_state.persisted_size == 0
 
     # -------------------------------------------------------------------------
     # Tests for recover_state_on_failure
     # -------------------------------------------------------------------------
 
     @pytest.mark.asyncio
-    async def test_recover_state_on_failure_rewind_logic(self):
+    async def test_recover_state_on_failure_rewind_logic(self, strategy):
         """Verify buffer seek and counter resets on generic failure (Non-redirect)."""
-        strategy = self._make_one()
         mock_buffer = io.BytesIO(b"0123456789")
         write_state = _WriteState(chunk_size=2, user_buffer=mock_buffer)
 
@@ -291,31 +286,29 @@ class TestWriteResumptionStrategy(unittest.TestCase):
         )
 
         # Buffer must be seeked back to 4
-        self.assertEqual(mock_buffer.tell(), 4)
-        self.assertEqual(write_state.bytes_sent, 4)
+        assert mock_buffer.tell() == 4
+        assert write_state.bytes_sent == 4
         # Flush counter must be reset to avoid incorrect firing after resume
-        self.assertEqual(write_state.bytes_since_last_flush, 0)
+        assert write_state.bytes_since_last_flush == 0
 
     @pytest.mark.asyncio
-    async def test_recover_state_on_failure_direct_redirect(self):
+    async def test_recover_state_on_failure_direct_redirect(self, strategy):
         """Verify handling when the error is a BidiWriteObjectRedirectedError."""
-        strategy = self._make_one()
         write_state = _WriteState(chunk_size=4, user_buffer=io.BytesIO())
         state = {"write_state": write_state}
 
         redirect = BidiWriteObjectRedirectedError(
-            routing_token="tok-1", write_handle=b"h-1"
+            routing_token="tok-1", write_handle=storage_type.BidiWriteHandle(handle=b"h-1"),
         )
 
         await strategy.recover_state_on_failure(redirect, state)
 
-        self.assertEqual(write_state.routing_token, "tok-1")
-        self.assertEqual(write_state.write_handle, b"h-1")
+        assert write_state.routing_token == "tok-1"
+        assert write_state.write_handle.handle == b"h-1"
 
     @pytest.mark.asyncio
-    async def test_recover_state_on_failure_wrapped_redirect(self):
+    async def test_recover_state_on_failure_wrapped_redirect(self, strategy):
         """Verify handling when RedirectedError is inside Aborted.errors."""
-        strategy = self._make_one()
         write_state = _WriteState(chunk_size=4, user_buffer=io.BytesIO())
 
         redirect = BidiWriteObjectRedirectedError(routing_token="tok-wrapped")
@@ -324,51 +317,38 @@ class TestWriteResumptionStrategy(unittest.TestCase):
 
         await strategy.recover_state_on_failure(error, {"write_state": write_state})
 
-        self.assertEqual(write_state.routing_token, "tok-wrapped")
+        assert write_state.routing_token == "tok-wrapped"
 
     @pytest.mark.asyncio
-    async def test_recover_state_on_failure_trailer_metadata_redirect(self):
+    async def test_recover_state_on_failure_trailer_metadata_redirect(self, strategy):
         """Verify complex parsing from 'grpc-status-details-bin' in trailers."""
-        strategy = self._make_one()
         write_state = _WriteState(chunk_size=4, user_buffer=io.BytesIO())
 
-        # 1. Setup Redirect Proto
         redirect_proto = BidiWriteObjectRedirectedError(routing_token="metadata-token")
-
-        # 2. Setup Status Proto Detail
         status = status_pb2.Status()
         detail = status.details.add()
-        detail.type_url = (
-            "type.googleapis.com/google.storage.v2.BidiWriteObjectRedirectedError"
-        )
-        # In a real environment, detail.value is the serialized proto
-        detail.value = BidiWriteObjectRedirectedError.to_json(redirect_proto).encode()
+        detail.type_url = "type.googleapis.com/google.storage.v2.BidiWriteObjectRedirectedError"
+        detail.value = BidiWriteObjectRedirectedError.serialize(redirect_proto)
 
-        # 3. Create Mock Error with Trailers
-        mock_error = mock.MagicMock(spec=exceptions.Aborted)
-        mock_error.errors = []  # No direct errors
+        # FIX: No spec= here, because Aborted doesn't have trailing_metadata in its base definition
+        mock_error = mock.MagicMock()
+        mock_error.errors = []
         mock_error.trailing_metadata.return_value = [
             ("grpc-status-details-bin", status.SerializeToString())
         ]
 
-        # 4. Patch deserialize to handle the binary value
-        with mock.patch(
-            "google.cloud._storage_v2.types.storage.BidiWriteObjectRedirectedError.deserialize",
-            return_value=redirect_proto,
-        ):
-            await strategy.recover_state_on_failure(
-                mock_error, {"write_state": write_state}
-            )
+        with mock.patch("google.cloud.storage._experimental.asyncio.retry.writes_resumption_strategy._extract_bidi_writes_redirect_proto", return_value=redirect_proto):
+            await strategy.recover_state_on_failure(mock_error, {"write_state": write_state})
 
-        self.assertEqual(write_state.routing_token, "metadata-token")
+        assert write_state.routing_token == "metadata-token"
 
     def test_write_state_initialization(self):
         """Verify WriteState starts with clean counters."""
         buffer = io.BytesIO(b"test")
         ws = _WriteState(chunk_size=10, user_buffer=buffer, flush_interval=100)
 
-        self.assertEqual(ws.persisted_size, 0)
-        self.assertEqual(ws.bytes_sent, 0)
-        self.assertEqual(ws.bytes_since_last_flush, 0)
-        self.assertEqual(ws.flush_interval, 100)
-        self.assertFalse(ws.is_finalized)
+        assert ws.persisted_size == 0
+        assert ws.bytes_sent == 0
+        assert ws.bytes_since_last_flush == 0
+        assert ws.flush_interval == 100
+        assert not ws.is_finalized

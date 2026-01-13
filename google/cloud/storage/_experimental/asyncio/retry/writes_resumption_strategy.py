@@ -135,24 +135,19 @@ class _WriteResumptionStrategy(_BaseResumptionStrategy):
         """
         write_state: _WriteState = state["write_state"]
 
-        grpc_error = None
-        if isinstance(error, exceptions.Aborted) and error.errors:
-            grpc_error = error.errors[0]
+        redirect_proto = None
 
-        if grpc_error:
-            # Extract routing token and potentially a new write handle for redirection.
-            if isinstance(grpc_error, BidiWriteObjectRedirectedError):
-                write_state.routing_token = grpc_error.routing_token
-                if grpc_error.write_handle:
-                    write_state.write_handle = grpc_error.write_handle
-                return
-
+        if isinstance(error, BidiWriteObjectRedirectedError):
+            redirect_proto = error
+        else:
             redirect_proto = _extract_bidi_writes_redirect_proto(error)
-            if redirect_proto:
-                if redirect_proto.routing_token:
-                    write_state.routing_token = redirect_proto.routing_token
-                if redirect_proto.write_handle:
-                    write_state.write_handle = redirect_proto.write_handle
+
+        # Extract routing token and potentially a new write handle for redirection.
+        if redirect_proto:
+            if redirect_proto.routing_token:
+                write_state.routing_token = redirect_proto.routing_token
+            if redirect_proto.write_handle:
+                write_state.write_handle = redirect_proto.write_handle
 
         # We must assume any data sent beyond 'persisted_size' was lost.
         # Reset the user buffer to the last known good byte confirmed by the server.

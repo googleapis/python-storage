@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import unittest
+import pytest
 from unittest import mock
 from google.auth import credentials as auth_credentials
 from google.auth.credentials import AnonymousCredentials
@@ -29,7 +29,7 @@ def _make_credentials(spec=None):
     return mock.Mock(spec=spec)
 
 
-class TestAsyncGrpcClient(unittest.TestCase):
+class TestAsyncGrpcClient:
     @mock.patch("google.cloud._storage_v2.StorageAsyncClient")
     def test_constructor_default_options(self, mock_async_storage_client):
         # Arrange
@@ -152,7 +152,7 @@ class TestAsyncGrpcClient(unittest.TestCase):
             client_info=mock_client_info,
             client_options=mock_client_options,
         )
-        self.assertIs(retrieved_client, mock_grpc_gapic_client.return_value)
+        assert retrieved_client is mock_grpc_gapic_client.return_value
 
     @mock.patch("google.cloud._storage_v2.StorageAsyncClient")
     def test_grpc_client_with_anon_creds(self, mock_grpc_gapic_client):
@@ -171,7 +171,7 @@ class TestAsyncGrpcClient(unittest.TestCase):
         retrieved_client = client.grpc_client
 
         # Assert
-        self.assertIs(retrieved_client, mock_grpc_gapic_client.return_value)
+        assert retrieved_client is mock_grpc_gapic_client.return_value
 
         primary_user_agent = DEFAULT_CLIENT_INFO.to_user_agent()
         expected_options = (("grpc.primary_user_agent", primary_user_agent),)
