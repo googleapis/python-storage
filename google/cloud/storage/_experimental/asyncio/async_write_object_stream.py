@@ -171,24 +171,8 @@ class _AsyncWriteObjectStream(_AsyncAbstractObjectStream):
         response = await self.socket_like_rpc.recv()
         self._is_stream_open = True
 
-        if response.persisted_size >= 0:
+        if response.persisted_size:
             self.persisted_size = response.persisted_size
-
-            if response.write_handle:
-                self.write_handle = response.write_handle
-            # return
-
-        # if not response.resource:
-        #     raise ValueError(
-        #         "Failed to obtain object resource after opening the stream"
-        #     )
-        # if not response.resource.generation:
-        #     raise ValueError(
-        #         "Failed to obtain object generation after opening the stream"
-        #     )
-
-        # if not response.write_handle:
-        #     raise ValueError("Failed to obtain write_handle after opening the stream")
 
         if response.resource:
             if not response.resource.size:
@@ -198,6 +182,8 @@ class _AsyncWriteObjectStream(_AsyncAbstractObjectStream):
                 self.persisted_size = response.resource.size
 
             self.generation_number = response.resource.generation
+
+        if response.write_handle:
             self.write_handle = response.write_handle
 
     async def close(self) -> None:

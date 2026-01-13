@@ -22,6 +22,10 @@ from google.cloud._storage_v2.types.storage import BidiWriteObjectRedirectedErro
 from google.cloud.storage._experimental.asyncio.retry.base_strategy import (
     _BaseResumptionStrategy,
 )
+from google.cloud.storage._experimental.asyncio.retry._helpers import (
+    _extract_bidi_writes_redirect_proto,
+)
+
 
 _BIDI_WRITE_REDIRECTED_TYPE_URL = (
     "type.googleapis.com/google.storage.v2.BidiWriteObjectRedirectedError"
@@ -139,39 +143,17 @@ class _WriteResumptionStrategy(_BaseResumptionStrategy):
         if grpc_error:
             # Extract routing token and potentially a new write handle for redirection.
             if isinstance(grpc_error, BidiWriteObjectRedirectedError):
-                self._routing_token = grpc_error.routing_token
+                write_state.routing_token = grpc_error.routing_token
                 if grpc_error.write_handle:
-                    self.write_handle = grpc_error.write_handle
+                    write_state.write_handle = grpc_error.write_handle
                 return
-            if hasattr(grpc_error, "trailing_metadata"):
-                trailers = grpc_error.trailing_metadata()
-                if not trailers:
-                    return
 
-                status_details_bin = None
-                for key, value in trailers:
-                    if key == "grpc-status-details-bin":
-                        status_details_bin = value
-                        break
-
-                if status_details_bin:
-                    status_proto = status_pb2.Status()
-                    try:
-                        status_proto.ParseFromString(status_details_bin)
-                        for detail in status_proto.details:
-                            if detail.type_url == _BIDI_WRITE_REDIRECTED_TYPE_URL:
-                                redirect_proto = (
-                                    BidiWriteObjectRedirectedError.deserialize(
-                                        detail.value
-                                    )
-                                )
-                                if redirect_proto.routing_token:
-                                    write_state._routing_token = redirect_proto.routing_token
-                                if redirect_proto.write_handle:
-                                    write_state.write_handle = redirect_proto.write_handle
-                                break
-                    except Exception:
-                        pass
+            redirect_proto = _extract_bidi_writes_redirect_proto(error)
+            if redirect_proto:
+                if redirect_proto.routing_token:
+                    write_state.routing_token = redirect_proto.routing_token
+                if redirect_proto.write_handle:
+                    write_state.write_handle = redirect_proto.write_handle
 
         # We must assume any data sent beyond 'persisted_size' was lost.
         # Reset the user buffer to the last known good byte confirmed by the server.

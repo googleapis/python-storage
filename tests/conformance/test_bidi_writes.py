@@ -85,8 +85,8 @@ async def run_test_scenario(
             await writer.append(
                 CONTENT, metadata=fault_injection_metadata, retry_policy=policy_to_pass
             )
-            await writer.finalize()
-            await writer.close()
+            # await writer.finalize()
+            await writer.close(finalize_on_close=True)
 
             # If an exception was expected, this line should not be reached.
             if scenario["expected_error"] is not None:

@@ -27,7 +27,7 @@ from io import BufferedReader
 import asyncio
 import io
 import logging
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 from google.api_core import exceptions
 from google.api_core.retry_async import AsyncRetry
@@ -51,6 +51,9 @@ from google.cloud.storage._experimental.asyncio.retry.writes_resumption_strategy
     _WriteResumptionStrategy,
     _WriteState,
 )
+from google.cloud.storage._experimental.asyncio.retry._helpers import (
+    _extract_bidi_writes_redirect_proto,
+)
 
 
 _MAX_CHUNK_SIZE_BYTES = 2 * 1024 * 1024  # 2 MiB
@@ -71,14 +74,18 @@ def _is_write_retryable(exc):
             exceptions.ServiceUnavailable,
             exceptions.DeadlineExceeded,
             exceptions.TooManyRequests,
+            BidiWriteObjectRedirectedError
         ),
     ):
         logger.info(f"Retryable write exception encountered: {exc}")
         return True
 
     grpc_error = None
-    if isinstance(exc, exceptions.Aborted):
+    if isinstance(exc, exceptions.Aborted) and exc.errors:
         grpc_error = exc.errors[0]
+        if isinstance(grpc_error, BidiWriteObjectRedirectedError):
+            return True
+
         trailers = grpc_error.trailing_metadata()
         if not trailers:
             return False
@@ -239,53 +246,14 @@ class AsyncAppendableObjectWriter:
 
     def _on_open_error(self, exc):
         """Extracts routing token and write handle on redirect error during open."""
-        grpc_error = None
-        if isinstance(exc, exceptions.Aborted) and exc.errors:
-            grpc_error = exc.errors[0]
-
-        if grpc_error:
-            if isinstance(grpc_error, BidiWriteObjectRedirectedError):
-                self._routing_token = grpc_error.routing_token
-                if grpc_error.write_handle:
-                    self.write_handle = grpc_error.write_handle
-                if grpc_error.generation:
-                    self.generation = grpc_error.generation
-                return
-
-            if hasattr(grpc_error, "trailing_metadata"):
-                trailers = grpc_error.trailing_metadata()
-                if not trailers:
-                    return
-
-                status_details_bin = None
-                for key, value in trailers:
-                    if key == "grpc-status-details-bin":
-                        status_details_bin = value
-                        break
-
-                if status_details_bin:
-                    status_proto = status_pb2.Status()
-                    try:
-                        status_proto.ParseFromString(status_details_bin)
-                        for detail in status_proto.details:
-                            if detail.type_url == _BIDI_WRITE_REDIRECTED_TYPE_URL:
-                                redirect_proto = (
-                                    BidiWriteObjectRedirectedError.deserialize(
-                                        detail.value
-                                    )
-                                )
-                                if redirect_proto.routing_token:
-                                    self._routing_token = redirect_proto.routing_token
-                                if redirect_proto.write_handle:
-                                    self.write_handle = redirect_proto.write_handle
-                                if redirect_proto.generation:
-                                    self.generation = redirect_proto.generation
-                                break
-                    except Exception:
-                        logger.error(
-                            "Error unpacking redirect details from gRPC error."
-                        )
-                        pass
+        redirect_proto = _extract_bidi_writes_redirect_proto(exc)
+        if redirect_proto:
+            if redirect_proto.routing_token:
+                self._routing_token = redirect_proto.routing_token
+            if redirect_proto.write_handle:
+                self.write_handle = redirect_proto.write_handle
+            if redirect_proto.generation:
+                self.generation = redirect_proto.generation
 
     async def open(
         self,
@@ -461,9 +429,11 @@ class AsyncAppendableObjectWriter:
                         if resp.persisted_size is not None:
                             self.persisted_size = resp.persisted_size
                             state["write_state"].persisted_size = resp.persisted_size
+                            self.offset = self.persisted_size
                         if resp.write_handle:
                             self.write_handle = resp.write_handle
                             state["write_state"].write_handle = resp.write_handle
+                        self.bytes_appended_since_last_flush = 0
 
                 yield resp
 
@@ -486,6 +456,8 @@ class AsyncAppendableObjectWriter:
         self.write_obj_stream.persisted_size = write_state.persisted_size
         self.write_obj_stream.write_handle = write_state.write_handle
         self.bytes_appended_since_last_flush = write_state.bytes_since_last_flush
+        self.persisted_size = write_state.persisted_size
+        self.offset = write_state.persisted_size
 
     async def simple_flush(self) -> None:
         """Flushes the data to the server.
@@ -505,6 +477,7 @@ class AsyncAppendableObjectWriter:
                     flush=True,
                 )
             )
+            self.bytes_appended_since_last_flush = 0
 
     async def flush(self) -> int:
         """Flushes the data to the server.
@@ -528,6 +501,7 @@ class AsyncAppendableObjectWriter:
             response = await self.write_obj_stream.recv()
             self.persisted_size = response.persisted_size
             self.offset = self.persisted_size
+            self.bytes_appended_since_last_flush = 0
             return self.persisted_size
 
     async def close(self, finalize_on_close=False) -> Union[int, _storage_v2.Object]:
