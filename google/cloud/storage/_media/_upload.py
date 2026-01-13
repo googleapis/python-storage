@@ -1253,7 +1253,8 @@ class XMLMPUPart(UploadBase):
     Args:
         upload_url (str): The URL of the object (without query parameters).
         upload_id (str): The ID of the upload from the initialization response.
-        filename (str): The name (path) of the file to upload.
+        filename (str): The name (path) of the file to upload. Can be None if
+            file_obj is provided.
         start (int): The byte index of the beginning of the part.
         end (int): The byte index of the end of the part.
         part_number (int): The part number. Part numbers will be assembled in
@@ -1274,6 +1275,8 @@ class XMLMPUPart(UploadBase):
             See the retry.py source code and docstrings in this package
             (google.cloud.storage.retry) for information on retry types and how
             to configure them.
+        file_obj (IO[bytes]): file-like object to upload from. Can be None if
+            filename is provided.
 
     Attributes:
         upload_url (str): The URL of the object (without query parameters).
@@ -1297,9 +1300,16 @@ class XMLMPUPart(UploadBase):
         headers=None,
         checksum="auto",
         retry=DEFAULT_RETRY,
+        file_obj=None,
     ):
         super().__init__(upload_url, headers=headers, retry=retry)
+        if (filename is None and file_obj is None) or (
+            filename is not None and file_obj is not None
+        ):
+            raise ValueError("Exactly one of filename or file_obj must be provided.")
+
         self._filename = filename
+        self._file_obj = file_obj
         self._start = start
         self._end = end
         self._upload_id = upload_id
@@ -1364,9 +1374,13 @@ class XMLMPUPart(UploadBase):
         if self.finished:
             raise ValueError("This part has already been uploaded.")
 
-        with open(self._filename, "br") as f:
-            f.seek(self._start)
-            payload = f.read(self._end - self._start)
+        if self._file_obj:
+            self._file_obj.seek(self._start)
+            payload = self._file_obj.read(self._end - self._start)
+        else:
+            with open(self._filename, "br") as f:
+                f.seek(self._start)
+                payload = f.read(self._end - self._start)
 
         self._checksum_object = _helpers._get_checksum_object(self._checksum_type)
         if self._checksum_object is not None:
