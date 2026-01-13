@@ -4,6 +4,33 @@
 
 [1]: https://pypi.org/project/google-cloud-storage/#history
 
+## [3.8.0](https://github.com/googleapis/python-storage/compare/v3.7.0...v3.8.0) (2026-01-13)
+
+
+### Features
+
+* Compute chunk wise checksum for bidi_writes ([#1675](https://github.com/googleapis/python-storage/issues/1675)) ([139390c](https://github.com/googleapis/python-storage/commit/139390cb01f93a2d61e7ec201e3637dffe0b2a34))
+* Compute chunk wise checksum for bidi_writes and send it via ([139390c](https://github.com/googleapis/python-storage/commit/139390cb01f93a2d61e7ec201e3637dffe0b2a34))
+* **experimental:** Add bidi stream retry manager. ([#1632](https://github.com/googleapis/python-storage/issues/1632)) ([d90f0ee](https://github.com/googleapis/python-storage/commit/d90f0ee09902a21b186106bcf0a8cb0b81b34340))
+* **experimental:** Add write resumption strategy ([#1663](https://github.com/googleapis/python-storage/issues/1663)) ([a57ea0e](https://github.com/googleapis/python-storage/commit/a57ea0ec786a84c7ae9ed82c6ae5d38ecadba4af))
+* **experimental:** Flush the last chunk in append method ([#1699](https://github.com/googleapis/python-storage/issues/1699)) ([89bfe7a](https://github.com/googleapis/python-storage/commit/89bfe7a5fcd0391da35e9ceccc185279782b5420))
+* Expose persisted size in mrd ([#1671](https://github.com/googleapis/python-storage/issues/1671)) ([0e2961b](https://github.com/googleapis/python-storage/commit/0e2961bef285fc064174a5c18e3db05c7a682521))
+* Expose persisted size in MRD (MultiRangeReader) ([0e2961b](https://github.com/googleapis/python-storage/commit/0e2961bef285fc064174a5c18e3db05c7a682521))
+* Implement "append_from_file" ([#1686](https://github.com/googleapis/python-storage/issues/1686)) ([1333c95](https://github.com/googleapis/python-storage/commit/1333c956da18b4db753cda98c41c3619c84caf69))
+* Implement `append_from_file` ([1333c95](https://github.com/googleapis/python-storage/commit/1333c956da18b4db753cda98c41c3619c84caf69))
+* Make flush size configurable ([f7095fa](https://github.com/googleapis/python-storage/commit/f7095faf0a81239894ff9d277849788b62eb6ac5))
+* Make flush size configurable ([#1677](https://github.com/googleapis/python-storage/issues/1677)) ([f7095fa](https://github.com/googleapis/python-storage/commit/f7095faf0a81239894ff9d277849788b62eb6ac5))
+
+
+### Bug Fixes
+
+* Add system test for opening with read_handle ([6dc711d](https://github.com/googleapis/python-storage/commit/6dc711dacd4d38c573aa4ca9ad71fe412c0e49c1))
+* Add system test for opening with read_handle ([#1672](https://github.com/googleapis/python-storage/issues/1672)) ([6dc711d](https://github.com/googleapis/python-storage/commit/6dc711dacd4d38c573aa4ca9ad71fe412c0e49c1))
+* Close write object stream always ([#1661](https://github.com/googleapis/python-storage/issues/1661)) ([4a609a4](https://github.com/googleapis/python-storage/commit/4a609a4b3f4ba1396825911cb02f8a9649135cd5))
+* Close write object stream always.  ([4a609a4](https://github.com/googleapis/python-storage/commit/4a609a4b3f4ba1396825911cb02f8a9649135cd5))
+* **experimental:** No state lookup while opening bidi-write stream ([2d5a7b1](https://github.com/googleapis/python-storage/commit/2d5a7b16846a69f3a911844971241899f60cce14))
+* **experimental:** No state lookup while opening bidi-write stream ([#1636](https://github.com/googleapis/python-storage/issues/1636)) ([2d5a7b1](https://github.com/googleapis/python-storage/commit/2d5a7b16846a69f3a911844971241899f60cce14))
+
 ## [3.7.0](https://github.com/googleapis/python-storage/compare/v3.6.0...v3.7.0) (2025-12-09)
 
 
