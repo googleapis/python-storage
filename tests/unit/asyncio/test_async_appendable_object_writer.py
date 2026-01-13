@@ -12,11 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from io import BytesIO
 import pytest
 from unittest import mock
 
+from google_crc32c import Checksum
+
+from google.api_core import exceptions
 from google.cloud.storage._experimental.asyncio.async_appendable_object_writer import (
     AsyncAppendableObjectWriter,
+)
+from google.cloud.storage._experimental.asyncio.async_appendable_object_writer import (
+    _MAX_CHUNK_SIZE_BYTES,
+    _DEFAULT_FLUSH_INTERVAL_BYTES,
 )
 from google.cloud import _storage_v2
 
@@ -26,6 +34,7 @@ OBJECT = "test-object"
 GENERATION = 123
 WRITE_HANDLE = b"test-write-handle"
 PERSISTED_SIZE = 456
+EIGHT_MIB = 8 * 1024 * 1024
 
 
 @pytest.fixture
@@ -49,6 +58,7 @@ def test_init(mock_write_object_stream, mock_client):
     assert not writer._is_stream_open
     assert writer.offset is None
     assert writer.persisted_size is None
+    assert writer.bytes_appended_since_last_flush == 0
 
     mock_write_object_stream.assert_called_once_with(
         client=mock_client,
@@ -75,6 +85,7 @@ def test_init_with_optional_args(mock_write_object_stream, mock_client):
 
     assert writer.generation == GENERATION
     assert writer.write_handle == WRITE_HANDLE
+    assert writer.bytes_appended_since_last_flush == 0
 
     mock_write_object_stream.assert_called_once_with(
         client=mock_client,
@@ -82,6 +93,77 @@ def test_init_with_optional_args(mock_write_object_stream, mock_client):
         object_name=OBJECT,
         generation_number=GENERATION,
         write_handle=WRITE_HANDLE,
+    )
+
+
+@mock.patch(
+    "google.cloud.storage._experimental.asyncio.async_appendable_object_writer._AsyncWriteObjectStream"
+)
+def test_init_with_writer_options(mock_write_object_stream, mock_client):
+    """Test the constructor with optional arguments."""
+    writer = AsyncAppendableObjectWriter(
+        mock_client,
+        BUCKET,
+        OBJECT,
+        writer_options={"FLUSH_INTERVAL_BYTES": EIGHT_MIB},
+    )
+
+    assert writer.flush_interval == EIGHT_MIB
+    assert writer.bytes_appended_since_last_flush == 0
+
+    mock_write_object_stream.assert_called_once_with(
+        client=mock_client,
+        bucket_name=BUCKET,
+        object_name=OBJECT,
+        generation_number=None,
+        write_handle=None,
+    )
+
+
+@mock.patch(
+    "google.cloud.storage._experimental.asyncio.async_appendable_object_writer._AsyncWriteObjectStream"
+)
+def test_init_with_flush_interval_less_than_chunk_size_raises_error(mock_client):
+    """Test that an OutOfRange error is raised if flush_interval is less than the chunk size."""
+
+    with pytest.raises(exceptions.OutOfRange):
+        AsyncAppendableObjectWriter(
+            mock_client,
+            BUCKET,
+            OBJECT,
+            writer_options={"FLUSH_INTERVAL_BYTES": _MAX_CHUNK_SIZE_BYTES - 1},
+        )
+
+
+@mock.patch(
+    "google.cloud.storage._experimental.asyncio.async_appendable_object_writer._AsyncWriteObjectStream"
+)
+def test_init_with_flush_interval_not_multiple_of_chunk_size_raises_error(mock_client):
+    """Test that an OutOfRange error is raised if flush_interval is not a multiple of the chunk size."""
+
+    with pytest.raises(exceptions.OutOfRange):
+        AsyncAppendableObjectWriter(
+            mock_client,
+            BUCKET,
+            OBJECT,
+            writer_options={"FLUSH_INTERVAL_BYTES": _MAX_CHUNK_SIZE_BYTES + 1},
+        )
+
+
+@mock.patch("google.cloud.storage._experimental.asyncio._utils.google_crc32c")
+@mock.patch(
+    "google.cloud.storage._experimental.asyncio.async_grpc_client.AsyncGrpcClient.grpc_client"
+)
+def test_init_raises_if_crc32c_c_extension_is_missing(
+    mock_grpc_client, mock_google_crc32c
+):
+    mock_google_crc32c.implementation = "python"
+
+    with pytest.raises(exceptions.FailedPrecondition) as exc_info:
+        AsyncAppendableObjectWriter(mock_grpc_client, "bucket", "object")
+
+    assert "The google-crc32c package is not installed with C support" in str(
+        exc_info.value
     )
 
 
@@ -207,9 +289,6 @@ async def test_unimplemented_methods_raise_error(mock_client):
     with pytest.raises(NotImplementedError):
         await writer.append_from_stream(mock.Mock())
 
-    with pytest.raises(NotImplementedError):
-        await writer.append_from_file("file.txt")
-
 
 @pytest.mark.asyncio
 @mock.patch(
@@ -285,6 +364,7 @@ async def test_close(mock_write_object_stream, mock_client):
     writer = AsyncAppendableObjectWriter(mock_client, BUCKET, OBJECT)
     writer._is_stream_open = True
     writer.offset = 1024
+    writer.persisted_size = 1024
     mock_stream = mock_write_object_stream.return_value
     mock_stream.send = mock.AsyncMock()
     mock_stream.recv = mock.AsyncMock(
@@ -356,6 +436,7 @@ async def test_finalize(mock_write_object_stream, mock_client):
     mock_stream.recv = mock.AsyncMock(
         return_value=_storage_v2.BidiWriteObjectResponse(resource=mock_resource)
     )
+    mock_stream.close = mock.AsyncMock()
 
     gcs_object = await writer.finalize()
 
@@ -363,9 +444,12 @@ async def test_finalize(mock_write_object_stream, mock_client):
         _storage_v2.BidiWriteObjectRequest(finish_write=True)
     )
     mock_stream.recv.assert_awaited_once()
+    mock_stream.close.assert_awaited_once()
     assert writer.object_resource == mock_resource
     assert writer.persisted_size == 123
     assert gcs_object == mock_resource
+    assert writer._is_stream_open is False
+    assert writer.offset is None
 
 
 @pytest.mark.asyncio
@@ -422,25 +506,39 @@ async def test_append_sends_data_in_chunks(mock_write_object_stream, mock_client
     writer.persisted_size = 100
     mock_stream = mock_write_object_stream.return_value
     mock_stream.send = mock.AsyncMock()
-    writer.simple_flush = mock.AsyncMock()
 
     data = b"a" * (_MAX_CHUNK_SIZE_BYTES + 1)
+    mock_stream.recv = mock.AsyncMock(
+        return_value=_storage_v2.BidiWriteObjectResponse(
+            persisted_size=100 + len(data)
+        )
+    )
+
     await writer.append(data)
 
     assert mock_stream.send.await_count == 2
-    first_call = mock_stream.send.await_args_list[0]
-    second_call = mock_stream.send.await_args_list[1]
+    first_request = mock_stream.send.await_args_list[0].args[0]
+    second_request = mock_stream.send.await_args_list[1].args[0]
 
     # First chunk
-    assert first_call[0][0].write_offset == 100
-    assert len(first_call[0][0].checksummed_data.content) == _MAX_CHUNK_SIZE_BYTES
+    assert first_request.write_offset == 100
+    assert len(first_request.checksummed_data.content) == _MAX_CHUNK_SIZE_BYTES
+    assert first_request.checksummed_data.crc32c == int.from_bytes(
+        Checksum(data[:_MAX_CHUNK_SIZE_BYTES]).digest(), byteorder="big"
+    )
+    assert not first_request.flush
+    assert not first_request.state_lookup
 
-    # Second chunk
-    assert second_call[0][0].write_offset == 100 + _MAX_CHUNK_SIZE_BYTES
-    assert len(second_call[0][0].checksummed_data.content) == 1
+    # Second chunk (last chunk)
+    assert second_request.write_offset == 100 + _MAX_CHUNK_SIZE_BYTES
+    assert len(second_request.checksummed_data.content) == 1
+    assert second_request.checksummed_data.crc32c == int.from_bytes(
+        Checksum(data[_MAX_CHUNK_SIZE_BYTES:]).digest(), byteorder="big"
+    )
+    assert second_request.flush
+    assert second_request.state_lookup
 
     assert writer.offset == 100 + len(data)
-    writer.simple_flush.assert_not_awaited()
 
 
 @pytest.mark.asyncio
@@ -451,21 +549,31 @@ async def test_append_flushes_when_buffer_is_full(
     mock_write_object_stream, mock_client
 ):
     """Test that append flushes the stream when the buffer size is reached."""
-    from google.cloud.storage._experimental.asyncio.async_appendable_object_writer import (
-        _MAX_BUFFER_SIZE_BYTES,
-    )
 
     writer = AsyncAppendableObjectWriter(mock_client, BUCKET, OBJECT)
     writer._is_stream_open = True
     writer.persisted_size = 0
     mock_stream = mock_write_object_stream.return_value
     mock_stream.send = mock.AsyncMock()
-    writer.simple_flush = mock.AsyncMock()
+    mock_stream.recv = mock.AsyncMock()
 
-    data = b"a" * _MAX_BUFFER_SIZE_BYTES
+    data = b"a" * _DEFAULT_FLUSH_INTERVAL_BYTES
     await writer.append(data)
 
-    writer.simple_flush.assert_awaited_once()
+    num_chunks = _DEFAULT_FLUSH_INTERVAL_BYTES // _MAX_CHUNK_SIZE_BYTES
+    assert mock_stream.send.await_count == num_chunks
+
+    # All but the last request should not have flush or state_lookup set.
+    for i in range(num_chunks - 1):
+        request = mock_stream.send.await_args_list[i].args[0]
+        assert not request.flush
+        assert not request.state_lookup
+
+    # The last request should have flush and state_lookup set.
+    last_request = mock_stream.send.await_args_list[-1].args[0]
+    assert last_request.flush
+    assert last_request.state_lookup
+    assert writer.bytes_appended_since_last_flush == 0
 
 
 @pytest.mark.asyncio
@@ -474,21 +582,24 @@ async def test_append_flushes_when_buffer_is_full(
 )
 async def test_append_handles_large_data(mock_write_object_stream, mock_client):
     """Test that append handles data larger than the buffer size."""
-    from google.cloud.storage._experimental.asyncio.async_appendable_object_writer import (
-        _MAX_BUFFER_SIZE_BYTES,
-    )
 
     writer = AsyncAppendableObjectWriter(mock_client, BUCKET, OBJECT)
     writer._is_stream_open = True
     writer.persisted_size = 0
     mock_stream = mock_write_object_stream.return_value
     mock_stream.send = mock.AsyncMock()
-    writer.simple_flush = mock.AsyncMock()
+    mock_stream.recv = mock.AsyncMock()
 
-    data = b"a" * (_MAX_BUFFER_SIZE_BYTES * 2 + 1)
+    data = b"a" * (_DEFAULT_FLUSH_INTERVAL_BYTES * 2 + 1)
     await writer.append(data)
 
-    assert writer.simple_flush.await_count == 2
+    flushed_requests = [
+        call.args[0] for call in mock_stream.send.await_args_list if call.args[0].flush
+    ]
+    assert len(flushed_requests) == 3
+
+    last_request = mock_stream.send.await_args_list[-1].args[0]
+    assert last_request.state_lookup
 
 
 @pytest.mark.asyncio
@@ -506,14 +617,61 @@ async def test_append_data_two_times(mock_write_object_stream, mock_client):
     writer.persisted_size = 0
     mock_stream = mock_write_object_stream.return_value
     mock_stream.send = mock.AsyncMock()
-    writer.simple_flush = mock.AsyncMock()
 
     data1 = b"a" * (_MAX_CHUNK_SIZE_BYTES + 10)
+    mock_stream.recv = mock.AsyncMock(
+        return_value=_storage_v2.BidiWriteObjectResponse(
+            persisted_size= len(data1)
+        )
+    )
     await writer.append(data1)
 
+    assert mock_stream.send.await_count == 2
+    last_request_data1 = mock_stream.send.await_args_list[-1].args[0]
+    assert last_request_data1.flush
+    assert last_request_data1.state_lookup
+
     data2 = b"b" * (_MAX_CHUNK_SIZE_BYTES + 20)
+    mock_stream.recv = mock.AsyncMock(
+        return_value=_storage_v2.BidiWriteObjectResponse(
+            persisted_size= len(data2) + len(data1)
+        )
+    )
     await writer.append(data2)
+
+    assert mock_stream.send.await_count == 4
+    last_request_data2 = mock_stream.send.await_args_list[-1].args[0]
+    assert last_request_data2.flush
+    assert last_request_data2.state_lookup
 
     total_data_length = len(data1) + len(data2)
     assert writer.offset == total_data_length
-    assert writer.simple_flush.await_count == 0
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "file_size, block_size",
+    [
+        (10, 4 * 1024),
+        (0, _DEFAULT_FLUSH_INTERVAL_BYTES),
+        (20 * 1024 * 1024, _DEFAULT_FLUSH_INTERVAL_BYTES),
+        (16 * 1024 * 1024, _DEFAULT_FLUSH_INTERVAL_BYTES),
+    ],
+)
+async def test_append_from_file(file_size, block_size, mock_client):
+    # arrange
+    fp = BytesIO(b"a" * file_size)
+    writer = AsyncAppendableObjectWriter(mock_client, BUCKET, OBJECT)
+    writer._is_stream_open = True
+    writer.append = mock.AsyncMock()
+
+    # act
+    await writer.append_from_file(fp, block_size=block_size)
+
+    # assert
+    exepected_calls = (
+        file_size // block_size
+        if file_size % block_size == 0
+        else file_size // block_size + 1
+    )
+    assert writer.append.await_count == exepected_calls
