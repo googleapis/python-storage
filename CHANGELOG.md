@@ -22,7 +22,6 @@
 
 * add system test for opening with read_handle (#1672) ([6dc711dacd4d38c573aa4ca9ad71fe412c0e49c1](https://github.com/googleapis/python-storage/commit/6dc711dacd4d38c573aa4ca9ad71fe412c0e49c1))
 * no state lookup while opening bidi-write stream (#1636) ([2d5a7b16846a69f3a911844971241899f60cce14](https://github.com/googleapis/python-storage/commit/2d5a7b16846a69f3a911844971241899f60cce14))
-* no state lookup while opening bidi-write stream ([2d5a7b16846a69f3a911844971241899f60cce14](https://github.com/googleapis/python-storage/commit/2d5a7b16846a69f3a911844971241899f60cce14))
 * close write object stream always (#1661) ([4a609a4b3f4ba1396825911cb02f8a9649135cd5](https://github.com/googleapis/python-storage/commit/4a609a4b3f4ba1396825911cb02f8a9649135cd5))
 
 ## [3.7.0](https://github.com/googleapis/python-storage/compare/v3.6.0...v3.7.0) (2025-12-09)
