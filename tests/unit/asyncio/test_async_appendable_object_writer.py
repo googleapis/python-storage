@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import io
-import unittest
 import unittest.mock as mock
 from unittest.mock import AsyncMock, MagicMock
 import pytest
@@ -135,21 +134,24 @@ class TestAsyncAppendableObjectWriter:
         assert writer.flush_interval == _DEFAULT_FLUSH_INTERVAL_BYTES
 
     def test_init_with_writer_options(self, mock_appendable_writer):
-        writer = self._make_one(mock_appendable_writer["mock_client"], writer_options={"FLUSH_INTERVAL_BYTES": EIGHT_MIB})
+        writer = self._make_one(
+            mock_appendable_writer["mock_client"],
+            writer_options={"FLUSH_INTERVAL_BYTES": EIGHT_MIB},
+        )
         assert writer.flush_interval == EIGHT_MIB
 
     def test_init_validation_chunk_size_raises(self, mock_appendable_writer):
         with pytest.raises(exceptions.OutOfRange):
             self._make_one(
                 mock_appendable_writer["mock_client"],
-                writer_options={"FLUSH_INTERVAL_BYTES": _MAX_CHUNK_SIZE_BYTES - 1}
+                writer_options={"FLUSH_INTERVAL_BYTES": _MAX_CHUNK_SIZE_BYTES - 1},
             )
 
     def test_init_validation_multiple_raises(self, mock_appendable_writer):
         with pytest.raises(exceptions.OutOfRange):
             self._make_one(
                 mock_appendable_writer["mock_client"],
-                writer_options={"FLUSH_INTERVAL_BYTES": _MAX_CHUNK_SIZE_BYTES + 1}
+                writer_options={"FLUSH_INTERVAL_BYTES": _MAX_CHUNK_SIZE_BYTES + 1},
             )
 
     def test_init_raises_if_crc32c_missing(self, mock_appendable_writer):
@@ -166,50 +168,50 @@ class TestAsyncAppendableObjectWriter:
 
     @pytest.mark.asyncio
     async def test_state_lookup_success(self, mock_appendable_writer):
-        writer = self._make_one(mock_appendable_writer['mock_client'])
+        writer = self._make_one(mock_appendable_writer["mock_client"])
         writer._is_stream_open = True
-        writer.write_obj_stream = mock_appendable_writer['mock_stream']
+        writer.write_obj_stream = mock_appendable_writer["mock_stream"]
 
-        mock_appendable_writer['mock_stream'].recv.return_value = storage_type.BidiWriteObjectResponse(
-            persisted_size=100
-        )
+        mock_appendable_writer[
+            "mock_stream"
+        ].recv.return_value = storage_type.BidiWriteObjectResponse(persisted_size=100)
 
         size = await writer.state_lookup()
 
-        mock_appendable_writer['mock_stream'].send.assert_awaited_once()
+        mock_appendable_writer["mock_stream"].send.assert_awaited_once()
         assert size == 100
         assert writer.persisted_size == 100
 
     @pytest.mark.asyncio
     async def test_state_lookup_raises_if_not_open(self, mock_appendable_writer):
-        writer = self._make_one(mock_appendable_writer['mock_client'])
+        writer = self._make_one(mock_appendable_writer["mock_client"])
         with pytest.raises(ValueError, match="Stream is not open"):
             await writer.state_lookup()
 
     @pytest.mark.asyncio
     async def test_open_success(self, mock_appendable_writer):
-        writer = self._make_one(mock_appendable_writer['mock_client'])
-        mock_appendable_writer['mock_stream'].generation_number = 456
-        mock_appendable_writer['mock_stream'].write_handle = b"new-h"
-        mock_appendable_writer['mock_stream'].persisted_size = 0
+        writer = self._make_one(mock_appendable_writer["mock_client"])
+        mock_appendable_writer["mock_stream"].generation_number = 456
+        mock_appendable_writer["mock_stream"].write_handle = b"new-h"
+        mock_appendable_writer["mock_stream"].persisted_size = 0
 
         await writer.open()
 
         assert writer._is_stream_open
         assert writer.generation == 456
         assert writer.write_handle == b"new-h"
-        mock_appendable_writer['mock_stream'].open.assert_awaited_once()
+        mock_appendable_writer["mock_stream"].open.assert_awaited_once()
 
     @pytest.mark.asyncio
     async def test_open_already_open_raises(self, mock_appendable_writer):
-        writer = self._make_one(mock_appendable_writer['mock_client'])
+        writer = self._make_one(mock_appendable_writer["mock_client"])
         writer._is_stream_open = True
         with pytest.raises(ValueError, match="already open"):
             await writer.open()
 
     def test_on_open_error_redirection(self, mock_appendable_writer):
         """Verify redirect info is extracted from helper."""
-        writer = self._make_one(mock_appendable_writer['mock_client'])
+        writer = self._make_one(mock_appendable_writer["mock_client"])
         redirect = BidiWriteObjectRedirectedError(
             routing_token="rt1",
             write_handle=storage_type.BidiWriteHandle(handle=b"h1"),
@@ -233,9 +235,9 @@ class TestAsyncAppendableObjectWriter:
     @pytest.mark.asyncio
     async def test_append_integration_basic(self, mock_appendable_writer):
         """Verify append orchestrates manager and drives the internal generator."""
-        writer = self._make_one(mock_appendable_writer['mock_client'])
+        writer = self._make_one(mock_appendable_writer["mock_client"])
         writer._is_stream_open = True
-        writer.write_obj_stream = mock_appendable_writer['mock_stream']
+        writer.write_obj_stream = mock_appendable_writer["mock_stream"]
         writer.persisted_size = 0
 
         data = b"test-data"
@@ -249,7 +251,7 @@ class TestAsyncAppendableObjectWriter:
                 dummy_reqs = [storage_type.BidiWriteObjectRequest()]
                 gen = factory(dummy_reqs, state)
 
-                mock_appendable_writer['mock_stream'].recv.side_effect = [
+                mock_appendable_writer["mock_stream"].recv.side_effect = [
                     storage_type.BidiWriteObjectResponse(
                         persisted_size=len(data),
                         write_handle=storage_type.BidiWriteHandle(handle=b"h2"),
@@ -263,21 +265,23 @@ class TestAsyncAppendableObjectWriter:
             await writer.append(data)
 
             assert writer.persisted_size == len(data)
-            sent_req = mock_appendable_writer['mock_stream'].send.call_args[0][0]
+            sent_req = mock_appendable_writer["mock_stream"].send.call_args[0][0]
             assert sent_req.state_lookup
             assert sent_req.flush
 
     @pytest.mark.asyncio
     async def test_append_recovery_reopens_stream(self, mock_appendable_writer):
         """Verifies re-opening logic on retry."""
-        writer = self._make_one(mock_appendable_writer['mock_client'], write_handle=b"h1")
+        writer = self._make_one(
+            mock_appendable_writer["mock_client"], write_handle=b"h1"
+        )
         writer._is_stream_open = True
-        writer.write_obj_stream = mock_appendable_writer['mock_stream']
+        writer.write_obj_stream = mock_appendable_writer["mock_stream"]
         # Setup mock to allow close() call
-        mock_appendable_writer['mock_stream'].is_stream_open = True
+        mock_appendable_writer["mock_stream"].is_stream_open = True
 
         async def mock_open(metadata=None):
-            writer.write_obj_stream = mock_appendable_writer['mock_stream']
+            writer.write_obj_stream = mock_appendable_writer["mock_stream"]
             writer._is_stream_open = True
             writer.persisted_size = 5
             writer.write_handle = b"h_recovered"
@@ -299,20 +303,20 @@ class TestAsyncAppendableObjectWriter:
                         pass
                     # Simulate Attempt 2
                     gen2 = factory([], state)
-                    mock_appendable_writer['mock_stream'].recv.return_value = None
+                    mock_appendable_writer["mock_stream"].recv.return_value = None
                     async for _ in gen2:
                         pass
 
                 MockManager.return_value.execute.side_effect = mock_execute
                 await writer.append(b"0123456789")
 
-                mock_appendable_writer['mock_stream'].close.assert_awaited()
+                mock_appendable_writer["mock_stream"].close.assert_awaited()
                 mock_writer_open.assert_awaited()
                 assert writer.persisted_size == 5
 
     @pytest.mark.asyncio
     async def test_append_unimplemented_string_raises(self, mock_appendable_writer):
-        writer = self._make_one(mock_appendable_writer['mock_client'])
+        writer = self._make_one(mock_appendable_writer["mock_client"])
         with pytest.raises(NotImplementedError):
             await writer.append_from_string("test")
 
@@ -322,14 +326,14 @@ class TestAsyncAppendableObjectWriter:
 
     @pytest.mark.asyncio
     async def test_flush_resets_counters(self, mock_appendable_writer):
-        writer = self._make_one(mock_appendable_writer['mock_client'])
+        writer = self._make_one(mock_appendable_writer["mock_client"])
         writer._is_stream_open = True
-        writer.write_obj_stream = mock_appendable_writer['mock_stream']
+        writer.write_obj_stream = mock_appendable_writer["mock_stream"]
         writer.bytes_appended_since_last_flush = 100
 
-        mock_appendable_writer['mock_stream'].recv.return_value = storage_type.BidiWriteObjectResponse(
-            persisted_size=200
-        )
+        mock_appendable_writer[
+            "mock_stream"
+        ].recv.return_value = storage_type.BidiWriteObjectResponse(persisted_size=200)
 
         await writer.flush()
 
@@ -338,55 +342,55 @@ class TestAsyncAppendableObjectWriter:
 
     @pytest.mark.asyncio
     async def test_simple_flush(self, mock_appendable_writer):
-        writer = self._make_one(mock_appendable_writer['mock_client'])
+        writer = self._make_one(mock_appendable_writer["mock_client"])
         writer._is_stream_open = True
-        writer.write_obj_stream = mock_appendable_writer['mock_stream']
+        writer.write_obj_stream = mock_appendable_writer["mock_stream"]
         writer.bytes_appended_since_last_flush = 50
 
         await writer.simple_flush()
 
-        mock_appendable_writer['mock_stream'].send.assert_awaited_with(
+        mock_appendable_writer["mock_stream"].send.assert_awaited_with(
             storage_type.BidiWriteObjectRequest(flush=True)
         )
         assert writer.bytes_appended_since_last_flush == 0
 
     @pytest.mark.asyncio
     async def test_close_without_finalize(self, mock_appendable_writer):
-        writer = self._make_one(mock_appendable_writer['mock_client'])
+        writer = self._make_one(mock_appendable_writer["mock_client"])
         writer._is_stream_open = True
-        writer.write_obj_stream = mock_appendable_writer['mock_stream']
+        writer.write_obj_stream = mock_appendable_writer["mock_stream"]
         writer.persisted_size = 50
 
         size = await writer.close()
 
-        mock_appendable_writer['mock_stream'].close.assert_awaited()
+        mock_appendable_writer["mock_stream"].close.assert_awaited()
         assert not writer._is_stream_open
         assert size == 50
 
     @pytest.mark.asyncio
     async def test_finalize_lifecycle(self, mock_appendable_writer):
-        writer = self._make_one(mock_appendable_writer['mock_client'])
+        writer = self._make_one(mock_appendable_writer["mock_client"])
         writer._is_stream_open = True
-        writer.write_obj_stream = mock_appendable_writer['mock_stream']
+        writer.write_obj_stream = mock_appendable_writer["mock_stream"]
 
         resource = storage_type.Object(size=999)
-        mock_appendable_writer['mock_stream'].recv.return_value = storage_type.BidiWriteObjectResponse(
-            resource=resource
-        )
+        mock_appendable_writer[
+            "mock_stream"
+        ].recv.return_value = storage_type.BidiWriteObjectResponse(resource=resource)
 
         res = await writer.finalize()
 
         assert res == resource
         assert writer.persisted_size == 999
-        mock_appendable_writer['mock_stream'].send.assert_awaited_with(
+        mock_appendable_writer["mock_stream"].send.assert_awaited_with(
             storage_type.BidiWriteObjectRequest(finish_write=True)
         )
-        mock_appendable_writer['mock_stream'].close.assert_awaited()
+        mock_appendable_writer["mock_stream"].close.assert_awaited()
         assert not writer._is_stream_open
 
     @pytest.mark.asyncio
     async def test_close_with_finalize_on_close(self, mock_appendable_writer):
-        writer = self._make_one(mock_appendable_writer['mock_client'])
+        writer = self._make_one(mock_appendable_writer["mock_client"])
         writer._is_stream_open = True
         writer.finalize = AsyncMock()
 
@@ -399,7 +403,7 @@ class TestAsyncAppendableObjectWriter:
 
     @pytest.mark.asyncio
     async def test_append_from_file_integration(self, mock_appendable_writer):
-        writer = self._make_one(mock_appendable_writer['mock_client'])
+        writer = self._make_one(mock_appendable_writer["mock_client"])
         writer._is_stream_open = True
         writer.append = AsyncMock()
 
@@ -410,7 +414,7 @@ class TestAsyncAppendableObjectWriter:
 
     @pytest.mark.asyncio
     async def test_methods_require_open_stream_raises(self, mock_appendable_writer):
-        writer = self._make_one(mock_appendable_writer['mock_client'])
+        writer = self._make_one(mock_appendable_writer["mock_client"])
         methods = [
             writer.append(b"data"),
             writer.flush(),

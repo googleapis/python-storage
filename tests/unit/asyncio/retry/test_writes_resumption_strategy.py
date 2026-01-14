@@ -133,16 +133,16 @@ class TestWriteResumptionStrategy:
         requests = strategy.generate_requests(state)
 
         # Request index 1 (4 bytes total) should have flush=True
-        assert requests[0].flush == False
-        assert requests[1].flush == True
+        assert requests[0].flush is False
+        assert requests[1].flush is True
 
         # Request index 2 (8 bytes total) should have flush=True
-        assert requests[2].flush == False
-        assert requests[3].flush == True
+        assert requests[2].flush is False
+        assert requests[3].flush is True
 
         # Request index 3 (12 bytes total) should have flush=True
-        assert requests[4].flush == False
-        assert requests[5].flush == True
+        assert requests[4].flush is False
+        assert requests[5].flush is True
 
         # Verify counter reset in state
         assert write_state.bytes_since_last_flush == 0
@@ -158,7 +158,7 @@ class TestWriteResumptionStrategy:
         requests = strategy.generate_requests(state)
 
         for req in requests:
-            assert req.flush == False
+            assert req.flush is False
 
     def test_generate_requests_flush_logic_data_less_than_interval(self, strategy):
         """Verify flush is not set if data sent is less than interval."""
@@ -173,7 +173,7 @@ class TestWriteResumptionStrategy:
 
         # Total 5 bytes < 10 bytes interval
         for req in requests:
-            assert req.flush == False
+            assert req.flush is False
 
         assert write_state.bytes_since_last_flush == 5
 
@@ -298,7 +298,8 @@ class TestWriteResumptionStrategy:
         state = {"write_state": write_state}
 
         redirect = BidiWriteObjectRedirectedError(
-            routing_token="tok-1", write_handle=storage_type.BidiWriteHandle(handle=b"h-1"),
+            routing_token="tok-1",
+            write_handle=storage_type.BidiWriteHandle(handle=b"h-1"),
         )
 
         await strategy.recover_state_on_failure(redirect, state)
@@ -327,7 +328,9 @@ class TestWriteResumptionStrategy:
         redirect_proto = BidiWriteObjectRedirectedError(routing_token="metadata-token")
         status = status_pb2.Status()
         detail = status.details.add()
-        detail.type_url = "type.googleapis.com/google.storage.v2.BidiWriteObjectRedirectedError"
+        detail.type_url = (
+            "type.googleapis.com/google.storage.v2.BidiWriteObjectRedirectedError"
+        )
         detail.value = BidiWriteObjectRedirectedError.serialize(redirect_proto)
 
         # FIX: No spec= here, because Aborted doesn't have trailing_metadata in its base definition
@@ -337,8 +340,13 @@ class TestWriteResumptionStrategy:
             ("grpc-status-details-bin", status.SerializeToString())
         ]
 
-        with mock.patch("google.cloud.storage._experimental.asyncio.retry.writes_resumption_strategy._extract_bidi_writes_redirect_proto", return_value=redirect_proto):
-            await strategy.recover_state_on_failure(mock_error, {"write_state": write_state})
+        with mock.patch(
+            "google.cloud.storage._experimental.asyncio.retry.writes_resumption_strategy._extract_bidi_writes_redirect_proto",
+            return_value=redirect_proto,
+        ):
+            await strategy.recover_state_on_failure(
+                mock_error, {"write_state": write_state}
+            )
 
         assert write_state.routing_token == "metadata-token"
 

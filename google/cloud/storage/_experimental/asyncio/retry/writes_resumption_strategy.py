@@ -15,7 +15,6 @@
 from typing import Any, Dict, IO, List, Optional, Union
 
 import google_crc32c
-from google.api_core import exceptions
 from google.cloud._storage_v2.types import storage as storage_type
 from google.cloud._storage_v2.types.storage import BidiWriteObjectRedirectedError
 from google.cloud.storage._experimental.asyncio.retry.base_strategy import (

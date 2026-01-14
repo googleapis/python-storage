@@ -54,7 +54,9 @@ class TestAsyncWriteObjectStream:
         assert stream.bucket_name == BUCKET
         assert stream.object_name == OBJECT
         assert stream._full_bucket_name == FULL_BUCKET_PATH
-        assert stream.metadata == (("x-goog-request-params", f"bucket={FULL_BUCKET_PATH}"),)
+        assert stream.metadata == (
+            ("x-goog-request-params", f"bucket={FULL_BUCKET_PATH}"),
+        )
         assert not stream.is_stream_open
 
     def test_init_raises_value_error(self, mock_client):
