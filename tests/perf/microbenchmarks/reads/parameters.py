@@ -12,17 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from dataclasses import dataclass
+from ..parameters import IOBenchmarkParameters
 
 
 @dataclass
-class IOBenchmarkParameters:
-    name: str
-    workload_name: str
-    bucket_name: str
-    bucket_type: str
-    num_coros: int
-    num_processes: int
-    num_files: int
-    rounds: int
-    chunk_size_bytes: int
-    file_size_bytes: int
+class ReadParameters(IOBenchmarkParameters):
+    pattern: str

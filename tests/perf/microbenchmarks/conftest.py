@@ -26,7 +26,7 @@ from google.cloud.storage._experimental.asyncio.async_appendable_object_writer i
     AsyncAppendableObjectWriter,
 )
 from google.cloud.storage._experimental.asyncio.async_grpc_client import AsyncGrpcClient
-from tests.perf.microbenchmarks.parameters import WriteParameters
+from tests.perf.microbenchmarks.writes.parameters import WriteParameters
 
 _OBJECT_NAME_PREFIX = "micro-benchmark"
 

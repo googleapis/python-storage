@@ -39,7 +39,7 @@ from tests.perf.microbenchmarks._utils import publish_benchmark_extra_info
 from tests.perf.microbenchmarks.conftest import (
     publish_resource_metrics,
 )
-import tests.perf.microbenchmarks.config as config
+import tests.perf.microbenchmarks.reads.config as config
 from concurrent.futures import ThreadPoolExecutor
 import multiprocessing
 
