@@ -69,7 +69,6 @@ async def download_chunks_using_mrd_async(client, filename, other_params, chunks
     # end timer.
     end_time = time.monotonic_ns()
     elapsed_time = end_time - start_time
-    print(f"INFO: Time taken to download all chunks: {elapsed_time} ns")
     return elapsed_time / 1_000_000_000
 
 
