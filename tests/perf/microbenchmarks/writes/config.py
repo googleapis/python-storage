@@ -24,13 +24,17 @@ except ModuleNotFoundError:
 
 
 def get_write_params() -> Dict[str, List[WriteParameters]]:
-    """
-    Docstring for get_write_params
-    1. this function output a list of WriteParameters.
-    2. to populate the values of WriteParameters, use default values from config_writes.yaml
-    3. generate all possible params , ie
-        no. of params should be equal to bucket_type*file_size_mib, chunk_size * process * coros
-        you may use itertools.product
+    """Generates benchmark parameters from a YAML configuration file.
+
+    This function reads the configuration from `config.yaml`, located in the
+    same directory, and generates all possible combinations of write parameters
+    based on the defined workloads. It uses `itertools.product` to create
+    a Cartesian product of parameters like bucket types, file sizes, etc.
+
+    Returns:
+        Dict[str, List[WriteParameters]]: A dictionary where keys are workload
+        names and values are lists of `WriteParameters` instances for that
+        workload.
     """
     params: Dict[str, List[WriteParameters]] = {}
     config_path = os.path.join(os.path.dirname(__file__), "config.yaml")
