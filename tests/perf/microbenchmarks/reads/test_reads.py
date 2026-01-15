@@ -318,7 +318,6 @@ def _download_files_worker(files_to_download, other_params, chunks, bucket_type)
             result = download_files_using_mrd_multi_coro(
                 loop, client, files_to_download, other_params, chunks
             )
-            # logging.info(f"downloading complete for ")
         finally:
             tasks = asyncio.all_tasks(loop=loop)
             for task in tasks:

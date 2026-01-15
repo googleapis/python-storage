@@ -111,8 +111,7 @@ def _upload_worker(args):
 
 def _create_files(num_files, bucket_name, bucket_type, object_size, chunk_size=1024 * 1024 * 1024):
     """
-    1. using upload_appendable_object implement this and return a list of file names.
-    TODO: adapt this to REGIONAL BUCKETS as well.
+    Create/Upload objects for benchmarking and return a list of their names.
     """
     object_names = [
         f"{_OBJECT_NAME_PREFIX}-{uuid.uuid4().hex[:5]}" for _ in range(num_files)

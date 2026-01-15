@@ -43,12 +43,11 @@ def publish_benchmark_extra_info(
 
     object_size = params.file_size_bytes
     num_files = params.num_files
-    min_throughput = (object_size / (1024 * 1024) * num_files) / benchmark.stats["max"]
-    max_throughput = (object_size / (1024 * 1024) * num_files) / benchmark.stats["min"]
-    mean_throughput = (object_size / (1024 * 1024) * num_files) / benchmark.stats["mean"]
-    median_throughput = (
-        object_size / (1024 * 1024) * num_files
-    ) / benchmark.stats["median"]
+    total_uploaded_mib = (object_size / (1024 * 1024) * num_files)
+    min_throughput = total_uploaded_mib / benchmark.stats["max"]
+    max_throughput = total_uploaded_mib / benchmark.stats["min"]
+    mean_throughput = total_uploaded_mib / benchmark.stats["mean"]
+    median_throughput = total_uploaded_mib / benchmark.stats["median"]
 
     benchmark.extra_info["throughput_MiB_s_min"] = min_throughput
     benchmark.extra_info["throughput_MiB_s_max"] = max_throughput
@@ -62,7 +61,7 @@ def publish_benchmark_extra_info(
     print(f"  Median: {median_throughput:.2f} (approx, from median time)")
 
     if true_times:
-        throughputs = [(object_size / (1024 * 1024) * num_files) / t for t in true_times]
+        throughputs = [total_uploaded_mib / t for t in true_times]
         true_min_throughput = min(throughputs)
         true_max_throughput = max(throughputs)
         true_mean_throughput = statistics.mean(throughputs)
