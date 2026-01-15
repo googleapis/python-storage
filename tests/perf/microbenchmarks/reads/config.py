@@ -24,13 +24,23 @@ except ModuleNotFoundError:
 
 
 def _get_params() -> Dict[str, List[ReadParameters]]:
-    """
-    Docstring for _get_params
-    1. this function output a list of readParameters.
-    2. to populate the values of readparameters, use default values from config.yaml
-    3. generate all possible params , ie
-        no. of params should be equal to bucket_type*file_size_mib, chunk_size * process * coros
-        you may use itertools.product
+    """Generates a dictionary of benchmark parameters for read operations.
+
+    This function reads configuration from a `config.yaml` file, which defines
+    common parameters (like bucket types, file sizes) and different workloads.
+    It then generates all possible combinations of these parameters for each
+    workload using `itertools.product`.
+
+    The resulting parameter sets are encapsulated in `ReadParameters` objects
+    and organized by workload name in the returned dictionary.
+
+    Bucket names can be overridden by setting the `DEFAULT_RAPID_ZONAL_BUCKET`
+    and `DEFAULT_STANDARD_BUCKET` environment variables.
+
+    Returns:
+        Dict[str, List[ReadParameters]]: A dictionary where keys are workload
+        names (e.g., 'read_seq', 'read_rand_multi_coros') and values are lists
+        of `ReadParameters` objects, each representing a unique benchmark scenario.
     """
     params: Dict[str, List[ReadParameters]] = {}
     config_path = os.path.join(os.path.dirname(__file__), "config.yaml")
@@ -75,10 +85,7 @@ def _get_params() -> Dict[str, List[ReadParameters]]:
             chunk_size_bytes = chunk_size_mib * 1024 * 1024
             bucket_name = bucket_map[bucket_type]
 
-            if "single_file" in workload_name:
-                num_files = 1
-            else:
-                num_files = num_processes * num_coros
+            num_files = num_processes * num_coros
 
             # Create a descriptive name for the parameter set
             name = f"{pattern}_{bucket_type}_{num_processes}p_{num_coros}c"
