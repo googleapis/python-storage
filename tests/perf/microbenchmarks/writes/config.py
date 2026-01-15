@@ -33,7 +33,7 @@ def get_write_params() -> Dict[str, List[WriteParameters]]:
         you may use itertools.product
     """
     params: Dict[str, List[WriteParameters]] = {}
-    config_path = os.path.join(os.path.dirname(__file__), "config_writes.yaml")
+    config_path = os.path.join(os.path.dirname(__file__), "config.yaml")
     with open(config_path, "r") as f:
         config = yaml.safe_load(f)
 

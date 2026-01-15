@@ -30,7 +30,7 @@ from google.cloud.storage._experimental.asyncio.async_appendable_object_writer i
 
 from tests.perf.microbenchmarks._utils import publish_benchmark_extra_info, RandomBytesIO
 from tests.perf.microbenchmarks.conftest import publish_resource_metrics
-import tests.perf.microbenchmarks.config as config
+import tests.perf.microbenchmarks.writes.config as config
 
 # Get write parameters
 all_params = config.get_write_params()
