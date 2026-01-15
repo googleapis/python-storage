@@ -59,6 +59,16 @@ extras = {
     "tracing": [
         "opentelemetry-api >= 1.1.0, < 2.0.0",
     ],
+    "testing": [
+        "google-cloud-testutils",
+        "numpy",
+        "psutil",
+        "py-cpuinfo",
+        "pytest",
+        "pytest-asyncio",
+        "pytest-benchmark",
+        "PyYAML",
+    ],
 }
 
 

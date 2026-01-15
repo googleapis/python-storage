@@ -11,16 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""
-Docstring for tests.perf.microbenchmarks.test_reads
+"""Microbenchmarks for Google Cloud Storage read operations.
 
-File for benchmarking zonal reads (i.e. downloads)
+This module contains performance benchmarks for various read patterns from Google Cloud Storage.
+It includes three main test functions:
+- `test_downloads_single_proc_single_coro`: Benchmarks reads using a single process and a single coroutine.
+- `test_downloads_single_proc_multi_coro`: Benchmarks reads using a single process and multiple coroutines.
+- `test_downloads_multi_proc_multi_coro`: Benchmarks reads using multiple processes and multiple coroutines.
 
-1. 1 object 1 coro with variable chunk_size
-
-calculate latency, throughput, etc for downloads.
-
-
+All other functions in this module are helper methods for these three tests.
 """
 
 import time
@@ -97,14 +96,10 @@ def test_downloads_single_proc_single_coro(
     benchmark, storage_client, blobs_to_delete, monitor, workload_params
 ):
     """
-    1. create chunks based on the object size and chunk_size. [(start_byte, min(chunk_size, remaining_size))]
-    2. Pass the list of chunks to `download_chunks_using_mrd` for zonal bucket
-                                   `download_chunks_using_json` for regional bucket.
-        above function are target methods.
-    3. benchmark target method, using benchmark.pedantic
-
-
-
+    Benchmarks reads using a single process and a single coroutine.
+    It creates chunks based on object size and chunk_size, then passes them to either
+    `download_chunks_using_mrd` (for zonal buckets) or `download_chunks_using_json` (for regional buckets)
+    for benchmarking using `benchmark.pedantic`.
     """
     params, files_names = workload_params
 
@@ -169,21 +164,22 @@ def test_downloads_single_proc_single_coro(
 
 def download_files_using_mrd_multi_coro(loop, client, files, other_params, chunks):
     """
-    Docstring for download_files_using_mrd
+    Downloads multiple files concurrently using AsyncMultiRangeDownloader (MRD) with asyncio.
 
-    1. for each file
-        1. create chunks of size other_params.chunk_size_bytes
-        2. create a coroutine/task using download_chunks_using_mrd
-        3. execute all coroutines/task using asyncio.gather in loop.
-        3. capture latency (output time)
-    2. output max time.
+    For each file, it creates a coroutine to download its chunks using `download_chunks_using_mrd_async`.
+    All coroutines are then executed concurrently using `asyncio.gather`.
+    The function returns the maximum latency observed among all coroutines.
 
-    :param loop: Description
-    :param client: Description
-    :param files: Description
-    :param other_params: Description
+    Args:
+        loop: The asyncio event loop.
+        client: The AsyncGrpcClient instance.
+        files (list): A list of filenames to download.
+        other_params: An object containing benchmark parameters (e.g., bucket_name, file_size_bytes).
+        chunks (list): A list of (offset, size) tuples representing the parts of each file to download.
+
+    Returns:
+        float: The maximum latency (in seconds) among all coroutines.
     """
-
     async def main():
         if len(files) == 1:
             result = await download_chunks_using_mrd_async(
@@ -206,18 +202,15 @@ def download_files_using_json_multi_threaded(
     _, json_client, files, other_params, chunks
 ):
     """
-    Docstring for download_files_using_json
+    Downloads multiple files concurrently using the JSON API with a ThreadPoolExecutor.
 
-    1. for each file
-        1. create chunks of size other_params.chunk_size_bytes
-        2. using threaPoolexecutor send each file chunks to download_chunks_using_json
-        3. capture latency (output time)
-    2. output max time.
+    For each file, it submits a task to a `ThreadPoolExecutor` to download its chunks
+    using `download_chunks_using_json`. The number of concurrent downloads is
+    determined by `other_params.num_coros` (which acts as `max_workers`).
+    The function returns the maximum latency among all concurrent downloads.
 
-    :param _: Description
-    :param json_client: Description
-    :param files: Description
-    :param other_params: Description
+    The `chunks` parameter is a list of (offset, size) tuples representing
+    the parts of each file to download.
     """
     results = []
     # In the context of multi-coro, num_coros is the number of files to download concurrently.
@@ -238,8 +231,7 @@ def download_files_using_json_multi_threaded(
 
 @pytest.mark.parametrize(
     "workload_params",
-    all_params["read_seq_multi_coros"] + 
-    all_params["read_rand_multi_coros"],
+    all_params["read_seq_multi_coros"] + all_params["read_rand_multi_coros"],
     indirect=True,
     ids=lambda p: p.name,
 )
@@ -319,7 +311,6 @@ def _download_files_worker(files_to_download, other_params, chunks, bucket_type)
             result = download_files_using_mrd_multi_coro(
                 loop, client, files_to_download, other_params, chunks
             )
-            # logging.info(f"downloading complete for ")
         finally:
             tasks = asyncio.all_tasks(loop=loop)
             for task in tasks:
@@ -374,12 +365,12 @@ def test_downloads_multi_proc_multi_coro(
     benchmark, storage_client, blobs_to_delete, monitor, workload_params
 ):
     """
-    1. this should have the same patterns as  `test_downloads_single_proc_multi_coro`
-    `test_downloads_single_proc_single_coro` but
+    Benchmarks reads using multiple processes and multiple coroutines.
 
-    * it should download files among m process n coroutines. i.e. input files_names
-    list will contain m*n files. Spawn m process and each process should download n files.
-    create processes in spwan mode. Output time (latency) for each round should be the maximum latency of all process.
+    This test distributes `m*n` files among `m` processes, where each process
+    downloads `n` files concurrently using `n` coroutines. The processes are spawned
+    in "spawn" mode. The reported latency for each round is the maximum latency
+    observed across all processes.
     """
     params, files_names = workload_params
     logging.info(f"num files: {len(files_names)}")

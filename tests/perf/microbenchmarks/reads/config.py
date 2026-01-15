@@ -44,8 +44,8 @@ def _get_params() -> Dict[str, List[ReadParameters]]:
     rounds = common_params["rounds"]
 
     bucket_map = {
-        "zonal": config["defaults"]["DEFAULT_RAPID_ZONAL_BUCKET"],
-        "regional": config["defaults"]["DEFAULT_STANDARD_BUCKET"],
+        "zonal": os.environ.get("DEFAULT_RAPID_ZONAL_BUCKET", config['defaults']['DEFAULT_RAPID_ZONAL_BUCKET']),
+        "regional": os.environ.get("DEFAULT_STANDARD_BUCKET", config['defaults']['DEFAULT_STANDARD_BUCKET'])
     }
 
     for workload in config["workload"]:
