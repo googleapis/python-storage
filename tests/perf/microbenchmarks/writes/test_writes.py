@@ -36,6 +36,7 @@ from google.cloud.storage._experimental.asyncio.async_appendable_object_writer i
 from tests.perf.microbenchmarks._utils import publish_benchmark_extra_info, RandomBytesIO
 from tests.perf.microbenchmarks.conftest import publish_resource_metrics
 import tests.perf.microbenchmarks.writes.config as config
+from google.cloud import storage
 
 # Get write parameters
 all_params = config.get_write_params()
@@ -75,7 +76,7 @@ async def upload_chunks_using_grpc_async(client, filename, other_params):
     await writer.close()
 
     assert uploaded_bytes == upload_size
-    
+
     end_time = time.monotonic_ns()
     elapsed_time = end_time - start_time
     return elapsed_time / 1_000_000_000
@@ -329,7 +330,7 @@ def _upload_files_worker(files_to_upload, other_params, bucket_type):
             loop.close()
         return result
     else:  # regional
-        from google.cloud import storage
+
         json_client = storage.Client()
         return upload_files_using_json_multi_threaded(
             None, json_client, files_to_upload, other_params

@@ -74,10 +74,7 @@ def get_write_params() -> Dict[str, List[WriteParameters]]:
             chunk_size_bytes = chunk_size_mib * 1024 * 1024
             bucket_name = bucket_map[bucket_type]
 
-            if "single_file" in workload_name:
-                num_files = 1
-            else:
-                num_files = num_processes * num_coros
+            num_files = num_processes * num_coros
 
             # Create a descriptive name for the parameter set
             name = f"{workload_name}_{bucket_type}_{num_processes}p_{num_coros}c"
