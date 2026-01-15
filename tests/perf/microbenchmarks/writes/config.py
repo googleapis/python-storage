@@ -20,7 +20,7 @@ import yaml
 try:
     from tests.perf.microbenchmarks.writes.parameters import WriteParameters
 except ModuleNotFoundError:
-    from writes.parameters import WriteParameters
+    from parameters import WriteParameters
 
 
 def get_write_params() -> Dict[str, List[WriteParameters]]:
