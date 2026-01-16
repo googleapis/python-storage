@@ -391,6 +391,44 @@ async def test_append_with_generation(storage_client, blobs_to_delete):
         await writer.open()
     assert exc_info.value.code == 400
 
-
+    # cleanup
     del writer
     gc.collect()
+
+    blobs_to_delete.append(storage_client.bucket(_ZONAL_BUCKET).blob(object_name))
+
+@pytest.mark.asyncio
+async def test_append_with_override(storage_client, blobs_to_delete):
+    """
+    Test that a new writer when specifies `None` overrides the existing object.
+    """
+    object_name = f"test_append_with_generation-{uuid.uuid4()}"
+
+    grpc_client = AsyncGrpcClient().grpc_client
+    writer = AsyncAppendableObjectWriter(grpc_client, _ZONAL_BUCKET, object_name, generation=0)
+
+    # Empty object is created.
+    await writer.open()
+    assert writer.is_stream_open
+    old_gen = writer.generation
+
+
+    await writer.close()
+    assert not writer.is_stream_open
+
+
+
+    new_writer = AsyncAppendableObjectWriter(
+            grpc_client, _ZONAL_BUCKET, object_name, generation=None
+    )
+    await new_writer.open()
+    assert new_writer.generation != old_gen
+
+    # assert exc_info.value.code == 400
+
+    # cleanup
+    del writer
+    del new_writer
+    gc.collect()
+
+    blobs_to_delete.append(storage_client.bucket(_ZONAL_BUCKET).blob(object_name))

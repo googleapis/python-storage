@@ -102,15 +102,24 @@ class AsyncAppendableObjectWriter:
             existing Appendable Object.
 
             Setting to ``0`` makes the `writer.open()` succeed only if
-            there are no live versions of the object. (useful for not accidentally
+            object doesn't exist in the bucket (useful for not accidentally
             overwriting existing objects).
 
-            Warning: If None, a new object is created. If an object with the
-            same name already exists, it will be overwritten.
+            Warning: If `None`, a new object is created. If an object with the
+            same name already exists, it will be overwritten the moment 
+            `writer.open()` is called.
 
         :type write_handle: bytes
-        :param write_handle: (Optional) An existing handle for writing the object.
-                            If provided, opening the bidi-gRPC connection will be faster.
+        :param write_handle: (Optional) An handle for writing the object.
+            If provided, opening the bidi-gRPC connection will be faster.
+
+        :type writer_options: dict
+        :param writer_options: (Optional) A dictionary of writer options.
+            Supported options:
+            - "FLUSH_INTERVAL_BYTES": int
+                The number of bytes to append before "persisting" data in GCS
+                servers. Default is `_DEFAULT_FLUSH_INTERVAL_BYTES`.
+                Must be a multiple of `_MAX_CHUNK_SIZE_BYTES`.
         """
         raise_if_no_fast_crc32c()
         self.client = client
