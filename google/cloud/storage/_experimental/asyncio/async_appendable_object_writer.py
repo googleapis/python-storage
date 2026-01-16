@@ -147,7 +147,6 @@ class AsyncAppendableObjectWriter:
         self.flush_interval = writer_options.get(
             "FLUSH_INTERVAL_BYTES", _DEFAULT_FLUSH_INTERVAL_BYTES
         )
-        # TODO: add test case for this.
         if self.flush_interval < _MAX_CHUNK_SIZE_BYTES:
             raise exceptions.OutOfRange(
                 f"flush_interval must be >= {_MAX_CHUNK_SIZE_BYTES} , but provided {self.flush_interval}"

@@ -363,7 +363,7 @@ async def test_append_flushes_and_state_lookup(storage_client, blobs_to_delete):
     assert content == full_data
 
 @pytest.mark.asyncio
-async def test_append_with_generation(storage_client, blobs_to_delete):
+async def test_open_with_generation_zero(storage_client, blobs_to_delete):
     """Tests that using `generation=0` fails if the object already exists.
 
     This test verifies that:
@@ -398,7 +398,7 @@ async def test_append_with_generation(storage_client, blobs_to_delete):
     blobs_to_delete.append(storage_client.bucket(_ZONAL_BUCKET).blob(object_name))
 
 @pytest.mark.asyncio
-async def test_append_with_override(storage_client, blobs_to_delete):
+async def test_open_existing_object_with_gen_None_overrides_existing(storage_client, blobs_to_delete):
     """
     Test that a new writer when specifies `None` overrides the existing object.
     """
