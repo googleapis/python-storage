@@ -35,7 +35,7 @@ async def storage_create_and_write_appendable_object(bucket_name, object_name):
         bucket_name=bucket_name,
         object_name=object_name,
     )
-    # creates a new appendable of size 0
+    # creates a new appendable object of size 0
     await writer.open()
 
     # appends data to the object
@@ -43,14 +43,10 @@ async def storage_create_and_write_appendable_object(bucket_name, object_name):
     # to the end of the object.
     await writer.append(b"Some data")
 
-    # Once all appends are done, closes the gRPC bidirectional stream.
+    # Once all appends are done, close the gRPC bidirectional stream.
     await writer.close()
 
-    print(
-        "Appended object {} created of size {} bytes.".format(
-            object_name, writer.persisted_size
-        )
-    )
+    print(f"Appended object {object_name} created of size {writer.persisted_size} bytes.")
 
 
 # [END storage_create_and_write_appendable_object]

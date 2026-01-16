@@ -29,15 +29,19 @@ from google.cloud.storage._experimental.asyncio.async_multi_range_downloader imp
 )
 import os
 
+BYTES_TO_APPEND = b'fav_bytes.'
+NUM_BYTES_TO_APPEND_EVERY_SECOND = len(BYTES_TO_APPEND)
 
 # [START storage_read_appendable_object_tail]
 async def appender(writer: AsyncAppendableObjectWriter, duration: int):
     """Appends 10 bytes to the object every second for a given duration."""
     print("Appender started.")
+    bytes_appended = 0
     for i in range(duration):
-        await writer.append(os.urandom(10))  # Append 10 random bytes.
+        await writer.append(BYTES_TO_APPEND)
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
-        print(f"[{now}] Appended 1 byte. Total appended: {i + 1}")
+        bytes_appended += NUM_BYTES_TO_APPEND_EVERY_SECOND
+        print(f"[{now}] Appended {NUM_BYTES_TO_APPEND_EVERY_SECOND} new bytes. Total appended: {bytes_appended} bytes.")
         await asyncio.sleep(1)
     print("Appender finished.")
 
@@ -49,26 +53,33 @@ async def tailer(bucket_name: str, object_name: str, duration: int):
     client = AsyncGrpcClient().grpc_client
     start_time = time.monotonic()
     mrd = AsyncMultiRangeDownloader(client, bucket_name, object_name)
-    await mrd.open()
-    # Run the tailer for the specified duration.
-    while time.monotonic() - start_time < duration:
-        output_buffer = BytesIO()
-        # A download range of (start, 0) means to read from 'start' to the end.
-        await mrd.download_ranges([(start_byte, 0, output_buffer)])
+    try:
+        await mrd.open()
+        # Run the tailer for the specified duration.
+        while time.monotonic() - start_time < duration:
+            output_buffer = BytesIO()
+            # A download range of (start, 0) means to read from 'start' to the end.
+            await mrd.download_ranges([(start_byte, 0, output_buffer)])
 
-        bytes_downloaded = output_buffer.getbuffer().nbytes
-        if bytes_downloaded > 0:
-            now = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
-            print(
-                f"[{now}] Tailer read {bytes_downloaded} new bytes: {output_buffer.getvalue()}"
-            )
-            start_byte += bytes_downloaded
+            bytes_downloaded = output_buffer.getbuffer().nbytes
+            if bytes_downloaded > 0:
+                now = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+                print(
+                    f"[{now}] Tailer read {bytes_downloaded} new bytes: {output_buffer.getvalue()}"
+                )
+                start_byte += bytes_downloaded
 
-        await asyncio.sleep(0.1)  # Poll for new data every second.
+            await asyncio.sleep(0.1)  # Poll for new data every 0.1 seconds.
+    finally:
+        if mrd.is_stream_open:
+            await mrd.close()
     print("Tailer finished.")
 
 
-async def main_async(bucket_name: str, object_name: str, duration: int):
+# read_appendable_object_tail simulates a "tail -f" command on a GCS object. It
+# repeatedly polls an appendable object for new content. In a real
+# application, the object would be written to by a separate process.
+async def read_appendable_object_tail(bucket_name: str, object_name: str, duration: int):
     """Main function to create an appendable object and run tasks."""
     grpc_client = AsyncGrpcClient().grpc_client
     writer = AsyncAppendableObjectWriter(
@@ -84,8 +95,6 @@ async def main_async(bucket_name: str, object_name: str, duration: int):
 
         # 2. Create the appender and tailer coroutines.
         appender_task = asyncio.create_task(appender(writer, duration))
-        # # Add a small delay to ensure the object is created before tailing begins.
-        # await asyncio.sleep(1)
         tailer_task = asyncio.create_task(tailer(bucket_name, object_name, duration))
 
         # 3. Execute the coroutines concurrently.
@@ -116,4 +125,4 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    asyncio.run(main_async(args.bucket_name, args.object_name, args.duration))
+    asyncio.run(read_appendable_object_tail(args.bucket_name, args.object_name, args.duration))
