@@ -32,7 +32,7 @@ import os
 
 # [START storage_read_appendable_object_tail]
 async def appender(writer: AsyncAppendableObjectWriter, duration: int):
-    """Appends 1 byte to the object every second for a given duration."""
+    """Appends 10 bytes to the object every second for a given duration."""
     print("Appender started.")
     for i in range(duration):
         await writer.append(os.urandom(10))  # Append 1 random byte.
