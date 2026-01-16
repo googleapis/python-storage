@@ -77,20 +77,23 @@ async def main_async(bucket_name: str, object_name: str, duration: int):
         object_name=object_name,
     )
     # 1. Create an empty appendable object.
-    await writer.open()
-    print(f"Created empty appendable object: {object_name}")
+    try:
+        # 1. Create an empty appendable object.
+        await writer.open()
+        print(f"Created empty appendable object: {object_name}")
 
-    # 2. Create the appender and tailer coroutines.
-    appender_task = asyncio.create_task(appender(writer, duration))
-    # # Add a small delay to ensure the object is created before tailing begins.
-    # await asyncio.sleep(1)
-    tailer_task = asyncio.create_task(tailer(bucket_name, object_name, duration))
+        # 2. Create the appender and tailer coroutines.
+        appender_task = asyncio.create_task(appender(writer, duration))
+        # # Add a small delay to ensure the object is created before tailing begins.
+        # await asyncio.sleep(1)
+        tailer_task = asyncio.create_task(tailer(bucket_name, object_name, duration))
 
-    # 3. Execute the coroutines concurrently.
-    await asyncio.gather(appender_task, tailer_task)
-
-    await writer.close()
-    print("Writer closed.")
+        # 3. Execute the coroutines concurrently.
+        await asyncio.gather(appender_task, tailer_task)
+    finally:
+        if writer._is_stream_open:
+            await writer.close()
+            print("Writer closed.")
 
 
 # [END storage_read_appendable_object_tail]
