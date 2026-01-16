@@ -31,14 +31,16 @@ async def storage_open_object_read_full_object(bucket_name, object_name):
 
     mrd = AsyncMultiRangeDownloader(client, bucket_name, object_name)
 
-    # Open the object in read mode.
-    await mrd.open()
+    try:
+        # Open the object in read mode.
+        await mrd.open()
 
-    output_buffer = BytesIO()
-    # A download range of (0, 0) means to read from the beginning to the end.
-    await mrd.download_ranges([(0, 0, output_buffer)])
-
-    await mrd.close()
+        output_buffer = BytesIO()
+        # A download range of (0, 0) means to read from the beginning to the end.
+        await mrd.download_ranges([(0, 0, output_buffer)])
+    finally:
+        if mrd.is_stream_open:
+            await mrd.close()
 
     downloaded_bytes = output_buffer.getvalue()
     print(
