@@ -24,10 +24,15 @@ from google.cloud.storage._experimental.asyncio.async_grpc_client import AsyncGr
 
 
 # [START storage_pause_and_resume_appendable_upload]
-async def storage_pause_and_resume_appendable_upload(bucket_name, object_name):
-    """Demonstrates pausing and resuming an appendable object upload."""
+async def storage_pause_and_resume_appendable_upload(
+    bucket_name, object_name, grpc_client=None
+):
+    """Demonstrates pausing and resuming an appendable object upload.
 
-    grpc_client = AsyncGrpcClient().grpc_client
+    grpc_client: an existing grpc_client to use, this is only for testing.
+    """
+    if grpc_client is None:
+        grpc_client = AsyncGrpcClient().grpc_client
 
     writer1 = AsyncAppendableObjectWriter(
         client=grpc_client,
@@ -39,7 +44,7 @@ async def storage_pause_and_resume_appendable_upload(bucket_name, object_name):
     print(f"Appended {writer1.persisted_size} bytes with the first writer.")
 
     # 2. After appending some data, close the writer to "pause" the upload.
-    #  NOTE: you can pause indefinitely and still read the conetent uploaded so far using MRD.")
+    #  NOTE: you can pause indefinitely and still read the conetent uploaded so far using MRD.
     await writer1.close()
 
     print("First writer closed. Upload is 'paused'.")

@@ -26,12 +26,16 @@ from google.cloud.storage._experimental.asyncio.async_multi_range_downloader imp
 
 # [START storage_open_object_single_ranged_read]
 async def storage_open_object_single_ranged_read(
-    bucket_name, object_name, start_byte, size
+    bucket_name, object_name, start_byte, size, grpc_client=None
 ):
-    """Downloads a range of bytes from an object."""
-    client = AsyncGrpcClient().grpc_client
+    """Downloads a range of bytes from an object.
 
-    mrd = AsyncMultiRangeDownloader(client, bucket_name, object_name)
+    grpc_client: an existing grpc_client to use, this is only for testing.
+    """
+    if grpc_client is None:
+        grpc_client = AsyncGrpcClient().grpc_client
+
+    mrd = AsyncMultiRangeDownloader(grpc_client, bucket_name, object_name)
 
     try:
         # Open the object, mrd always opens in read mode.

@@ -26,10 +26,15 @@ from google.cloud.storage._experimental.asyncio.async_grpc_client import AsyncGr
 # [START storage_create_and_write_appendable_object]
 
 
-async def storage_create_and_write_appendable_object(bucket_name, object_name):
-    """Uploads an appendable object to zonal bucket."""
+async def storage_create_and_write_appendable_object(bucket_name, object_name,
+                                                     grpc_client=None):
+    """Uploads an appendable object to zonal bucket.
 
-    grpc_client = AsyncGrpcClient().grpc_client
+    grpc_client: an existing grpc_client to use, this is only for testing.
+    """
+
+    if grpc_client is None:
+        grpc_client = AsyncGrpcClient().grpc_client
     writer = AsyncAppendableObjectWriter(
         client=grpc_client,
         bucket_name=bucket_name,

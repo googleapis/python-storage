@@ -48,11 +48,12 @@ async def appender(writer: AsyncAppendableObjectWriter, duration: int):
     print("Appender finished.")
 
 
-async def tailer(bucket_name: str, object_name: str, duration: int):
+async def tailer(
+    bucket_name: str, object_name: str, duration: int, client: AsyncGrpcClient
+):
     """Tails the object by reading new data as it is appended."""
     print("Tailer started.")
     start_byte = 0
-    client = AsyncGrpcClient().grpc_client
     start_time = time.monotonic()
     mrd = AsyncMultiRangeDownloader(client, bucket_name, object_name)
     try:
@@ -82,10 +83,14 @@ async def tailer(bucket_name: str, object_name: str, duration: int):
 # repeatedly polls an appendable object for new content. In a real
 # application, the object would be written to by a separate process.
 async def read_appendable_object_tail(
-    bucket_name: str, object_name: str, duration: int
+    bucket_name: str, object_name: str, duration: int, grpc_client=None
 ):
-    """Main function to create an appendable object and run tasks."""
-    grpc_client = AsyncGrpcClient().grpc_client
+    """Main function to create an appendable object and run tasks.
+
+    grpc_client: an existing grpc_client to use, this is only for testing.
+    """
+    if grpc_client is None:
+        grpc_client = AsyncGrpcClient().grpc_client
     writer = AsyncAppendableObjectWriter(
         client=grpc_client,
         bucket_name=bucket_name,
@@ -99,7 +104,9 @@ async def read_appendable_object_tail(
 
         # 2. Create the appender and tailer coroutines.
         appender_task = asyncio.create_task(appender(writer, duration))
-        tailer_task = asyncio.create_task(tailer(bucket_name, object_name, duration))
+        tailer_task = asyncio.create_task(
+            tailer(bucket_name, object_name, duration, grpc_client)
+        )
 
         # 3. Execute the coroutines concurrently.
         await asyncio.gather(appender_task, tailer_task)
