@@ -102,6 +102,8 @@ class AsyncAppendableObjectWriter:
                             If None, a new object is created.
                             If None and Object already exists then it'll will be
                             overwritten.
+                            To avoid overwriting existing object use
+                            `generation=0` which will fail if object exists.
 
         :type write_handle: bytes
         :param write_handle: (Optional) An existing handle for writing the object.

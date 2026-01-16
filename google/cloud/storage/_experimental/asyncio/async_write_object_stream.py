@@ -101,13 +101,14 @@ class _AsyncWriteObjectStream(_AsyncAbstractObjectStream):
         # Create a new object or overwrite existing one if generation_number
         # is None. This makes it consistent with GCS JSON API behavior.
         # Created object type would be Appendable Object.
-        if self.generation_number is None:
+        if self.generation_number is None or self.generation_number == 0:
             self.first_bidi_write_req = _storage_v2.BidiWriteObjectRequest(
                 write_object_spec=_storage_v2.WriteObjectSpec(
                     resource=_storage_v2.Object(
                         name=self.object_name, bucket=self._full_bucket_name
                     ),
                     appendable=True,
+                    if_generation_match=self.generation_number,
                 ),
             )
         else:

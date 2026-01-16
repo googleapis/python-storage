@@ -18,6 +18,7 @@ from google.cloud.storage._experimental.asyncio.async_appendable_object_writer i
 from google.cloud.storage._experimental.asyncio.async_multi_range_downloader import (
     AsyncMultiRangeDownloader,
 )
+from google.api_core.exceptions import FailedPrecondition
 
 
 pytestmark = pytest.mark.skipif(
@@ -360,3 +361,36 @@ async def test_append_flushes_and_state_lookup(storage_client, blobs_to_delete):
     await mrd.close()
     content = buffer.getvalue()
     assert content == full_data
+
+@pytest.mark.asyncio
+async def test_append_with_generation(storage_client, blobs_to_delete):
+    """Tests that using `generation=0` fails if the object already exists.
+
+    This test verifies that:
+    1. An object can be created using `AsyncAppendableObjectWriter` with `generation=0`.
+    2. Attempting to create the same object again with `generation=0` raises a
+       `FailedPrecondition` error with a 400 status code, because the
+       precondition (object must not exist) is not met.
+    """
+    object_name = f"test_append_with_generation-{uuid.uuid4()}"
+    grpc_client = AsyncGrpcClient().grpc_client
+    writer = AsyncAppendableObjectWriter(grpc_client, _ZONAL_BUCKET, object_name, generation=0)
+
+    # Empty object is created.
+    await writer.open()
+    assert writer.is_stream_open
+
+    await writer.close()
+    assert not writer.is_stream_open
+
+
+    with pytest.raises(FailedPrecondition) as exc_info:
+        writer = AsyncAppendableObjectWriter(
+            grpc_client, _ZONAL_BUCKET, object_name, generation=0
+        )
+        await writer.open()
+    assert exc_info.value.code == 400
+
+
+    del writer
+    gc.collect()
