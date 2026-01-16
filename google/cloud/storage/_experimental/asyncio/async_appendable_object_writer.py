@@ -346,6 +346,11 @@ class AsyncAppendableObjectWriter:
         self.offset = None
         return self.object_resource
 
+    @property
+    def is_stream_open(self) -> bool:
+        return self._is_stream_open
+
+
     # helper methods.
     async def append_from_string(self, data: str):
         """
