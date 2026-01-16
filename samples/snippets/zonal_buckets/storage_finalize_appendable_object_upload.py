@@ -24,7 +24,9 @@ from google.cloud.storage._experimental.asyncio.async_grpc_client import AsyncGr
 
 
 # [START storage_finalize_appendable_object_upload]
-async def storage_finalize_appendable_object_upload(bucket_name, object_name, grpc_client=None):
+async def storage_finalize_appendable_object_upload(
+    bucket_name, object_name, grpc_client=None
+):
     """Creates, writes to, and finalizes an appendable object.
 
     grpc_client: an existing grpc_client to use, this is only for testing.
