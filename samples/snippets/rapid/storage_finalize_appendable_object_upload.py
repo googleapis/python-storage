@@ -32,7 +32,7 @@ async def storage_finalize_appendable_object_upload(bucket_name, object_name):
         client=grpc_client,
         bucket_name=bucket_name,
         object_name=object_name,
-        generation=0, # throws `FailedPrecondition` if object already exists.
+        generation=0,  # throws `FailedPrecondition` if object already exists.
     )
     # This creates a new appendable object of size 0 and opens it for appending.
     await writer.open()
@@ -42,12 +42,12 @@ async def storage_finalize_appendable_object_upload(bucket_name, object_name):
 
     # finalize the appendable object,
     # NOTE: once finalized no more appends can be done to the object.
-    # if you don't want to finalize, you can simply close the writer as 
+    # if you don't want to finalize, you can simply close the writer as
     # shown in `storage_create_and_write_appendable_object.py` snippet.
     object_resource = await writer.finalize()
 
     print(f"Appendable object {object_name} created and finalized.")
-    print('Object Metadata:')
+    print("Object Metadata:")
     print(object_resource)
 
 

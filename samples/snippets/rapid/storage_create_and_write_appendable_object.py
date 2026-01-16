@@ -34,7 +34,7 @@ async def storage_create_and_write_appendable_object(bucket_name, object_name):
         client=grpc_client,
         bucket_name=bucket_name,
         object_name=object_name,
-        generation=0, # throws `FailedPrecondition` if object already exists.
+        generation=0,  # throws `FailedPrecondition` if object already exists.
     )
     # This creates a new appendable object of size 0 and opens it for appending.
     await writer.open()
@@ -47,7 +47,9 @@ async def storage_create_and_write_appendable_object(bucket_name, object_name):
     # Once all appends are done, close the gRPC bidirectional stream.
     await writer.close()
 
-    print(f"Appended object {object_name} created of size {writer.persisted_size} bytes.")
+    print(
+        f"Appended object {object_name} created of size {writer.persisted_size} bytes."
+    )
 
 
 # [END storage_create_and_write_appendable_object]

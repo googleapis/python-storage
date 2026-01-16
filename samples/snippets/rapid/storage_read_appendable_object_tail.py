@@ -27,10 +27,10 @@ from google.cloud.storage._experimental.asyncio.async_grpc_client import AsyncGr
 from google.cloud.storage._experimental.asyncio.async_multi_range_downloader import (
     AsyncMultiRangeDownloader,
 )
-import os
 
-BYTES_TO_APPEND = b'fav_bytes.'
+BYTES_TO_APPEND = b"fav_bytes."
 NUM_BYTES_TO_APPEND_EVERY_SECOND = len(BYTES_TO_APPEND)
+
 
 # [START storage_read_appendable_object_tail]
 async def appender(writer: AsyncAppendableObjectWriter, duration: int):
@@ -41,7 +41,9 @@ async def appender(writer: AsyncAppendableObjectWriter, duration: int):
         await writer.append(BYTES_TO_APPEND)
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
         bytes_appended += NUM_BYTES_TO_APPEND_EVERY_SECOND
-        print(f"[{now}] Appended {NUM_BYTES_TO_APPEND_EVERY_SECOND} new bytes. Total appended: {bytes_appended} bytes.")
+        print(
+            f"[{now}] Appended {NUM_BYTES_TO_APPEND_EVERY_SECOND} new bytes. Total appended: {bytes_appended} bytes."
+        )
         await asyncio.sleep(1)
     print("Appender finished.")
 
@@ -79,7 +81,9 @@ async def tailer(bucket_name: str, object_name: str, duration: int):
 # read_appendable_object_tail simulates a "tail -f" command on a GCS object. It
 # repeatedly polls an appendable object for new content. In a real
 # application, the object would be written to by a separate process.
-async def read_appendable_object_tail(bucket_name: str, object_name: str, duration: int):
+async def read_appendable_object_tail(
+    bucket_name: str, object_name: str, duration: int
+):
     """Main function to create an appendable object and run tasks."""
     grpc_client = AsyncGrpcClient().grpc_client
     writer = AsyncAppendableObjectWriter(
@@ -125,4 +129,6 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    asyncio.run(read_appendable_object_tail(args.bucket_name, args.object_name, args.duration))
+    asyncio.run(
+        read_appendable_object_tail(args.bucket_name, args.object_name, args.duration)
+    )

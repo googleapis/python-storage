@@ -31,11 +31,10 @@ async def storage_open_object_multiple_ranged_read(bucket_name, object_name):
 
     mrd = AsyncMultiRangeDownloader(client, bucket_name, object_name)
 
-    
     try:
-        # Open the object, mrd always opens in read mode. 
+        # Open the object, mrd always opens in read mode.
         await mrd.open()
-        
+
         # Specify four different buffers to download ranges into.
         buffers = [BytesIO(), BytesIO(), BytesIO(), BytesIO()]
 

@@ -62,9 +62,7 @@ async def storage_pause_and_resume_appendable_upload(bucket_name, object_name):
 
         # 5. Append some more data using the new writer.
         await writer2.append(b"Second part of the data.")
-        print(
-            f"Appended more data. Total size is now {writer2.persisted_size} bytes."
-        )
+        print(f"Appended more data. Total size is now {writer2.persisted_size} bytes.")
     finally:
         # 6. Finally, close the new writer.
         if writer2._is_stream_open:

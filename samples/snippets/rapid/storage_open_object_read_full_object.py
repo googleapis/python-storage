@@ -28,14 +28,14 @@ from google.cloud.storage._experimental.asyncio.async_multi_range_downloader imp
 async def storage_open_object_read_full_object(bucket_name, object_name):
     """Downloads the entire content of an object using a multi-range downloader."""
     client = AsyncGrpcClient().grpc_client
-    
+
     # mrd = Multi-Range-Downloader
     mrd = AsyncMultiRangeDownloader(client, bucket_name, object_name)
 
     try:
-        # Open the object, mrd always opens in read mode. 
+        # Open the object, mrd always opens in read mode.
         await mrd.open()
-        
+
         # This could be any buffer or file-like object.
         output_buffer = BytesIO()
         # A download range of (0, 0) means to read from the beginning to the end.
