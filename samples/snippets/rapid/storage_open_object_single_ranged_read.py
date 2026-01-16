@@ -23,15 +23,16 @@ from google.cloud.storage._experimental.asyncio.async_multi_range_downloader imp
     AsyncMultiRangeDownloader,
 )
 
+
 # [START storage_open_object_single_ranged_read]
 async def storage_open_object_single_ranged_read(
     bucket_name, object_name, start_byte, size
 ):
     """Downloads a range of bytes from an object."""
     client = AsyncGrpcClient().grpc_client
-    
+
     mrd = AsyncMultiRangeDownloader(client, bucket_name, object_name)
-    
+
     # Open the object in read mode.
     await mrd.open()
 
@@ -45,9 +46,8 @@ async def storage_open_object_single_ranged_read(
     # Downloaded size can differ from requested size if object is smaller.
     # mrd will download at most up to the end of the object.
     downloaded_size = output_buffer.getbuffer().nbytes
-    print(
-        f"Downloaded {downloaded_size} bytes from {object_name}"
-    )
+    print(f"Downloaded {downloaded_size} bytes from {object_name}")
+
 
 # [END storage_open_object_single_ranged_read]
 
@@ -57,7 +57,9 @@ if __name__ == "__main__":
     )
     parser.add_argument("--bucket_name", help="Your Cloud Storage bucket name.")
     parser.add_argument("--object_name", help="Your Cloud Storage object name.")
-    parser.add_argument("--start_byte", type=int, help="The starting byte of the range.")
+    parser.add_argument(
+        "--start_byte", type=int, help="The starting byte of the range."
+    )
     parser.add_argument("--size", type=int, help="The number of bytes to download.")
 
     args = parser.parse_args()

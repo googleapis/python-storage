@@ -23,15 +23,14 @@ from google.cloud.storage._experimental.asyncio.async_multi_range_downloader imp
     AsyncMultiRangeDownloader,
 )
 
+
 # [START storage_open_object_multiple_ranged_read]
-async def storage_open_object_multiple_ranged_read(
-    bucket_name, object_name
-):
+async def storage_open_object_multiple_ranged_read(bucket_name, object_name):
     """Downloads multiple ranges of bytes from a single object into different buffers."""
     client = AsyncGrpcClient().grpc_client
-    
+
     mrd = AsyncMultiRangeDownloader(client, bucket_name, object_name)
-    
+
     # Open the object in read mode.
     await mrd.open()
 
@@ -57,8 +56,9 @@ async def storage_open_object_multiple_ranged_read(
     for i, output_buffer in enumerate(buffers):
         downloaded_size = output_buffer.getbuffer().nbytes
         print(
-            f"Downloaded {downloaded_size} bytes into buffer {i+1} from start byte {ranges[i][0]}: {output_buffer.getvalue()}"
+            f"Downloaded {downloaded_size} bytes into buffer {i + 1} from start byte {ranges[i][0]}: {output_buffer.getvalue()}"
         )
+
 
 # [END storage_open_object_multiple_ranged_read]
 
@@ -72,7 +72,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     asyncio.run(
-        storage_open_object_multiple_ranged_read(
-            args.bucket_name, args.object_name
-        )
+        storage_open_object_multiple_ranged_read(args.bucket_name, args.object_name)
     )

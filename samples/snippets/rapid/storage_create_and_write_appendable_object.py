@@ -46,9 +46,11 @@ async def storage_create_and_write_appendable_object(bucket_name, object_name):
     # Once all appends are done, closes the gRPC bidirectional stream.
     await writer.close()
 
-    print('Appended object {} created of size {} bytes.'.format(object_name, writer.persisted_size))
-
-
+    print(
+        "Appended object {} created of size {} bytes.".format(
+            object_name, writer.persisted_size
+        )
+    )
 
 
 # [END storage_create_and_write_appendable_object]

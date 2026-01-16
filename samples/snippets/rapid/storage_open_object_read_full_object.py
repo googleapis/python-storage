@@ -23,15 +23,14 @@ from google.cloud.storage._experimental.asyncio.async_multi_range_downloader imp
     AsyncMultiRangeDownloader,
 )
 
+
 # [START storage_open_object_read_full_object]
-async def storage_open_object_read_full_object(
-    bucket_name, object_name
-):
+async def storage_open_object_read_full_object(bucket_name, object_name):
     """Downloads the entire content of an object."""
     client = AsyncGrpcClient().grpc_client
-    
+
     mrd = AsyncMultiRangeDownloader(client, bucket_name, object_name)
-    
+
     # Open the object in read mode.
     await mrd.open()
 
@@ -48,6 +47,7 @@ async def storage_open_object_read_full_object(
     # You can now access the full content via downloaded_bytes, for example:
     # print(downloaded_bytes)
 
+
 # [END storage_open_object_read_full_object]
 
 if __name__ == "__main__":
@@ -60,7 +60,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     asyncio.run(
-        storage_open_object_read_full_object(
-            args.bucket_name, args.object_name
-        )
+        storage_open_object_read_full_object(args.bucket_name, args.object_name)
     )

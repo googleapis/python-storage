@@ -29,6 +29,7 @@ from google.cloud.storage._experimental.asyncio.async_multi_range_downloader imp
 )
 import os
 
+
 # [START storage_read_appendable_object_tail]
 async def appender(writer: AsyncAppendableObjectWriter, duration: int):
     """Appends 1 byte to the object every second for a given duration."""
@@ -36,7 +37,7 @@ async def appender(writer: AsyncAppendableObjectWriter, duration: int):
     for i in range(duration):
         await writer.append(os.urandom(10))  # Append 1 random byte.
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
-        # print(f"[{now}] Appended 1 byte. Total appended: {i+1}")
+        print(f"[{now}] Appended 1 byte. Total appended: {i + 1}")
         await asyncio.sleep(1)
     print("Appender finished.")
 

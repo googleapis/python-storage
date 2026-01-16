@@ -39,13 +39,12 @@ async def storage_finalize_appendable_object_upload(bucket_name, object_name):
     # Appends data to the object.
     await writer.append(b"Some data")
 
-    # finalize the appendable object, 
+    # finalize the appendable object,
     # once finalized no more appends can be done to the object.
     object_resource = await writer.finalize()
 
     print("Object resource: -- ")
     print(object_resource)
-
 
     print(
         f"Appendable object {object_name} created and finalized with size {writer.persisted_size} bytes."
