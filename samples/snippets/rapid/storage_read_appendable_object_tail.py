@@ -35,7 +35,7 @@ async def appender(writer: AsyncAppendableObjectWriter, duration: int):
     """Appends 10 bytes to the object every second for a given duration."""
     print("Appender started.")
     for i in range(duration):
-        await writer.append(os.urandom(10))  # Append 1 random byte.
+        await writer.append(os.urandom(10))  # Append 10 random bytes.
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
         print(f"[{now}] Appended 1 byte. Total appended: {i + 1}")
         await asyncio.sleep(1)
