@@ -97,13 +97,16 @@ class AsyncAppendableObjectWriter:
         :param object_name: The name of the GCS Appendable Object to be written.
 
         :type generation: int
-        :param generation: (Optional) If present, selects a specific revision of
-                            that object.
-                            If None, a new object is created.
-                            If None and Object already exists then it'll will be
-                            overwritten.
-                            To avoid overwriting existing object use
-                            `generation=0` which will fail if object exists.
+        :param generation: (Optional) If present, creates writer for that
+            specific revision of that object. Use this to append data to an
+            existing Appendable Object.
+
+            Setting to ``0`` makes the `writer.open()` succeed only if
+            there are no live versions of the object. (useful for not accidentally
+            overwriting existing objects).
+
+            Warning: If None, a new object is created. If an object with the
+            same name already exists, it will be overwritten.
 
         :type write_handle: bytes
         :param write_handle: (Optional) An existing handle for writing the object.
