@@ -34,8 +34,9 @@ async def storage_create_and_write_appendable_object(bucket_name, object_name):
         client=grpc_client,
         bucket_name=bucket_name,
         object_name=object_name,
+        generation=0, # throws `FailedPrecondition` if object already exists.
     )
-    # creates a new appendable object of size 0
+    # This creates a new appendable object of size 0 and opens it for appending.
     await writer.open()
 
     # appends data to the object

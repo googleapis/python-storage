@@ -36,7 +36,7 @@ async def storage_open_multiple_objects_ranged_read(bucket_name, object_names):
         """Helper coroutine to download a range from a single object."""
         mrd = AsyncMultiRangeDownloader(client, bucket_name, object_name)
         try:
-            # Open the object in read mode.
+            # Open the object, mrd always opens in read mode.
             await mrd.open()
 
             # Each object downloads the first 100 bytes.

@@ -31,26 +31,30 @@ async def storage_open_object_multiple_ranged_read(bucket_name, object_name):
 
     mrd = AsyncMultiRangeDownloader(client, bucket_name, object_name)
 
-    # Open the object in read mode.
-    await mrd.open()
+    
+    try:
+        # Open the object, mrd always opens in read mode. 
+        await mrd.open()
+        
+        # Specify four different buffers to download ranges into.
+        buffers = [BytesIO(), BytesIO(), BytesIO(), BytesIO()]
 
-    # Define four different buffers to download ranges into.
-    buffers = [BytesIO(), BytesIO(), BytesIO(), BytesIO()]
+        # Define the ranges to download. Each range is a tuple of (start_byte, size, buffer).
+        # All ranges will download 10 bytes from different starting positions.
+        # We choose arbitrary start bytes for this example. An object should be large enough.
+        # A user can choose any start byte between 0 and `object_size`.
+        # If `start_bytes` is greater than `object_size`, mrd will throw an error.
+        ranges = [
+            (0, 10, buffers[0]),
+            (20, 10, buffers[1]),
+            (40, 10, buffers[2]),
+            (60, 10, buffers[3]),
+        ]
 
-    # Define the ranges to download. Each range is a tuple of (start_byte, size, buffer).
-    # All ranges will download 10 bytes from different starting positions.
-    # We choose arbitrary start bytes for this example. An object should be large enough.
-    # A user can choose any start byte between 0 and mrd.persisted_size.
-    ranges = [
-        (0, 10, buffers[0]),
-        (20, 10, buffers[1]),
-        (40, 10, buffers[2]),
-        (60, 10, buffers[3]),
-    ]
+        await mrd.download_ranges(ranges)
 
-    await mrd.download_ranges(ranges)
-
-    await mrd.close()
+    finally:
+        await mrd.close()
 
     # Print the downloaded content from each buffer.
     for i, output_buffer in enumerate(buffers):

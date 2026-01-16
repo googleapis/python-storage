@@ -29,7 +29,6 @@ async def storage_pause_and_resume_appendable_upload(bucket_name, object_name):
 
     grpc_client = AsyncGrpcClient().grpc_client
 
-    # 1. After appending some data:
     writer1 = AsyncAppendableObjectWriter(
         client=grpc_client,
         bucket_name=bucket_name,
@@ -39,8 +38,10 @@ async def storage_pause_and_resume_appendable_upload(bucket_name, object_name):
     await writer1.append(b"First part of the data. ")
     print(f"Appended {writer1.persisted_size} bytes with the first writer.")
 
-    # 2. Close the writer to "pause" the upload.
+    # 2. After appending some data, close the writer to "pause" the upload.
+    #  NOTE: you can pause indefinitely and still read the conetent uploaded so far using MRD.")
     await writer1.close()
+
     print("First writer closed. Upload is 'paused'.")
 
     # 3. Create a new writer, passing the generation number from the previous
