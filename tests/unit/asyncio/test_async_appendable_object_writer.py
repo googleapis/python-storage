@@ -448,7 +448,7 @@ async def test_finalize(mock_write_object_stream, mock_client):
     assert writer.object_resource == mock_resource
     assert writer.persisted_size == 123
     assert gcs_object == mock_resource
-    assert writer.is_stream_open is False
+    assert not writer.is_stream_open
     assert writer.offset is None
 
 
