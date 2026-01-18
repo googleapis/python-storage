@@ -308,6 +308,10 @@ class AsyncMultiRangeDownloader:
             to be provided by the user, and user has to make sure appropriate
             memory is available in the application to avoid out-of-memory crash.
 
+            Special meaning for `start_byte` and `bytes_to_read`
+            (0, 0) : Downloads entire file
+            ()
+
         :type lock: asyncio.Lock
         :param lock: (Optional) An asyncio lock to synchronize sends and recvs
             on the underlying bidi-GRPC stream. This is required when multiple
