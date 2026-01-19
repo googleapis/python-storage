@@ -66,7 +66,12 @@ class AsyncGrpcClient:
             "grpc_asyncio"
         )
         channel = transport_cls.create_channel(
-            attempt_direct_path=attempt_direct_path, credentials=credentials
+            attempt_direct_path=attempt_direct_path, credentials=credentials,
+            options=(
+                # ("grpc.primary_user_agent", "gccl/3.8.1"),
+                # ("grpc.experimental.tcp_tx_zerocopy_enabled", True),
+                # ("x-goog-api-client", "gl-python-local/3.8.0"),
+            ),
         )
         transport = transport_cls(channel=channel)
 

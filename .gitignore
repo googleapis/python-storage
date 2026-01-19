@@ -64,4 +64,3 @@ pylintrc
 pylintrc.test
 
 # Benchmarking results and logs
-__benchmark_results__/**
