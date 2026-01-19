@@ -51,11 +51,16 @@ def _get_params() -> Dict[str, List[ReadParameters]]:
     bucket_types = common_params["bucket_types"]
     file_sizes_mib = common_params["file_sizes_mib"]
     chunk_sizes_mib = common_params["chunk_sizes_mib"]
+    num_ranges = common_params.get("num_ranges", [1])
     rounds = common_params["rounds"]
 
     bucket_map = {
-        "zonal": os.environ.get("DEFAULT_RAPID_ZONAL_BUCKET", config['defaults']['DEFAULT_RAPID_ZONAL_BUCKET']),
-        "regional": os.environ.get("DEFAULT_STANDARD_BUCKET", config['defaults']['DEFAULT_STANDARD_BUCKET'])
+        "zonal": os.environ.get(
+            "DEFAULT_RAPID_ZONAL_BUCKET", config["defaults"]["DEFAULT_RAPID_ZONAL_BUCKET"]
+        ),
+        "regional": os.environ.get(
+            "DEFAULT_STANDARD_BUCKET", config["defaults"]["DEFAULT_STANDARD_BUCKET"]
+        ),
     }
 
     for workload in config["workload"]:
@@ -72,6 +77,7 @@ def _get_params() -> Dict[str, List[ReadParameters]]:
             chunk_sizes_mib,
             processes,
             coros,
+            num_ranges,
         )
 
         for (
@@ -80,7 +86,12 @@ def _get_params() -> Dict[str, List[ReadParameters]]:
             chunk_size_mib,
             num_processes,
             num_coros,
+            num_range,
         ) in product:
+            # num_ranges is only applicable for zonal buckets
+            if bucket_type != "zonal" and num_range > 1:
+                continue
+
             file_size_bytes = file_size_mib * 1024 * 1024
             chunk_size_bytes = chunk_size_mib * 1024 * 1024
             bucket_name = bucket_map[bucket_type]
@@ -88,7 +99,7 @@ def _get_params() -> Dict[str, List[ReadParameters]]:
             num_files = num_processes * num_coros
 
             # Create a descriptive name for the parameter set
-            name = f"{pattern}_{bucket_type}_{num_processes}p_{num_coros}c"
+            name = f"{pattern}_{bucket_type}_{num_processes}p_{num_coros}c_{num_range}r"
 
             params[workload_name].append(
                 ReadParameters(
@@ -103,6 +114,7 @@ def _get_params() -> Dict[str, List[ReadParameters]]:
                     rounds=rounds,
                     chunk_size_bytes=chunk_size_bytes,
                     file_size_bytes=file_size_bytes,
+                    num_ranges=num_range,
                 )
             )
     return params

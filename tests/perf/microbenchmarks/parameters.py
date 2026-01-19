@@ -26,3 +26,4 @@ class IOBenchmarkParameters:
     rounds: int
     chunk_size_bytes: int
     file_size_bytes: int
+    num_ranges: int

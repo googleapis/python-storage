@@ -79,5 +79,5 @@ def list_blobs_with_prefix(bucket_name, prefix, delimiter=None):
 
 if __name__ == "__main__":
     list_blobs_with_prefix(
-        bucket_name=sys.argv[1], prefix=sys.argv[2], delimiter=sys.argv[3]
+        bucket_name=sys.argv[1], prefix=sys.argv[2]
     )

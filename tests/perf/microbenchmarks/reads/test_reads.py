@@ -50,17 +50,31 @@ async def create_client():
     return AsyncGrpcClient().grpc_client
 
 
-async def download_chunks_using_mrd_async(client, filename, other_params, chunks):
+async def download_chunks_using_mrd_async(
+    client, filename, other_params, chunks, num_ranges=2
+):
     # start timer.
     start_time = time.monotonic_ns()
 
     total_bytes_downloaded = 0
     mrd = AsyncMultiRangeDownloader(client, other_params.bucket_name, filename)
     await mrd.open()
-    for offset, size in chunks:
+
+    range_list = []
+    buffers = []
+    for i, (offset, size) in enumerate(chunks):
         buffer = BytesIO()
-        await mrd.download_ranges([(offset, size, buffer)])
-        total_bytes_downloaded += buffer.tell()
+        range_list.append((offset, size, buffer))
+        buffers.append(buffer)
+        # Check if the batch is full or if it's the last chunk
+        if len(range_list) == num_ranges or i == len(chunks) - 1:
+            await mrd.download_ranges(range_list)
+            for b in buffers:
+                total_bytes_downloaded += b.tell()
+            # Reset for the next batch
+            range_list = []
+            buffers = []
+
     await mrd.close()
 
     assert total_bytes_downloaded == other_params.file_size_bytes
@@ -71,9 +85,11 @@ async def download_chunks_using_mrd_async(client, filename, other_params, chunks
     return elapsed_time / 1_000_000_000
 
 
-def download_chunks_using_mrd(loop, client, filename, other_params, chunks):
+def download_chunks_using_mrd(loop, client, filename, other_params, chunks, num_ranges):
     return loop.run_until_complete(
-        download_chunks_using_mrd_async(client, filename, other_params, chunks)
+        download_chunks_using_mrd_async(
+            client, filename, other_params, chunks, num_ranges
+        )
     )
 
 
@@ -120,11 +136,26 @@ def test_downloads_single_proc_single_coro(
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         client = loop.run_until_complete(create_client())
+        args = (
+            loop,
+            client,
+            files_names[0],
+            params,
+            chunks,
+            params.num_ranges,
+        )
     else:
         logging.info("bucket type regional")
         target_func = download_chunks_using_json
         loop = None
         client = storage_client
+        args = (
+            loop,
+            client,
+            files_names[0],
+            params,
+            chunks,
+        )
 
     output_times = []
 
@@ -139,13 +170,7 @@ def test_downloads_single_proc_single_coro(
                 target=target_wrapper,
                 iterations=1,
                 rounds=params.rounds,
-                args=(
-                    loop,
-                    client,
-                    files_names[0],
-                    params,
-                    chunks,
-                ),
+                args=args,
             )
     finally:
         if loop is not None:
