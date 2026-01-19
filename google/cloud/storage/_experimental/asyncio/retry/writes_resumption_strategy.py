@@ -65,22 +65,37 @@ class _WriteResumptionStrategy(_BaseResumptionStrategy):
 
     def generate_requests(
         self, state: Dict[str, Any]
-    ) -> List[storage_type.BidiWriteObjectRequest]:
+    ):
         """Generates BidiWriteObjectRequests to resume or continue the upload.
 
-        This method is not applicable for `open` methods.
+        This method is a generator that yields requests one at a time,
+        allowing for incremental sending and better memory efficiency.
+        
+        On retry/redirect, yields a state_lookup request first to get the current
+        persisted state from the server before sending data requests.
+        
+        The last data request is always yielded with state_lookup=True and flush=True
+        to ensure the server persists the final data and returns the updated state.
         """
         write_state: _WriteState = state["write_state"]
 
-        requests = []
+        # If this is a retry/redirect, yield a state lookup request first
+        # This allows the sender to get current persisted_size before proceeding
+        if write_state.routing_token or write_state.bytes_sent > write_state.persisted_size:
+            # Yield an open/state-lookup request with no data
+            yield storage_type.BidiWriteObjectRequest(state_lookup=True)
+
         # The buffer should already be seeked to the correct position (persisted_size)
         # by the `recover_state_on_failure` method before this is called.
         while not write_state.is_finalized:
             chunk = write_state.user_buffer.read(write_state.chunk_size)
 
-            # End of File detection
             if not chunk:
                 break
+
+            # Peek to see if this is the last chunk. This is safe because both
+            # io.BytesIO and BufferedReader (used in file uploads) support peek().
+            is_last_chunk = not getattr(write_state.user_buffer, "peek", lambda n: b"")(1)
 
             checksummed_data = storage_type.ChecksummedData(content=chunk)
             checksum = google_crc32c.Checksum(chunk)
@@ -102,8 +117,11 @@ class _WriteResumptionStrategy(_BaseResumptionStrategy):
                 # reset counter after marking flush
                 write_state.bytes_since_last_flush = 0
 
-            requests.append(request)
-        return requests
+            if is_last_chunk:
+                request.flush = True
+                request.state_lookup = True
+
+            yield request
 
     def update_state_from_response(
         self, response: storage_type.BidiWriteObjectResponse, state: Dict[str, Any]

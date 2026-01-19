@@ -385,7 +385,7 @@ class AsyncMultiRangeDownloader:
         attempt_count = 0
 
         def send_ranges_and_get_bytes(
-            requests: List[_storage_v2.ReadRange],
+            requests_generator,
             state: Dict[str, Any],
             metadata: Optional[List[Tuple[str, str]]] = None,
         ):
@@ -395,7 +395,7 @@ class AsyncMultiRangeDownloader:
 
                 if attempt_count > 1:
                     logger.info(
-                        f"Resuming download (attempt {attempt_count - 1}) for {len(requests)} ranges."
+                        f"Resuming download (attempt {attempt_count - 1})."
                     )
 
                 async with lock:
@@ -444,17 +444,28 @@ class AsyncMultiRangeDownloader:
                         )
                         self._is_stream_open = True
 
-                    pending_read_ids = {r.read_id for r in requests}
+                    # Stream requests directly without materializing
+                    pending_read_ids = set()
+                    current_batch = []
 
-                    # Send Requests
-                    for i in range(
-                        0, len(requests), _MAX_READ_RANGES_PER_BIDI_READ_REQUEST
-                    ):
-                        batch = requests[i : i + _MAX_READ_RANGES_PER_BIDI_READ_REQUEST]
+                    for read_range in requests_generator:
+                        pending_read_ids.add(read_range.read_id)
+                        current_batch.append(read_range)
+                        
+                        # Send batch when it reaches max size
+                        if len(current_batch) >= _MAX_READ_RANGES_PER_BIDI_READ_REQUEST:
+                            await self.read_obj_str.send(
+                                _storage_v2.BidiReadObjectRequest(read_ranges=current_batch)
+                            )
+                            current_batch = []
+
+                    # Send remaining partial batch
+                    if current_batch:
                         await self.read_obj_str.send(
-                            _storage_v2.BidiReadObjectRequest(read_ranges=batch)
+                            _storage_v2.BidiReadObjectRequest(read_ranges=current_batch)
                         )
 
+                    # Receive responses
                     while pending_read_ids:
                         response = await self.read_obj_str.recv()
                         if response is None:

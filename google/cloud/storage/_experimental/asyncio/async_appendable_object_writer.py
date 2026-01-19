@@ -372,13 +372,12 @@ class AsyncAppendableObjectWriter:
         attempt_count = 0
 
         def send_and_recv_generator(
-            requests: List[BidiWriteObjectRequest],
+            requests_generator,
             state: dict[str, _WriteState],
             metadata: Optional[List[Tuple[str, str]]] = None,
         ):
             async def generator():
                 nonlocal attempt_count
-                nonlocal requests
                 attempt_count += 1
                 resp = None
                 async with self._lock:
@@ -415,16 +414,33 @@ class AsyncAppendableObjectWriter:
                         write_state.bytes_sent = write_state.persisted_size
                         write_state.bytes_since_last_flush = 0
 
-                        requests = strategy.generate_requests(state)
-
-                    num_requests = len(requests)
-                    for i, chunk_req in enumerate(requests):
-                        if i == num_requests - 1:
-                            chunk_req.state_lookup = True
-                            chunk_req.flush = True
+                    # Process requests from the generator
+                    # Strategy handles state_lookup and flush on the last request,
+                    # so we just stream requests directly
+                    for chunk_req in requests_generator:
+                        # Check if this is an open/state-lookup request (no checksummed_data)
+                        if chunk_req.state_lookup and not chunk_req.checksummed_data:
+                            # This is an open request - send it and get response
+                            await self.write_obj_stream.send(chunk_req)
+                            resp = await self.write_obj_stream.recv()
+                            
+                            # Update state from open response
+                            if resp:
+                                if resp.persisted_size is not None:
+                                    self.persisted_size = resp.persisted_size
+                                    write_state.persisted_size = resp.persisted_size
+                                    self.offset = self.persisted_size
+                                if resp.write_handle:
+                                    self.write_handle = resp.write_handle
+                                    write_state.write_handle = resp.write_handle
+                            continue
+                        
+                        # This is a data request - send it
                         await self.write_obj_stream.send(chunk_req)
 
+                    # Get final response from the last request (which has state_lookup=True)
                     resp = await self.write_obj_stream.recv()
+                    
                     if resp:
                         if resp.persisted_size is not None:
                             self.persisted_size = resp.persisted_size

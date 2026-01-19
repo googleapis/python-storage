@@ -48,7 +48,7 @@ class TestWriteResumptionStrategy:
         write_state = _WriteState(chunk_size=3, user_buffer=mock_buffer)
         state = {"write_state": write_state}
 
-        requests = strategy.generate_requests(state)
+        requests = list(strategy.generate_requests(state))
 
         # Expected: 4 requests (3, 3, 3, 1)
         assert len(requests) == 4
@@ -85,7 +85,7 @@ class TestWriteResumptionStrategy:
 
         state = {"write_state": write_state}
 
-        requests = strategy.generate_requests(state)
+        requests = list(strategy.generate_requests(state))
 
         # Since 4 bytes are done, we expect remaining 6 bytes: [4 bytes, 2 bytes]
         assert len(requests) == 2
@@ -104,7 +104,7 @@ class TestWriteResumptionStrategy:
         write_state = _WriteState(chunk_size=4, user_buffer=mock_buffer)
         state = {"write_state": write_state}
 
-        requests = strategy.generate_requests(state)
+        requests = list(strategy.generate_requests(state))
 
         assert len(requests) == 0
 
@@ -115,7 +115,7 @@ class TestWriteResumptionStrategy:
         write_state = _WriteState(chunk_size=10, user_buffer=mock_buffer)
         state = {"write_state": write_state}
 
-        requests = strategy.generate_requests(state)
+        requests = list(strategy.generate_requests(state))
 
         expected_crc = google_crc32c.Checksum(chunk_data).digest()
         expected_int = int.from_bytes(expected_crc, "big")
@@ -130,7 +130,7 @@ class TestWriteResumptionStrategy:
         )
         state = {"write_state": write_state}
 
-        requests = strategy.generate_requests(state)
+        requests = list(strategy.generate_requests(state))
 
         # Request index 1 (4 bytes total) should have flush=True
         assert requests[0].flush is False
@@ -155,7 +155,7 @@ class TestWriteResumptionStrategy:
         )
         state = {"write_state": write_state}
 
-        requests = strategy.generate_requests(state)
+        requests = list(strategy.generate_requests(state))
 
         for req in requests:
             assert req.flush is False
@@ -169,7 +169,7 @@ class TestWriteResumptionStrategy:
         )
         state = {"write_state": write_state}
 
-        requests = strategy.generate_requests(state)
+        requests = list(strategy.generate_requests(state))
 
         # Total 5 bytes < 10 bytes interval
         for req in requests:
@@ -184,7 +184,7 @@ class TestWriteResumptionStrategy:
         write_state.is_finalized = True
         state = {"write_state": write_state}
 
-        requests = strategy.generate_requests(state)
+        requests = list(strategy.generate_requests(state))
         assert len(requests) == 0
 
     @pytest.mark.asyncio
@@ -217,7 +217,7 @@ class TestWriteResumptionStrategy:
         # 2. bytes_sent should track persisted_size (4)
         assert write_state.bytes_sent == 4
 
-        requests = strategy.generate_requests(state)
+        requests = list(strategy.generate_requests(state))
 
         # Remaining data from offset 4 to 16 (12 bytes total)
         # Chunks: [4-8], [8-12], [12-16]
