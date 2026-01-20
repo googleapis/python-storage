@@ -308,6 +308,14 @@ class AsyncMultiRangeDownloader:
             to be provided by the user, and user has to make sure appropriate
             memory is available in the application to avoid out-of-memory crash.
 
+            Special cases:
+            if the value of `bytes_to_read` is 0, it'll be interpreted as
+            download all contents until the end of the file from `start_byte`.
+            Examples:
+                * (0, 0, buffer) : downloads 0 to end , i.e. entire object.
+                * (100, 0, buffer) : downloads from 100 to end.
+
+
         :type lock: asyncio.Lock
         :param lock: (Optional) An asyncio lock to synchronize sends and recvs
             on the underlying bidi-GRPC stream. This is required when multiple

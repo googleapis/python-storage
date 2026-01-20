@@ -47,9 +47,11 @@ async def storage_finalize_appendable_object_upload(
     await writer.append(b"Some data")
 
     # finalize the appendable object,
-    # NOTE: once finalized no more appends can be done to the object.
-    # if you don't want to finalize, you can simply close the writer as
-    # shown in `storage_create_and_write_appendable_object.py` snippet.
+    # NOTE:
+    # 1. once finalized no more appends can be done to the object.
+    # 2. If you don't want to finalize, you can simply call `writer.close`
+    # 3. calling `.finalize()` also closes the grpc-bidi stream, calling
+    #   `.close` after `.finalize` may lead to undefined behavior.
     object_resource = await writer.finalize()
 
     print(f"Appendable object {object_name} created and finalized.")
