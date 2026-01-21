@@ -36,6 +36,7 @@ class _BidiStreamRetryManager:
                 bidi operation (e.g., reads or writes).
             send_and_recv: An async callable that opens a new gRPC stream.
         """
+        print("Initializing _BidiStreamRetryManager.")
         self._strategy = strategy
         self._send_and_recv = send_and_recv
 
@@ -47,9 +48,11 @@ class _BidiStreamRetryManager:
             retry_policy: The `google.api_core.retry.AsyncRetry` object to
                 govern the retry behavior for this specific operation.
         """
+        print(f"Executing bidi stream with initial_state: {initial_state}")
         state = initial_state
 
         async def attempt():
+            print("New attempt for bidi stream operation.")
             requests_generator = self._strategy.generate_requests(state)
             stream = self._send_and_recv(requests_generator, state)
             try:
@@ -58,7 +61,7 @@ class _BidiStreamRetryManager:
                 return
             except Exception as e:
                 if retry_policy._predicate(e):
-                    logger.info(
+                    print(
                         f"Bidi stream operation failed: {e}. Attempting state recovery and retry."
                     )
                     await self._strategy.recover_state_on_failure(e, state)

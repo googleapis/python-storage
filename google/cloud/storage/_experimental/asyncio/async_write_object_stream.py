@@ -74,6 +74,7 @@ class _AsyncWriteObjectStream(_AsyncAbstractObjectStream):
         write_handle: Optional[bytes] = None,
         routing_token: Optional[str] = None,
     ) -> None:
+        print(f"in _AsyncWriteObjectStream __init__: object_name={object_name}")
         if client is None:
             raise ValueError("client must be provided")
         if bucket_name is None:
@@ -115,6 +116,7 @@ class _AsyncWriteObjectStream(_AsyncAbstractObjectStream):
         :raises google.api_core.exceptions.FailedPrecondition:
             if `generation_number` is 0 and object already exists.
         """
+        print(f"in _AsyncWriteObjectStream open: object_name={self.object_name}")
         if self._is_stream_open:
             raise ValueError("Stream is already open")
 
@@ -148,6 +150,7 @@ class _AsyncWriteObjectStream(_AsyncAbstractObjectStream):
                     routing_token=self.routing_token if self.routing_token else None,
                 ),
             )
+        print(f"in _AsyncWriteObjectStream open: first_bidi_write_req={self.first_bidi_write_req}")
 
         request_params = [f"bucket={self._full_bucket_name}"]
         other_metadata = []
@@ -168,7 +171,9 @@ class _AsyncWriteObjectStream(_AsyncAbstractObjectStream):
         )
 
         await self.socket_like_rpc.open()  # this is actually 1 send
+        print(f"in _AsyncWriteObjectStream open: rpc opened")
         response = await self.socket_like_rpc.recv()
+        print(f"in _AsyncWriteObjectStream open: received response: {response}")
         self._is_stream_open = True
 
         if response.persisted_size:
@@ -188,6 +193,7 @@ class _AsyncWriteObjectStream(_AsyncAbstractObjectStream):
 
     async def close(self) -> None:
         """Closes the bidi-gRPC connection."""
+        print(f"in _AsyncWriteObjectStream close: object_name={self.object_name}")
         if not self._is_stream_open:
             raise ValueError("Stream is not open")
         await self.requests_done()
@@ -196,7 +202,7 @@ class _AsyncWriteObjectStream(_AsyncAbstractObjectStream):
 
     async def requests_done(self):
         """Signals that all requests have been sent."""
-
+        print(f"in _AsyncWriteObjectStream requests_done: object_name={self.object_name}")
         await self.socket_like_rpc.send(None)
         _utils.update_write_handle_if_exists(self, await self.socket_like_rpc.recv())
 
@@ -210,6 +216,7 @@ class _AsyncWriteObjectStream(_AsyncAbstractObjectStream):
                 The request message to send. This is typically used to specify
                 the read offset and limit.
         """
+        print(f"in _AsyncWriteObjectStream send: sending request: {bidi_write_object_request}")
         if not self._is_stream_open:
             raise ValueError("Stream is not open")
         await self.socket_like_rpc.send(bidi_write_object_request)
@@ -226,7 +233,9 @@ class _AsyncWriteObjectStream(_AsyncAbstractObjectStream):
         """
         if not self._is_stream_open:
             raise ValueError("Stream is not open")
+        print(f"in _AsyncWriteObjectStream recv: receiving response")
         response = await self.socket_like_rpc.recv()
+        print(f"in _AsyncWriteObjectStream recv: received response: {response}")
         # Update write_handle if present in response
         if response:
             if response.write_handle:

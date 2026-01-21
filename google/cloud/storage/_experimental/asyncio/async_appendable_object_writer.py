@@ -265,6 +265,7 @@ class AsyncAppendableObjectWriter:
         :raises ValueError: If the stream is already open.
 
         """
+        print("DEBUG: AsyncAppendableObjectWriter.open() called")
         if self._is_stream_open:
             raise ValueError("Underlying bidi-gRPC stream is already open")
 
@@ -290,6 +291,7 @@ class AsyncAppendableObjectWriter:
             )
 
         async def _do_open():
+            print("DEBUG: AsyncAppendableObjectWriter.open._do_open() called")
             current_metadata = list(metadata) if metadata else []
 
             # Cleanup stream from previous failed attempt, if any.
@@ -310,6 +312,7 @@ class AsyncAppendableObjectWriter:
                 write_handle=self.write_handle,
                 routing_token=self._routing_token,
             )
+            print(f"DEBUG: AsyncAppendableObjectWriter.open._do_open() - created _AsyncWriteObjectStream with routing_token: {self._routing_token}")
 
             if self._routing_token:
                 current_metadata.append(
@@ -319,6 +322,7 @@ class AsyncAppendableObjectWriter:
             await self.write_obj_stream.open(
                 metadata=current_metadata if metadata else None
             )
+            print("DEBUG: AsyncAppendableObjectWriter.open._do_open() - self.write_obj_stream.open() finished")
 
             if self.write_obj_stream.generation_number:
                 self.generation = self.write_obj_stream.generation_number
@@ -329,8 +333,10 @@ class AsyncAppendableObjectWriter:
 
             self._is_stream_open = True
             self._routing_token = None
+            print(f"DEBUG: AsyncAppendableObjectWriter.open._do_open() - stream opened. persisted_size: {self.persisted_size}, write_handle: {self.write_handle}")
 
         await retry_policy(_do_open)()
+        print("DEBUG: AsyncAppendableObjectWriter.open() finished")
 
     async def append(
         self,
@@ -359,6 +365,7 @@ class AsyncAppendableObjectWriter:
 
         :raises ValueError: If the stream is not open.
         """
+        print(f"AsyncAppendableObjectWriter: append() called with {len(data)} bytes")
         if not self._is_stream_open:
             raise ValueError("Stream is not open. Call open() before append().")
         if not data:
@@ -382,6 +389,7 @@ class AsyncAppendableObjectWriter:
                 resp = None
                 async with self._lock:
                     write_state = state["write_state"]
+                    print(f"AsyncAppendableObjectWriter: append - attempt {attempt_count}, write_state: {write_state}")
                     # If this is a retry or redirect, we must re-open the stream
                     if attempt_count > 1 or write_state.routing_token:
                         logger.info(
@@ -421,8 +429,10 @@ class AsyncAppendableObjectWriter:
                         # Check if this is an open/state-lookup request (no checksummed_data)
                         if chunk_req.state_lookup and not chunk_req.checksummed_data:
                             # This is an open request - send it and get response
+                            print(f"AsyncAppendableObjectWriter: append - sending state_lookup request: {chunk_req}")
                             await self.write_obj_stream.send(chunk_req)
                             resp = await self.write_obj_stream.recv()
+                            print(f"AsyncAppendableObjectWriter: append - received state_lookup response: {resp}")
                             
                             # Update state from open response
                             if resp:
@@ -436,10 +446,12 @@ class AsyncAppendableObjectWriter:
                             continue
                         
                         # This is a data request - send it
+                        print(f"AsyncAppendableObjectWriter: append - sending data request: {chunk_req}")
                         await self.write_obj_stream.send(chunk_req)
 
                     # Get final response from the last request (which has state_lookup=True)
                     resp = await self.write_obj_stream.recv()
+                    print(f"AsyncAppendableObjectWriter: append - received final response: {resp}")
                     
                     if resp:
                         if resp.persisted_size is not None:
@@ -461,6 +473,7 @@ class AsyncAppendableObjectWriter:
         write_state.persisted_size = self.persisted_size
         write_state.bytes_sent = self.persisted_size
         write_state.bytes_since_last_flush = self.bytes_appended_since_last_flush
+        print(f"AsyncAppendableObjectWriter: append - initial write_state: {write_state}")
 
         retry_manager = _BidiStreamRetryManager(
             _WriteResumptionStrategy(),
@@ -474,6 +487,7 @@ class AsyncAppendableObjectWriter:
         self.bytes_appended_since_last_flush = write_state.bytes_since_last_flush
         self.persisted_size = write_state.persisted_size
         self.offset = write_state.persisted_size
+        print(f"AsyncAppendableObjectWriter: append - finished. persisted_size: {self.persisted_size}")
 
     async def simple_flush(self) -> None:
         """Flushes the data to the server.
@@ -536,6 +550,7 @@ class AsyncAppendableObjectWriter:
             been called).
 
         """
+        print(f"AsyncAppendableObjectWriter: close() called with finalize_on_close={finalize_on_close}")
         if not self._is_stream_open:
             raise ValueError("Stream is not open. Call open() before close().")
 
@@ -565,6 +580,7 @@ class AsyncAppendableObjectWriter:
         :raises ValueError: If the stream is not open (i.e., `open()` has not
             been called).
         """
+        print("AsyncAppendableObjectWriter: finalize() called")
         if not self._is_stream_open:
             raise ValueError("Stream is not open. Call open() before finalize().")
 
@@ -572,9 +588,11 @@ class AsyncAppendableObjectWriter:
             _storage_v2.BidiWriteObjectRequest(finish_write=True)
         )
         response = await self.write_obj_stream.recv()
+        print(f"AsyncAppendableObjectWriter: finalize - received response: {response}")
         self.object_resource = response.resource
         self.persisted_size = self.object_resource.size
         await self.write_obj_stream.close()
+        print("AsyncAppendableObjectWriter: finalize - stream closed")
 
         self._is_stream_open = False
         self.offset = None
