@@ -54,6 +54,7 @@ class _WriteState:
         )
         self.chunk_size = chunk_size
         self.user_buffer = user_buffer
+        self.total_size = self.user_buffer.getbuffer().nbytes
         self.persisted_size: int = 0
         self.bytes_sent: int = 0
         self.bytes_since_last_flush: int = 0
@@ -109,11 +110,10 @@ class _WriteResumptionStrategy(_BaseResumptionStrategy):
             if not chunk:
                 break
 
-            # Peek to see if this is the last chunk. This is safe because both
-            # io.BytesIO and BufferedReader (used in file uploads) support peek().
-            is_last_chunk = not getattr(write_state.user_buffer, "peek", lambda n: b"")(
-                1
-            )
+            chunk_len = len(chunk)
+            is_last_chunk = (
+                write_state.bytes_sent + chunk_len
+            ) == write_state.total_size
 
             checksummed_data = storage_type.ChecksummedData(content=chunk)
             checksum = google_crc32c.Checksum(chunk)
@@ -123,24 +123,25 @@ class _WriteResumptionStrategy(_BaseResumptionStrategy):
                 write_offset=write_state.bytes_sent,
                 checksummed_data=checksummed_data,
             )
-            chunk_len = len(chunk)
+
             write_state.bytes_sent += chunk_len
             write_state.bytes_since_last_flush += chunk_len
             print(f"Yielding request with offset: {request.write_offset}")
 
-            if (
+            is_flush_point = (
                 write_state.flush_interval
                 and write_state.bytes_since_last_flush >= write_state.flush_interval
-            ):
-                request.flush = True
-                print("Marking request with flush=True")
-                # reset counter after marking flush
-                write_state.bytes_since_last_flush = 0
+            )
 
             if is_last_chunk:
                 request.flush = True
                 request.state_lookup = True
+                write_state.bytes_since_last_flush = 0
                 print("Marking request with flush=True and state_lookup=True")
+            elif is_flush_point:
+                request.flush = True
+                write_state.bytes_since_last_flush = 0
+                print("Marking request with flush=True")
 
             yield request
 

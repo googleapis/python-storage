@@ -173,7 +173,7 @@ class _AsyncWriteObjectStream(_AsyncAbstractObjectStream):
         await self.socket_like_rpc.open()  # this is actually 1 send
         print(f"in _AsyncWriteObjectStream open: rpc opened")
         response = await self.socket_like_rpc.recv()
-        print(f"in _AsyncWriteObjectStream open: received response: {response}")
+        print(f"in _AsyncWriteObjectStream open: received response:")
         self._is_stream_open = True
 
         if response.persisted_size:
@@ -216,7 +216,7 @@ class _AsyncWriteObjectStream(_AsyncAbstractObjectStream):
                 The request message to send. This is typically used to specify
                 the read offset and limit.
         """
-        print(f"in _AsyncWriteObjectStream send: sending request: {bidi_write_object_request}")
+        print(f"in _AsyncWriteObjectStream send: sending request")
         if not self._is_stream_open:
             raise ValueError("Stream is not open")
         await self.socket_like_rpc.send(bidi_write_object_request)
@@ -235,7 +235,7 @@ class _AsyncWriteObjectStream(_AsyncAbstractObjectStream):
             raise ValueError("Stream is not open")
         print(f"in _AsyncWriteObjectStream recv: receiving response")
         response = await self.socket_like_rpc.recv()
-        print(f"in _AsyncWriteObjectStream recv: received response: {response}")
+        print(f"in _AsyncWriteObjectStream recv: received response")
         # Update write_handle if present in response
         if response:
             if response.write_handle:

@@ -432,8 +432,8 @@ class AsyncAppendableObjectWriter:
                             print(f"AsyncAppendableObjectWriter: append - sending state_lookup request: {chunk_req}")
                             await self.write_obj_stream.send(chunk_req)
                             resp = await self.write_obj_stream.recv()
-                            print(f"AsyncAppendableObjectWriter: append - received state_lookup response: {resp}")
-                            
+                            print(f"AsyncAppendableObjectWriter: append - received state_lookup response")
+
                             # Update state from open response
                             if resp:
                                 if resp.persisted_size is not None:
@@ -444,15 +444,15 @@ class AsyncAppendableObjectWriter:
                                     self.write_handle = resp.write_handle
                                     write_state.write_handle = resp.write_handle
                             continue
-                        
+
                         # This is a data request - send it
-                        print(f"AsyncAppendableObjectWriter: append - sending data request: {chunk_req}")
+                        print(f"AsyncAppendableObjectWriter: append - sending data request:")
                         await self.write_obj_stream.send(chunk_req)
 
                     # Get final response from the last request (which has state_lookup=True)
                     resp = await self.write_obj_stream.recv()
-                    print(f"AsyncAppendableObjectWriter: append - received final response: {resp}")
-                    
+                    print(f"AsyncAppendableObjectWriter: append - received final response")
+
                     if resp:
                         if resp.persisted_size is not None:
                             self.persisted_size = resp.persisted_size
