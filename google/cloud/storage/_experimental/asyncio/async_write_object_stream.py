@@ -47,8 +47,17 @@ class _AsyncWriteObjectStream(_AsyncAbstractObjectStream):
     :param object_name: The name of the GCS ``Appendable Object`` to be write.
 
     :type generation_number: int
-    :param generation_number: (Optional) If present, selects a specific revision of
-                              this object. If None, a new object is created.
+    :param generation_number: (Optional) If present, creates writer for that
+        specific revision of that object. Use this to append data to an
+        existing Appendable Object.
+
+        Setting to ``0`` makes the `writer.open()` succeed only if
+        object doesn't exist in the bucket (useful for not accidentally
+        overwriting existing objects).
+
+        Warning: If `None`, a new object is created. If an object with the
+        same name already exists, it will be overwritten the moment
+        `writer.open()` is called.
 
     :type write_handle: bytes
     :param write_handle: (Optional) An existing handle for writing the object.
@@ -92,8 +101,16 @@ class _AsyncWriteObjectStream(_AsyncAbstractObjectStream):
         self.object_resource: Optional[_storage_v2.Object] = None
 
     async def open(self) -> None:
-        """Opening an object for write , should do it's state lookup
-        to know what's the persisted size is.
+        """
+        Opens the bidi-gRPC connection to write to the object.
+
+        This method sends an initial request to start the stream and receives
+        the first response containing metadata and a write handle.
+
+        :rtype: None
+        :raises ValueError: If the stream is already open.
+        :raises google.api_core.exceptions.FailedPrecondition: 
+            if `generation_number` is 0 and object already exists.
         """
         if self._is_stream_open:
             raise ValueError("Stream is already open")
@@ -101,13 +118,16 @@ class _AsyncWriteObjectStream(_AsyncAbstractObjectStream):
         # Create a new object or overwrite existing one if generation_number
         # is None. This makes it consistent with GCS JSON API behavior.
         # Created object type would be Appendable Object.
-        if self.generation_number is None:
+        # if `generation_number` == 0 new object will be created only if there
+        # isn't any existing object.
+        if self.generation_number is None or self.generation_number == 0:
             self.first_bidi_write_req = _storage_v2.BidiWriteObjectRequest(
                 write_object_spec=_storage_v2.WriteObjectSpec(
                     resource=_storage_v2.Object(
                         name=self.object_name, bucket=self._full_bucket_name
                     ),
                     appendable=True,
+                    if_generation_match=self.generation_number,
                 ),
             )
         else:
@@ -118,7 +138,6 @@ class _AsyncWriteObjectStream(_AsyncAbstractObjectStream):
                     generation=self.generation_number,
                 ),
             )
-
         self.socket_like_rpc = AsyncBidiRpc(
             self.rpc, initial_request=self.first_bidi_write_req, metadata=self.metadata
         )
@@ -152,8 +171,15 @@ class _AsyncWriteObjectStream(_AsyncAbstractObjectStream):
         """Closes the bidi-gRPC connection."""
         if not self._is_stream_open:
             raise ValueError("Stream is not open")
+        await self.requests_done()
         await self.socket_like_rpc.close()
         self._is_stream_open = False
+
+    async def requests_done(self):
+        """Signals that all requests have been sent."""
+
+        await self.socket_like_rpc.send(None)
+        await self.socket_like_rpc.recv()
 
     async def send(
         self, bidi_write_object_request: _storage_v2.BidiWriteObjectRequest
@@ -186,3 +212,4 @@ class _AsyncWriteObjectStream(_AsyncAbstractObjectStream):
     @property
     def is_stream_open(self) -> bool:
         return self._is_stream_open
+
