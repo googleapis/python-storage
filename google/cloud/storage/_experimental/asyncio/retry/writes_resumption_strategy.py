@@ -49,9 +49,6 @@ class _WriteState:
         user_buffer: IO[bytes],
         flush_interval: Optional[int] = None,
     ):
-        print(
-            f"Initializing _WriteState with chunk_size: {chunk_size}, flush_interval: {flush_interval}"
-        )
         self.chunk_size = chunk_size
         self.user_buffer = user_buffer
         self.total_size = self.user_buffer.getbuffer().nbytes
@@ -89,7 +86,6 @@ class _WriteResumptionStrategy(_BaseResumptionStrategy):
         to ensure the server persists the final data and returns the updated state.
         """
         write_state: _WriteState = state["write_state"]
-        print(f"Generating requests with state: {write_state}")
 
         # If this is a retry/redirect, yield a state lookup request first
         # This allows the sender to get current persisted_size before proceeding
@@ -98,14 +94,12 @@ class _WriteResumptionStrategy(_BaseResumptionStrategy):
             or write_state.bytes_sent > write_state.persisted_size
         ):
             # Yield an open/state-lookup request with no data
-            print("Yielding state_lookup request.")
             yield storage_type.BidiWriteObjectRequest(state_lookup=True)
 
         # The buffer should already be seeked to the correct position (persisted_size)
         # by the `recover_state_on_failure` method before this is called.
         while not write_state.is_finalized:
             chunk = write_state.user_buffer.read(write_state.chunk_size)
-            print(f"Read chunk of size: {len(chunk)}")
 
             if not chunk:
                 break
@@ -126,7 +120,6 @@ class _WriteResumptionStrategy(_BaseResumptionStrategy):
 
             write_state.bytes_sent += chunk_len
             write_state.bytes_since_last_flush += chunk_len
-            print(f"Yielding request with offset: {request.write_offset}")
 
             is_flush_point = (
                 write_state.flush_interval
@@ -137,11 +130,9 @@ class _WriteResumptionStrategy(_BaseResumptionStrategy):
                 request.flush = True
                 request.state_lookup = True
                 write_state.bytes_since_last_flush = 0
-                print("Marking request with flush=True and state_lookup=True")
             elif is_flush_point:
                 request.flush = True
                 write_state.bytes_since_last_flush = 0
-                print("Marking request with flush=True")
 
             yield request
 
@@ -150,7 +141,6 @@ class _WriteResumptionStrategy(_BaseResumptionStrategy):
     ) -> None:
         """Processes a server response and updates the write state."""
         write_state: _WriteState = state["write_state"]
-        print(f"Updating state from response: {response}")
         if response is None:
             return
         if response.persisted_size:
@@ -163,7 +153,6 @@ class _WriteResumptionStrategy(_BaseResumptionStrategy):
             write_state.persisted_size = response.resource.size
             if response.resource.finalize_time:
                 write_state.is_finalized = True
-        print(f"New state: {write_state}")
 
     async def recover_state_on_failure(
         self, error: Exception, state: Dict[str, Any]
@@ -174,7 +163,6 @@ class _WriteResumptionStrategy(_BaseResumptionStrategy):
         This method rewinds the user buffer and internal byte tracking to the
         last confirmed 'persisted_size' from the server.
         """
-        print(f"Recovering from error: {error}")
         write_state: _WriteState = state["write_state"]
 
         redirect_proto = None
@@ -193,9 +181,7 @@ class _WriteResumptionStrategy(_BaseResumptionStrategy):
 
         # We must assume any data sent beyond 'persisted_size' was lost.
         # Reset the user buffer to the last known good byte confirmed by the server.
-        print(f"Seeking buffer to: {write_state.persisted_size}")
         write_state.user_buffer.seek(write_state.persisted_size)
         write_state.bytes_sent = write_state.persisted_size
         write_state.bytes_since_last_flush = 0
-        print(f"Recovered state: {write_state}")
 
