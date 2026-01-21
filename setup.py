@@ -74,7 +74,7 @@ extras = {
         "coverage",
         "pyopenssl",
         "opentelemetry-sdk",
-        "flake8"
+        "flake8",
         "black"
     ],
 }
