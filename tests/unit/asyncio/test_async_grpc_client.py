@@ -32,16 +32,18 @@ def _make_credentials(spec=None):
 class TestAsyncGrpcClient(unittest.TestCase):
     @mock.patch("google.cloud._storage_v2.StorageAsyncClient")
     def test_constructor_default_options(self, mock_async_storage_client):
-
+        # Arrange
         mock_transport_cls = mock.MagicMock()
         mock_async_storage_client.get_transport_class.return_value = mock_transport_cls
         mock_creds = _make_credentials()
 
-        async_grpc_client.AsyncGrpcClient(credentials=mock_creds)
-
         primary_user_agent = DEFAULT_CLIENT_INFO.to_user_agent()
         expected_options = (("grpc.primary_user_agent", primary_user_agent),)
 
+        # Act
+        async_grpc_client.AsyncGrpcClient(credentials=mock_creds)
+
+        # Assert
         mock_async_storage_client.get_transport_class.assert_called_once_with(
             "grpc_asyncio"
         )

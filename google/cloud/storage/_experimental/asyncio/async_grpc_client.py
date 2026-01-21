@@ -33,7 +33,7 @@ class AsyncGrpcClient:
         The client info used to send a user-agent string along with API
         requests. If ``None``, then default info will be used.
 
-    :type client_options: :class:`~google.api_core.client_options.ClientOptions` or :class:`dict`
+    :type client_options: :class:`~google.api_core.client_options.ClientOptions`
     :param client_options: (Optional) Client options used to set user options
         on the client.
 
