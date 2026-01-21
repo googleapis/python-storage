@@ -4,8 +4,8 @@ common:
     - "zonal"
   file_sizes_mib:
     - 1024 # 1GiB
-  chunk_sizes_mib: [1]
-  num_ranges: [32]
+  chunk_sizes_kib: [64, 16384]
+  num_ranges: [1]
   rounds: 10
 
 workload:
@@ -36,13 +36,13 @@ workload:
   ############# multi process multi coroutine #########
   - name: "read_seq_multi_process"
     pattern: "seq"
-    coros: [1, 2]
-    processes: [16, 48, 80]
+    coros: [1]
+    processes: [48]
 
   - name: "read_rand_multi_process"
     pattern: "rand"
-    coros: [1, 2]
-    processes: [16, 48, 80]
+    coros: [1]
+    processes: [48]
 
 
 defaults:

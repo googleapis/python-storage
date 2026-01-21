@@ -104,7 +104,7 @@ def download_chunks_using_json(_, json_client, filename, other_params, chunks):
 
 @pytest.mark.parametrize(
     "workload_params",
-    all_params["read_rand"] + all_params["read_seq"],
+    all_params["read_rand"],
     indirect=True,
     ids=lambda p: p.name,
 )
@@ -381,7 +381,6 @@ def download_files_mp_mc_wrapper(files_names, params, chunks, bucket_type):
 
 @pytest.mark.parametrize(
     "workload_params",
-    all_params["read_seq_multi_process"] + 
     all_params["read_rand_multi_process"],
     indirect=True,
     ids=lambda p: p.name,

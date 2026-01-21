@@ -50,7 +50,7 @@ def _get_params() -> Dict[str, List[ReadParameters]]:
     common_params = config["common"]
     bucket_types = common_params["bucket_types"]
     file_sizes_mib = common_params["file_sizes_mib"]
-    chunk_sizes_mib = common_params["chunk_sizes_mib"]
+    chunk_sizes_kib = common_params["chunk_sizes_kib"]
     num_ranges = common_params.get("num_ranges", [1])
     rounds = common_params["rounds"]
 
@@ -74,7 +74,7 @@ def _get_params() -> Dict[str, List[ReadParameters]]:
         product = itertools.product(
             bucket_types,
             file_sizes_mib,
-            chunk_sizes_mib,
+            chunk_sizes_kib,
             processes,
             coros,
             num_ranges,
@@ -83,7 +83,7 @@ def _get_params() -> Dict[str, List[ReadParameters]]:
         for (
             bucket_type,
             file_size_mib,
-            chunk_size_mib,
+            chunk_size_kib,
             num_processes,
             num_coros,
             num_range,
@@ -93,7 +93,7 @@ def _get_params() -> Dict[str, List[ReadParameters]]:
                 continue
 
             file_size_bytes = file_size_mib * 1024 * 1024
-            chunk_size_bytes = chunk_size_mib * 1024 * 1024
+            chunk_size_bytes = chunk_size_kib * 1024
             bucket_name = bucket_map[bucket_type]
 
             num_files = num_processes * num_coros
