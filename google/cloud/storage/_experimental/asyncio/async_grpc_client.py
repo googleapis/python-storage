@@ -15,6 +15,9 @@
 """An async client for interacting with Google Cloud Storage using the gRPC API."""
 
 from google.cloud import _storage_v2 as storage_v2
+from google.cloud._storage_v2.services.storage.transports.base import (
+    DEFAULT_CLIENT_INFO,
+)
 
 
 class AsyncGrpcClient:
@@ -39,7 +42,8 @@ class AsyncGrpcClient:
         (Optional) Whether to attempt to use DirectPath for gRPC connections.
         Defaults to ``True``.
     """
-
+    # current scenario: Whatever client_info the users send , you're sending then to end user.
+    # ie. None.
     def __init__(
         self,
         credentials=None,
@@ -65,8 +69,15 @@ class AsyncGrpcClient:
         transport_cls = storage_v2.StorageAsyncClient.get_transport_class(
             "grpc_asyncio"
         )
+
+        if client_info is None:
+            client_info = DEFAULT_CLIENT_INFO
+        primary_user_agent = client_info.to_user_agent()
+
         channel = transport_cls.create_channel(
-            attempt_direct_path=attempt_direct_path, credentials=credentials
+            attempt_direct_path=attempt_direct_path,
+            credentials=credentials,
+            options=(("grpc.primary_user_agent", primary_user_agent),),
         )
         transport = transport_cls(channel=channel)
 
