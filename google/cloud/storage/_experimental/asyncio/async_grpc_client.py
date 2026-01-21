@@ -42,8 +42,6 @@ class AsyncGrpcClient:
         (Optional) Whether to attempt to use DirectPath for gRPC connections.
         Defaults to ``True``.
     """
-    # current scenario: Whatever client_info the users send , you're sending then to end user.
-    # ie. None.
     def __init__(
         self,
         credentials=None,
