@@ -266,8 +266,41 @@ def test_read_unfinalized_appendable_object(
     event_loop.run_until_complete(_run())
 
 
-@pytest.mark.skip(reason="failing")
-def test_mrd_open_with_read_handle(event_loop, grpc_client):
+def test_mrd_open_with_read_handle(event_loop, grpc_client_direct):
+    object_name = f"test_read_handl-{str(uuid.uuid4())[:4]}"
+
+    async def _run():
+        writer = AsyncAppendableObjectWriter(
+            grpc_client_direct, _ZONAL_BUCKET, object_name
+        )
+        await writer.open()
+        await writer.append(_BYTES_TO_UPLOAD)
+        await writer.close()
+
+        mrd = AsyncMultiRangeDownloader(grpc_client_direct, _ZONAL_BUCKET, object_name)
+        await mrd.open()
+        read_handle = mrd.read_handle
+        await mrd.close()
+
+        # Open a new MRD using the `read_handle` obtained above
+        new_mrd = AsyncMultiRangeDownloader(
+            grpc_client_direct, _ZONAL_BUCKET, object_name, read_handle=read_handle
+        )
+        await new_mrd.open()
+        # persisted_size not set when opened with read_handle
+        assert new_mrd.persisted_size is None
+        buffer = BytesIO()
+        await new_mrd.download_ranges([(0, 0, buffer)])
+        await new_mrd.close()
+        assert buffer.getvalue() == _BYTES_TO_UPLOAD
+        del mrd
+        del new_mrd
+        gc.collect()
+
+    event_loop.run_until_complete(_run())
+
+
+def test_mrd_open_with_read_handle_over_cloud_path(event_loop, grpc_client):
     object_name = f"test_read_handl-{str(uuid.uuid4())[:4]}"
 
     async def _run():
@@ -280,17 +313,15 @@ def test_mrd_open_with_read_handle(event_loop, grpc_client):
         await mrd.open()
         read_handle = mrd.read_handle
         await mrd.close()
-        print("*" * 88)
-        print(mrd.read_handle)
-        print("*" * 88)
 
         # Open a new MRD using the `read_handle` obtained above
         new_mrd = AsyncMultiRangeDownloader(
             grpc_client, _ZONAL_BUCKET, object_name, read_handle=read_handle
         )
         await new_mrd.open()
-        # persisted_size not set when opened with read_handle
-        assert new_mrd.persisted_size is None
+        # persisted_size is set regardless of whether we use read_handle or not
+        # because read_handle won't work in CLOUD_PATH.
+        assert new_mrd.persisted_size == len(_BYTES_TO_UPLOAD)
         buffer = BytesIO()
         await new_mrd.download_ranges([(0, 0, buffer)])
         await new_mrd.close()
