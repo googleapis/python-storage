@@ -59,7 +59,7 @@ class _AsyncWriteObjectStream(_AsyncAbstractObjectStream):
         same name already exists, it will be overwritten the moment
         `writer.open()` is called.
 
-    :type write_handle: bytes
+    :type write_handle: _storage_v2.BidiWriteHandle
     :param write_handle: (Optional) An existing handle for writing the object.
                         If provided, opening the bidi-gRPC connection will be faster.
     """
@@ -70,7 +70,7 @@ class _AsyncWriteObjectStream(_AsyncAbstractObjectStream):
         bucket_name: str,
         object_name: str,
         generation_number: Optional[int] = None,  # None means new object
-        write_handle: Optional[bytes] = None,
+        write_handle: Optional[_storage_v2.BidiWriteHandle] = None,
     ) -> None:
         if client is None:
             raise ValueError("client must be provided")
@@ -85,7 +85,7 @@ class _AsyncWriteObjectStream(_AsyncAbstractObjectStream):
             generation_number=generation_number,
         )
         self.client: AsyncGrpcClient.grpc_client = client
-        self.write_handle: Optional[bytes] = write_handle
+        self.write_handle: Optional[_storage_v2.BidiWriteHandle] = write_handle
 
         self._full_bucket_name = f"projects/_/buckets/{self.bucket_name}"
 
@@ -212,4 +212,3 @@ class _AsyncWriteObjectStream(_AsyncAbstractObjectStream):
     @property
     def is_stream_open(self) -> bool:
         return self._is_stream_open
-
