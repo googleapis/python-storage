@@ -96,7 +96,7 @@ class AsyncAppendableObjectWriter:
         :type object_name: str
         :param object_name: The name of the GCS Appendable Object to be written.
 
-        :type generation: int
+        :type generation: Optional[int]
         :param generation: (Optional) If present, creates writer for that
             specific revision of that object. Use this to append data to an
             existing Appendable Object.
