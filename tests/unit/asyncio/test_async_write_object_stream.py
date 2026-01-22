@@ -24,9 +24,9 @@ from google.cloud import _storage_v2
 BUCKET = "my-bucket"
 OBJECT = "my-object"
 GENERATION = 12345
-WRITE_HANDLE = b"test-handle"
+WRITE_HANDLE_BYTES = b"test-handle"
 NEW_WRITE_HANDLE_BYTES = b"new-test-handle"
-WRITE_HANDLE_PROTO = _storage_v2.BidiWriteHandle(handle=WRITE_HANDLE)
+WRITE_HANDLE_PROTO = _storage_v2.BidiWriteHandle(handle=WRITE_HANDLE_BYTES)
 NEW_WRITE_HANDLE_PROTO = _storage_v2.BidiWriteHandle(handle=NEW_WRITE_HANDLE_BYTES)
 
 
@@ -510,7 +510,7 @@ async def test_open_for_existing_object_with_none_size(
     mock_response.resource = mock.MagicMock(spec=_storage_v2.Object)
     mock_response.resource.size = None
     mock_response.resource.generation = GENERATION
-    mock_response.write_handle = WRITE_HANDLE
+    mock_response.write_handle = WRITE_HANDLE_PROTO
     socket_like_rpc.recv = mock.AsyncMock(return_value=mock_response)
 
     stream = _AsyncWriteObjectStream(
