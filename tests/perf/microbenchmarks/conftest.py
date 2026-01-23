@@ -26,7 +26,6 @@ from google.cloud.storage._experimental.asyncio.async_appendable_object_writer i
     AsyncAppendableObjectWriter,
 )
 from google.cloud.storage._experimental.asyncio.async_grpc_client import AsyncGrpcClient
-from tests.perf.microbenchmarks.writes.parameters import WriteParameters
 
 _OBJECT_NAME_PREFIX = "micro-benchmark"
 
@@ -136,16 +135,10 @@ def _create_files(num_files, bucket_name, bucket_type, object_size, chunk_size=1
 @pytest.fixture
 def workload_params(request):
     params = request.param
-    if isinstance(params, WriteParameters):
-        files_names = [
-            f"{_OBJECT_NAME_PREFIX}-{uuid.uuid4().hex[:5]}"
-            for _ in range(params.num_files)
-        ]
-    else:
-        files_names = _create_files(
-            params.num_files,
-            params.bucket_name,
-            params.bucket_type,
-            params.file_size_bytes,
-        )
+    files_names = _create_files(
+        params.num_files,
+        params.bucket_name,
+        params.bucket_type,
+        params.file_size_bytes,
+    )
     return params, files_names

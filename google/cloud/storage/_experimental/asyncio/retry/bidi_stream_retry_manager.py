@@ -50,8 +50,8 @@ class _BidiStreamRetryManager:
         state = initial_state
 
         async def attempt():
-            requests_generator = self._strategy.generate_requests(state)
-            stream = self._send_and_recv(requests_generator, state)
+            requests = self._strategy.generate_requests(state)
+            stream = self._send_and_recv(requests, state)
             try:
                 async for response in stream:
                     self._strategy.update_state_from_response(response, state)

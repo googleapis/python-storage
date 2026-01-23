@@ -36,7 +36,7 @@ from google.cloud._storage_v2.types import BidiWriteObjectRedirectedError
 from google.cloud._storage_v2.types.storage import BidiWriteObjectRequest
 
 
-from . import _utils
+from ._utils import raise_if_no_fast_crc32c
 from google.cloud import _storage_v2
 from google.cloud.storage._experimental.asyncio.async_grpc_client import (
     AsyncGrpcClient,
@@ -117,8 +117,8 @@ class AsyncAppendableObjectWriter:
         client: AsyncGrpcClient.grpc_client,
         bucket_name: str,
         object_name: str,
-        generation: Optional[int] = None,
-        write_handle: Optional[_storage_v2.BidiWriteHandle] = None,
+        generation=None,
+        write_handle=None,
         writer_options: Optional[dict] = None,
     ):
         """
@@ -164,7 +164,7 @@ class AsyncAppendableObjectWriter:
         :type object_name: str
         :param object_name: The name of the GCS Appendable Object to be written.
 
-        :type generation: Optional[int]
+        :type generation: int
         :param generation: (Optional) If present, creates writer for that
             specific revision of that object. Use this to append data to an
             existing Appendable Object.
@@ -174,10 +174,10 @@ class AsyncAppendableObjectWriter:
             overwriting existing objects).
 
             Warning: If `None`, a new object is created. If an object with the
-            same name already exists, it will be overwritten the moment
+            same name already exists, it will be overwritten the moment 
             `writer.open()` is called.
 
-        :type write_handle: _storage_v2.BidiWriteHandle
+        :type write_handle: bytes
         :param write_handle: (Optional) An handle for writing the object.
             If provided, opening the bidi-gRPC connection will be faster.
 
@@ -189,7 +189,7 @@ class AsyncAppendableObjectWriter:
                 servers. Default is `_DEFAULT_FLUSH_INTERVAL_BYTES`.
                 Must be a multiple of `_MAX_CHUNK_SIZE_BYTES`.
         """
-        _utils.raise_if_no_fast_crc32c()
+        raise_if_no_fast_crc32c()
         self.client = client
         self.bucket_name = bucket_name
         self.object_name = object_name
@@ -372,12 +372,13 @@ class AsyncAppendableObjectWriter:
         attempt_count = 0
 
         def send_and_recv_generator(
-            requests_generator,
+            requests: List[BidiWriteObjectRequest],
             state: dict[str, _WriteState],
             metadata: Optional[List[Tuple[str, str]]] = None,
         ):
             async def generator():
                 nonlocal attempt_count
+                nonlocal requests
                 attempt_count += 1
                 resp = None
                 async with self._lock:
@@ -414,33 +415,16 @@ class AsyncAppendableObjectWriter:
                         write_state.bytes_sent = write_state.persisted_size
                         write_state.bytes_since_last_flush = 0
 
-                    # Process requests from the generator
-                    # Strategy handles state_lookup and flush on the last request,
-                    # so we just stream requests directly
-                    for chunk_req in requests_generator:
-                        # Check if this is an open/state-lookup request (no checksummed_data)
-                        if chunk_req.state_lookup and not chunk_req.checksummed_data:
-                            # This is an open request - send it and get response
-                            await self.write_obj_stream.send(chunk_req)
-                            resp = await self.write_obj_stream.recv()
+                        requests = strategy.generate_requests(state)
 
-                            # Update state from open response
-                            if resp:
-                                if resp.persisted_size is not None:
-                                    self.persisted_size = resp.persisted_size
-                                    write_state.persisted_size = resp.persisted_size
-                                    self.offset = self.persisted_size
-                                if resp.write_handle:
-                                    self.write_handle = resp.write_handle
-                                    write_state.write_handle = resp.write_handle
-                            continue
-
-                        # This is a data request - send it
+                    num_requests = len(requests)
+                    for i, chunk_req in enumerate(requests):
+                        if i == num_requests - 1:
+                            chunk_req.state_lookup = True
+                            chunk_req.flush = True
                         await self.write_obj_stream.send(chunk_req)
 
-                    # Get final response from the last request (which has state_lookup=True)
                     resp = await self.write_obj_stream.recv()
-
                     if resp:
                         if resp.persisted_size is not None:
                             self.persisted_size = resp.persisted_size
@@ -583,6 +567,7 @@ class AsyncAppendableObjectWriter:
     @property
     def is_stream_open(self) -> bool:
         return self._is_stream_open
+
 
     # helper methods.
     async def append_from_string(self, data: str):

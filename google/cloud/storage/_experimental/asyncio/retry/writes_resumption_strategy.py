@@ -51,7 +51,6 @@ class _WriteState:
     ):
         self.chunk_size = chunk_size
         self.user_buffer = user_buffer
-        self.total_size = self.user_buffer.getbuffer().nbytes
         self.persisted_size: int = 0
         self.bytes_sent: int = 0
         self.bytes_since_last_flush: int = 0
@@ -60,54 +59,28 @@ class _WriteState:
         self.routing_token: Optional[str] = None
         self.is_finalized: bool = False
 
-    def __str__(self):
-        return (
-            f"<_WriteState: chunk_size={self.chunk_size}, "
-            f"persisted_size={self.persisted_size}, bytes_sent={self.bytes_sent}, "
-            f"bytes_since_last_flush={self.bytes_since_last_flush}, "
-            f"flush_interval={self.flush_interval}, write_handle={self.write_handle}, "
-            f"routing_token={self.routing_token}, is_finalized={self.is_finalized}>"
-        )
-
 
 class _WriteResumptionStrategy(_BaseResumptionStrategy):
     """The concrete resumption strategy for bidi writes."""
 
-    def generate_requests(self, state: Dict[str, Any]):
+    def generate_requests(
+        self, state: Dict[str, Any]
+    ) -> List[storage_type.BidiWriteObjectRequest]:
         """Generates BidiWriteObjectRequests to resume or continue the upload.
 
-        This method is a generator that yields requests one at a time,
-        allowing for incremental sending and better memory efficiency.
-
-        On retry/redirect, yields a state_lookup request first to get the current
-        persisted state from the server before sending data requests.
-
-        The last data request is always yielded with state_lookup=True and flush=True
-        to ensure the server persists the final data and returns the updated state.
+        This method is not applicable for `open` methods.
         """
         write_state: _WriteState = state["write_state"]
 
-        # If this is a retry/redirect, yield a state lookup request first
-        # This allows the sender to get current persisted_size before proceeding
-        if (
-            write_state.routing_token
-            or write_state.bytes_sent > write_state.persisted_size
-        ):
-            # Yield an open/state-lookup request with no data
-            yield storage_type.BidiWriteObjectRequest(state_lookup=True)
-
+        requests = []
         # The buffer should already be seeked to the correct position (persisted_size)
         # by the `recover_state_on_failure` method before this is called.
         while not write_state.is_finalized:
             chunk = write_state.user_buffer.read(write_state.chunk_size)
 
+            # End of File detection
             if not chunk:
                 break
-
-            chunk_len = len(chunk)
-            is_last_chunk = (
-                write_state.bytes_sent + chunk_len
-            ) == write_state.total_size
 
             checksummed_data = storage_type.ChecksummedData(content=chunk)
             checksum = google_crc32c.Checksum(chunk)
@@ -117,24 +90,20 @@ class _WriteResumptionStrategy(_BaseResumptionStrategy):
                 write_offset=write_state.bytes_sent,
                 checksummed_data=checksummed_data,
             )
-
+            chunk_len = len(chunk)
             write_state.bytes_sent += chunk_len
             write_state.bytes_since_last_flush += chunk_len
 
-            is_flush_point = (
+            if (
                 write_state.flush_interval
                 and write_state.bytes_since_last_flush >= write_state.flush_interval
-            )
-
-            if is_last_chunk:
+            ):
                 request.flush = True
-                request.state_lookup = True
-                write_state.bytes_since_last_flush = 0
-            elif is_flush_point:
-                request.flush = True
+                # reset counter after marking flush
                 write_state.bytes_since_last_flush = 0
 
-            yield request
+            requests.append(request)
+        return requests
 
     def update_state_from_response(
         self, response: storage_type.BidiWriteObjectResponse, state: Dict[str, Any]
@@ -184,4 +153,3 @@ class _WriteResumptionStrategy(_BaseResumptionStrategy):
         write_state.user_buffer.seek(write_state.persisted_size)
         write_state.bytes_sent = write_state.persisted_size
         write_state.bytes_since_last_flush = 0
-

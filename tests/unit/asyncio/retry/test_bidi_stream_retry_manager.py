@@ -139,10 +139,8 @@ class TestBidiStreamRetryManager:
     @pytest.mark.asyncio
     async def test_execute_fails_immediately_on_non_retriable_error(self):
         mock_strategy = mock.AsyncMock(spec=base_strategy._BaseResumptionStrategy)
-        mock_strategy.generate_requests.return_value = iter([])
 
-        async def mock_send_and_recv(strategy, state, **kwargs):
-            strategy.generate_requests(state)
+        async def mock_send_and_recv(*args, **kwargs):
             if False:
                 yield
             raise exceptions.PermissionDenied("Auth error")

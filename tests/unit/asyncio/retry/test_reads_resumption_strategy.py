@@ -109,7 +109,7 @@ class TestReadResumptionStrategy(unittest.TestCase):
         read_state = self._add_download(_READ_ID, offset=0, length=100)
         read_state.bytes_written = 20
 
-        requests = list(self.strategy.generate_requests(self.state))
+        requests = self.strategy.generate_requests(self.state)
 
         self.assertEqual(len(requests), 1)
         self.assertEqual(requests[0].read_offset, 20)
@@ -124,7 +124,7 @@ class TestReadResumptionStrategy(unittest.TestCase):
 
         self._add_download(read_id2, offset=200, length=100)
 
-        requests = list(self.strategy.generate_requests(self.state))
+        requests = self.strategy.generate_requests(self.state)
 
         self.assertEqual(len(requests), 2)
         requests.sort(key=lambda r: r.read_id)
@@ -145,7 +145,7 @@ class TestReadResumptionStrategy(unittest.TestCase):
         read_state = self._add_download(_READ_ID, offset=0, length=0)
         read_state.bytes_written = 500
 
-        requests = list(self.strategy.generate_requests(self.state))
+        requests = self.strategy.generate_requests(self.state)
 
         self.assertEqual(len(requests), 1)
         self.assertEqual(requests[0].read_offset, 500)
@@ -156,7 +156,7 @@ class TestReadResumptionStrategy(unittest.TestCase):
         read_state = self._add_download(_READ_ID)
         read_state.is_complete = True
 
-        requests = list(self.strategy.generate_requests(self.state))
+        requests = self.strategy.generate_requests(self.state)
         self.assertEqual(len(requests), 0)
 
     def test_generate_requests_multiple_mixed_states(self):
@@ -170,7 +170,7 @@ class TestReadResumptionStrategy(unittest.TestCase):
         s3 = self._add_download(3, offset=200, length=100)
         s3.bytes_written = 0
 
-        requests = list(self.strategy.generate_requests(self.state))
+        requests = self.strategy.generate_requests(self.state)
 
         self.assertEqual(len(requests), 2)
         requests.sort(key=lambda r: r.read_id)
@@ -180,7 +180,7 @@ class TestReadResumptionStrategy(unittest.TestCase):
 
     def test_generate_requests_empty_state(self):
         """Test generating requests with an empty state."""
-        requests = list(self.strategy.generate_requests(self.state))
+        requests = self.strategy.generate_requests(self.state)
         self.assertEqual(len(requests), 0)
 
     # --- Update State and response processing Tests ---

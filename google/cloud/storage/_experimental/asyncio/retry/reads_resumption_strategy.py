@@ -49,16 +49,14 @@ class _DownloadState:
 class _ReadResumptionStrategy(_BaseResumptionStrategy):
     """The concrete resumption strategy for bidi reads."""
 
-    def generate_requests(self, state: Dict[str, Any]):
+    def generate_requests(self, state: Dict[str, Any]) -> List[storage_v2.ReadRange]:
         """Generates new ReadRange requests for all incomplete downloads.
-
-        This is a generator that yields requests one at a time for incomplete
-        downloads, allowing for better memory efficiency and incremental processing.
 
         :type state: dict
         :param state: A dictionary mapping a read_id to its corresponding
                   _DownloadState object.
         """
+        pending_requests = []
         download_states: Dict[int, _DownloadState] = state["download_states"]
 
         for read_id, read_state in download_states.items():
@@ -76,7 +74,8 @@ class _ReadResumptionStrategy(_BaseResumptionStrategy):
                     read_length=new_length,
                     read_id=read_id,
                 )
-                yield new_request
+                pending_requests.append(new_request)
+        return pending_requests
 
     def update_state_from_response(
         self, response: storage_v2.BidiReadObjectResponse, state: Dict[str, Any]

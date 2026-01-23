@@ -22,7 +22,6 @@ if you want to use these Rapid Storage APIs.
 
 """
 from typing import List, Optional, Tuple
-from . import _utils
 from google.cloud import _storage_v2
 from google.cloud.storage._experimental.asyncio.async_grpc_client import AsyncGrpcClient
 from google.cloud.storage._experimental.asyncio.async_abstract_object_stream import (
@@ -60,7 +59,7 @@ class _AsyncWriteObjectStream(_AsyncAbstractObjectStream):
         same name already exists, it will be overwritten the moment
         `writer.open()` is called.
 
-    :type write_handle: _storage_v2.BidiWriteHandle
+    :type write_handle: bytes
     :param write_handle: (Optional) An existing handle for writing the object.
                         If provided, opening the bidi-gRPC connection will be faster.
     """
@@ -125,9 +124,6 @@ class _AsyncWriteObjectStream(_AsyncAbstractObjectStream):
         # Created object type would be Appendable Object.
         # if `generation_number` == 0 new object will be created only if there
         # isn't any existing object.
-        is_open_via_write_handle = (
-            self.write_handle is not None and self.generation_number
-        )
         if self.generation_number is None or self.generation_number == 0:
             self.first_bidi_write_req = _storage_v2.BidiWriteObjectRequest(
                 write_object_spec=_storage_v2.WriteObjectSpec(
@@ -196,8 +192,9 @@ class _AsyncWriteObjectStream(_AsyncAbstractObjectStream):
 
     async def requests_done(self):
         """Signals that all requests have been sent."""
+
         await self.socket_like_rpc.send(None)
-        _utils.update_write_handle_if_exists(self, await self.socket_like_rpc.recv())
+        await self.socket_like_rpc.recv()
 
     async def send(
         self, bidi_write_object_request: _storage_v2.BidiWriteObjectRequest
@@ -239,3 +236,4 @@ class _AsyncWriteObjectStream(_AsyncAbstractObjectStream):
     @property
     def is_stream_open(self) -> bool:
         return self._is_stream_open
+

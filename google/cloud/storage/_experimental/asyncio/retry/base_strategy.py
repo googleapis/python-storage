@@ -27,20 +27,16 @@ class _BaseResumptionStrategy(abc.ABC):
     """
 
     @abc.abstractmethod
-    def generate_requests(self, state: Any):
-        """Generates requests based on the current state as a generator.
+    def generate_requests(self, state: Any) -> Iterable[Any]:
+        """Generates the next batch of requests based on the current state.
 
         This method is called at the beginning of each retry attempt. It should
-        inspect the provided state object and yield request protos to send to
-        the server. For example, a read strategy would use this to implement
-        "Smarter Resumption" by creating smaller `ReadRange` requests for
-        partially downloaded ranges. For bidi-writes, it will set the
-        `write_offset` field to the persisted size received from the server
-        in the next request.
-
-        This is a generator that yields requests incrementally rather than
-        returning them all at once, allowing for better memory efficiency
-        and on-demand generation.
+        inspect the provided state object and generate the appropriate list of
+        request protos to send to the server. For example, a read strategy
+        would use this to implement "Smarter Resumption" by creating smaller
+        `ReadRange` requests for partially downloaded ranges. For bidi-writes,
+        it will set the `write_offset` field to the persisted size received
+        from the server in the next request.
 
         :type state: Any
         :param state: An object containing all the state needed for the
