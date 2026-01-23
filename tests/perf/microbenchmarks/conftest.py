@@ -26,6 +26,7 @@ from google.cloud.storage._experimental.asyncio.async_appendable_object_writer i
     AsyncAppendableObjectWriter,
 )
 from google.cloud.storage._experimental.asyncio.async_grpc_client import AsyncGrpcClient
+from tests.perf.microbenchmarks.writes.parameters import WriteParameters
 
 _OBJECT_NAME_PREFIX = "micro-benchmark"
 
@@ -72,7 +73,7 @@ def publish_resource_metrics(benchmark: Any, monitor: ResourceMonitor) -> None:
 
 async def upload_appendable_object(bucket_name, object_name, object_size, chunk_size):
     # flush interval set to little over 1GiB to minimize number of flushes.
-    # this method is to write "appendable" objects which will be used for 
+    # this method is to write "appendable" objects which will be used for
     # benchmarking reads, hence not concerned performance of writes here.
     writer = AsyncAppendableObjectWriter(
         AsyncGrpcClient().grpc_client, bucket_name, object_name, writer_options={"FLUSH_INTERVAL_BYTES": 1026 * 1024 ** 2}
@@ -135,10 +136,16 @@ def _create_files(num_files, bucket_name, bucket_type, object_size, chunk_size=1
 @pytest.fixture
 def workload_params(request):
     params = request.param
-    files_names = _create_files(
-        params.num_files,
-        params.bucket_name,
-        params.bucket_type,
-        params.file_size_bytes,
-    )
+    if isinstance(params, WriteParameters):
+        files_names = [
+            f"{_OBJECT_NAME_PREFIX}-{uuid.uuid4().hex[:5]}"
+            for _ in range(params.num_files)
+        ]
+    else:
+        files_names = _create_files(
+            params.num_files,
+            params.bucket_name,
+            params.bucket_type,
+            params.file_size_bytes,
+        )
     return params, files_names

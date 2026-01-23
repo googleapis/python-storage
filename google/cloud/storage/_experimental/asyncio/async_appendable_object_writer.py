@@ -36,7 +36,7 @@ from google.cloud._storage_v2.types import BidiWriteObjectRedirectedError
 from google.cloud._storage_v2.types.storage import BidiWriteObjectRequest
 
 
-from ._utils import raise_if_no_fast_crc32c
+from . import _utils
 from google.cloud import _storage_v2
 from google.cloud.storage._experimental.asyncio.async_grpc_client import (
     AsyncGrpcClient,
@@ -117,8 +117,8 @@ class AsyncAppendableObjectWriter:
         client: AsyncGrpcClient.grpc_client,
         bucket_name: str,
         object_name: str,
-        generation=None,
-        write_handle=None,
+        generation: Optional[int] = None,
+        write_handle: Optional[_storage_v2.BidiWriteHandle] = None,
         writer_options: Optional[dict] = None,
     ):
         """
@@ -164,7 +164,7 @@ class AsyncAppendableObjectWriter:
         :type object_name: str
         :param object_name: The name of the GCS Appendable Object to be written.
 
-        :type generation: int
+        :type generation: Optional[int]
         :param generation: (Optional) If present, creates writer for that
             specific revision of that object. Use this to append data to an
             existing Appendable Object.
@@ -174,10 +174,10 @@ class AsyncAppendableObjectWriter:
             overwriting existing objects).
 
             Warning: If `None`, a new object is created. If an object with the
-            same name already exists, it will be overwritten the moment 
+            same name already exists, it will be overwritten the moment
             `writer.open()` is called.
 
-        :type write_handle: bytes
+        :type write_handle: _storage_v2.BidiWriteHandle
         :param write_handle: (Optional) An handle for writing the object.
             If provided, opening the bidi-gRPC connection will be faster.
 
@@ -189,7 +189,7 @@ class AsyncAppendableObjectWriter:
                 servers. Default is `_DEFAULT_FLUSH_INTERVAL_BYTES`.
                 Must be a multiple of `_MAX_CHUNK_SIZE_BYTES`.
         """
-        raise_if_no_fast_crc32c()
+        _utils.raise_if_no_fast_crc32c()
         self.client = client
         self.bucket_name = bucket_name
         self.object_name = object_name
