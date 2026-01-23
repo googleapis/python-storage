@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """
-from __future__ import annotations
-
 NOTE:
 This is _experimental module for upcoming support for Rapid Storage.
 (https://cloud.google.com/blog/products/storage-data-transfer/high-performance-storage-innovations-for-ai-hpc#:~:text=your%20AI%20workloads%3A-,Rapid%20Storage,-%3A%20A%20new)
@@ -77,7 +75,7 @@ def _is_write_retryable(exc):
             BidiWriteObjectRedirectedError,
         ),
     ):
-        logger.info(f"Retryable write exception encountered: {exc}")
+        logger.warning(f"Retryable write exception encountered: {exc}")
         return True
 
     grpc_error = None
@@ -104,7 +102,7 @@ def _is_write_retryable(exc):
                     if detail.type_url == _BIDI_WRITE_REDIRECTED_TYPE_URL:
                         return True
             except Exception:
-                logger.error("Error unpacking redirect details from gRPC error.")
+                logger.error("Error unpacking redirect details from gRPC error. Exception: ", {exc})
                 return False
     return False
 
@@ -294,11 +292,11 @@ class AsyncAppendableObjectWriter:
 
             # Cleanup stream from previous failed attempt, if any.
             if self.write_obj_stream:
-                if self._is_stream_open:
+                if self.write_obj_stream.is_stream_open:
                     try:
                         await self.write_obj_stream.close()
-                    except Exception:  # ignore cleanup errors
-                        pass
+                    except Exception as e:
+                        logger.warning("Error closing previous write stream during open retry. Got exception: ", {e})
                 self.write_obj_stream = None
                 self._is_stream_open = False
 
@@ -362,6 +360,7 @@ class AsyncAppendableObjectWriter:
         if not self._is_stream_open:
             raise ValueError("Stream is not open. Call open() before append().")
         if not data:
+            logger.debug("No data provided to append; returning without action.")
             return
 
         if retry_policy is None:
