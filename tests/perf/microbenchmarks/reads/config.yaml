@@ -1,11 +1,11 @@
 common:
   bucket_types:
-    - "regional"
+    # - "regional"
     - "zonal"
   file_sizes_mib:
-    - 1024 # 1GiB
-  chunk_sizes_mib: [100]
-  rounds: 10
+    - 100 # 1GiB
+  chunk_sizes_mib: [10]
+  rounds: 3
 
 workload:
 
