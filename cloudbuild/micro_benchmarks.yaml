@@ -4,6 +4,7 @@ substitutions:
   _SHORT_BUILD_ID: ${BUILD_ID:0:8}
   _VM_NAME: "py-sdk-micro-benchmarks-ci-${_SHORT_BUILD_ID}"
   _ULIMIT: "10000" # 10k, for gRPC bidi streams
+  _BENCHMARK_SCRIPT: "run_micro_benchmarks.sh"
 
 
 
@@ -72,12 +73,12 @@ steps:
           sleep 15
         done
         # copy the script to the VM
-        gcloud compute scp cloudbuild/run_micro_benchmarks.sh ${_VM_NAME}:~ --zone=${_ZONE} --internal-ip --ssh-key-file=/workspace/.ssh/google_compute_engine
+        gcloud compute scp cloudbuild/${_BENCHMARK_SCRIPT} ${_VM_NAME}:~ --zone=${_ZONE} --internal-ip --ssh-key-file=/workspace/.ssh/google_compute_engine
 
         # Execute the script on the VM via SSH.
         # Capture the exit code to ensure cleanup happens before the build fails.
         set +e
-        gcloud compute ssh ${_VM_NAME} --zone=${_ZONE} --internal-ip --ssh-key-file=/workspace/.ssh/google_compute_engine --command="ulimit -n {_ULIMIT}; COMMIT_SHA=${COMMIT_SHA} _ZONAL_BUCKET=${_ZONAL_BUCKET} _PR_NUMBER=${_PR_NUMBER} bash run_zonal_tests.sh"
+        gcloud compute ssh ${_VM_NAME} --zone=${_ZONE} --internal-ip --ssh-key-file=/workspace/.ssh/google_compute_engine --command="ulimit -n {_ULIMIT}; COMMIT_SHA=${COMMIT_SHA} _ZONAL_BUCKET=${_ZONAL_BUCKET} _PR_NUMBER=${_PR_NUMBER} ${_BENCHMARK_SCRIPT}
         EXIT_CODE=$?
         set -e
 
