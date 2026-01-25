@@ -21,7 +21,7 @@ pip install google-cloud-testutils google-cloud-kms
 pip install -e ".[grpc,testing]"
 
 echo '--- Setting up environment variables on VM ---'
-export ZONAL_BUCKET=${_ZONAL_BUCKET}
+export DEFAULT_RAPID_ZONAL_BUCKET=${_ZONAL_BUCKET}
 export RUN_ZONAL_SYSTEM_TESTS=True
 CURRENT_ULIMIT=$(ulimit -n)
 echo '--- Running Zonal tests on VM with ulimit set to ---' $CURRENT_ULIMIT
