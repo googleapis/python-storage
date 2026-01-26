@@ -182,3 +182,46 @@ class TestAsyncGrpcClient(unittest.TestCase):
             options=expected_options,
         )
         mock_transport_cls.assert_called_once_with(channel=channel_sentinel)
+
+
+# TODO(developer): Add unit tests for all the methods in async_grpc_client.py
+class TestDeleteObject(unittest.IsolatedAsyncioTestCase):
+    @mock.patch("google.cloud._storage_v2.StorageAsyncClient")
+    async def test_delete_object(self, mock_async_storage_client):
+        # Arrange
+        client = async_grpc_client.AsyncGrpcClient(
+            credentials=_make_credentials(spec=AnonymousCredentials)
+        )
+        client._grpc_client = mock.AsyncMock()
+
+        bucket_name = "bucket"
+        object_name = "object"
+        generation = 123
+        if_generation_match = 456
+        if_generation_not_match = 789
+        if_metageneration_match = 111
+        if_metageneration_not_match = 222
+
+        # Act
+        await client.delete_object(
+            bucket_name,
+            object_name,
+            generation=generation,
+            if_generation_match=if_generation_match,
+            if_generation_not_match=if_generation_not_match,
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
+        )
+
+        # Assert
+        call_args, call_kwargs = client._grpc_client.delete_object.call_args
+        request = call_kwargs["request"]
+        self.assertEqual(request.bucket, "projects/_/buckets/bucket")
+        self.assertEqual(request.object, "object")
+        self.assertEqual(request.generation, generation)
+        self.assertEqual(request.if_generation_match, if_generation_match)
+        self.assertEqual(request.if_generation_not_match, if_generation_not_match)
+        self.assertEqual(request.if_metageneration_match, if_metageneration_match)
+        self.assertEqual(
+            request.if_metageneration_not_match, if_metageneration_not_match
+        )
