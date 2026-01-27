@@ -62,7 +62,6 @@ class TestAsyncGrpcClient:
 
     @mock.patch("google.cloud._storage_v2.StorageAsyncClient")
     def test_constructor_with_client_info(self, mock_async_storage_client):
-
         mock_transport_cls = mock.MagicMock()
         mock_async_storage_client.get_transport_class.return_value = mock_transport_cls
         mock_creds = _make_credentials()
@@ -85,7 +84,6 @@ class TestAsyncGrpcClient:
 
     @mock.patch("google.cloud._storage_v2.StorageAsyncClient")
     def test_constructor_disables_directpath(self, mock_async_storage_client):
-
         mock_transport_cls = mock.MagicMock()
         mock_async_storage_client.get_transport_class.return_value = mock_transport_cls
         mock_creds = _make_credentials()
@@ -107,7 +105,6 @@ class TestAsyncGrpcClient:
 
     @mock.patch("google.cloud._storage_v2.StorageAsyncClient")
     def test_grpc_client_property(self, mock_grpc_gapic_client):
-
         # Arrange
         mock_transport_cls = mock.MagicMock()
         mock_grpc_gapic_client.get_transport_class.return_value = mock_transport_cls
@@ -155,7 +152,6 @@ class TestAsyncGrpcClient:
 
     @mock.patch("google.cloud._storage_v2.StorageAsyncClient")
     def test_grpc_client_with_anon_creds(self, mock_grpc_gapic_client):
-
         # Arrange
         mock_transport_cls = mock.MagicMock()
         mock_grpc_gapic_client.get_transport_class.return_value = mock_transport_cls

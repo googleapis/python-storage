@@ -102,7 +102,10 @@ def _is_write_retryable(exc):
                     if detail.type_url == _BIDI_WRITE_REDIRECTED_TYPE_URL:
                         return True
             except Exception:
-                logger.error("Error unpacking redirect details from gRPC error. Exception: ", {exc})
+                logger.error(
+                    "Error unpacking redirect details from gRPC error. Exception: ",
+                    {exc},
+                )
                 return False
     return False
 
@@ -296,7 +299,10 @@ class AsyncAppendableObjectWriter:
                     try:
                         await self.write_obj_stream.close()
                     except Exception as e:
-                        logger.warning("Error closing previous write stream during open retry. Got exception: ", {e})
+                        logger.warning(
+                            "Error closing previous write stream during open retry. Got exception: ",
+                            {e},
+                        )
                 self.write_obj_stream = None
                 self._is_stream_open = False
 
@@ -566,7 +572,6 @@ class AsyncAppendableObjectWriter:
     @property
     def is_stream_open(self) -> bool:
         return self._is_stream_open
-
 
     # helper methods.
     async def append_from_string(self, data: str):

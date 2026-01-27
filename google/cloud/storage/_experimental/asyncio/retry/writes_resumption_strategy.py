@@ -25,11 +25,6 @@ from google.cloud.storage._experimental.asyncio.retry._helpers import (
 )
 
 
-_BIDI_WRITE_REDIRECTED_TYPE_URL = (
-    "type.googleapis.com/google.storage.v2.BidiWriteObjectRedirectedError"
-)
-
-
 class _WriteState:
     """A helper class to track the state of a single upload operation.
 
@@ -39,7 +34,7 @@ class _WriteState:
     :type user_buffer: IO[bytes]
     :param user_buffer: The data source.
 
-    :type flush_interval: Optional[int]
+    :type flush_interval: int
     :param flush_interval: The flush interval at which the data is flushed.
     """
 
@@ -47,14 +42,14 @@ class _WriteState:
         self,
         chunk_size: int,
         user_buffer: IO[bytes],
-        flush_interval: Optional[int] = None,
+        flush_interval: int,
     ):
         self.chunk_size = chunk_size
         self.user_buffer = user_buffer
         self.persisted_size: int = 0
         self.bytes_sent: int = 0
         self.bytes_since_last_flush: int = 0
-        self.flush_interval: Optional[int] = flush_interval
+        self.flush_interval: int = flush_interval
         self.write_handle: Union[bytes, storage_type.BidiWriteHandle, None] = None
         self.routing_token: Optional[str] = None
         self.is_finalized: bool = False
@@ -94,10 +89,7 @@ class _WriteResumptionStrategy(_BaseResumptionStrategy):
             write_state.bytes_sent += chunk_len
             write_state.bytes_since_last_flush += chunk_len
 
-            if (
-                write_state.flush_interval
-                and write_state.bytes_since_last_flush >= write_state.flush_interval
-            ):
+            if write_state.bytes_since_last_flush >= write_state.flush_interval:
                 request.flush = True
                 # reset counter after marking flush
                 write_state.bytes_since_last_flush = 0

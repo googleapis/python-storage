@@ -23,6 +23,7 @@ if you want to use these Rapid Storage APIs.
 """
 from typing import List, Optional, Tuple
 from google.cloud import _storage_v2
+from google.cloud.storage._experimental.asyncio import _utils
 from google.cloud.storage._experimental.asyncio.async_grpc_client import AsyncGrpcClient
 from google.cloud.storage._experimental.asyncio.async_abstract_object_stream import (
     _AsyncAbstractObjectStream,
@@ -59,7 +60,7 @@ class _AsyncWriteObjectStream(_AsyncAbstractObjectStream):
         same name already exists, it will be overwritten the moment
         `writer.open()` is called.
 
-    :type write_handle: bytes
+    :type write_handle: _storage_v2.BidiWriteHandle
     :param write_handle: (Optional) An existing handle for writing the object.
                         If provided, opening the bidi-gRPC connection will be faster.
     """
@@ -70,7 +71,7 @@ class _AsyncWriteObjectStream(_AsyncAbstractObjectStream):
         bucket_name: str,
         object_name: str,
         generation_number: Optional[int] = None,  # None means new object
-        write_handle: Optional[bytes] = None,
+        write_handle: Optional[_storage_v2.BidiWriteHandle] = None,
         routing_token: Optional[str] = None,
     ) -> None:
         if client is None:
@@ -86,7 +87,7 @@ class _AsyncWriteObjectStream(_AsyncAbstractObjectStream):
             generation_number=generation_number,
         )
         self.client: AsyncGrpcClient.grpc_client = client
-        self.write_handle: Optional[bytes] = write_handle
+        self.write_handle: Optional[_storage_v2.BidiWriteHandle] = write_handle
         self.routing_token: Optional[str] = routing_token
 
         self._full_bucket_name = f"projects/_/buckets/{self.bucket_name}"
@@ -117,8 +118,6 @@ class _AsyncWriteObjectStream(_AsyncAbstractObjectStream):
         if self._is_stream_open:
             raise ValueError("Stream is already open")
 
-        write_handle = self.write_handle if self.write_handle else None
-
         # Create a new object or overwrite existing one if generation_number
         # is None. This makes it consistent with GCS JSON API behavior.
         # Created object type would be Appendable Object.
@@ -140,27 +139,26 @@ class _AsyncWriteObjectStream(_AsyncAbstractObjectStream):
                     bucket=self._full_bucket_name,
                     object=self.object_name,
                     generation=self.generation_number,
-                    write_handle=write_handle,
+                    write_handle=self.write_handle if self.write_handle else None,
                     routing_token=self.routing_token if self.routing_token else None,
                 ),
             )
 
-        request_params = [f"bucket={self._full_bucket_name}"]
-        other_metadata = []
+        request_param_values = [f"bucket={self._full_bucket_name}"]
+        final_metadata = []
         if metadata:
             for key, value in metadata:
                 if key == "x-goog-request-params":
-                    request_params.append(value)
+                    request_param_values.append(value)
                 else:
-                    other_metadata.append((key, value))
+                    final_metadata.append((key, value))
 
-        current_metadata = other_metadata
-        current_metadata.append(("x-goog-request-params", ",".join(request_params)))
+        final_metadata.append(("x-goog-request-params", ",".join(request_param_values)))
 
         self.socket_like_rpc = AsyncBidiRpc(
             self.rpc,
             initial_request=self.first_bidi_write_req,
-            metadata=current_metadata,
+            metadata=final_metadata,
         )
 
         await self.socket_like_rpc.open()  # this is actually 1 send
@@ -194,7 +192,7 @@ class _AsyncWriteObjectStream(_AsyncAbstractObjectStream):
         """Signals that all requests have been sent."""
 
         await self.socket_like_rpc.send(None)
-        await self.socket_like_rpc.recv()
+        _utils.update_write_handle_if_exists(self, await self.socket_like_rpc.recv())
 
     async def send(
         self, bidi_write_object_request: _storage_v2.BidiWriteObjectRequest
@@ -236,4 +234,3 @@ class _AsyncWriteObjectStream(_AsyncAbstractObjectStream):
     @property
     def is_stream_open(self) -> bool:
         return self._is_stream_open
-

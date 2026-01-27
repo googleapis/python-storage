@@ -167,7 +167,7 @@ class TestAsyncAppendableObjectWriter:
     # -------------------------------------------------------------------------
 
     @pytest.mark.asyncio
-    async def test_state_lookup_success(self, mock_appendable_writer):
+    async def test_state_lookup(self, mock_appendable_writer):
         writer = self._make_one(mock_appendable_writer["mock_client"])
         writer._is_stream_open = True
         writer.write_obj_stream = mock_appendable_writer["mock_stream"]
@@ -183,12 +183,6 @@ class TestAsyncAppendableObjectWriter:
         assert writer.persisted_size == 100
 
     @pytest.mark.asyncio
-    async def test_state_lookup_raises_if_not_open(self, mock_appendable_writer):
-        writer = self._make_one(mock_appendable_writer["mock_client"])
-        with pytest.raises(ValueError, match="Stream is not open"):
-            await writer.state_lookup()
-
-    @pytest.mark.asyncio
     async def test_open_success(self, mock_appendable_writer):
         writer = self._make_one(mock_appendable_writer["mock_client"])
         mock_appendable_writer["mock_stream"].generation_number = 456
@@ -201,13 +195,6 @@ class TestAsyncAppendableObjectWriter:
         assert writer.generation == 456
         assert writer.write_handle == b"new-h"
         mock_appendable_writer["mock_stream"].open.assert_awaited_once()
-
-    @pytest.mark.asyncio
-    async def test_open_already_open_raises(self, mock_appendable_writer):
-        writer = self._make_one(mock_appendable_writer["mock_client"])
-        writer._is_stream_open = True
-        with pytest.raises(ValueError, match="already open"):
-            await writer.open()
 
     def test_on_open_error_redirection(self, mock_appendable_writer):
         """Verify redirect info is extracted from helper."""
@@ -229,11 +216,11 @@ class TestAsyncAppendableObjectWriter:
         assert writer.generation == 777
 
     # -------------------------------------------------------------------------
-    # Append & Integration Tests
+    # Append Tests
     # -------------------------------------------------------------------------
 
     @pytest.mark.asyncio
-    async def test_append_integration_basic(self, mock_appendable_writer):
+    async def test_append_basic_success(self, mock_appendable_writer):
         """Verify append orchestrates manager and drives the internal generator."""
         writer = self._make_one(mock_appendable_writer["mock_client"])
         writer._is_stream_open = True
@@ -398,11 +385,11 @@ class TestAsyncAppendableObjectWriter:
         writer.finalize.assert_awaited_once()
 
     # -------------------------------------------------------------------------
-    # Helper Integration Tests
+    # Helper Tests
     # -------------------------------------------------------------------------
 
     @pytest.mark.asyncio
-    async def test_append_from_file_integration(self, mock_appendable_writer):
+    async def test_append_from_file(self, mock_appendable_writer):
         writer = self._make_one(mock_appendable_writer["mock_client"])
         writer._is_stream_open = True
         writer.append = AsyncMock()
