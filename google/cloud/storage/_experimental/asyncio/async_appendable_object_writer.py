@@ -219,7 +219,6 @@ class AsyncAppendableObjectWriter:
                 f"flush_interval must be a multiple of {_MAX_CHUNK_SIZE_BYTES}, but provided {self.flush_interval}"
             )
         self.bytes_appended_since_last_flush = 0
-        self._lock = asyncio.Lock()
         self._routing_token: Optional[str] = None
         self.object_resource: Optional[_storage_v2.Object] = None
 
@@ -235,15 +234,14 @@ class AsyncAppendableObjectWriter:
         if not self._is_stream_open:
             raise ValueError("Stream is not open. Call open() before state_lookup().")
 
-        async with self._lock:
-            await self.write_obj_stream.send(
-                _storage_v2.BidiWriteObjectRequest(
-                    state_lookup=True,
-                )
+        await self.write_obj_stream.send(
+            _storage_v2.BidiWriteObjectRequest(
+                state_lookup=True,
             )
-            response = await self.write_obj_stream.recv()
-            self.persisted_size = response.persisted_size
-            return self.persisted_size
+        )
+        response = await self.write_obj_stream.recv()
+        self.persisted_size = response.persisted_size
+        return self.persisted_size
 
     def _on_open_error(self, exc):
         """Extracts routing token and write handle on redirect error during open."""
@@ -386,59 +384,58 @@ class AsyncAppendableObjectWriter:
                 nonlocal requests
                 attempt_count += 1
                 resp = None
-                async with self._lock:
-                    write_state = state["write_state"]
-                    # If this is a retry or redirect, we must re-open the stream
-                    if attempt_count > 1 or write_state.routing_token:
-                        logger.info(
-                            f"Re-opening the stream with attempt_count: {attempt_count}"
-                        )
-                        if (
-                            self.write_obj_stream
-                            and self.write_obj_stream.is_stream_open
-                        ):
-                            await self.write_obj_stream.close()
+                write_state = state["write_state"]
+                # If this is a retry or redirect, we must re-open the stream
+                if attempt_count > 1 or write_state.routing_token:
+                    logger.info(
+                        f"Re-opening the stream with attempt_count: {attempt_count}"
+                    )
+                    if (
+                        self.write_obj_stream
+                        and self.write_obj_stream.is_stream_open
+                    ):
+                        await self.write_obj_stream.close()
 
-                        current_metadata = list(metadata) if metadata else []
-                        if write_state.routing_token:
-                            current_metadata.append(
-                                (
-                                    "x-goog-request-params",
-                                    f"routing_token={write_state.routing_token}",
-                                )
+                    current_metadata = list(metadata) if metadata else []
+                    if write_state.routing_token:
+                        current_metadata.append(
+                            (
+                                "x-goog-request-params",
+                                f"routing_token={write_state.routing_token}",
                             )
-                            self._routing_token = write_state.routing_token
+                        )
+                        self._routing_token = write_state.routing_token
 
-                        self._is_stream_open = False
-                        await self.open(metadata=current_metadata)
+                    self._is_stream_open = False
+                    await self.open(metadata=current_metadata)
 
-                        write_state.persisted_size = self.persisted_size
-                        write_state.write_handle = self.write_handle
-                        write_state.routing_token = None
+                    write_state.persisted_size = self.persisted_size
+                    write_state.write_handle = self.write_handle
+                    write_state.routing_token = None
 
-                        write_state.user_buffer.seek(write_state.persisted_size)
-                        write_state.bytes_sent = write_state.persisted_size
-                        write_state.bytes_since_last_flush = 0
+                    write_state.user_buffer.seek(write_state.persisted_size)
+                    write_state.bytes_sent = write_state.persisted_size
+                    write_state.bytes_since_last_flush = 0
 
-                        requests = strategy.generate_requests(state)
+                    requests = strategy.generate_requests(state)
 
-                    num_requests = len(requests)
-                    for i, chunk_req in enumerate(requests):
-                        if i == num_requests - 1:
-                            chunk_req.state_lookup = True
-                            chunk_req.flush = True
-                        await self.write_obj_stream.send(chunk_req)
+                num_requests = len(requests)
+                for i, chunk_req in enumerate(requests):
+                    if i == num_requests - 1:
+                        chunk_req.state_lookup = True
+                        chunk_req.flush = True
+                    await self.write_obj_stream.send(chunk_req)
 
-                    resp = await self.write_obj_stream.recv()
-                    if resp:
-                        if resp.persisted_size is not None:
-                            self.persisted_size = resp.persisted_size
-                            state["write_state"].persisted_size = resp.persisted_size
-                            self.offset = self.persisted_size
-                        if resp.write_handle:
-                            self.write_handle = resp.write_handle
-                            state["write_state"].write_handle = resp.write_handle
-                        self.bytes_appended_since_last_flush = 0
+                resp = await self.write_obj_stream.recv()
+                if resp:
+                    if resp.persisted_size is not None:
+                        self.persisted_size = resp.persisted_size
+                        state["write_state"].persisted_size = resp.persisted_size
+                        self.offset = self.persisted_size
+                    if resp.write_handle:
+                        self.write_handle = resp.write_handle
+                        state["write_state"].write_handle = resp.write_handle
+                    self.bytes_appended_since_last_flush = 0
 
                 yield resp
 
@@ -476,13 +473,12 @@ class AsyncAppendableObjectWriter:
         if not self._is_stream_open:
             raise ValueError("Stream is not open. Call open() before simple_flush().")
 
-        async with self._lock:
-            await self.write_obj_stream.send(
-                _storage_v2.BidiWriteObjectRequest(
-                    flush=True,
-                )
+        await self.write_obj_stream.send(
+            _storage_v2.BidiWriteObjectRequest(
+                flush=True,
             )
-            self.bytes_appended_since_last_flush = 0
+        )
+        self.bytes_appended_since_last_flush = 0
 
     async def flush(self) -> int:
         """Flushes the data to the server.
@@ -496,18 +492,17 @@ class AsyncAppendableObjectWriter:
         if not self._is_stream_open:
             raise ValueError("Stream is not open. Call open() before flush().")
 
-        async with self._lock:
-            await self.write_obj_stream.send(
-                _storage_v2.BidiWriteObjectRequest(
-                    flush=True,
-                    state_lookup=True,
-                )
+        await self.write_obj_stream.send(
+            _storage_v2.BidiWriteObjectRequest(
+                flush=True,
+                state_lookup=True,
             )
-            response = await self.write_obj_stream.recv()
-            self.persisted_size = response.persisted_size
-            self.offset = self.persisted_size
-            self.bytes_appended_since_last_flush = 0
-            return self.persisted_size
+        )
+        response = await self.write_obj_stream.recv()
+        self.persisted_size = response.persisted_size
+        self.offset = self.persisted_size
+        self.bytes_appended_since_last_flush = 0
+        return self.persisted_size
 
     async def close(self, finalize_on_close=False) -> Union[int, _storage_v2.Object]:
         """Closes the underlying bidi-gRPC stream.

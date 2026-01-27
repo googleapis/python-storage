@@ -45,7 +45,7 @@ class TestWriteResumptionStrategy:
     def test_generate_requests_initial_chunking(self, strategy):
         """Verify initial data generation starts at offset 0 and chunks correctly."""
         mock_buffer = io.BytesIO(b"abcdefghij")
-        write_state = _WriteState(chunk_size=3, user_buffer=mock_buffer)
+        write_state = _WriteState(chunk_size=3, user_buffer=mock_buffer, flush_interval=10)
         state = {"write_state": write_state}
 
         requests = strategy.generate_requests(state)
@@ -75,7 +75,7 @@ class TestWriteResumptionStrategy:
         The strategy should generate chunks starting from the current 'bytes_sent'.
         """
         mock_buffer = io.BytesIO(b"0123456789")
-        write_state = _WriteState(chunk_size=4, user_buffer=mock_buffer)
+        write_state = _WriteState(chunk_size=4, user_buffer=mock_buffer, flush_interval=10)
 
         # Simulate resumption state: 4 bytes already sent/persisted
         write_state.persisted_size = 4
@@ -101,7 +101,7 @@ class TestWriteResumptionStrategy:
     def test_generate_requests_empty_file(self, strategy):
         """Verify request sequence for an empty file."""
         mock_buffer = io.BytesIO(b"")
-        write_state = _WriteState(chunk_size=4, user_buffer=mock_buffer)
+        write_state = _WriteState(chunk_size=4, user_buffer=mock_buffer, flush_interval=10)
         state = {"write_state": write_state}
 
         requests = strategy.generate_requests(state)
@@ -112,7 +112,7 @@ class TestWriteResumptionStrategy:
         """Verify CRC32C is calculated correctly for each chunk."""
         chunk_data = b"test_data"
         mock_buffer = io.BytesIO(chunk_data)
-        write_state = _WriteState(chunk_size=10, user_buffer=mock_buffer)
+        write_state = _WriteState(chunk_size=10, user_buffer=mock_buffer, flush_interval=10)
         state = {"write_state": write_state}
 
         requests = strategy.generate_requests(state)
@@ -147,19 +147,6 @@ class TestWriteResumptionStrategy:
         # Verify counter reset in state
         assert write_state.bytes_since_last_flush == 0
 
-    def test_generate_requests_flush_logic_none_interval(self, strategy):
-        """Verify flush is never set if interval is None."""
-        mock_buffer = io.BytesIO(b"A" * 10)
-        write_state = _WriteState(
-            chunk_size=2, user_buffer=mock_buffer, flush_interval=None
-        )
-        state = {"write_state": write_state}
-
-        requests = strategy.generate_requests(state)
-
-        for req in requests:
-            assert req.flush is False
-
     def test_generate_requests_flush_logic_data_less_than_interval(self, strategy):
         """Verify flush is not set if data sent is less than interval."""
         mock_buffer = io.BytesIO(b"A" * 5)
@@ -180,7 +167,7 @@ class TestWriteResumptionStrategy:
     def test_generate_requests_honors_finalized_state(self, strategy):
         """If state is already finalized, no requests should be generated."""
         mock_buffer = io.BytesIO(b"data")
-        write_state = _WriteState(chunk_size=4, user_buffer=mock_buffer)
+        write_state = _WriteState(chunk_size=4, user_buffer=mock_buffer, flush_interval=10)
         write_state.is_finalized = True
         state = {"write_state": write_state}
 
@@ -193,7 +180,7 @@ class TestWriteResumptionStrategy:
         Verify recovery and resumption flow (Integration of recover + generate).
         """
         mock_buffer = io.BytesIO(b"0123456789abcdef")  # 16 bytes
-        write_state = _WriteState(chunk_size=4, user_buffer=mock_buffer)
+        write_state = _WriteState(chunk_size=4, user_buffer=mock_buffer, flush_interval=10)
         state = {"write_state": write_state}
 
         # Simulate initial progress: sent 8 bytes
@@ -233,7 +220,7 @@ class TestWriteResumptionStrategy:
 
     def test_update_state_from_response_all_fields(self, strategy):
         """Verify all fields from a BidiWriteObjectResponse update the state."""
-        write_state = _WriteState(chunk_size=4, user_buffer=io.BytesIO())
+        write_state = _WriteState(chunk_size=4, user_buffer=io.BytesIO(), flush_interval=10)
         state = {"write_state": write_state}
 
         # 1. Update persisted_size
@@ -259,7 +246,7 @@ class TestWriteResumptionStrategy:
 
     def test_update_state_from_response_none(self, strategy):
         """Verify None response doesn't crash."""
-        write_state = _WriteState(chunk_size=4, user_buffer=io.BytesIO())
+        write_state = _WriteState(chunk_size=4, user_buffer=io.BytesIO(), flush_interval=10)
         state = {"write_state": write_state}
         strategy.update_state_from_response(None, state)
         assert write_state.persisted_size == 0
@@ -272,7 +259,7 @@ class TestWriteResumptionStrategy:
     async def test_recover_state_on_failure_rewind_logic(self, strategy):
         """Verify buffer seek and counter resets on generic failure (Non-redirect)."""
         mock_buffer = io.BytesIO(b"0123456789")
-        write_state = _WriteState(chunk_size=2, user_buffer=mock_buffer)
+        write_state = _WriteState(chunk_size=2, user_buffer=mock_buffer, flush_interval=100)
 
         # Simulate progress: sent 8 bytes, but server only persisted 4
         write_state.bytes_sent = 8
@@ -294,7 +281,7 @@ class TestWriteResumptionStrategy:
     @pytest.mark.asyncio
     async def test_recover_state_on_failure_direct_redirect(self, strategy):
         """Verify handling when the error is a BidiWriteObjectRedirectedError."""
-        write_state = _WriteState(chunk_size=4, user_buffer=io.BytesIO())
+        write_state = _WriteState(chunk_size=4, user_buffer=io.BytesIO(), flush_interval=100)
         state = {"write_state": write_state}
 
         redirect = BidiWriteObjectRedirectedError(
@@ -310,7 +297,7 @@ class TestWriteResumptionStrategy:
     @pytest.mark.asyncio
     async def test_recover_state_on_failure_wrapped_redirect(self, strategy):
         """Verify handling when RedirectedError is inside Aborted.errors."""
-        write_state = _WriteState(chunk_size=4, user_buffer=io.BytesIO())
+        write_state = _WriteState(chunk_size=4, user_buffer=io.BytesIO(), flush_interval=10)
 
         redirect = BidiWriteObjectRedirectedError(routing_token="tok-wrapped")
         # google-api-core Aborted often wraps multiple errors
@@ -323,7 +310,7 @@ class TestWriteResumptionStrategy:
     @pytest.mark.asyncio
     async def test_recover_state_on_failure_trailer_metadata_redirect(self, strategy):
         """Verify complex parsing from 'grpc-status-details-bin' in trailers."""
-        write_state = _WriteState(chunk_size=4, user_buffer=io.BytesIO())
+        write_state = _WriteState(chunk_size=4, user_buffer=io.BytesIO(), flush_interval=10)
 
         redirect_proto = BidiWriteObjectRedirectedError(routing_token="metadata-token")
         status = status_pb2.Status()
