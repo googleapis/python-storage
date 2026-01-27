@@ -111,7 +111,6 @@ def mock_appendable_writer():
         "mock_client": mock_client,
         "mock_stream_cls": mock_stream_cls,
         "mock_stream": mock_stream,
-        "stream_patcher": stream_patcher,
     }
 
     stream_patcher.stop()

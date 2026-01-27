@@ -22,7 +22,6 @@ if you want to use these Rapid Storage APIs.
 
 """
 from io import BufferedReader
-import asyncio
 import io
 import logging
 from typing import List, Optional, Tuple, Union
@@ -390,10 +389,7 @@ class AsyncAppendableObjectWriter:
                     logger.info(
                         f"Re-opening the stream with attempt_count: {attempt_count}"
                     )
-                    if (
-                        self.write_obj_stream
-                        and self.write_obj_stream.is_stream_open
-                    ):
+                    if self.write_obj_stream and self.write_obj_stream.is_stream_open:
                         await self.write_obj_stream.close()
 
                     current_metadata = list(metadata) if metadata else []
