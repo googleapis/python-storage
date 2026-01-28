@@ -16,10 +16,8 @@ from unittest import mock
 from google.auth import credentials as auth_credentials
 from google.auth.credentials import AnonymousCredentials
 from google.api_core import client_info as client_info_lib
+from google.cloud.storage import __version__
 from google.cloud.storage._experimental.asyncio import async_grpc_client
-from google.cloud.storage._experimental.asyncio.async_grpc_client import (
-    DEFAULT_CLIENT_INFO,
-)
 
 
 def _make_credentials(spec=None):
@@ -36,9 +34,6 @@ class TestAsyncGrpcClient:
         mock_async_storage_client.get_transport_class.return_value = mock_transport_cls
         mock_creds = _make_credentials()
 
-        primary_user_agent = DEFAULT_CLIENT_INFO.to_user_agent()
-        expected_options = (("grpc.primary_user_agent", primary_user_agent),)
-
         # Act
         async_grpc_client.AsyncGrpcClient(credentials=mock_creds)
 
@@ -46,6 +41,13 @@ class TestAsyncGrpcClient:
         mock_async_storage_client.get_transport_class.assert_called_once_with(
             "grpc_asyncio"
         )
+        kwargs = mock_async_storage_client.call_args.kwargs
+        client_info = kwargs["client_info"]
+        agent_version = f"gcloud-python/{__version__}"
+        assert agent_version in client_info.user_agent
+        primary_user_agent = client_info.to_user_agent()
+        expected_options = (("grpc.primary_user_agent", primary_user_agent),)
+
         mock_transport_cls.create_channel.assert_called_once_with(
             attempt_direct_path=True,
             credentials=mock_creds,
@@ -54,11 +56,8 @@ class TestAsyncGrpcClient:
         mock_channel = mock_transport_cls.create_channel.return_value
         mock_transport_cls.assert_called_once_with(channel=mock_channel)
         mock_transport = mock_transport_cls.return_value
-        mock_async_storage_client.assert_called_once_with(
-            transport=mock_transport,
-            client_options=None,
-            client_info=DEFAULT_CLIENT_INFO,
-        )
+        assert kwargs["transport"] is mock_transport
+        assert kwargs["client_options"] is None
 
     @mock.patch("google.cloud._storage_v2.StorageAsyncClient")
     def test_constructor_with_client_info(self, mock_async_storage_client):
@@ -73,6 +72,8 @@ class TestAsyncGrpcClient:
             credentials=mock_creds, client_info=client_info
         )
 
+        agent_version = f"gcloud-python/{__version__}"
+        assert agent_version in client_info.user_agent
         primary_user_agent = client_info.to_user_agent()
         expected_options = (("grpc.primary_user_agent", primary_user_agent),)
 
@@ -88,11 +89,15 @@ class TestAsyncGrpcClient:
         mock_async_storage_client.get_transport_class.return_value = mock_transport_cls
         mock_creds = _make_credentials()
 
-        async_grpc_client.AsyncGrpcClient(
+        client = async_grpc_client.AsyncGrpcClient(
             credentials=mock_creds, attempt_direct_path=False
         )
 
-        primary_user_agent = DEFAULT_CLIENT_INFO.to_user_agent()
+        kwargs = mock_async_storage_client.call_args.kwargs
+        client_info = kwargs["client_info"]
+        agent_version = f"gcloud-python/{__version__}"
+        assert agent_version in client_info.user_agent
+        primary_user_agent = client_info.to_user_agent()
         expected_options = (("grpc.primary_user_agent", primary_user_agent),)
 
         mock_transport_cls.create_channel.assert_called_once_with(
@@ -115,6 +120,7 @@ class TestAsyncGrpcClient:
 
         mock_creds = _make_credentials()
         mock_client_info = mock.MagicMock(spec=client_info_lib.ClientInfo)
+        mock_client_info.user_agent = "test-user-agent"
         mock_client_info.to_user_agent.return_value = "test-user-agent"
         mock_client_options = mock.sentinel.client_options
         mock_attempt_direct_path = mock.sentinel.attempt_direct_path
@@ -168,7 +174,11 @@ class TestAsyncGrpcClient:
         # Assert
         assert retrieved_client is mock_grpc_gapic_client.return_value
 
-        primary_user_agent = DEFAULT_CLIENT_INFO.to_user_agent()
+        kwargs = mock_grpc_gapic_client.call_args.kwargs
+        client_info = kwargs["client_info"]
+        agent_version = f"gcloud-python/{__version__}"
+        assert agent_version in client_info.user_agent
+        primary_user_agent = client_info.to_user_agent()
         expected_options = (("grpc.primary_user_agent", primary_user_agent),)
 
         mock_transport_cls.create_channel.assert_called_once_with(
