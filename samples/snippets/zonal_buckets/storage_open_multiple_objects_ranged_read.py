@@ -15,8 +15,10 @@
 # limitations under the License.
 
 """Downloads a range of bytes from multiple objects concurrently.
-Example usage: 
-   ```python samples/snippets/zonal_buckets/storage_open_multiple_objects_ranged_read.py --bucket_name chandrasiri-benchmarks-zb --object_names test_md_11 test_md_10 test_md_9 test_md_8```
+Example usage:
+   ```python samples/snippets/zonal_buckets/storage_open_multiple_objects_ranged_read.py \
+    --bucket_name <BUCKET_NAME> \
+    --object_names <OBJECT_1> <OBJECT_2> <OBJECT_3>```
 """
 import argparse
 import asyncio
