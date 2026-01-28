@@ -98,7 +98,7 @@ class AsyncMultiRangeDownloader:
 
     .. code-block:: python
 
-        client = AsyncGrpcClient().grpc_client
+        client = AsyncGrpcClient()
         mrd = await AsyncMultiRangeDownloader.create_mrd(
             client, bucket_name="chandrasiri-rs", object_name="test_open9"
         )

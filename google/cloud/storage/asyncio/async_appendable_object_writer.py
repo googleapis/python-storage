@@ -132,7 +132,7 @@ class AsyncAppendableObjectWriter:
         from google.cloud.storage.asyncio.async_appendable_object_writer import AsyncAppendableObjectWriter
         import asyncio
 
-        client = AsyncGrpcClient().grpc_client
+        client = AsyncGrpcClient()
         bucket_name = "my-bucket"
         object_name = "my-appendable-object"
 
