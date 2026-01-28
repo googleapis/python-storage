@@ -299,6 +299,7 @@ def test_downloads_single_proc_multi_coro(
         storage_client.bucket(params.bucket_name).blob(f) for f in files_names
     )
 
+
 # --- Global Variables for Worker Process ---
 worker_loop = None
 worker_client = None
@@ -319,7 +320,6 @@ def _worker_init(bucket_type):
 
 
 def _download_files_worker(files_to_download, other_params, chunks, bucket_type):
-    global worker_loop, worker_client, worker_json_client
     if bucket_type == "zonal":
         # The loop and client are already initialized in _worker_init.
         # download_files_using_mrd_multi_coro returns max latency of coros
