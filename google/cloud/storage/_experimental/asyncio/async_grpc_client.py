@@ -14,8 +14,10 @@
 
 """An async client for interacting with Google Cloud Storage using the gRPC API."""
 
-from google.api_core.client_info import ClientInfo
 from google.cloud import _storage_v2 as storage_v2
+from google.cloud._storage_v2.services.storage.transports.base import (
+    DEFAULT_CLIENT_INFO,
+)
 from google.cloud.storage import __version__
 
 
@@ -47,7 +49,9 @@ class AsyncGrpcClient:
         attempt_direct_path=True,
     ):
         if client_info is None:
-            client_info = ClientInfo()
+            client_info = DEFAULT_CLIENT_INFO
+        else:
+            client_info = client_info
         client_info.client_library_version = __version__
         # TODO: When metrics all use gccl, this should be removed #9552
         if client_info.user_agent is None:  # pragma: no branch
