@@ -16,8 +16,8 @@ from unittest import mock
 from google.auth import credentials as auth_credentials
 from google.auth.credentials import AnonymousCredentials
 from google.api_core import client_info as client_info_lib
-from google.cloud.storage._experimental.asyncio import async_grpc_client
-from google.cloud.storage._experimental.asyncio.async_grpc_client import (
+from google.cloud.storage.asyncio import async_grpc_client
+from google.cloud.storage.asyncio.async_grpc_client import (
     DEFAULT_CLIENT_INFO,
 )
 
