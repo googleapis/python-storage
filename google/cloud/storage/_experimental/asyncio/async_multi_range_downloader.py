@@ -125,7 +125,7 @@ class AsyncMultiRangeDownloader:
     @classmethod
     async def create_mrd(
         cls,
-        client: AsyncGrpcClient.grpc_client,
+        client: AsyncGrpcClient,
         bucket_name: str,
         object_name: str,
         generation_number: Optional[int] = None,
@@ -136,7 +136,7 @@ class AsyncMultiRangeDownloader:
         """Initializes a MultiRangeDownloader and opens the underlying bidi-gRPC
         object for reading.
 
-        :type client: :class:`~google.cloud.storage._experimental.asyncio.async_grpc_client.AsyncGrpcClient.grpc_client`
+        :type client: :class:`~google.cloud.storage._experimental.asyncio.async_grpc_client.AsyncGrpcClient`
         :param client: The asynchronous client to use for making API requests.
 
         :type bucket_name: str
@@ -168,7 +168,7 @@ class AsyncMultiRangeDownloader:
 
     def __init__(
         self,
-        client: AsyncGrpcClient.grpc_client,
+        client: AsyncGrpcClient,
         bucket_name: str,
         object_name: str,
         generation_number: Optional[int] = None,
@@ -177,7 +177,7 @@ class AsyncMultiRangeDownloader:
         """Constructor for AsyncMultiRangeDownloader, clients are not adviced to
          use it directly. Instead it's adviced to use the classmethod `create_mrd`.
 
-        :type client: :class:`~google.cloud.storage._experimental.asyncio.async_grpc_client.AsyncGrpcClient.grpc_client`
+        :type client: :class:`~google.cloud.storage._experimental.asyncio.async_grpc_client.AsyncGrpcClient`
         :param client: The asynchronous client to use for making API requests.
 
         :type bucket_name: str
@@ -208,6 +208,16 @@ class AsyncMultiRangeDownloader:
         self._read_id_to_download_ranges_id = {}
         self._download_ranges_id_to_pending_read_ids = {}
         self.persisted_size: Optional[int] = None  # updated after opening the stream
+
+    async def __aenter__(self):
+        """Opens the underlying bidi-gRPC connection to read from the object."""
+        await self.open()
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Closes the underlying bidi-gRPC connection."""
+        if self.is_stream_open:
+            await self.close()
 
     def _on_open_error(self, exc):
         """Extracts routing token and read handle on redirect error during open."""
@@ -263,7 +273,7 @@ class AsyncMultiRangeDownloader:
                 self._is_stream_open = False
 
             self.read_obj_str = _AsyncReadObjectStream(
-                client=self.client,
+                client=self.client.grpc_client,
                 bucket_name=self.bucket_name,
                 object_name=self.object_name,
                 generation_number=self.generation_number,
@@ -422,7 +432,7 @@ class AsyncMultiRangeDownloader:
 
                         # Re-initialize stream
                         self.read_obj_str = _AsyncReadObjectStream(
-                            client=self.client,
+                            client=self.client.grpc_client,
                             bucket_name=self.bucket_name,
                             object_name=self.object_name,
                             generation_number=self.generation_number,
