@@ -18,6 +18,7 @@ from google.cloud import _storage_v2 as storage_v2
 from google.cloud._storage_v2.services.storage.transports.base import (
     DEFAULT_CLIENT_INFO,
 )
+from google.cloud.storage import __version__
 
 
 class AsyncGrpcClient:
@@ -51,6 +52,15 @@ class AsyncGrpcClient:
         *,
         attempt_direct_path=True,
     ):
+        if client_info is None:
+            client_info = DEFAULT_CLIENT_INFO
+        client_info.client_library_version = __version__
+        if client_info.user_agent is None:
+            client_info.user_agent = ""
+        agent_version = f"gcloud-python/{__version__}"
+        if agent_version not in client_info.user_agent:
+            client_info.user_agent += f" {agent_version} "
+
         self._grpc_client = self._create_async_grpc_client(
             credentials=credentials,
             client_info=client_info,
@@ -69,8 +79,6 @@ class AsyncGrpcClient:
             "grpc_asyncio"
         )
 
-        if client_info is None:
-            client_info = DEFAULT_CLIENT_INFO
         primary_user_agent = client_info.to_user_agent()
 
         channel = transport_cls.create_channel(
