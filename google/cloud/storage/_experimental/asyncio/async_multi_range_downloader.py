@@ -163,14 +163,14 @@ class AsyncMultiRangeDownloader:
         :rtype: :class:`~google.cloud.storage._experimental.asyncio.async_multi_range_downloader.AsyncMultiRangeDownloader`
         :returns: An initialized AsyncMultiRangeDownloader instance for reading.
         """
-        if "generation_number" in kwargs:
-            if generation is not None:
-                raise TypeError(
-                    "Cannot set both 'generation' and 'generation_number'. "
-                    "Use 'generation' for new code."
-                )
-            generation = kwargs.pop("generation_number")
-        mrd = cls(client, bucket_name, object_name, generation, read_handle)
+        mrd = cls(
+            client,
+            bucket_name,
+            object_name,
+            generation=generation,
+            read_handle=read_handle,
+            **kwargs,
+        )
         await mrd.open(retry_policy=retry_policy, metadata=metadata)
         return mrd
 

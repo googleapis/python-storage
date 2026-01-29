@@ -303,9 +303,7 @@ class TestAsyncMultiRangeDownloader:
         assert not mrd.is_stream_open
 
     @mock.patch("google.cloud.storage._experimental.asyncio._utils.google_crc32c")
-    def test_init_raises_if_crc32c_c_extension_is_missing(
-        self, mock_google_crc32c
-    ):
+    def test_init_raises_if_crc32c_c_extension_is_missing(self, mock_google_crc32c):
         mock_google_crc32c.implementation = "python"
         mock_client = mock.MagicMock()
 
