@@ -130,7 +130,7 @@ class AsyncGrpcClient:
         :param generation:
             (Optional) If present, permanently deletes a specific generation
             of an object.
-        
+
         :type if_generation_match: int
         :param if_generation_match: (Optional)
 
@@ -148,7 +148,9 @@ class AsyncGrpcClient:
         # The gRPC API requires the bucket name to be in the format "projects/_/buckets/bucket_name"
         bucket_path = f"projects/_/buckets/{bucket_name}"
         request = storage_v2.DeleteObjectRequest(
-            bucket=bucket_path, object=object_name, generation=generation,
+            bucket=bucket_path,
+            object=object_name,
+            generation=generation,
             if_generation_match=if_generation_match,
             if_generation_not_match=if_generation_not_match,
             if_metageneration_match=if_metageneration_match,
@@ -156,30 +158,3 @@ class AsyncGrpcClient:
             **kwargs,
         )
         await self._grpc_client.delete_object(request=request)
-
-
-if __name__ == "__main__":
-    import asyncio
-
-    # This is a sample showing how to use the delete_object method.
-    # To run this sample, install the library and set up authentication.
-    # See google-cloud-storage documentation for more details.
-    #
-    # You will need to replace `your-bucket-name` and `your-object-name`
-    # with your actual bucket name and object name.
-
-    BUCKET_NAME = "chandrasiri-benchmarks-zb"
-    OBJECT_NAME = "test_md_1"
-
-    async def main():
-        client = AsyncGrpcClient()
-        print(f"Attempting to delete {OBJECT_NAME} from bucket {BUCKET_NAME}...")
-        try:
-            await client.delete_object(BUCKET_NAME, OBJECT_NAME)
-                                    #    if_generation_match=1768326969788933)
-            print("Object deleted successfully.")
-        except Exception as e:
-            print(f"An error occurred: {e}")
-            raise
-
-    asyncio.run(main())

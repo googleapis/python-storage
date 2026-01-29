@@ -571,9 +571,8 @@ def test_open_existing_object_with_gen_None_overrides_existing(
 
     event_loop.run_until_complete(_run())
 
-def test_delete_object_using_grpc_client(
-    event_loop, grpc_client
-):
+
+def test_delete_object_using_grpc_client(event_loop, grpc_client_direct):
     """
     Test that a new writer when specifies `None` overrides the existing object.
     """
@@ -581,20 +580,22 @@ def test_delete_object_using_grpc_client(
 
     async def _run():
         writer = AsyncAppendableObjectWriter(
-            grpc_client, _ZONAL_BUCKET, object_name, generation=0
+            grpc_client_direct, _ZONAL_BUCKET, object_name, generation=0
         )
 
         # Empty object is created.
         await writer.open()
-        await writer.append(b'some_bytes')
+        await writer.append(b"some_bytes")
         await writer.close()
 
-        await grpc_client.delete_object(bucket=f"projects/_/buckets/{_ZONAL_BUCKET}", object_=object_name)
-
+        await grpc_client_direct.delete_object(_ZONAL_BUCKET, object_name)
 
         # trying to get raises raises 404.
         with pytest.raises(NotFound):
-            await grpc_client.get_object(bucket=f"projects/_/buckets/{_ZONAL_BUCKET}", object_=object_name)
+            # TODO: Remove this once GET_OBJECT is exposed in `AsyncGrpcClient`
+            await grpc_client_direct._grpc_client.get_object(
+                bucket=f"projects/_/buckets/{_ZONAL_BUCKET}", object_=object_name
+            )
         # cleanup
         del writer
         gc.collect()

@@ -188,7 +188,6 @@ class TestAsyncGrpcClient:
         )
         mock_transport_cls.assert_called_once_with(channel=channel_sentinel)
 
-
     @mock.patch("google.cloud._storage_v2.StorageAsyncClient")
     def test_user_agent_with_custom_client_info(self, mock_async_storage_client):
         """Test that gcloud-python user agent is appended to existing user agent.
@@ -255,4 +254,3 @@ class TestAsyncGrpcClient:
         assert request.if_generation_not_match == if_generation_not_match
         assert request.if_metageneration_match == if_metageneration_match
         assert request.if_metageneration_not_match == if_metageneration_not_match
-
