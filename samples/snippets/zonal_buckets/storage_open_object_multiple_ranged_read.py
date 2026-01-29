@@ -18,8 +18,8 @@ import argparse
 import asyncio
 from io import BytesIO
 
-from google.cloud.storage._experimental.asyncio.async_grpc_client import AsyncGrpcClient
-from google.cloud.storage._experimental.asyncio.async_multi_range_downloader import (
+from google.cloud.storage.asyncio.async_grpc_client import AsyncGrpcClient
+from google.cloud.storage.asyncio.async_multi_range_downloader import (
     AsyncMultiRangeDownloader,
 )
 
@@ -33,7 +33,7 @@ async def storage_open_object_multiple_ranged_read(
     grpc_client: an existing grpc_client to use, this is only for testing.
     """
     if grpc_client is None:
-        grpc_client = AsyncGrpcClient().grpc_client
+        grpc_client = AsyncGrpcClient()
 
     mrd = AsyncMultiRangeDownloader(grpc_client, bucket_name, object_name)
 

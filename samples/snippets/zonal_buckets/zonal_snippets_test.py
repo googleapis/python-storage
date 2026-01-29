@@ -20,8 +20,8 @@ import pytest
 from google.cloud.storage import Client
 import contextlib
 
-from google.cloud.storage._experimental.asyncio.async_grpc_client import AsyncGrpcClient
-from google.cloud.storage._experimental.asyncio.async_appendable_object_writer import (
+from google.cloud.storage.asyncio.async_grpc_client import AsyncGrpcClient
+from google.cloud.storage.asyncio.async_appendable_object_writer import (
     AsyncAppendableObjectWriter,
 )
 
@@ -48,7 +48,7 @@ _ZONAL_BUCKET = os.getenv("ZONAL_BUCKET")
 
 async def create_async_grpc_client():
     """Initializes async client and gets the current event loop."""
-    return AsyncGrpcClient().grpc_client
+    return AsyncGrpcClient()
 
 
 # Forcing a single event loop for the whole test session

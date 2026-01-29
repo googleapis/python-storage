@@ -14,15 +14,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Downloads a range of bytes from multiple objects concurrently."""
+"""Downloads a range of bytes from multiple objects concurrently.
+Example usage:
+   ```python samples/snippets/zonal_buckets/storage_open_multiple_objects_ranged_read.py \
+    --bucket_name <BUCKET_NAME> \
+    --object_names <OBJECT_1> <OBJECT_2> <OBJECT_3>```
+"""
 import argparse
 import asyncio
 from io import BytesIO
 
-from google.cloud.storage._experimental.asyncio.async_grpc_client import (
+from google.cloud.storage.asyncio.async_grpc_client import (
     AsyncGrpcClient,
 )
-from google.cloud.storage._experimental.asyncio.async_multi_range_downloader import (
+from google.cloud.storage.asyncio.async_multi_range_downloader import (
     AsyncMultiRangeDownloader,
 )
 
@@ -36,7 +41,7 @@ async def storage_open_multiple_objects_ranged_read(
     grpc_client: an existing grpc_client to use, this is only for testing.
     """
     if grpc_client is None:
-        grpc_client = AsyncGrpcClient().grpc_client
+        grpc_client = AsyncGrpcClient()
 
     async def _download_range(object_name):
         """Helper coroutine to download a range from a single object."""

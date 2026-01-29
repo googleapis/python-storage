@@ -20,11 +20,11 @@ import time
 from datetime import datetime
 from io import BytesIO
 
-from google.cloud.storage._experimental.asyncio.async_appendable_object_writer import (
+from google.cloud.storage.asyncio.async_appendable_object_writer import (
     AsyncAppendableObjectWriter,
 )
-from google.cloud.storage._experimental.asyncio.async_grpc_client import AsyncGrpcClient
-from google.cloud.storage._experimental.asyncio.async_multi_range_downloader import (
+from google.cloud.storage.asyncio.async_grpc_client import AsyncGrpcClient
+from google.cloud.storage.asyncio.async_multi_range_downloader import (
     AsyncMultiRangeDownloader,
 )
 
@@ -90,7 +90,7 @@ async def read_appendable_object_tail(
     grpc_client: an existing grpc_client to use, this is only for testing.
     """
     if grpc_client is None:
-        grpc_client = AsyncGrpcClient().grpc_client
+        grpc_client = AsyncGrpcClient()
     writer = AsyncAppendableObjectWriter(
         client=grpc_client,
         bucket_name=bucket_name,
