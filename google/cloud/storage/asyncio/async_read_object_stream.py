@@ -11,16 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""
-NOTE:
-This is _experimental module for upcoming support for Rapid Storage.
-(https://cloud.google.com/blog/products/storage-data-transfer/high-performance-storage-innovations-for-ai-hpc#:~:text=your%20AI%20workloads%3A-,Rapid%20Storage,-%3A%20A%20new)
-
-APIs may not work as intended and are not stable yet. Feature is not
-GA(Generally Available) yet, please contact your TAM(Technical Account Manager)
-if you want to use these APIs.
-
-"""
 
 from typing import List, Optional, Tuple
 from google.cloud import _storage_v2
