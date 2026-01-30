@@ -192,7 +192,7 @@ class _AsyncWriteObjectStream(_AsyncAbstractObjectStream):
         if first_resp != grpc.aio.EOF:
             self.persisted_size = first_resp.persisted_size
             second_resp = await self.socket_like_rpc.recv()
-            _utils.update_write_handle_if_exists(self, second_resp)
+            assert second_resp == grpc.aio.EOF
 
     async def send(
         self, bidi_write_object_request: _storage_v2.BidiWriteObjectRequest

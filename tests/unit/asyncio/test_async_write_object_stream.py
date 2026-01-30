@@ -15,6 +15,8 @@
 import unittest.mock as mock
 from unittest.mock import AsyncMock, MagicMock
 import pytest
+import grpc
+
 
 from google.cloud.storage.asyncio.async_write_object_stream import (
     _AsyncWriteObjectStream,
@@ -194,27 +196,20 @@ class TestAsyncWriteObjectStream:
         stream = _AsyncWriteObjectStream(mock_client, BUCKET, OBJECT)
         stream._is_stream_open = True
         stream.socket_like_rpc = AsyncMock()
+
+        stream.socket_like_rpc.send = AsyncMock()
+        first_resp = _storage_v2.BidiWriteObjectResponse(persisted_size=100)
+        stream.socket_like_rpc.recv = AsyncMock(side_effect=[first_resp, grpc.aio.EOF])
         stream.socket_like_rpc.close = AsyncMock()
 
         await stream.close()
         stream.socket_like_rpc.close.assert_awaited_once()
         assert not stream.is_stream_open
-
-    @pytest.mark.asyncio
-    async def test_methods_require_open_raises(self, mock_client):
-        stream = _AsyncWriteObjectStream(mock_client, BUCKET, OBJECT)
-        with pytest.raises(ValueError, match="Stream is not open"):
-            await stream.send(MagicMock())
-        with pytest.raises(ValueError, match="Stream is not open"):
-            await stream.recv()
-        with pytest.raises(ValueError, match="Stream is not open"):
-            await stream.close()
+        assert stream.persisted_size == 100
 
     @pytest.mark.asyncio
     async def test_close_with_persisted_size_then_eof(self, mock_client):
         """Test close when first recv has persisted_size, second is EOF."""
-        import grpc
-
         stream = _AsyncWriteObjectStream(mock_client, BUCKET, OBJECT)
         stream._is_stream_open = True
         stream.socket_like_rpc = AsyncMock()
@@ -238,8 +233,6 @@ class TestAsyncWriteObjectStream:
     @pytest.mark.asyncio
     async def test_close_with_grpc_aio_eof_response(self, mock_client):
         """Test close when first recv is grpc.aio.EOF sentinel."""
-        import grpc
-
         stream = _AsyncWriteObjectStream(mock_client, BUCKET, OBJECT)
         stream._is_stream_open = True
         stream.socket_like_rpc = AsyncMock()
@@ -254,3 +247,13 @@ class TestAsyncWriteObjectStream:
         # Verify only one recv call (grpc.aio.EOF=EOF, so don't read second)
         assert stream.socket_like_rpc.recv.await_count == 1
         assert not stream.is_stream_open
+
+    @pytest.mark.asyncio
+    async def test_methods_require_open_raises(self, mock_client):
+        stream = _AsyncWriteObjectStream(mock_client, BUCKET, OBJECT)
+        with pytest.raises(ValueError, match="Stream is not open"):
+            await stream.send(MagicMock())
+        with pytest.raises(ValueError, match="Stream is not open"):
+            await stream.recv()
+        with pytest.raises(ValueError, match="Stream is not open"):
+            await stream.close()
