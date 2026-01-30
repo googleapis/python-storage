@@ -181,9 +181,26 @@ class _AsyncWriteObjectStream(_AsyncAbstractObjectStream):
 
     async def requests_done(self):
         """Signals that all requests have been sent."""
-
         await self.socket_like_rpc.send(None)
-        _utils.update_write_handle_if_exists(self, await self.socket_like_rpc.recv())
+
+        # The server may send a final "EOF" response immediately, or it may
+        # first send an intermediate response followed by the EOF response depending on whether the object was finalized or not.
+        first_resp = await self.socket_like_rpc.recv()
+
+        is_eof = (
+            first_resp is None
+            or (
+                getattr(first_resp, "persisted_size", None) is None
+            )
+        )
+        _utils.update_write_handle_if_exists(self, first_resp)
+
+        if not is_eof:
+            self.persisted_size = first_resp.persisted_size
+            second_resp = await self.socket_like_rpc.recv()
+
+            if second_resp is not None:
+                _utils.update_write_handle_if_exists(self, second_resp)
 
     async def send(
         self, bidi_write_object_request: _storage_v2.BidiWriteObjectRequest
