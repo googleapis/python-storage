@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from typing import List, Optional, Tuple
+import grpc
 from google.cloud import _storage_v2
 from google.cloud.storage.asyncio import _utils
 from google.cloud.storage.asyncio.async_grpc_client import AsyncGrpcClient
@@ -188,7 +189,7 @@ class _AsyncWriteObjectStream(_AsyncAbstractObjectStream):
         first_resp = await self.socket_like_rpc.recv()
 
         is_eof = (
-            first_resp is None
+            first_resp is None or first_resp == grpc.aio.EOF
             or (
                 getattr(first_resp, "persisted_size", None) is None
             )

@@ -234,8 +234,8 @@ class TestAsyncWriteObjectStream:
         assert not stream.is_stream_open
 
     @pytest.mark.asyncio
-    async def test_close_with_eof_response(self, mock_client):
-        """Test close when first recv is EOF or None."""
+    async def test_close_with_none_response(self, mock_client):
+        """Test close when first recv is None."""
         stream = _AsyncWriteObjectStream(mock_client, BUCKET, OBJECT)
         stream._is_stream_open = True
         stream.socket_like_rpc = AsyncMock()
@@ -248,5 +248,25 @@ class TestAsyncWriteObjectStream:
         await stream.close()
 
         # Verify only one recv call (None=EOF, so don't read second)
+        assert stream.socket_like_rpc.recv.await_count == 1
+        assert not stream.is_stream_open
+
+    @pytest.mark.asyncio
+    async def test_close_with_grpc_aio_eof_response(self, mock_client):
+        """Test close when first recv is grpc.aio.EOF sentinel."""
+        import grpc
+
+        stream = _AsyncWriteObjectStream(mock_client, BUCKET, OBJECT)
+        stream._is_stream_open = True
+        stream.socket_like_rpc = AsyncMock()
+
+        # First recv returns grpc.aio.EOF (explicit sentinel from finalize)
+        stream.socket_like_rpc.send = AsyncMock()
+        stream.socket_like_rpc.recv = AsyncMock(return_value=grpc.aio.EOF)
+        stream.socket_like_rpc.close = AsyncMock()
+
+        await stream.close()
+
+        # Verify only one recv call (grpc.aio.EOF=EOF, so don't read second)
         assert stream.socket_like_rpc.recv.await_count == 1
         assert not stream.is_stream_open
