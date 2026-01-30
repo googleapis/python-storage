@@ -4,6 +4,47 @@
 
 [1]: https://pypi.org/project/google-cloud-storage/#history
 
+## [4.0.0](https://github.com/googleapis/python-storage/compare/v3.8.0...v4.0.0) (2026-01-30)
+
+
+### ⚠ BREAKING CHANGES
+
+* Change contructors of MRD and AAOW AsyncGrpcClient.grpc_client to AsyncGrpcClient ([#1727](https://github.com/googleapis/python-storage/issues/1727))
+
+### Features
+
+* Add context manager to mrd ([5ac2808](https://github.com/googleapis/python-storage/commit/5ac2808a69195c688ed42c3604d4bfadbb602a66))
+* Add context manager to mrd ([#1724](https://github.com/googleapis/python-storage/issues/1724)) ([5ac2808](https://github.com/googleapis/python-storage/commit/5ac2808a69195c688ed42c3604d4bfadbb602a66))
+* Add default user agent for grpc ([#1726](https://github.com/googleapis/python-storage/issues/1726)) ([7b31946](https://github.com/googleapis/python-storage/commit/7b319469d2e495ea0bf7367f3949190e8f5d9fff))
+* Add micro-benchmarks for reads comparing standard (regional) vs rapid (zonal) buckets. ([#1697](https://github.com/googleapis/python-storage/issues/1697)) ([1917649](https://github.com/googleapis/python-storage/commit/1917649fac41481da1adea6c2a9f4ab1298a34c4))
+* Add micro-benchmarks for writes comparing standard (regional) vs rapid (zonal) buckets. ([#1707](https://github.com/googleapis/python-storage/issues/1707)) ([dbe9d8b](https://github.com/googleapis/python-storage/commit/dbe9d8b89d975dfbed8c830a5687ccfafea51d5f))
+* Add support for opening via `write_handle` and fix `write_handle` ([2bc15fa](https://github.com/googleapis/python-storage/commit/2bc15fa570683ba584230c51b439d189dbdcd580))
+* Add support for opening via `write_handle` and fix `write_handle` type ([#1715](https://github.com/googleapis/python-storage/issues/1715)) ([2bc15fa](https://github.com/googleapis/python-storage/commit/2bc15fa570683ba584230c51b439d189dbdcd580))
+* **experimental:** Integrate writes strategy and appendable object writer ([#1695](https://github.com/googleapis/python-storage/issues/1695)) ([dbd162b](https://github.com/googleapis/python-storage/commit/dbd162b3583e32e6f705a51f5c3fef333a9b89d0))
+* Expose `DELETE_OBJECT`   in `AsyncGrpcClient` ([#1718](https://github.com/googleapis/python-storage/issues/1718)) ([c8dd7a0](https://github.com/googleapis/python-storage/commit/c8dd7a0b124c395b7b60189ee78f47aba8d51f7d))
+* Expose finalized_time in blob.py applicable for GET_OBJECT in ZB ([8e21a7f](https://github.com/googleapis/python-storage/commit/8e21a7fe54d0a043f31937671003630a1985a5d2))
+* Expose finalized_time in blob.py applicable for GET_OBJECT in ZB ([#1719](https://github.com/googleapis/python-storage/issues/1719)) ([8e21a7f](https://github.com/googleapis/python-storage/commit/8e21a7fe54d0a043f31937671003630a1985a5d2))
+* **grpc_user_agent:** Send `user_agent` to grpc channel ([#1712](https://github.com/googleapis/python-storage/issues/1712)) ([cdb2486](https://github.com/googleapis/python-storage/commit/cdb2486bb051dcbfbffc2510aff6aacede5e54d3))
+* Move Zonal Buckets features of `_experimental` ([#1728](https://github.com/googleapis/python-storage/issues/1728)) ([74c9ecc](https://github.com/googleapis/python-storage/commit/74c9ecc54173420bfcd48498a8956088a035af50))
+* Move Zonal Buckets features of `_experimental` to ([74c9ecc](https://github.com/googleapis/python-storage/commit/74c9ecc54173420bfcd48498a8956088a035af50))
+* **samples:** Add samples for appendable objects writes and reads ([2e1a1eb](https://github.com/googleapis/python-storage/commit/2e1a1eb5cbe1c909f1f892a0cc74fe63c8ef36ff))
+* **samples:** Add samples for appendable objects writes and reads ([#1705](https://github.com/googleapis/python-storage/issues/1705)) ([2e1a1eb](https://github.com/googleapis/python-storage/commit/2e1a1eb5cbe1c909f1f892a0cc74fe63c8ef36ff))
+* Update generation for MRD ([#1730](https://github.com/googleapis/python-storage/issues/1730)) ([08bc708](https://github.com/googleapis/python-storage/commit/08bc7082db7392f13bc8c51511b4afa9c7b157c9))
+* **ZonalBuckets:** Add support for `generation=0` to avoid overwriting existing objects and add `is_stream_open` support  ([#1709](https://github.com/googleapis/python-storage/issues/1709)) ([ea0f5bf](https://github.com/googleapis/python-storage/commit/ea0f5bf8316f4bfcff2728d9d1baa68dde6ebdae))
+* **ZonalBuckets:** Add support for `generation=0` to prevent ([ea0f5bf](https://github.com/googleapis/python-storage/commit/ea0f5bf8316f4bfcff2728d9d1baa68dde6ebdae))
+
+
+### Bug Fixes
+
+* Change contructors of MRD and AAOW AsyncGrpcClient.grpc_client to AsyncGrpcClient ([#1727](https://github.com/googleapis/python-storage/issues/1727)) ([e730bf5](https://github.com/googleapis/python-storage/commit/e730bf50c4584f737ab86b2e409ddb27b40d2cec))
+* **experimental:** Implement requests_done method to signal end of ([6c16079](https://github.com/googleapis/python-storage/commit/6c160794afded5e8f4179399f1fe5248e32bf707))
+* **experimental:** Implement requests_done method to signal end of requests in async streams. Gracefully close streams. ([#1700](https://github.com/googleapis/python-storage/issues/1700)) ([6c16079](https://github.com/googleapis/python-storage/commit/6c160794afded5e8f4179399f1fe5248e32bf707))
+* Fix formatting in setup.py dependencies list ([#1713](https://github.com/googleapis/python-storage/issues/1713)) ([cc4831d](https://github.com/googleapis/python-storage/commit/cc4831d7e253b265b0b96e08b5479f4c759be442))
+* Instance grpc client once per process in benchmarks ([#1725](https://github.com/googleapis/python-storage/issues/1725)) ([721ea2d](https://github.com/googleapis/python-storage/commit/721ea2dd6c6db2aa91fd3b90e56a831aaaa64061))
+* Instance grpc client once per process in benchmarks.  ([721ea2d](https://github.com/googleapis/python-storage/commit/721ea2dd6c6db2aa91fd3b90e56a831aaaa64061))
+* Update `write_handle` on every `recv()` from write object stream. ([5d9fafe](https://github.com/googleapis/python-storage/commit/5d9fafe1466b5ccb1db4a814967a5cc8465148a2))
+* Update write handle on every recv() ([#1716](https://github.com/googleapis/python-storage/issues/1716)) ([5d9fafe](https://github.com/googleapis/python-storage/commit/5d9fafe1466b5ccb1db4a814967a5cc8465148a2))
+
 ## [3.8.0](https://github.com/googleapis/python-storage/compare/v3.7.0...v3.8.0) (2026-01-13)
 
 
