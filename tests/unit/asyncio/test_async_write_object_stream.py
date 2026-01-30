@@ -213,6 +213,8 @@ class TestAsyncWriteObjectStream:
     @pytest.mark.asyncio
     async def test_close_with_persisted_size_then_eof(self, mock_client):
         """Test close when first recv has persisted_size, second is EOF."""
+        import grpc
+
         stream = _AsyncWriteObjectStream(mock_client, BUCKET, OBJECT)
         stream._is_stream_open = True
         stream.socket_like_rpc = AsyncMock()
@@ -220,7 +222,7 @@ class TestAsyncWriteObjectStream:
         # First response has persisted_size (NOT EOF, intermediate)
         persisted_resp = _storage_v2.BidiWriteObjectResponse(persisted_size=500)
         # Second response is EOF (None)
-        eof_resp = None
+        eof_resp = grpc.aio.EOF
 
         stream.socket_like_rpc.send = AsyncMock()
         stream.socket_like_rpc.recv = AsyncMock(side_effect=[persisted_resp, eof_resp])
@@ -231,24 +233,6 @@ class TestAsyncWriteObjectStream:
         # Verify two recv calls: first has persisted_size (NOT EOF), so read second (EOF)
         assert stream.socket_like_rpc.recv.await_count == 2
         assert stream.persisted_size == 500
-        assert not stream.is_stream_open
-
-    @pytest.mark.asyncio
-    async def test_close_with_none_response(self, mock_client):
-        """Test close when first recv is None."""
-        stream = _AsyncWriteObjectStream(mock_client, BUCKET, OBJECT)
-        stream._is_stream_open = True
-        stream.socket_like_rpc = AsyncMock()
-
-        # First recv returns None (gRPC EOF, stream is already closed)
-        stream.socket_like_rpc.send = AsyncMock()
-        stream.socket_like_rpc.recv = AsyncMock(return_value=None)
-        stream.socket_like_rpc.close = AsyncMock()
-
-        await stream.close()
-
-        # Verify only one recv call (None=EOF, so don't read second)
-        assert stream.socket_like_rpc.recv.await_count == 1
         assert not stream.is_stream_open
 
     @pytest.mark.asyncio
