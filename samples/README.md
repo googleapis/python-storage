@@ -37,7 +37,7 @@ for more detailed instructions.
 3. To run samples for [Zonal Buckets](https://github.com/googleapis/python-storage/tree/main/samples/snippets/zonal_buckets)
 
     ```
-    pip install -e ".[grpc]"
+    pip install "google-cloud-storage[grpc]"
     python samples/snippets/zonal_buckets/storage_create_and_write_appendable_object.py --bucket_name <BUCKET_NAME> --object_name <OBJECT_NAME>
 
     ```

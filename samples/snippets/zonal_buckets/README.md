@@ -25,13 +25,31 @@ This snippet creates, writes to, and finalizes an appendable object.
 python samples/snippets/zonal_buckets/storage_finalize_appendable_object_upload.py --bucket_name <bucket_name> --object_name <object_name>
 ```
 
-### Download a range of bytes from multiple objects concurrently
+### Pause and resume an appendable object upload
 
-This snippet downloads a range of bytes from multiple objects concurrently.
+This snippet demonstrates pausing and resuming an appendable object upload.
 
 ```bash
-python samples/snippets/zonal_buckets/storage_open_multiple_objects_ranged_read.py --bucket_name <bucket_name> --object_names <object_name_1> <object_name_2>
+python samples/snippets/zonal_buckets/storage_pause_and_resume_appendable_upload.py --bucket_name <bucket_name> --object_name <object_name>
 ```
+
+### Tail an appendable object
+
+This snippet demonstrates tailing an appendable GCS object, similar to `tail -f`.
+
+```bash
+python samples/snippets/zonal_buckets/storage_read_appendable_object_tail.py --bucket_name <bucket_name> --object_name <object_name> --duration <duration_in_seconds>
+```
+
+
+### Download a range of bytes from an object
+
+This snippet downloads a range of bytes from an object.
+
+```bash
+python samples/snippets/zonal_buckets/storage_open_object_single_ranged_read.py --bucket_name <bucket_name> --object_name <object_name> --start_byte <start_byte> --size <size>
+```
+
 
 ### Download multiple ranges of bytes from a single object
 
@@ -49,26 +67,12 @@ This snippet downloads the entire content of an object using a multi-range downl
 python samples/snippets/zonal_buckets/storage_open_object_read_full_object.py --bucket_name <bucket_name> --object_name <object_name>
 ```
 
-### Download a range of bytes from an object
 
-This snippet downloads a range of bytes from an object.
 
-```bash
-python samples/snippets/zonal_buckets/storage_open_object_single_ranged_read.py --bucket_name <bucket_name> --object_name <object_name> --start_byte <start_byte> --size <size>
-```
+### Download a range of bytes from multiple objects concurrently
 
-### Pause and resume an appendable object upload
-
-This snippet demonstrates pausing and resuming an appendable object upload.
+This snippet downloads a range of bytes from multiple objects concurrently.
 
 ```bash
-python samples/snippets/zonal_buckets/storage_pause_and_resume_appendable_upload.py --bucket_name <bucket_name> --object_name <object_name>
-```
-
-### Tail an appendable object
-
-This snippet demonstrates tailing an appendable GCS object, similar to `tail -f`.
-
-```bash
-python samples/snippets/zonal_buckets/storage_read_appendable_object_tail.py --bucket_name <bucket_name> --object_name <object_name> --duration <duration_in_seconds>
+python samples/snippets/zonal_buckets/storage_open_multiple_objects_ranged_read.py --bucket_name <bucket_name> --object_names <object_name_1> <object_name_2>
 ```
