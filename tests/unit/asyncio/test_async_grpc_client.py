@@ -254,7 +254,6 @@ class TestAsyncGrpcClient:
         assert request.if_generation_not_match == if_generation_not_match
         assert request.if_metageneration_match == if_metageneration_match
         assert request.if_metageneration_not_match == if_metageneration_not_match
-        assert request.soft_deleted is False
 
     @mock.patch("google.cloud._storage_v2.StorageAsyncClient")
     @pytest.mark.asyncio
@@ -283,6 +282,7 @@ class TestAsyncGrpcClient:
         request = call_kwargs["request"]
         assert request.bucket == "projects/_/buckets/bucket"
         assert request.object == "object"
+        assert request.soft_deleted is False
 
     @mock.patch("google.cloud._storage_v2.StorageAsyncClient")
     @pytest.mark.asyncio
