@@ -215,7 +215,7 @@ class AsyncGrpcClient:
             if_generation_not_match=if_generation_not_match,
             if_metageneration_match=if_metageneration_match,
             if_metageneration_not_match=if_metageneration_not_match,
-            soft_deleted=soft_deleted if soft_deleted is not None else False,
+            soft_deleted=soft_deleted or False,
             **kwargs,
         )
 
