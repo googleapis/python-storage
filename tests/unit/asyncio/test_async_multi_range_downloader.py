@@ -407,7 +407,7 @@ class TestAsyncMultiRangeDownloader:
     )
     @pytest.mark.asyncio
     async def test_create_mrd_with_generation_number(
-        self, mock_cls_async_read_object_stream
+        self, mock_cls_async_read_object_stream, caplog
     ):
         # Arrange
         mock_client = mock.MagicMock()
@@ -430,6 +430,10 @@ class TestAsyncMultiRangeDownloader:
 
         # Assert
         assert mrd.generation == _TEST_GENERATION_NUMBER
+        assert len(caplog.records) == 1
+        record = caplog.records[0]
+        assert record.levelname == "WARNING"
+        assert "'generation_number' is deprecated" in record.message
 
     @pytest.mark.asyncio
     async def test_create_mrd_with_both_generation_and_generation_number(self):
