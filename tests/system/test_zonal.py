@@ -19,7 +19,7 @@ from google.cloud.storage.asyncio.async_appendable_object_writer import (
 from google.cloud.storage.asyncio.async_multi_range_downloader import (
     AsyncMultiRangeDownloader,
 )
-from google.api_core.exceptions import FailedPrecondition
+from google.api_core.exceptions import FailedPrecondition, NotFound
 
 
 pytestmark = pytest.mark.skipif(
@@ -568,5 +568,89 @@ def test_open_existing_object_with_gen_None_overrides_existing(
         gc.collect()
 
         blobs_to_delete.append(storage_client.bucket(_ZONAL_BUCKET).blob(object_name))
+
+    event_loop.run_until_complete(_run())
+
+
+def test_delete_object_using_grpc_client(event_loop, grpc_client_direct):
+    """
+    Test that a new writer when specifies `None` overrides the existing object.
+    """
+    object_name = f"test_append_with_generation-{uuid.uuid4()}"
+
+    async def _run():
+        writer = AsyncAppendableObjectWriter(
+            grpc_client_direct, _ZONAL_BUCKET, object_name, generation=0
+        )
+
+        # Empty object is created.
+        await writer.open()
+        await writer.append(b"some_bytes")
+        await writer.close()
+
+        await grpc_client_direct.delete_object(_ZONAL_BUCKET, object_name)
+
+        # trying to get raises raises 404.
+        with pytest.raises(NotFound):
+            # TODO: Remove this once GET_OBJECT is exposed in `AsyncGrpcClient`
+            await grpc_client_direct._grpc_client.get_object(
+                bucket=f"projects/_/buckets/{_ZONAL_BUCKET}", object_=object_name
+            )
+        # cleanup
+        del writer
+        gc.collect()
+
+    event_loop.run_until_complete(_run())
+
+def test_get_object_after_appendable_write(
+    grpc_clients,
+    grpc_client_direct,
+    event_loop,
+    storage_client,
+    blobs_to_delete,
+):
+    """Test getting object metadata after writing with AsyncAppendableObjectWriter.
+
+    This test:
+    1. Creates a test object using AsyncAppendableObjectWriter
+    2. Appends content to the object (without finalizing)
+    3. Closes the write stream
+    4. Fetches the object metadata using AsyncGrpcClient.get_object()
+    5. Verifies the object size matches the written data
+    """
+
+    async def _run():
+        grpc_client = grpc_client_direct
+        object_name = f"test-get-object-{uuid.uuid4().hex}"
+        test_data = b"Some test data bytes."
+        expected_size = len(test_data)
+
+        writer = AsyncAppendableObjectWriter(
+            grpc_client,
+            _ZONAL_BUCKET,
+            object_name,
+        )
+
+        await writer.open()
+        await writer.append(test_data)
+        await writer.close(finalize_on_close=False)
+
+        obj = await grpc_client.get_object(
+            bucket_name=_ZONAL_BUCKET,
+            object_name=object_name,
+        )
+
+        # Assert
+        assert obj is not None
+        assert obj.name == object_name
+        assert obj.bucket == f"projects/_/buckets/{_ZONAL_BUCKET}"
+        assert obj.size == expected_size, (
+            f"Expected object size {expected_size}, got {obj.size}"
+        )
+
+        # Cleanup
+        blobs_to_delete.append(storage_client.bucket(_ZONAL_BUCKET).blob(object_name))
+        del writer
+        gc.collect()
 
     event_loop.run_until_complete(_run())
