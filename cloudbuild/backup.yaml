@@ -1,0 +1,19 @@
+gcloud compute instances create 
+py-sdk-micro-benchmarks-ci-test-2 
+--project=gcs-aiml-clients-testing-101 
+--zone=us-central1-a 
+--machine-type=c4-standard-192 
+--network-interface=network-tier=PREMIUM,nic-type=GVNIC,stack-type=IPV4_ONLY,subnet=default 
+--metadata=enable-osconfig=TRUE,enable-oslogin=TRUE
+--maintenance-policy=MIGRATE
+--provisioning-model=STANDARD
+--service-account=gcsfs-perf-ci-runner@gcs-aiml-clients-testing-101.iam.gserviceaccount.com
+--scopes=https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/devstorage.read_write
+--tags=allow-ssh,http-server,https-server,lb-health-check
+--create-disk=auto-delete=yes,boot=yes,device-name=py-sdk-micro-benchmarks-ci-test,disk-resource-policy=projects/gcs-aiml-clients-testing-101/regions/us-central1/resourcePolicies/default-schedule-1,image=projects/ubuntu-os-cloud/global/images/ubuntu-2204-jammy-v20251120,mode=rw,provisioned-iops=3600,provisioned-throughput=290,size=100,type=hyperdisk-balanced
+--no-shielded-secure-boot
+--shielded-vtpm
+--shielded-integrity-monitoring
+--labels=goog-ops-agent-policy=v2-x86-template-1-4-0,goog-ec-src=vm_add-gcloud
+--reservation-affinity=any
+--network-performance-configs=total-egress-bandwidth-tier=TIER_1
