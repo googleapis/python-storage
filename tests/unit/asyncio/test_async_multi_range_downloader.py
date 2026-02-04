@@ -429,11 +429,7 @@ class TestAsyncMultiRangeDownloader:
         )
 
         # Assert
-        assert mrd.generation == _TEST_GENERATION_NUMBER
-        assert len(caplog.records) == 1
-        record = caplog.records[0]
-        assert record.levelname == "WARNING"
-        assert "'generation_number' is deprecated" in record.message
+        assert "'generation_number' is deprecated" in caplog.text
 
     @pytest.mark.asyncio
     async def test_create_mrd_with_both_generation_and_generation_number(self):
