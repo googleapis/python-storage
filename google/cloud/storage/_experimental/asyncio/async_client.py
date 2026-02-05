@@ -1,4 +1,4 @@
-# Copyright 2025 Google LLC
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,7 +31,6 @@ try:
     AsyncSession = sessions.AsyncAuthorizedSession
     _AIO_AVAILABLE = True
 except ImportError:
-    AsyncSession = object
     _AIO_AVAILABLE = False
 
 _marker = base_client.marker
@@ -236,5 +235,24 @@ class AsyncClient(BaseClient):
         )
 
     def bucket(self, bucket_name, user_project=None, generation=None):
-        """See super() class"""
-        raise NotImplementedError("This bucket class needs to be implemented.")
+        """Factory constructor for bucket object.
+
+        .. note::
+          This will not make an HTTP request; it simply instantiates
+          a bucket object owned by this client.
+
+        :type bucket_name: str
+        :param bucket_name: The name of the bucket to be instantiated.
+
+        :type user_project: str
+        :param user_project: (Optional) The project ID to be billed for API
+                             requests made via the bucket.
+
+        :type generation: int
+        :param generation: (Optional) If present, selects a specific revision of
+                           this bucket.
+
+        :rtype: :class:`google.cloud.storage._experimental.asyncio.bucket.AsyncBucket`
+        :returns: The bucket object created.
+        """
+        raise NotImplementedError("This AsyncBucket class needs to be implemented.")

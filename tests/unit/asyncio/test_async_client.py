@@ -1,4 +1,4 @@
-# Copyright 2025 Google LLC
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ from google.cloud.storage._experimental.asyncio.async_helpers import AsyncHTTPIt
 # Aliases to match sync test style
 _marker = object()
 
+
 def _make_credentials():
     creds = mock.Mock(spec=Credentials)
     creds.universe_domain = "googleapis.com"
@@ -29,7 +30,7 @@ def _make_credentials():
 
 
 @pytest.mark.skipif(
-    sys.version_info < (3, 10), 
+    sys.version_info < (3, 10),
     reason="Async Client requires Python 3.10+ due to google-auth-library asyncio support"
 )
 class TestAsyncClient:
@@ -49,35 +50,36 @@ class TestAsyncClient:
             client = self._make_one(project=PROJECT, credentials=credentials)
 
         assert client.project == PROJECT
-        assert isinstance(client._connection, mock.Mock) # It is the instance of the Mock
+        # It is the instance of the Mock
+        assert isinstance(client._connection, mock.Mock)
         assert client._connection == MockConn.return_value
-        
+
         # Verify specific async attributes
         assert client._async_http_internal is None
         assert client._async_http_passed_by_user is False
-        
+
         # Verify inheritance from BaseClient worked (batch stack, etc)
         assert client.current_batch is None
         assert list(client._batch_stack) == []
 
     def test_ctor_mtls_raises_error(self):
         credentials = _make_credentials()
-        
+
         # Simulate environment where mTLS is enabled
         with mock.patch("google.cloud.storage.abstracts.base_client.BaseClient._use_client_cert", new_callable=mock.PropertyMock) as mock_mtls:
             mock_mtls.return_value = True
-            
+
             with pytest.raises(ValueError, match="Async Client currently do not support mTLS"):
                 self._make_one(credentials=credentials)
 
     def test_ctor_w_async_http_passed(self):
         credentials = _make_credentials()
         async_http = mock.Mock()
-        
+
         with mock.patch("google.cloud.storage._experimental.asyncio.async_client.AsyncConnection"):
             client = self._make_one(
-                project="PROJECT", 
-                credentials=credentials, 
+                project="PROJECT",
+                credentials=credentials,
                 _async_http=async_http
             )
 
@@ -88,13 +90,13 @@ class TestAsyncClient:
         credentials = _make_credentials()
         with mock.patch("google.cloud.storage._experimental.asyncio.async_client.AsyncConnection"):
             client = self._make_one(project="PROJECT", credentials=credentials)
-        
+
         assert client._async_http_internal is None
 
         # Mock the auth session class
         with mock.patch("google.cloud.storage._experimental.asyncio.async_client.AsyncSession") as MockSession:
             session = client.async_http
-            
+
             assert session is MockSession.return_value
             assert client._async_http_internal is session
             # Should be initialized with the AsyncCredsWrapper, not the raw credentials
@@ -112,7 +114,7 @@ class TestAsyncClient:
         mock_internal = mock.AsyncMock()
         client._async_http_internal = mock_internal
         client._async_http_passed_by_user = False
-        
+
         await client.close()
         mock_internal.close.assert_awaited_once()
 
@@ -120,11 +122,11 @@ class TestAsyncClient:
     async def test_close_ignores_user_session(self):
         credentials = _make_credentials()
         user_session = mock.AsyncMock()
-        
+
         with mock.patch("google.cloud.storage._experimental.asyncio.async_client.AsyncConnection"):
             client = self._make_one(
-                project="PROJECT", 
-                credentials=credentials, 
+                project="PROJECT",
+                credentials=credentials,
                 _async_http=user_session
             )
 
@@ -137,12 +139,13 @@ class TestAsyncClient:
         path = "/b/bucket"
         query_params = {"foo": "bar"}
         credentials = _make_credentials()
-        
+
         with mock.patch("google.cloud.storage._experimental.asyncio.async_client.AsyncConnection"):
             client = self._make_one(project="PROJECT", credentials=credentials)
-        
+
         # Mock the connection's api_request
-        client._connection.api_request = mock.AsyncMock(return_value="response")
+        client._connection.api_request = mock.AsyncMock(
+            return_value="response")
 
         result = await client._get_resource(path, query_params=query_params)
 
@@ -158,11 +161,11 @@ class TestAsyncClient:
         )
 
     @pytest.mark.asyncio
-    async def test_list_resource(self):        
+    async def test_list_resource(self):
         path = "/b/bucket/o"
         item_to_value = mock.Mock()
         credentials = _make_credentials()
-        
+
         with mock.patch("google.cloud.storage._experimental.asyncio.async_client.AsyncConnection"):
             client = self._make_one(project="PROJECT", credentials=credentials)
 
@@ -182,10 +185,10 @@ class TestAsyncClient:
         path = "/b/bucket"
         data = {"key": "val"}
         credentials = _make_credentials()
-        
+
         with mock.patch("google.cloud.storage._experimental.asyncio.async_client.AsyncConnection"):
             client = self._make_one(project="PROJECT", credentials=credentials)
-        
+
         client._connection.api_request = mock.AsyncMock()
 
         await client._patch_resource(path, data=data)
@@ -206,10 +209,10 @@ class TestAsyncClient:
         path = "/b/bucket/o/obj"
         data = b"bytes"
         credentials = _make_credentials()
-        
+
         with mock.patch("google.cloud.storage._experimental.asyncio.async_client.AsyncConnection"):
             client = self._make_one(project="PROJECT", credentials=credentials)
-        
+
         client._connection.api_request = mock.AsyncMock()
 
         await client._put_resource(path, data=data)
@@ -230,10 +233,10 @@ class TestAsyncClient:
         path = "/b/bucket/o/obj/compose"
         data = {"source": []}
         credentials = _make_credentials()
-        
+
         with mock.patch("google.cloud.storage._experimental.asyncio.async_client.AsyncConnection"):
             client = self._make_one(project="PROJECT", credentials=credentials)
-        
+
         client._connection.api_request = mock.AsyncMock()
 
         await client._post_resource(path, data=data)
@@ -253,10 +256,10 @@ class TestAsyncClient:
     async def test_delete_resource(self):
         path = "/b/bucket"
         credentials = _make_credentials()
-        
+
         with mock.patch("google.cloud.storage._experimental.asyncio.async_client.AsyncConnection"):
             client = self._make_one(project="PROJECT", credentials=credentials)
-        
+
         client._connection.api_request = mock.AsyncMock()
 
         await client._delete_resource(path)
@@ -275,6 +278,6 @@ class TestAsyncClient:
         credentials = _make_credentials()
         with mock.patch("google.cloud.storage._experimental.asyncio.async_client.AsyncConnection"):
             client = self._make_one(project="PROJECT", credentials=credentials)
-            
+
         with pytest.raises(NotImplementedError):
             client.bucket("my-bucket")
