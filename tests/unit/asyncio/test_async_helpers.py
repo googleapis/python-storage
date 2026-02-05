@@ -27,7 +27,6 @@ async def _safe_anext(iterator):
 
 
 class TestAsyncHTTPIterator:
-
     def _make_one(self, *args, **kw):
         return AsyncHTTPIterator(*args, **kw)
 
@@ -35,11 +34,9 @@ class TestAsyncHTTPIterator:
     async def test_iterate_items_single_page(self):
         """Test simple iteration over one page of results."""
         client = mock.Mock()
-        api_request = mock.AsyncMock()     
-        api_request.return_value = {
-            "items": ["a", "b"]
-        }
-        
+        api_request = mock.AsyncMock()
+        api_request.return_value = {"items": ["a", "b"]}
+
         iterator = self._make_one(
             client=client,
             api_request=api_request,
@@ -53,11 +50,9 @@ class TestAsyncHTTPIterator:
 
         assert results == ["A", "B"]
         assert iterator.num_results == 2
-        assert iterator.page_number == 1        
+        assert iterator.page_number == 1
         api_request.assert_awaited_once_with(
-            method="GET",
-            path="/path",
-            query_params={} 
+            method="GET", path="/path", query_params={}
         )
 
     @pytest.mark.asyncio
@@ -65,14 +60,14 @@ class TestAsyncHTTPIterator:
         """Test pagination flow passes tokens correctly."""
         client = mock.Mock()
         api_request = mock.AsyncMock()
-        
+
         # Setup Response: 2 Pages
         api_request.side_effect = [
-            {"items": ["1", "2"], "nextPageToken": "token-A"}, # Page 1
-            {"items": ["3"], "nextPageToken": "token-B"},      # Page 2
-            {"items": []}                                      # Page 3 (Empty/End)
+            {"items": ["1", "2"], "nextPageToken": "token-A"},  # Page 1
+            {"items": ["3"], "nextPageToken": "token-B"},  # Page 2
+            {"items": []},  # Page 3 (Empty/End)
         ]
-        
+
         iterator = self._make_one(
             client=client,
             api_request=api_request,
@@ -84,7 +79,7 @@ class TestAsyncHTTPIterator:
 
         assert results == [1, 2, 3]
         assert api_request.call_count == 3
-        
+
         calls = api_request.call_args_list
         assert calls[0].kwargs["query_params"] == {}
         assert calls[1].kwargs["query_params"] == {"pageToken": "token-A"}
@@ -95,12 +90,12 @@ class TestAsyncHTTPIterator:
         """Test the .pages property which yields Page objects instead of items."""
         client = mock.Mock()
         api_request = mock.AsyncMock()
-        
+
         api_request.side_effect = [
             {"items": ["a"], "nextPageToken": "next"},
-            {"items": ["b"]}
+            {"items": ["b"]},
         ]
-        
+
         iterator = self._make_one(
             client=client,
             api_request=api_request,
@@ -115,7 +110,7 @@ class TestAsyncHTTPIterator:
 
         assert len(pages) == 2
         assert list(pages[0]) == ["a"]
-        assert list(pages[1]) == ["b"]        
+        assert list(pages[1]) == ["b"]
         assert iterator.page_number == 2
 
     @pytest.mark.asyncio
@@ -123,7 +118,7 @@ class TestAsyncHTTPIterator:
         """Test that max_results alters the request parameters dynamically."""
         client = mock.Mock()
         api_request = mock.AsyncMock()
-        
+
         # Setup: We want 5 items total.
         # Page 1 returns 3 items.
         # Page 2 *should* only be asked for 2 items.
@@ -131,24 +126,24 @@ class TestAsyncHTTPIterator:
             {"items": ["a", "b", "c"], "nextPageToken": "t1"},
             {"items": ["d", "e"], "nextPageToken": "t2"},
         ]
-        
+
         iterator = self._make_one(
             client=client,
             api_request=api_request,
             path="/path",
             item_to_value=lambda _, x: x,
-            max_results=5 # <--- Limit set here
+            max_results=5,  # <--- Limit set here
         )
 
         results = [i async for i in iterator]
 
         assert len(results) == 5
         assert results == ["a", "b", "c", "d", "e"]
-        
+
         # Verify Request 1: Asked for max 5
         call1_params = api_request.call_args_list[0].kwargs["query_params"]
         assert call1_params["maxResults"] == 5
-        
+
         # Verify Request 2: Asked for max 2 (5 - 3 already fetched)
         call2_params = api_request.call_args_list[1].kwargs["query_params"]
         assert call2_params["maxResults"] == 2
@@ -159,15 +154,15 @@ class TestAsyncHTTPIterator:
         """Test that extra_params are merged into every request."""
         client = mock.Mock()
         api_request = mock.AsyncMock(return_value={"items": []})
-        
+
         custom_params = {"projection": "full", "delimiter": "/"}
-        
+
         iterator = self._make_one(
             client=client,
             api_request=api_request,
             path="/path",
             item_to_value=mock.Mock(),
-            extra_params=custom_params # <--- Input
+            extra_params=custom_params,  # <--- Input
         )
 
         # Trigger a request
@@ -183,13 +178,13 @@ class TestAsyncHTTPIterator:
         """Test that page_size is sent as maxResults if no global max_results is set."""
         client = mock.Mock()
         api_request = mock.AsyncMock(return_value={"items": []})
-        
+
         iterator = self._make_one(
             client=client,
             api_request=api_request,
             path="/path",
             item_to_value=mock.Mock(),
-            page_size=50 # <--- User preference
+            page_size=50,  # <--- User preference
         )
 
         await _safe_anext(iterator)
@@ -210,7 +205,7 @@ class TestAsyncHTTPIterator:
             api_request=api_request,
             path="/path",
             item_to_value=lambda _, x: x,
-            page_start=callback
+            page_start=callback,
         )
 
         # Run iteration
@@ -258,7 +253,7 @@ class TestAsyncHTTPIterator:
         # First Start
         async for _ in iterator:
             pass
-            
+
         # Second Start (Should Fail)
         with pytest.raises(ValueError, match="Iterator has already started"):
             async for _ in iterator:

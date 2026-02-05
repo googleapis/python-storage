@@ -17,8 +17,8 @@ from unittest import mock
 from unittest.mock import AsyncMock
 from google.cloud import _storage_v2
 
-from google.cloud.storage._experimental.asyncio import async_read_object_stream
-from google.cloud.storage._experimental.asyncio.async_read_object_stream import (
+from google.cloud.storage.asyncio import async_read_object_stream
+from google.cloud.storage.asyncio.async_read_object_stream import (
     _AsyncReadObjectStream,
 )
 
@@ -79,11 +79,9 @@ async def instantiate_read_obj_stream_with_read_handle(
     return read_obj_stream
 
 
+@mock.patch("google.cloud.storage.asyncio.async_read_object_stream.AsyncBidiRpc")
 @mock.patch(
-    "google.cloud.storage._experimental.asyncio.async_read_object_stream.AsyncBidiRpc"
-)
-@mock.patch(
-    "google.cloud.storage._experimental.asyncio.async_grpc_client.AsyncGrpcClient.grpc_client"
+    "google.cloud.storage.asyncio.async_grpc_client.AsyncGrpcClient.grpc_client"
 )
 def test_init_with_bucket_object_generation(mock_client, mock_async_bidi_rpc):
     # Arrange
@@ -110,11 +108,9 @@ def test_init_with_bucket_object_generation(mock_client, mock_async_bidi_rpc):
     assert read_obj_stream.rpc == rpc_sentinel
 
 
+@mock.patch("google.cloud.storage.asyncio.async_read_object_stream.AsyncBidiRpc")
 @mock.patch(
-    "google.cloud.storage._experimental.asyncio.async_read_object_stream.AsyncBidiRpc"
-)
-@mock.patch(
-    "google.cloud.storage._experimental.asyncio.async_grpc_client.AsyncGrpcClient.grpc_client"
+    "google.cloud.storage.asyncio.async_grpc_client.AsyncGrpcClient.grpc_client"
 )
 @pytest.mark.asyncio
 async def test_open(mock_client, mock_cls_async_bidi_rpc):
@@ -136,11 +132,9 @@ async def test_open(mock_client, mock_cls_async_bidi_rpc):
     assert read_obj_stream.is_stream_open
 
 
+@mock.patch("google.cloud.storage.asyncio.async_read_object_stream.AsyncBidiRpc")
 @mock.patch(
-    "google.cloud.storage._experimental.asyncio.async_read_object_stream.AsyncBidiRpc"
-)
-@mock.patch(
-    "google.cloud.storage._experimental.asyncio.async_grpc_client.AsyncGrpcClient.grpc_client"
+    "google.cloud.storage.asyncio.async_grpc_client.AsyncGrpcClient.grpc_client"
 )
 @pytest.mark.asyncio
 async def test_open_with_read_handle(mock_client, mock_cls_async_bidi_rpc):
@@ -162,11 +156,9 @@ async def test_open_with_read_handle(mock_client, mock_cls_async_bidi_rpc):
     assert read_obj_stream.is_stream_open
 
 
+@mock.patch("google.cloud.storage.asyncio.async_read_object_stream.AsyncBidiRpc")
 @mock.patch(
-    "google.cloud.storage._experimental.asyncio.async_read_object_stream.AsyncBidiRpc"
-)
-@mock.patch(
-    "google.cloud.storage._experimental.asyncio.async_grpc_client.AsyncGrpcClient.grpc_client"
+    "google.cloud.storage.asyncio.async_grpc_client.AsyncGrpcClient.grpc_client"
 )
 @pytest.mark.asyncio
 async def test_open_when_already_open_should_raise_error(
@@ -185,11 +177,9 @@ async def test_open_when_already_open_should_raise_error(
     assert str(exc.value) == "Stream is already open"
 
 
+@mock.patch("google.cloud.storage.asyncio.async_read_object_stream.AsyncBidiRpc")
 @mock.patch(
-    "google.cloud.storage._experimental.asyncio.async_read_object_stream.AsyncBidiRpc"
-)
-@mock.patch(
-    "google.cloud.storage._experimental.asyncio.async_grpc_client.AsyncGrpcClient.grpc_client"
+    "google.cloud.storage.asyncio.async_grpc_client.AsyncGrpcClient.grpc_client"
 )
 @pytest.mark.asyncio
 async def test_close(mock_client, mock_cls_async_bidi_rpc):
@@ -197,20 +187,42 @@ async def test_close(mock_client, mock_cls_async_bidi_rpc):
     read_obj_stream = await instantiate_read_obj_stream(
         mock_client, mock_cls_async_bidi_rpc, open=True
     )
+    read_obj_stream.requests_done = AsyncMock()
 
     # act
     await read_obj_stream.close()
 
     # assert
+    read_obj_stream.requests_done.assert_called_once()
     read_obj_stream.socket_like_rpc.close.assert_called_once()
     assert not read_obj_stream.is_stream_open
 
 
+@mock.patch("google.cloud.storage.asyncio.async_read_object_stream.AsyncBidiRpc")
 @mock.patch(
-    "google.cloud.storage._experimental.asyncio.async_read_object_stream.AsyncBidiRpc"
+    "google.cloud.storage.asyncio.async_grpc_client.AsyncGrpcClient.grpc_client"
 )
+@pytest.mark.asyncio
+async def test_requests_done(mock_client, mock_cls_async_bidi_rpc):
+    """Test that requests_done signals the end of requests."""
+    # Arrange
+    read_obj_stream = await instantiate_read_obj_stream(
+        mock_client, mock_cls_async_bidi_rpc, open=True
+    )
+    read_obj_stream.socket_like_rpc.send = AsyncMock()
+    read_obj_stream.socket_like_rpc.recv = AsyncMock()
+
+    # Act
+    await read_obj_stream.requests_done()
+
+    # Assert
+    read_obj_stream.socket_like_rpc.send.assert_called_once_with(None)
+    read_obj_stream.socket_like_rpc.recv.assert_called_once()
+
+
+@mock.patch("google.cloud.storage.asyncio.async_read_object_stream.AsyncBidiRpc")
 @mock.patch(
-    "google.cloud.storage._experimental.asyncio.async_grpc_client.AsyncGrpcClient.grpc_client"
+    "google.cloud.storage.asyncio.async_grpc_client.AsyncGrpcClient.grpc_client"
 )
 @pytest.mark.asyncio
 async def test_close_without_open_should_raise_error(
@@ -229,11 +241,9 @@ async def test_close_without_open_should_raise_error(
     assert str(exc.value) == "Stream is not open"
 
 
+@mock.patch("google.cloud.storage.asyncio.async_read_object_stream.AsyncBidiRpc")
 @mock.patch(
-    "google.cloud.storage._experimental.asyncio.async_read_object_stream.AsyncBidiRpc"
-)
-@mock.patch(
-    "google.cloud.storage._experimental.asyncio.async_grpc_client.AsyncGrpcClient.grpc_client"
+    "google.cloud.storage.asyncio.async_grpc_client.AsyncGrpcClient.grpc_client"
 )
 @pytest.mark.asyncio
 async def test_send(mock_client, mock_cls_async_bidi_rpc):
@@ -252,11 +262,9 @@ async def test_send(mock_client, mock_cls_async_bidi_rpc):
     )
 
 
+@mock.patch("google.cloud.storage.asyncio.async_read_object_stream.AsyncBidiRpc")
 @mock.patch(
-    "google.cloud.storage._experimental.asyncio.async_read_object_stream.AsyncBidiRpc"
-)
-@mock.patch(
-    "google.cloud.storage._experimental.asyncio.async_grpc_client.AsyncGrpcClient.grpc_client"
+    "google.cloud.storage.asyncio.async_grpc_client.AsyncGrpcClient.grpc_client"
 )
 @pytest.mark.asyncio
 async def test_send_without_open_should_raise_error(
@@ -275,11 +283,9 @@ async def test_send_without_open_should_raise_error(
     assert str(exc.value) == "Stream is not open"
 
 
+@mock.patch("google.cloud.storage.asyncio.async_read_object_stream.AsyncBidiRpc")
 @mock.patch(
-    "google.cloud.storage._experimental.asyncio.async_read_object_stream.AsyncBidiRpc"
-)
-@mock.patch(
-    "google.cloud.storage._experimental.asyncio.async_grpc_client.AsyncGrpcClient.grpc_client"
+    "google.cloud.storage.asyncio.async_grpc_client.AsyncGrpcClient.grpc_client"
 )
 @pytest.mark.asyncio
 async def test_recv(mock_client, mock_cls_async_bidi_rpc):
@@ -300,11 +306,9 @@ async def test_recv(mock_client, mock_cls_async_bidi_rpc):
     assert response == bidi_read_object_response
 
 
+@mock.patch("google.cloud.storage.asyncio.async_read_object_stream.AsyncBidiRpc")
 @mock.patch(
-    "google.cloud.storage._experimental.asyncio.async_read_object_stream.AsyncBidiRpc"
-)
-@mock.patch(
-    "google.cloud.storage._experimental.asyncio.async_grpc_client.AsyncGrpcClient.grpc_client"
+    "google.cloud.storage.asyncio.async_grpc_client.AsyncGrpcClient.grpc_client"
 )
 @pytest.mark.asyncio
 async def test_recv_without_open_should_raise_error(
@@ -323,11 +327,9 @@ async def test_recv_without_open_should_raise_error(
     assert str(exc.value) == "Stream is not open"
 
 
+@mock.patch("google.cloud.storage.asyncio.async_read_object_stream.AsyncBidiRpc")
 @mock.patch(
-    "google.cloud.storage._experimental.asyncio.async_read_object_stream.AsyncBidiRpc"
-)
-@mock.patch(
-    "google.cloud.storage._experimental.asyncio.async_grpc_client.AsyncGrpcClient.grpc_client"
+    "google.cloud.storage.asyncio.async_grpc_client.AsyncGrpcClient.grpc_client"
 )
 @pytest.mark.asyncio
 async def test_recv_updates_read_handle_on_refresh(

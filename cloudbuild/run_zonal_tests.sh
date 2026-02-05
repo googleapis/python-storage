@@ -6,6 +6,7 @@ sudo apt-get update && sudo apt-get install -y git python3-pip python3-venv
 # Clone the repository and checkout the specific commit from the build trigger.
 git clone https://github.com/googleapis/python-storage.git
 cd python-storage
+git fetch origin "refs/pull/${_PR_NUMBER}/head"
 git checkout ${COMMIT_SHA}
 
 
@@ -22,5 +23,7 @@ pip install -e .
 echo '--- Setting up environment variables on VM ---'
 export ZONAL_BUCKET=${_ZONAL_BUCKET}
 export RUN_ZONAL_SYSTEM_TESTS=True
-echo '--- Running Zonal tests on VM ---'
+CURRENT_ULIMIT=$(ulimit -n)
+echo '--- Running Zonal tests on VM with ulimit set to ---' $CURRENT_ULIMIT
 pytest -vv -s --log-format='%(asctime)s %(levelname)s %(message)s' --log-date-format='%H:%M:%S' tests/system/test_zonal.py
+pytest -vv -s --log-format='%(asctime)s %(levelname)s %(message)s' --log-date-format='%H:%M:%S' samples/snippets/zonal_buckets/zonal_snippets_test.py
