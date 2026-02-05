@@ -16,10 +16,14 @@
 
 import functools
 
-from google.cloud.storage._experimental.asyncio.async_helpers import ASYNC_DEFAULT_TIMEOUT
+from google.cloud.storage._experimental.asyncio.async_helpers import (
+    ASYNC_DEFAULT_TIMEOUT,
+)
 from google.cloud.storage._experimental.asyncio.async_helpers import ASYNC_DEFAULT_RETRY
 from google.cloud.storage._experimental.asyncio.async_helpers import AsyncHTTPIterator
-from google.cloud.storage._experimental.asyncio.async_helpers import _do_nothing_page_start
+from google.cloud.storage._experimental.asyncio.async_helpers import (
+    _do_nothing_page_start,
+)
 from google.cloud.storage._opentelemetry_tracing import create_trace_span
 from google.cloud.storage._experimental.asyncio.async_creds import AsyncCredsWrapper
 from google.cloud.storage.abstracts.base_client import BaseClient
@@ -28,6 +32,7 @@ from google.cloud.storage.abstracts import base_client
 
 try:
     from google.auth.aio.transport import sessions
+
     AsyncSession = sessions.AsyncAuthorizedSession
     _AIO_AVAILABLE = True
 except ImportError:
@@ -70,12 +75,16 @@ class AsyncClient(BaseClient):
             client_info=client_info,
             client_options=client_options,
             extra_headers=extra_headers,
-            api_key=api_key
+            api_key=api_key,
         )
-        self.credentials = AsyncCredsWrapper(self._credentials) # self._credential is synchronous.
-        self._connection = AsyncConnection(self, **self.connection_kw_args) # adapter for async communication
+        self.credentials = AsyncCredsWrapper(
+            self._credentials
+        )  # self._credential is synchronous.
+        self._connection = AsyncConnection(
+            self, **self.connection_kw_args
+        )  # adapter for async communication
         self._async_http_internal = _async_http
-        self._async_http_passed_by_user = (_async_http is not None)
+        self._async_http_passed_by_user = _async_http is not None
 
     @property
     def async_http(self):
@@ -86,7 +95,10 @@ class AsyncClient(BaseClient):
 
     async def close(self):
         """Close the session, if it exists"""
-        if self._async_http_internal is not None and not self._async_http_passed_by_user:
+        if (
+            self._async_http_internal is not None
+            and not self._async_http_passed_by_user
+        ):
             await self._async_http_internal.close()
 
     async def _get_resource(

@@ -3,7 +3,6 @@ import asyncio
 import os
 import uuid
 from io import BytesIO
-import asyncio
 
 # python additional imports
 import google_crc32c

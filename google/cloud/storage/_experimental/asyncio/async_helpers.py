@@ -24,6 +24,7 @@ async def _do_nothing_page_start(iterator, page, response):
     # pylint: disable=unused-argument
     pass
 
+
 class AsyncHTTPIterator(AsyncIterator):
     """A generic class for iterating through HTTP/JSON API list responses asynchronously.
 
@@ -32,7 +33,7 @@ class AsyncHTTPIterator(AsyncIterator):
         api_request (Callable): The **async** function to use to make API requests.
             This must be an awaitable.
         path (str): The method path to query for the list of items.
-        item_to_value (Callable[AsyncIterator, Any]): Callable to convert an item 
+        item_to_value (Callable[AsyncIterator, Any]): Callable to convert an item
             from the type in the JSON response into a native object.
         items_key (str): The key in the API response where the list of items
             can be found.
@@ -40,7 +41,7 @@ class AsyncHTTPIterator(AsyncIterator):
         page_size (int): The maximum number of results to fetch per page.
         max_results (int): The maximum number of results to fetch.
         extra_params (dict): Extra query string parameters for the API call.
-        page_start (Callable): Callable to provide special behavior after a new page 
+        page_start (Callable): Callable to provide special behavior after a new page
             is created.
         next_token (str): The name of the field used in the response for page tokens.
     """
@@ -137,6 +138,4 @@ class AsyncHTTPIterator(AsyncIterator):
     async def _get_next_page_response(self):
         """Requests the next page from the path provided asynchronously."""
         params = self._get_query_params()
-        return await self.api_request(
-            method="GET", path=self.path, query_params=params
-        )
+        return await self.api_request(method="GET", path=self.path, query_params=params)
