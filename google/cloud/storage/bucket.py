@@ -4006,7 +4006,7 @@ class EncryptionEnforcementConfig(dict):
         if effective_time is not None:
             data["effectiveTime"] = _datetime_to_rfc3339(effective_time)
 
-        super().__init__(data)
+        super().__init__(data, **kw)
 
     @classmethod
     def from_api_repr(cls, resource):
@@ -4158,8 +4158,10 @@ class BucketEncryption(dict):
         :rtype: :class:`EncryptionEnforcementConfig`
         :returns: The configuration instance.
         """
-        data = self.get("googleManagedEncryptionEnforcementConfig", {})
-        return EncryptionEnforcementConfig.from_api_repr(data)
+        data = self.get("googleManagedEncryptionEnforcementConfig")
+        if data:
+            return EncryptionEnforcementConfig.from_api_repr(data)
+        return EncryptionEnforcementConfig()
 
     @google_managed_encryption_enforcement_config.setter
     def google_managed_encryption_enforcement_config(self, value):
@@ -4178,8 +4180,10 @@ class BucketEncryption(dict):
         :rtype: :class:`EncryptionEnforcementConfig`
         :returns: The configuration instance.
         """
-        data = self.get("customerManagedEncryptionEnforcementConfig", {})
-        return EncryptionEnforcementConfig.from_api_repr(data)
+        data = self.get("customerManagedEncryptionEnforcementConfig")
+        if data:
+            return EncryptionEnforcementConfig.from_api_repr(data)
+        return EncryptionEnforcementConfig()
 
     @customer_managed_encryption_enforcement_config.setter
     def customer_managed_encryption_enforcement_config(self, value):
@@ -4198,8 +4202,10 @@ class BucketEncryption(dict):
         :rtype: :class:`EncryptionEnforcementConfig`
         :returns: The configuration instance.
         """
-        data = self.get("customerSuppliedEncryptionEnforcementConfig", {})
-        return EncryptionEnforcementConfig.from_api_repr(data)
+        data = self.get("customerSuppliedEncryptionEnforcementConfig")
+        if data:
+            return EncryptionEnforcementConfig.from_api_repr(data)
+        return EncryptionEnforcementConfig()
 
     @customer_supplied_encryption_enforcement_config.setter
     def customer_supplied_encryption_enforcement_config(self, value):

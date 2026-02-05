@@ -4807,6 +4807,17 @@ class Test_EncryptionEnforcementConfig(unittest.TestCase):
         self.assertEqual(config.restriction_mode, "FULLY_RESTRICTED")
         self.assertEqual(config["restrictionMode"], "FULLY_RESTRICTED")
 
+    def test_init_with_extra_args(self):
+        # Regression test for EncryptionEnforcementConfig.__init__ swallowing extra args
+        extra_key = "extraKey"
+        extra_value = "extraValue"
+        config = self._make_one(
+            restriction_mode="FULLY_RESTRICTED",
+            **{extra_key: extra_value}
+        )
+        self.assertEqual(config[extra_key], extra_value)
+        self.assertEqual(config.restriction_mode, "FULLY_RESTRICTED")
+
 
 class Test_BucketEncryption(unittest.TestCase):
     @staticmethod
@@ -4888,3 +4899,18 @@ class Test_BucketEncryption(unittest.TestCase):
 
         encryption.customer_supplied_encryption_enforcement_config = config
         bucket._patch_property.assert_called_with("encryption", encryption)
+
+    def test_bucket_encryption_getters_handle_none(self):
+        # Regression test for BucketEncryption getters raising TypeError on None
+        bucket = self._make_bucket()
+        # Initialize with None for configs
+        encryption = self._get_target_class()(
+            bucket,
+            google_managed_encryption_enforcement_config=None
+        )
+        # Ensure setting it to None explicitly in the dict works as expected
+        encryption["googleManagedEncryptionEnforcementConfig"] = None
+
+        # Accessing the property should return an empty/default config, not raise
+        config = encryption.google_managed_encryption_enforcement_config
+        self.assertIsNone(config.restriction_mode)
