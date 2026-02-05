@@ -122,18 +122,7 @@ class BaseClient(ClientWithProject, ABC):
         #    be raised.
 
         elif self._universe_domain:
-            # The final decision of whether to use mTLS takes place in
-            # google-auth-library-python. We peek at the environment variable
-            # here only to issue an exception in case of a conflict.
-            use_client_cert = False
-            if hasattr(mtls, "should_use_client_cert"):
-                use_client_cert = mtls.should_use_client_cert()
-            else:
-                use_client_cert = (
-                    os.getenv("GOOGLE_API_USE_CLIENT_CERTIFICATE") == "true"
-                )
-
-            if use_client_cert:
+            if self._use_client_cert:
                 raise ValueError(
                     'The "GOOGLE_API_USE_CLIENT_CERTIFICATE" env variable is '
                     'set to "true" and a non-default universe domain is '
@@ -259,7 +248,22 @@ class BaseClient(ClientWithProject, ABC):
         """
         if self._base_connection is not None:
             raise ValueError("Connection already set on client")
-        self._base_connection = value
+        self._base_connection = value     
+
+    @property
+    def _use_client_cert(self):
+        """Returns true if mTLS is enabled"""
+        # The final decision of whether to use mTLS takes place in
+        # google-auth-library-python. We peek at the environment variable
+        # here only to issue an exception in case of a conflict.
+        use_client_cert = False
+        if hasattr(mtls, "should_use_client_cert"):
+            use_client_cert = mtls.should_use_client_cert()
+        else:
+            use_client_cert = (
+                os.getenv("GOOGLE_API_USE_CLIENT_CERTIFICATE") == "true"
+            )
+        return use_client_cert
 
     def _push_batch(self, batch):
         """Push a batch onto our stack.
