@@ -403,9 +403,8 @@ class AsyncAppendableObjectWriter:
                     write_state.write_handle = self.write_handle
                     write_state.routing_token = None
 
-                    write_state.user_buffer.seek(write_state.bytes_sent)
-                    # write_state.bytes_sent =
-                    # TODO: why ?
+                    write_state.user_buffer.seek(write_state.persisted_size)
+                    write_state.bytes_sent = write_state.persisted_size
                     write_state.bytes_since_last_flush = 0
                     self.bytes_appended_since_last_flush = 0
 
@@ -416,6 +415,7 @@ class AsyncAppendableObjectWriter:
                     if chunk_req.flush:
                         self._flush_count += 1
 
+                    resp = None
                     if chunk_req.state_lookup:
                         # TODO: if there's error, it'll raise error
                         # and will be handled by `recover_state_on_failure`
@@ -430,7 +430,7 @@ class AsyncAppendableObjectWriter:
                             self.write_handle = resp.write_handle
                             state["write_state"].write_handle = resp.write_handle
 
-                yield None
+                    yield resp
 
             return generator()
 
@@ -438,7 +438,7 @@ class AsyncAppendableObjectWriter:
         write_state = _WriteState(_MAX_CHUNK_SIZE_BYTES, buffer, self.flush_interval)
         write_state.write_handle = self.write_handle
         write_state.persisted_size = self.persisted_size
-        # TODO: what if you open a object in b/w?
+        # offset is set during `open()` call.
         write_state.bytes_sent = self.offset or 0
         write_state.bytes_since_last_flush = self.bytes_appended_since_last_flush
 
