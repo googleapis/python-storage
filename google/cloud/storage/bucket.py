@@ -65,7 +65,6 @@ from google.cloud.storage.retry import DEFAULT_RETRY_IF_GENERATION_SPECIFIED
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_ETAG_IN_JSON
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED
 
-
 _UBLA_BPO_ENABLED_MESSAGE = (
     "Pass only one of 'uniform_bucket_level_access_enabled' / "
     "'bucket_policy_only_enabled' to 'IAMConfiguration'."
@@ -4089,19 +4088,19 @@ class BucketEncryption(dict):
             data["defaultKmsKeyName"] = default_kms_key_name
 
         if google_managed_encryption_enforcement_config is not None:
-            data[
-                "googleManagedEncryptionEnforcementConfig"
-            ] = google_managed_encryption_enforcement_config
+            data["googleManagedEncryptionEnforcementConfig"] = (
+                google_managed_encryption_enforcement_config
+            )
 
         if customer_managed_encryption_enforcement_config is not None:
-            data[
-                "customerManagedEncryptionEnforcementConfig"
-            ] = customer_managed_encryption_enforcement_config
+            data["customerManagedEncryptionEnforcementConfig"] = (
+                customer_managed_encryption_enforcement_config
+            )
 
         if customer_supplied_encryption_enforcement_config is not None:
-            data[
-                "customerSuppliedEncryptionEnforcementConfig"
-            ] = customer_supplied_encryption_enforcement_config
+            data["customerSuppliedEncryptionEnforcementConfig"] = (
+                customer_supplied_encryption_enforcement_config
+            )
 
         super().__init__(data)
         self._bucket = bucket

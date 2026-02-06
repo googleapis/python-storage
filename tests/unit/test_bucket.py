@@ -4758,6 +4758,7 @@ class Test__item_to_notification(unittest.TestCase):
         self.assertEqual(notification._topic_project, project)
         self.assertEqual(notification._properties, item)
 
+
 class Test_EncryptionEnforcementConfig(unittest.TestCase):
     @staticmethod
     def _get_target_class():
@@ -4812,8 +4813,7 @@ class Test_EncryptionEnforcementConfig(unittest.TestCase):
         extra_key = "extraKey"
         extra_value = "extraValue"
         config = self._make_one(
-            restriction_mode="FULLY_RESTRICTED",
-            **{extra_key: extra_value}
+            restriction_mode="FULLY_RESTRICTED", **{extra_key: extra_value}
         )
         self.assertEqual(config[extra_key], extra_value)
         self.assertEqual(config.restriction_mode, "FULLY_RESTRICTED")
@@ -4840,9 +4840,15 @@ class Test_BucketEncryption(unittest.TestCase):
         encryption = self._make_one(bucket)
         self.assertIs(encryption.bucket, bucket)
         self.assertIsNone(encryption.default_kms_key_name)
-        self.assertIsNone(encryption.google_managed_encryption_enforcement_config.restriction_mode)
-        self.assertIsNone(encryption.customer_managed_encryption_enforcement_config.restriction_mode)
-        self.assertIsNone(encryption.customer_supplied_encryption_enforcement_config.restriction_mode)
+        self.assertIsNone(
+            encryption.google_managed_encryption_enforcement_config.restriction_mode
+        )
+        self.assertIsNone(
+            encryption.customer_managed_encryption_enforcement_config.restriction_mode
+        )
+        self.assertIsNone(
+            encryption.customer_supplied_encryption_enforcement_config.restriction_mode
+        )
 
     def test_ctor_explicit(self):
         from google.cloud.storage.bucket import EncryptionEnforcementConfig
@@ -4905,8 +4911,7 @@ class Test_BucketEncryption(unittest.TestCase):
         bucket = self._make_bucket()
         # Initialize with None for configs
         encryption = self._get_target_class()(
-            bucket,
-            google_managed_encryption_enforcement_config=None
+            bucket, google_managed_encryption_enforcement_config=None
         )
         # Ensure setting it to None explicitly in the dict works as expected
         encryption["googleManagedEncryptionEnforcementConfig"] = None
