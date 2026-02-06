@@ -449,10 +449,6 @@ class AsyncAppendableObjectWriter:
         await retry_manager.execute({"write_state": write_state}, retry_policy)
 
         # Sync local markers
-        # TODO: looks like a blunder ?(why??)
-        self.write_obj_stream.persisted_size = write_state.persisted_size
-        # TODO: why update write hand to write_obj_stream ?
-        self.write_obj_stream.write_handle = write_state.write_handle
         self.bytes_appended_since_last_flush = write_state.bytes_since_last_flush
         self.offset = write_state.bytes_sent
 
