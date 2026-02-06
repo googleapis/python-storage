@@ -54,6 +54,7 @@ class _BidiStreamRetryManager:
             stream = self._send_and_recv(requests, state)
             try:
                 async for response in stream:
+                    # print('coming here')
                     self._strategy.update_state_from_response(response, state)
                 return
             except Exception as e:

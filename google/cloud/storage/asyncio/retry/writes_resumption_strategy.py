@@ -89,9 +89,11 @@ class _WriteResumptionStrategy(_BaseResumptionStrategy):
             write_state.bytes_sent += chunk_len
             write_state.bytes_since_last_flush += chunk_len
 
+            count = 0
             if write_state.bytes_since_last_flush >= write_state.flush_interval:
+                count += 1
                 request.flush = True
-                # reset counter after marking flush
+                request.state_lookup = True
                 write_state.bytes_since_last_flush = 0
 
             requests.append(request)
