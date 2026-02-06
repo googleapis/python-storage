@@ -411,7 +411,6 @@ class AsyncAppendableObjectWriter:
 
                     requests = strategy.generate_requests(state)
 
-                # print('len(requests)', len(requests))
                 for chunk_req in requests:
                     await self.write_obj_stream.send(chunk_req)
                     if chunk_req.flush:
