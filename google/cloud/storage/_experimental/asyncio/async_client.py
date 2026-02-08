@@ -16,15 +16,8 @@
 
 from google.cloud.storage._experimental.asyncio.async_creds import AsyncCredsWrapper
 from google.cloud.storage.abstracts.base_client import BaseClient
-from google.cloud.storage._experimental.asyncio.async_connection import AsyncConnection
+from google.cloud.storage._experimental.asyncio.utility.async_json_connection import AsyncJSONConnection
 from google.cloud.storage.abstracts import base_client
-
-try:
-    from google.auth.aio.transport import sessions
-    AsyncSession = sessions.AsyncAuthorizedSession
-    _AIO_AVAILABLE = True
-except ImportError:
-    _AIO_AVAILABLE = False
 
 _marker = base_client.marker
 
@@ -43,13 +36,6 @@ class AsyncClient(BaseClient):
         *,
         api_key=None,
     ):
-        if not _AIO_AVAILABLE:
-            # Python 3.9 or less comes with an older version of google-auth library which doesn't support asyncio
-            raise ImportError(
-                "Failed to import 'google.auth.aio', Consider using a newer python version (>=3.10)"
-                " or newer version of google-auth library to mitigate this issue."
-            )
-
         if self._use_client_cert:
             # google.auth.aio.transports.sessions.AsyncAuthorizedSession currently doesn't support configuring mTLS.
             # In future, we can monkey patch the above, and do provide mTLS support, but that is not a priority
@@ -66,22 +52,28 @@ class AsyncClient(BaseClient):
             api_key=api_key
         )
         self.credentials = AsyncCredsWrapper(self._credentials) # self._credential is synchronous.
-        self._connection = AsyncConnection(self, **self.connection_kw_args) # adapter for async communication
-        self._async_http_internal = _async_http
-        self._async_http_passed_by_user = (_async_http is not None)
+        self._async_http = _async_http
+
+        # We need both, as the same client can be used for multiple buckets.
+        self._json_connection_internal = None
+        self._grpc_connection_internal = None
 
     @property
-    def async_http(self):
-        """Returns the existing asynchronous session, or create one if it does not exists."""
-        if self._async_http_internal is None:
-            self._async_http_internal = AsyncSession(credentials=self.credentials)
-        return self._async_http_internal
+    def _grpc_connection(self):
+        raise NotImplementedError("Not yet Implemented.")
+
+    @property
+    def _json_connection(self):
+        if not self._json_connection_internal:
+            self._json_connection_internal = AsyncJSONConnection(self, _async_http=self._async_http, credentials=self.credentials, **self.connection_kw_args)
+        return self._json_connection_internal
 
     async def close(self):
-        """Close the session, if it exists"""
-        if self._async_http_internal is not None and not self._async_http_passed_by_user:
-            await self._async_http_internal.close()
-
+        if self._json_connection_internal:
+            await self._json_connection_internal.close()
+        
+        if self._grpc_connection_internal:
+            await self._grpc_connection_internal.close()
 
     def bucket(self, bucket_name, user_project=None, generation=None):
         """Factory constructor for bucket object.

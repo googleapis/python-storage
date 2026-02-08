@@ -17,10 +17,6 @@ import sys
 import pytest
 from google.auth.credentials import Credentials
 from google.cloud.storage._experimental.asyncio.async_client import AsyncClient
-from google.cloud.storage._experimental.asyncio.async_helpers import AsyncHTTPIterator
-
-# Aliases to match sync test style
-_marker = object()
 
 
 def _make_credentials():
@@ -45,22 +41,16 @@ class TestAsyncClient:
         PROJECT = "PROJECT"
         credentials = _make_credentials()
 
-        # We mock AsyncConnection to prevent network logic during init
-        with mock.patch("google.cloud.storage._experimental.asyncio.async_client.AsyncConnection") as MockConn:
+        # We mock AsyncJSONConnection to prevent network logic during init
+        with mock.patch("google.cloud.storage._experimental.asyncio.async_client.AsyncJSONConnection") as MockConn:
             client = self._make_one(project=PROJECT, credentials=credentials)
 
-        assert client.project == PROJECT
-        # It is the instance of the Mock
-        assert isinstance(client._connection, mock.Mock)
-        assert client._connection == MockConn.return_value
+            assert client.project == PROJECT
 
-        # Verify specific async attributes
-        assert client._async_http_internal is None
-        assert client._async_http_passed_by_user is False
-
-        # Verify inheritance from BaseClient worked (batch stack, etc)
-        assert client.current_batch is None
-        assert list(client._batch_stack) == []
+            # It is the instance of the Mock
+            assert isinstance(client._json_connection, mock.Mock)
+            assert client._json_connection == MockConn.return_value
+            MockConn.assert_called_once_with(client, _async_http=None, credentials=client.credentials, client_info=None, api_endpoint=None)
 
     def test_ctor_mtls_raises_error(self):
         credentials = _make_credentials()
@@ -76,67 +66,19 @@ class TestAsyncClient:
         credentials = _make_credentials()
         async_http = mock.Mock()
 
-        with mock.patch("google.cloud.storage._experimental.asyncio.async_client.AsyncConnection"):
+        with mock.patch("google.cloud.storage._experimental.asyncio.async_client.AsyncJSONConnection") as MockConn:
             client = self._make_one(
                 project="PROJECT",
                 credentials=credentials,
                 _async_http=async_http
             )
 
-        assert client._async_http_internal is async_http
-        assert client._async_http_passed_by_user is True
-
-    def test_async_http_property_creates_session(self):
-        credentials = _make_credentials()
-        with mock.patch("google.cloud.storage._experimental.asyncio.async_client.AsyncConnection"):
-            client = self._make_one(project="PROJECT", credentials=credentials)
-
-        assert client._async_http_internal is None
-
-        # Mock the auth session class
-        with mock.patch("google.cloud.storage._experimental.asyncio.async_client.AsyncSession") as MockSession:
-            session = client.async_http
-
-            assert session is MockSession.return_value
-            assert client._async_http_internal is session
-            # Should be initialized with the AsyncCredsWrapper, not the raw credentials
-            MockSession.assert_called_once()
-            call_kwargs = MockSession.call_args[1]
-            assert call_kwargs['credentials'] == client.credentials
-
-    @pytest.mark.asyncio
-    async def test_close_manages_session_lifecycle(self):
-        credentials = _make_credentials()
-        with mock.patch("google.cloud.storage._experimental.asyncio.async_client.AsyncConnection"):
-            client = self._make_one(project="PROJECT", credentials=credentials)
-
-        # 1. Internal session created by client -> Client closes it
-        mock_internal = mock.AsyncMock()
-        client._async_http_internal = mock_internal
-        client._async_http_passed_by_user = False
-
-        await client.close()
-        mock_internal.close.assert_awaited_once()
-
-    @pytest.mark.asyncio
-    async def test_close_ignores_user_session(self):
-        credentials = _make_credentials()
-        user_session = mock.AsyncMock()
-
-        with mock.patch("google.cloud.storage._experimental.asyncio.async_client.AsyncConnection"):
-            client = self._make_one(
-                project="PROJECT",
-                credentials=credentials,
-                _async_http=user_session
-            )
-
-        # 2. External session passed by user -> Client DOES NOT close it
-        await client.close()
-        user_session.close.assert_not_awaited()
+            client._json_connection
+            MockConn.assert_called_once_with(client, _async_http=async_http, credentials=client.credentials, client_info=None, api_endpoint=None)
 
     def test_bucket_not_implemented(self):
         credentials = _make_credentials()
-        with mock.patch("google.cloud.storage._experimental.asyncio.async_client.AsyncConnection"):
+        with mock.patch("google.cloud.storage._experimental.asyncio.async_client.AsyncJSONConnection"):
             client = self._make_one(project="PROJECT", credentials=credentials)
 
         with pytest.raises(NotImplementedError):

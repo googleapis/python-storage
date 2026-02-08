@@ -12,28 +12,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Create/interact with Google Cloud Storage connections in asynchronous manner."""
+"""Implementation of Async JSON connection"""
 
 import json
 import collections
 import functools
-from urllib.parse import urlencode
-
 import google.api_core.exceptions
+
+from urllib.parse import urlencode
 from google.cloud import _http
 from google.cloud.storage import _http as storage_http
 from google.cloud.storage import _helpers
-from google.api_core.client_info import ClientInfo
 from google.cloud.storage._opentelemetry_tracing import create_trace_span
-from google.cloud.storage import __version__
-from google.cloud.storage._http import AGENT_VERSION
+from google.cloud.storage._experimental.asyncio.abstracts.async_connection import AsyncConnection
 
+try:
+    from google.auth.aio.transport import sessions
+    AsyncSession = sessions.AsyncAuthorizedSession
+    _AIO_AVAILABLE = True
+except ImportError:
+    _AIO_AVAILABLE = False
 
-class AsyncConnection:
-    """Class for asynchronous connection using google.auth.aio.
-
-    This class handles the creation of API requests, header management,
-    user agent configuration, and error handling for the Async Storage Client.
+class AsyncJSONConnection(AsyncConnection):
+    """Implementation of Async JSON connection
 
     Args:
         client: The client that owns this connection.
@@ -41,58 +42,35 @@ class AsyncConnection:
         api_endpoint: The API endpoint to use.
     """
 
-    def __init__(self, client, client_info=None, api_endpoint=None):
-        self._client = client
-
-        if client_info is None:
-            client_info = ClientInfo()
-
-        self._client_info = client_info
-        if self._client_info.user_agent is None:
-            self._client_info.user_agent = AGENT_VERSION
-        else:
-            self._client_info.user_agent = (
-                f"{self._client_info.user_agent} {AGENT_VERSION}"
+    def __init__(self, client, client_info=None, api_endpoint=None, _async_http=None, credentials=None):
+        if not _AIO_AVAILABLE:
+            # Python 3.9 or less comes with an older version of google-auth library which doesn't support asyncio
+            raise ImportError(
+                "Failed to import 'google.auth.aio', Consider using a newer python version (>=3.10)"
+                " or newer version of google-auth library to mitigate this issue."
             )
-        self._client_info.client_library_version = __version__
-        self._extra_headers = {}
+
+        super().__init__(client, client_info=client_info)
 
         self.API_BASE_URL = api_endpoint or storage_http.Connection.DEFAULT_API_ENDPOINT
         self.API_VERSION = storage_http.Connection.API_VERSION
         self.API_URL_TEMPLATE = storage_http.Connection.API_URL_TEMPLATE
-
-    @property
-    def extra_headers(self):
-        """Returns extra headers to send with every request."""
-        return self._extra_headers
-
-    @extra_headers.setter
-    def extra_headers(self, value):
-        """Set the extra header property."""
-        self._extra_headers = value
+        
+        self.credentials = credentials
+        self._async_http_internal = _async_http
+        self._async_http_passed_by_user = (_async_http is not None)
 
     @property
     def async_http(self):
-        """Returns the AsyncAuthorizedSession from the client.
+        """Returns the existing asynchronous session, or create one if it does not exists."""
+        if self._async_http_internal is None:
+            self._async_http_internal = AsyncSession(credentials=self.credentials)
+        return self._async_http_internal
 
-        Returns:
-            google.auth.aio.transport.sessions.AsyncAuthorizedSession: The async session.
-        """
-        return self._client.async_http
-
-    @property
-    def user_agent(self):
-        """Returns user_agent for async HTTP transport.
-
-        Returns:
-            str: The user agent string.
-        """
-        return self._client_info.to_user_agent()
-
-    @user_agent.setter
-    def user_agent(self, value):
-        """Setter for user_agent in connection."""
-        self._client_info.user_agent = value
+    async def close(self):
+        """Close the session, if it exists"""
+        if self._async_http_internal is not None and not self._async_http_passed_by_user:
+            await self._async_http_internal.close()
 
     async def _make_request(
         self,
