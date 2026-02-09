@@ -520,7 +520,6 @@ class AsyncAppendableObjectWriter:
         await self.write_obj_stream.close()
 
         self._is_stream_open = False
-        # self.offset = None
         return self.persisted_size
 
     async def finalize(self) -> _storage_v2.Object:
