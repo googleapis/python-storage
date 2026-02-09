@@ -50,6 +50,7 @@ from google.cloud.storage.abstracts import base_client
 
 _marker = base_client.marker
 
+
 def _buckets_page_start(iterator, page, response):
     """Grab unreachable buckets after a :class:`~google.cloud.iterator.Page` started."""
     unreachable = response.get("unreachable", [])
@@ -139,11 +140,13 @@ class Client(base_client.BaseClient):
             client_options=client_options,
             use_auth_w_custom_endpoint=use_auth_w_custom_endpoint,
             extra_headers=extra_headers,
-            api_key=api_key
+            api_key=api_key,
         )
 
         # Pass extra_headers to Connection
-        connection = Connection(self, **self.connection_kw_args) # connection_kw_args would always be set in base class
+        connection = Connection(
+            self, **self.connection_kw_args
+        )  # connection_kw_args would always be set in base class
         connection.extra_headers = extra_headers
         self._connection = connection
 

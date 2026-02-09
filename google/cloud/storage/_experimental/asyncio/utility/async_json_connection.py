@@ -24,14 +24,18 @@ from google.cloud import _http
 from google.cloud.storage import _http as storage_http
 from google.cloud.storage import _helpers
 from google.cloud.storage._opentelemetry_tracing import create_trace_span
-from google.cloud.storage._experimental.asyncio.abstracts.async_connection import AsyncConnection
+from google.cloud.storage._experimental.asyncio.abstracts.async_connection import (
+    AsyncConnection,
+)
 
 try:
     from google.auth.aio.transport import sessions
+
     AsyncSession = sessions.AsyncAuthorizedSession
     _AIO_AVAILABLE = True
 except ImportError:
     _AIO_AVAILABLE = False
+
 
 class AsyncJSONConnection(AsyncConnection):
     """Implementation of Async JSON connection
@@ -42,7 +46,14 @@ class AsyncJSONConnection(AsyncConnection):
         api_endpoint: The API endpoint to use.
     """
 
-    def __init__(self, client, client_info=None, api_endpoint=None, _async_http=None, credentials=None):
+    def __init__(
+        self,
+        client,
+        client_info=None,
+        api_endpoint=None,
+        _async_http=None,
+        credentials=None,
+    ):
         if not _AIO_AVAILABLE:
             # Python 3.9 or less comes with an older version of google-auth library which doesn't support asyncio
             raise ImportError(
@@ -55,10 +66,10 @@ class AsyncJSONConnection(AsyncConnection):
         self.API_BASE_URL = api_endpoint or storage_http.Connection.DEFAULT_API_ENDPOINT
         self.API_VERSION = storage_http.Connection.API_VERSION
         self.API_URL_TEMPLATE = storage_http.Connection.API_URL_TEMPLATE
-        
+
         self.credentials = credentials
         self._async_http_internal = _async_http
-        self._async_http_passed_by_user = (_async_http is not None)
+        self._async_http_passed_by_user = _async_http is not None
 
     @property
     def async_http(self):
@@ -69,7 +80,10 @@ class AsyncJSONConnection(AsyncConnection):
 
     async def close(self):
         """Close the session, if it exists"""
-        if self._async_http_internal is not None and not self._async_http_passed_by_user:
+        if (
+            self._async_http_internal is not None
+            and not self._async_http_passed_by_user
+        ):
             await self._async_http_internal.close()
 
     async def _make_request(

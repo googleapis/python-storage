@@ -16,7 +16,9 @@
 
 from google.cloud.storage._experimental.asyncio.async_creds import AsyncCredsWrapper
 from google.cloud.storage.abstracts.base_client import BaseClient
-from google.cloud.storage._experimental.asyncio.utility.async_json_connection import AsyncJSONConnection
+from google.cloud.storage._experimental.asyncio.utility.async_json_connection import (
+    AsyncJSONConnection,
+)
 from google.cloud.storage.abstracts import base_client
 
 _marker = base_client.marker
@@ -49,9 +51,11 @@ class AsyncClient(BaseClient):
             client_info=client_info,
             client_options=client_options,
             extra_headers=extra_headers,
-            api_key=api_key
+            api_key=api_key,
         )
-        self.credentials = AsyncCredsWrapper(self._credentials) # self._credential is synchronous.
+        self.credentials = AsyncCredsWrapper(
+            self._credentials
+        )  # self._credential is synchronous.
         self._async_http = _async_http
 
         # We need both, as the same client can be used for multiple buckets.
@@ -65,13 +69,18 @@ class AsyncClient(BaseClient):
     @property
     def _json_connection(self):
         if not self._json_connection_internal:
-            self._json_connection_internal = AsyncJSONConnection(self, _async_http=self._async_http, credentials=self.credentials, **self.connection_kw_args)
+            self._json_connection_internal = AsyncJSONConnection(
+                self,
+                _async_http=self._async_http,
+                credentials=self.credentials,
+                **self.connection_kw_args,
+            )
         return self._json_connection_internal
 
     async def close(self):
         if self._json_connection_internal:
             await self._json_connection_internal.close()
-        
+
         if self._grpc_connection_internal:
             await self._grpc_connection_internal.close()
 

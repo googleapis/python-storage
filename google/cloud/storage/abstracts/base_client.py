@@ -30,6 +30,7 @@ import google.api_core.client_options
 
 marker = object()
 
+
 class BaseClient(ClientWithProject, ABC):
     """Abstract class for python-storage Client"""
 
@@ -213,9 +214,7 @@ class BaseClient(ClientWithProject, ABC):
         if hasattr(mtls, "should_use_client_cert"):
             use_client_cert = mtls.should_use_client_cert()
         else:
-            use_client_cert = (
-                os.getenv("GOOGLE_API_USE_CLIENT_CERTIFICATE") == "true"
-            )
+            use_client_cert = os.getenv("GOOGLE_API_USE_CLIENT_CERTIFICATE") == "true"
         return use_client_cert
 
     @abstractmethod

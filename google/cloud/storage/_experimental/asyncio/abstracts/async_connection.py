@@ -45,7 +45,7 @@ class AsyncConnection(abc.ABC):
             )
         self._client_info.client_library_version = __version__
         self._extra_headers = {}
-    
+
     @property
     def extra_headers(self):
         """Returns extra headers to send with every request."""
