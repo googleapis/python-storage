@@ -1,0 +1,164 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+"""Microbenchmarks for time-based Google Cloud Storage read operations."""
+
+import time
+import asyncio
+import random
+import logging
+import os
+import multiprocessing
+
+import pytest
+
+from google.cloud.storage.asyncio.async_grpc_client import AsyncGrpcClient
+from google.cloud.storage.asyncio.async_multi_range_downloader import (
+    AsyncMultiRangeDownloader,
+)
+from tests.perf.microbenchmarks._utils import publish_benchmark_extra_info
+from tests.perf.microbenchmarks.conftest import (
+    publish_resource_metrics,
+)
+from io import BytesIO
+import tests.perf.microbenchmarks.time_based.reads.config as config
+
+all_params = config._get_params()
+
+
+async def create_client():
+    """Initializes async client and gets the current event loop."""
+    return AsyncGrpcClient()
+
+
+# --- Global Variables for Worker Process ---
+worker_loop = None
+worker_client = None
+worker_json_client = None
+CORE_OFFSET = 20  # Start pinning cores from 20
+
+
+def _worker_init(bucket_type):
+    """Initializes a persistent event loop and client for each worker process."""
+    os.sched_setaffinity(0, {i for i in range(20, 180)})  # Pin to cores 20-189
+    global worker_loop, worker_client, worker_json_client
+    if bucket_type == "zonal":
+        worker_loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(worker_loop)
+        worker_client = worker_loop.run_until_complete(create_client())
+    else:  # regional
+        from google.cloud import storage
+
+        worker_json_client = storage.Client()
+
+
+async def _download_time_based_async(client, filename, params):
+    total_bytes_downloaded = 0
+
+
+    mrd = AsyncMultiRangeDownloader(client, params.bucket_name, filename)
+    await mrd.open()
+
+    offset = 0
+    is_warming_up = True
+    start_time = time.monotonic()
+    warmup_end_time = start_time + params.warmup_duration
+    test_end_time = warmup_end_time + params.duration
+
+    while time.monotonic() < test_end_time:
+        current_time = time.monotonic()
+        if is_warming_up and current_time >= warmup_end_time:
+            is_warming_up = False
+            total_bytes_downloaded = 0  # Reset counter after warmup
+
+        if params.pattern == "rand":
+            offset = random.randint(0, params.file_size_bytes - params.chunk_size_bytes)
+
+        buffer = BytesIO()
+        await mrd.download_ranges([(offset, params.chunk_size_bytes, buffer)])
+
+        if not is_warming_up:
+            total_bytes_downloaded += params.chunk_size_bytes
+
+        if params.pattern == "seq":
+            offset += params.chunk_size_bytes
+            if offset + params.chunk_size_bytes > params.file_size_bytes:
+                offset = 0  # Reset offset if end of file is reached
+
+    await mrd.close()
+    return total_bytes_downloaded
+
+
+def _download_files_worker(process_idx, filename, params, bucket_type):
+
+    if bucket_type == "zonal":
+        return worker_loop.run_until_complete(
+            _download_time_based_async(worker_client, filename, params)
+        )
+    else:  # regional - JSON API not implemented for this test
+        raise NotImplementedError("JSON API not implemented for time-based tests")
+
+
+def download_files_mp_mc_wrapper(pool, files_names, params, bucket_type):
+    args = [
+        (i, files_names[i], params, bucket_type) for i in range(len(files_names))
+    ]
+
+    results = pool.starmap(_download_files_worker, args)
+    return sum(results)
+
+
+@pytest.mark.parametrize(
+    "workload_params",
+    all_params["read_seq_multi_process"] + all_params["read_rand_multi_process"],
+    indirect=True,
+    ids=lambda p: p.name,
+)
+def test_downloads_multi_proc_multi_coro(
+    benchmark, storage_client, monitor, workload_params
+):
+    params, files_names = workload_params
+    logging.info(f"num files: {len(files_names)}")
+
+    ctx = multiprocessing.get_context("spawn")
+    pool = ctx.Pool(
+        processes=params.num_processes,
+        initializer=_worker_init,
+        initargs=(params.bucket_type,),
+    )
+
+    total_bytes_downloaded = 0
+
+    def target_wrapper(*args, **kwargs):
+        nonlocal total_bytes_downloaded
+        total_bytes_downloaded = download_files_mp_mc_wrapper(pool, *args, **kwargs)
+        # This benchmark doesn't return per-operation times, so we return a dummy value
+        return [0]
+
+    try:
+        with monitor() as m:
+            benchmark.pedantic(
+                target=target_wrapper,
+                iterations=1,
+                rounds=params.rounds,
+                args=(files_names, params, params.bucket_type),
+            )
+    finally:
+        pool.close()
+        pool.join()
+        throughput_mib_s = (total_bytes_downloaded / params.duration) / (1024 * 1024)
+        benchmark.extra_info["throughput_mib_s"] = f"{throughput_mib_s:.2f}"
+        print(f"Throughput: {throughput_mib_s:.2f} MiB/s")
+        publish_benchmark_extra_info(benchmark, params)
+        publish_resource_metrics(benchmark, m)
+
