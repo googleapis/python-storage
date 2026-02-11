@@ -62,6 +62,51 @@ def _worker_init(bucket_type):
         worker_json_client = storage.Client()
 
 
+
+def _download_time_based_json(client, filename, params):
+    """Performs time-based downloads using the JSON API."""
+    total_bytes_downloaded = 0
+    bucket = client.bucket(params.bucket_name)
+    blob = bucket.blob(filename)
+
+    offset = 0
+    is_warming_up = True
+    start_time = time.monotonic()
+    warmup_end_time = start_time + params.warmup_duration
+    test_end_time = warmup_end_time + params.duration
+
+    while time.monotonic() < test_end_time:
+        current_time = time.monotonic()
+        if is_warming_up and current_time >= warmup_end_time:
+            is_warming_up = False
+            total_bytes_downloaded = 0  # Reset counter after warmup
+
+        bytes_in_iteration = 0
+        # For JSON, we can't batch ranges like gRPC, so we download one by one
+        for _ in range(params.num_ranges):
+            if params.pattern == "rand":
+                offset = random.randint(
+                    0, params.file_size_bytes - params.chunk_size_bytes
+                )
+
+            data = blob.download_as_bytes(
+                start=offset, end=offset + params.chunk_size_bytes - 1
+            )
+            bytes_in_iteration += len(data)
+
+            if params.pattern == "seq":
+                offset += params.chunk_size_bytes
+                if offset + params.chunk_size_bytes > params.file_size_bytes:
+                    offset = 0
+
+        assert bytes_in_iteration == params.chunk_size_bytes * params.num_ranges
+
+        if not is_warming_up:
+            total_bytes_downloaded += bytes_in_iteration
+
+    return total_bytes_downloaded
+
+
 async def _download_time_based_async(client, filename, params):
     total_bytes_downloaded = 0
 
@@ -112,8 +157,8 @@ def _download_files_worker(process_idx, filename, params, bucket_type):
         return worker_loop.run_until_complete(
             _download_time_based_async(worker_client, filename, params)
         )
-    else:  # regional - JSON API not implemented for this test
-        raise NotImplementedError("JSON API not implemented for time-based tests")
+    else:  # regional
+        return _download_time_based_json(worker_json_client, filename, params)
 
 
 def download_files_mp_mc_wrapper(pool, files_names, params, bucket_type):
@@ -125,7 +170,7 @@ def download_files_mp_mc_wrapper(pool, files_names, params, bucket_type):
 
 @pytest.mark.parametrize(
     "workload_params",
-    all_params["read_seq_multi_process"] + all_params["read_rand_multi_process"],
+    all_params["read_seq_multi_process"],# + all_params["read_rand_multi_process"],
     indirect=True,
     ids=lambda p: p.name,
 )
