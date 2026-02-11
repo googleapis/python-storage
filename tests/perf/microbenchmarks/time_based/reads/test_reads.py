@@ -170,7 +170,7 @@ def download_files_mp_mc_wrapper(pool, files_names, params, bucket_type):
 
 @pytest.mark.parametrize(
     "workload_params",
-    all_params["read_seq_multi_process"],# + all_params["read_rand_multi_process"],
+    all_params["read_seq_multi_process"] + all_params["read_rand_multi_process"],
     indirect=True,
     ids=lambda p: p.name,
 )
