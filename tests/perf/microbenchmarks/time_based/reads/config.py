@@ -35,7 +35,7 @@ def _get_params() -> Dict[str, List[TimeBasedReadParameters]]:
     common_params = config["common"]
     bucket_types = common_params["bucket_types"]
     file_sizes_mib = common_params["file_sizes_mib"]
-    chunk_sizes_mib = common_params["chunk_sizes_mib"]
+    chunk_sizes_kib = common_params["chunk_sizes_kib"]
     rounds = common_params["rounds"]
     duration = common_params["duration"]
     warmup_duration = common_params["warmup_duration"]
@@ -61,7 +61,7 @@ def _get_params() -> Dict[str, List[TimeBasedReadParameters]]:
         product = itertools.product(
             bucket_types,
             file_sizes_mib,
-            chunk_sizes_mib,
+            chunk_sizes_kib,
             processes,
             coros,
         )
@@ -69,18 +69,18 @@ def _get_params() -> Dict[str, List[TimeBasedReadParameters]]:
         for (
             bucket_type,
             file_size_mib,
-            chunk_size_mib,
+            chunk_size_kib,
             num_processes,
             num_coros,
         ) in product:
             file_size_bytes = file_size_mib * 1024 * 1024
-            chunk_size_bytes = chunk_size_mib * 1024 * 1024
+            chunk_size_bytes = chunk_size_kib * 1024
             bucket_name = bucket_map[bucket_type]
 
             num_files = num_processes * num_coros
 
             # Create a descriptive name for the parameter set
-            name = f"{pattern}_{bucket_type}_{num_processes}p_{file_size_mib}MiB_{chunk_size_mib}MiB"
+            name = f"{pattern}_{bucket_type}_{num_processes}p_{file_size_mib}MiB_{chunk_size_kib}KiB"
 
             params[workload_name].append(
                 TimeBasedReadParameters(
