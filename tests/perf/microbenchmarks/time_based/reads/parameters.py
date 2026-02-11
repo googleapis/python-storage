@@ -20,3 +20,4 @@ class TimeBasedReadParameters(IOBenchmarkParameters):
     pattern: str
     duration: int
     warmup_duration: int
+    num_ranges: int

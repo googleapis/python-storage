@@ -3,7 +3,8 @@ common:
     - "zonal"
   file_sizes_mib:
     - 10240 # 10GiB
-  chunk_sizes_kib: [64, 102400] # 16KiB
+  chunk_sizes_kib: [64] # 16KiB
+  num_ranges: [1, 4]
   rounds: 1
   duration: 30 # seconds
   warmup_duration: 5 # seconds
@@ -13,13 +14,13 @@ workload:
   - name: "read_seq_multi_process"
     pattern: "seq"
     coros: [1]
-    processes: [48]
+    processes: [1]
 
 
   - name: "read_rand_multi_process"
     pattern: "rand"
     coros: [1]
-    processes: [48]
+    processes: [1]
 
 defaults:
   DEFAULT_RAPID_ZONAL_BUCKET: "chandrasiri-benchmarks-zb"

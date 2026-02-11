@@ -81,19 +81,27 @@ async def _download_time_based_async(client, filename, params):
             is_warming_up = False
             total_bytes_downloaded = 0  # Reset counter after warmup
 
+        ranges = []
         if params.pattern == "rand":
-            offset = random.randint(0, params.file_size_bytes - params.chunk_size_bytes)
+            for _ in range(params.num_ranges):
+                offset = random.randint(
+                    0, params.file_size_bytes - params.chunk_size_bytes
+                )
+                ranges.append((offset, params.chunk_size_bytes, BytesIO()))
+        else:  # seq
+            for _ in range(params.num_ranges):
+                ranges.append((offset, params.chunk_size_bytes, BytesIO()))
+                offset += params.chunk_size_bytes
+                if offset + params.chunk_size_bytes > params.file_size_bytes:
+                    offset = 0  # Reset offset if end of file is reached
 
-        buffer = BytesIO()
-        await mrd.download_ranges([(offset, params.chunk_size_bytes, buffer)])
+        await mrd.download_ranges(ranges)
+
+        bytes_in_buffers = sum(r[2].getbuffer().nbytes for r in ranges)
+        assert bytes_in_buffers == params.chunk_size_bytes * params.num_ranges
 
         if not is_warming_up:
-            total_bytes_downloaded += params.chunk_size_bytes
-
-        if params.pattern == "seq":
-            offset += params.chunk_size_bytes
-            if offset + params.chunk_size_bytes > params.file_size_bytes:
-                offset = 0  # Reset offset if end of file is reached
+            total_bytes_downloaded += params.chunk_size_bytes * params.num_ranges
 
     await mrd.close()
     return total_bytes_downloaded

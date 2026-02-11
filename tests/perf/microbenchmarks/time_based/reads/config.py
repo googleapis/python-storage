@@ -36,6 +36,7 @@ def _get_params() -> Dict[str, List[TimeBasedReadParameters]]:
     bucket_types = common_params["bucket_types"]
     file_sizes_mib = common_params["file_sizes_mib"]
     chunk_sizes_kib = common_params["chunk_sizes_kib"]
+    num_ranges = common_params["num_ranges"]
     rounds = common_params["rounds"]
     duration = common_params["duration"]
     warmup_duration = common_params["warmup_duration"]
@@ -62,6 +63,7 @@ def _get_params() -> Dict[str, List[TimeBasedReadParameters]]:
             bucket_types,
             file_sizes_mib,
             chunk_sizes_kib,
+            num_ranges,
             processes,
             coros,
         )
@@ -70,6 +72,7 @@ def _get_params() -> Dict[str, List[TimeBasedReadParameters]]:
             bucket_type,
             file_size_mib,
             chunk_size_kib,
+            num_ranges_val,
             num_processes,
             num_coros,
         ) in product:
@@ -80,7 +83,7 @@ def _get_params() -> Dict[str, List[TimeBasedReadParameters]]:
             num_files = num_processes * num_coros
 
             # Create a descriptive name for the parameter set
-            name = f"{pattern}_{bucket_type}_{num_processes}p_{file_size_mib}MiB_{chunk_size_kib}KiB"
+            name = f"{pattern}_{bucket_type}_{num_processes}p_{file_size_mib}MiB_{chunk_size_kib}KiB_{num_ranges_val}ranges"
 
             params[workload_name].append(
                 TimeBasedReadParameters(
@@ -97,6 +100,7 @@ def _get_params() -> Dict[str, List[TimeBasedReadParameters]]:
                     file_size_bytes=file_size_bytes,
                     duration=duration,
                     warmup_duration=warmup_duration,
+                    num_ranges=num_ranges_val,
                 )
             )
     return params
