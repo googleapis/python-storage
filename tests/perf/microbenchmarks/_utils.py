@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, List
+from typing import Any, List, Optional
 import statistics
 import io
 import os
@@ -22,7 +22,10 @@ def publish_benchmark_extra_info(
     params: Any,
     benchmark_group: str = "read",
     true_times: List[float] = [],
+    download_bytes_list: Optional[List[int]] = None,
+    duration: Optional[int] = None,
 ) -> None:
+    
     """
     Helper function to publish benchmark parameters to the extra_info property.
     """
@@ -40,14 +43,25 @@ def publish_benchmark_extra_info(
     benchmark.extra_info["bucket_type"] = params.bucket_type
     benchmark.extra_info["processes"] = params.num_processes
     benchmark.group = benchmark_group
+    print('this is download bytes list', download_bytes_list)
 
-    object_size = params.file_size_bytes
-    num_files = params.num_files
-    total_uploaded_mib = object_size / (1024 * 1024) * num_files
-    min_throughput = total_uploaded_mib / benchmark.stats["max"]
-    max_throughput = total_uploaded_mib / benchmark.stats["min"]
-    mean_throughput = total_uploaded_mib / benchmark.stats["mean"]
-    median_throughput = total_uploaded_mib / benchmark.stats["median"]
+    if download_bytes_list is not None:
+        assert duration is not None, "Duration must be provided if total_bytes_transferred is provided."
+        throughputs_list = [x / duration / (1024 * 1024) for x in download_bytes_list]
+        min_throughput = min(throughputs_list)
+        max_throughput = max(throughputs_list)
+        mean_throughput = statistics.mean(throughputs_list)
+        median_throughput = statistics.median(throughputs_list)
+
+
+    else:
+        object_size = params.file_size_bytes
+        num_files = params.num_files
+        total_uploaded_mib = object_size / (1024 * 1024) * num_files
+        min_throughput = total_uploaded_mib / benchmark.stats["max"]
+        max_throughput = total_uploaded_mib / benchmark.stats["min"]
+        mean_throughput = total_uploaded_mib / benchmark.stats["mean"]
+        median_throughput = total_uploaded_mib / benchmark.stats["median"]
 
     benchmark.extra_info["throughput_MiB_s_min"] = min_throughput
     benchmark.extra_info["throughput_MiB_s_max"] = max_throughput

@@ -65,7 +65,6 @@ def _worker_init(bucket_type):
 async def _download_time_based_async(client, filename, params):
     total_bytes_downloaded = 0
 
-
     mrd = AsyncMultiRangeDownloader(client, params.bucket_name, filename)
     await mrd.open()
 
@@ -118,9 +117,7 @@ def _download_files_worker(process_idx, filename, params, bucket_type):
 
 
 def download_files_mp_mc_wrapper(pool, files_names, params, bucket_type):
-    args = [
-        (i, files_names[i], params, bucket_type) for i in range(len(files_names))
-    ]
+    args = [(i, files_names[i], params, bucket_type) for i in range(len(files_names))]
 
     results = pool.starmap(_download_files_worker, args)
     return sum(results)
@@ -145,13 +142,12 @@ def test_downloads_multi_proc_multi_coro(
         initargs=(params.bucket_type,),
     )
 
-    total_bytes_downloaded = 0
+    download_bytes_list = []
 
     def target_wrapper(*args, **kwargs):
-        nonlocal total_bytes_downloaded
-        total_bytes_downloaded = download_files_mp_mc_wrapper(pool, *args, **kwargs)
-        # This benchmark doesn't return per-operation times, so we return a dummy value
-        return [0]
+        nonlocal download_bytes_list
+        download_bytes_list.append(download_files_mp_mc_wrapper(pool, *args, **kwargs))
+        return
 
     try:
         with monitor() as m:
@@ -164,9 +160,14 @@ def test_downloads_multi_proc_multi_coro(
     finally:
         pool.close()
         pool.join()
-        throughput_mib_s = (total_bytes_downloaded / params.duration) / (1024 * 1024)
-        benchmark.extra_info["throughput_mib_s"] = f"{throughput_mib_s:.2f}"
-        print(f"Throughput: {throughput_mib_s:.2f} MiB/s")
-        publish_benchmark_extra_info(benchmark, params)
+        total_bytes_downloaded = sum(download_bytes_list)
+        throughput_mib_s = (total_bytes_downloaded / params.duration / params.rounds) / (1024 * 1024)
+        benchmark.extra_info["avg_throughput_mib_s"] = f"{throughput_mib_s:.2f}"
+        print(f"Avg Throughput of {params.rounds} round(s): {throughput_mib_s:.2f} MiB/s")
+        publish_benchmark_extra_info(
+            benchmark,
+            params,
+            download_bytes_list=download_bytes_list,
+            duration=params.duration,
+        )
         publish_resource_metrics(benchmark, m)
-

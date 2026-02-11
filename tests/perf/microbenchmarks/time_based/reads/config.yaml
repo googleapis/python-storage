@@ -3,7 +3,7 @@ common:
     - "zonal"
   file_sizes_mib:
     - 10240 # 10GiB
-  chunk_sizes_kib: [64] # 16KiB
+  chunk_sizes_kib: [64, 1024, 16384, 102400, 204800] # 16KiB
   num_ranges: [1, 4]
   rounds: 1
   duration: 30 # seconds
