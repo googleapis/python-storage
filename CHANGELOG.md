@@ -4,6 +4,14 @@
 
 [1]: https://pypi.org/project/google-cloud-storage/#history
 
+## [3.9.1](https://github.com/googleapis/python-storage/compare/v3.9.0...v3.9.1) (2026-02-11)
+
+
+### Bug Fixes
+
+* Don't flush at every append, results in bad perf ([ab62d72](https://github.com/googleapis/python-storage/commit/ab62d728ac7d7be3c4fe9a99d72e35ead310805a))
+* Don't flush at every append, results in bad perf ([#1746](https://github.com/googleapis/python-storage/issues/1746)) ([ab62d72](https://github.com/googleapis/python-storage/commit/ab62d728ac7d7be3c4fe9a99d72e35ead310805a))
+
 ## [3.9.0](https://github.com/googleapis/python-storage/compare/v3.8.0...v3.9.0) (2026-02-02)
 
 
