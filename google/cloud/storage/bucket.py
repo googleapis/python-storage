@@ -64,6 +64,7 @@ from google.cloud.storage.retry import DEFAULT_RETRY
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_GENERATION_SPECIFIED
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_ETAG_IN_JSON
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED
+from google.cloud.storage.abstracts.base_bucket import BaseBucket
 
 
 _UBLA_BPO_ENABLED_MESSAGE = (
@@ -621,7 +622,7 @@ class IAMConfiguration(dict):
         return self.uniform_bucket_level_access_locked_time
 
 
-class Bucket(_PropertyMixin):
+class Bucket(_PropertyMixin, BaseBucket):
     """A class representing a Bucket on Cloud Storage.
 
     :type client: :class:`google.cloud.storage.client.Client`
