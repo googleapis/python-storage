@@ -30,6 +30,7 @@ import google.api_core.client_options
 
 marker = object()
 
+
 class BaseClient(ClientWithProject, ABC):
     """Abstract class for python-storage Client"""
 
@@ -204,53 +205,6 @@ class BaseClient(ClientWithProject, ABC):
         return client
 
     @property
-    def api_endpoint(self):
-        """Returns the API_BASE_URL from connection"""
-        return self._connection.API_BASE_URL
-
-    def update_user_agent(self, user_agent):
-        """Update the user-agent string for this client.
-
-        :type user_agent: str
-        :param user_agent: The string to add to the user-agent.
-        """
-        existing_user_agent = self._connection._client_info.user_agent
-        if existing_user_agent is None:
-            self._connection.user_agent = user_agent
-        else:
-            self._connection.user_agent = f"{user_agent} {existing_user_agent}"
-
-    @property
-    def _connection(self):
-        """Get connection or batch on the client.
-
-        :rtype: :class:`google.cloud.storage._http.Connection`
-        :returns: The connection set on the client, or the batch
-                  if one is set.
-        """
-        if self.current_batch is not None:
-            return self.current_batch
-        else:
-            return self._base_connection
-
-    @_connection.setter
-    def _connection(self, value):
-        """Set connection on the client.
-
-        Intended to be used by constructor (since the base class calls)
-            self._connection = connection
-        Will raise if the connection is set more than once.
-
-        :type value: :class:`google.cloud.storage._http.Connection`
-        :param value: The connection set on the client.
-
-        :raises: :class:`ValueError` if connection has already been set.
-        """
-        if self._base_connection is not None:
-            raise ValueError("Connection already set on client")
-        self._base_connection = value     
-
-    @property
     def _use_client_cert(self):
         """Returns true if mTLS is enabled"""
         # The final decision of whether to use mTLS takes place in
@@ -260,126 +214,9 @@ class BaseClient(ClientWithProject, ABC):
         if hasattr(mtls, "should_use_client_cert"):
             use_client_cert = mtls.should_use_client_cert()
         else:
-            use_client_cert = (
-                os.getenv("GOOGLE_API_USE_CLIENT_CERTIFICATE") == "true"
-            )
+            use_client_cert = os.getenv("GOOGLE_API_USE_CLIENT_CERTIFICATE") == "true"
         return use_client_cert
-
-    def _push_batch(self, batch):
-        """Push a batch onto our stack.
-
-        "Protected", intended for use by batch context mgrs.
-
-        :type batch: :class:`google.cloud.storage.batch.Batch`
-        :param batch: newly-active batch
-        """
-        self._batch_stack.push(batch)
-
-    def _pop_batch(self):
-        """Pop a batch from our stack.
-
-        "Protected", intended for use by batch context mgrs.
-
-        :raises: IndexError if the stack is empty.
-        :rtype: :class:`google.cloud.storage.batch.Batch`
-        :returns: the top-most batch/transaction, after removing it.
-        """
-        return self._batch_stack.pop()
-
-    @property
-    def current_batch(self):
-        """Currently-active batch.
-
-        :rtype: :class:`google.cloud.storage.batch.Batch` or ``NoneType`` (if
-                no batch is active).
-        :returns: The batch at the top of the batch stack.
-        """
-        return self._batch_stack.top
 
     @abstractmethod
     def bucket(self, bucket_name, user_project=None, generation=None):
         raise NotImplementedError("This method needs to be implemented.")
-
-    @abstractmethod
-    def _get_resource(
-        self,
-        path,
-        query_params=None,
-        headers=None,
-        timeout=None,
-        retry=None,
-        _target_object=None,
-    ):
-        """Helper for bucket / blob methods making API 'GET' calls."""
-        raise NotImplementedError("This should be implemented via the child class")
-
-    @abstractmethod
-    def _list_resource(
-        self,
-        path,
-        item_to_value,
-        page_token=None,
-        max_results=None,
-        extra_params=None,
-        page_start=None,
-        page_size=None,
-        timeout=None,
-        retry=None,
-    ):
-        """Helper for bucket / blob methods making API 'GET' calls."""
-        raise NotImplementedError("This should be implemented via the child class")
-
-    @abstractmethod
-    def _patch_resource(
-        self,
-        path,
-        data,
-        query_params=None,
-        headers=None,
-        timeout=None,
-        retry=None,
-        _target_object=None,
-    ):
-        """Helper for bucket / blob methods making API 'PATCH' calls."""
-        raise NotImplementedError("This should be implemented via the child class")
-
-    @abstractmethod
-    def _put_resource(
-        self,
-        path,
-        data,
-        query_params=None,
-        headers=None,
-        timeout=None,
-        retry=None,
-        _target_object=None,
-    ):
-        """Helper for bucket / blob methods making API 'PUT' calls."""
-        raise NotImplementedError("This should be implemented via the child class")
-
-    @abstractmethod
-    def _post_resource(
-        self,
-        path,
-        data,
-        query_params=None,
-        headers=None,
-        timeout=None,
-        retry=None,
-        _target_object=None,
-    ):
-        """Helper for bucket / blob methods making API 'POST' calls."""
-        raise NotImplementedError("This should be implemented via the child class")
-
-    @abstractmethod
-    def _delete_resource(
-        self,
-        path,
-        query_params=None,
-        headers=None,
-        timeout=None,
-        retry=None,
-        _target_object=None,
-    ):
-        """Helper for bucket / blob methods making API 'DELETE' calls."""
-        raise NotImplementedError("This should be implemented via the child class")

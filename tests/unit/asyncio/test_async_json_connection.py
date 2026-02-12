@@ -1,11 +1,18 @@
-import json
+import sys
 import pytest
+import json
 from unittest import mock
-
 from google.cloud.storage import _http as storage_http
 from google.api_core import exceptions
+from google.auth.credentials import Credentials
 from google.api_core.client_info import ClientInfo
-from google.cloud.storage._experimental.asyncio.async_connection import AsyncConnection
+from google.cloud.storage._experimental.asyncio.utility.async_json_connection import (
+    AsyncJSONConnection,
+)
+
+pytestmark = pytest.mark.skipif(
+    sys.version_info[:2] == (3, 9), reason="Not supported on 3.9"
+)
 
 
 class MockAuthResponse:
@@ -24,26 +31,22 @@ class MockAuthResponse:
         return self._data
 
 
-@pytest.fixture
-def mock_client():
-    """Mocks the Google Cloud Storage Client."""
-    client = mock.Mock()
-    client.async_http = mock.AsyncMock()
-    return client
+def _make_credentials():
+    creds = mock.Mock(spec=Credentials)
+    creds.universe_domain = "googleapis.com"
+    return creds
 
 
 @pytest.fixture
-def async_connection(mock_client):
-    """Creates an instance of AsyncConnection with a mocked client."""
-    return AsyncConnection(mock_client)
+def async_connection():
+    """Creates an instance of AsyncJSONConnection with a mocked client."""
+    return AsyncJSONConnection(mock.Mock(), _async_http=mock.AsyncMock())
 
 
 @pytest.fixture
 def mock_trace_span():
     """Mocks the OpenTelemetry trace span context manager."""
-    target = (
-        "google.cloud.storage._experimental.asyncio.async_connection.create_trace_span"
-    )
+    target = "google.cloud.storage._experimental.asyncio.utility.async_json_connection.create_trace_span"
     with mock.patch(target) as mock_span:
         mock_span.return_value.__enter__.return_value = None
         yield mock_span
@@ -58,11 +61,73 @@ def test_init_defaults(async_connection):
     assert "gcloud-python" in async_connection.user_agent
 
 
-def test_init_custom_endpoint(mock_client):
+def test_init_custom_endpoint():
     """Test initialization with a custom API endpoint."""
     custom_endpoint = "https://custom.storage.googleapis.com"
-    conn = AsyncConnection(mock_client, api_endpoint=custom_endpoint)
+    conn = AsyncJSONConnection(mock.Mock(), api_endpoint=custom_endpoint)
     assert conn.API_BASE_URL == custom_endpoint
+
+
+def test_passing_async_http_uses_the_same_async_http():
+    async_http = mock.Mock()
+    conn = AsyncJSONConnection(mock.Mock(), _async_http=async_http)
+    assert conn.async_http == async_http
+
+
+@pytest.mark.asyncio
+async def test_not_passing_async_http_creates_new():
+    with mock.patch(
+        "google.cloud.storage._experimental.asyncio.utility.async_json_connection.AsyncSession"
+    ) as MockSession:
+        conn = AsyncJSONConnection(
+            mock.Mock(), _async_http=None, credentials=_make_credentials()
+        )
+        assert conn.async_http is MockSession.return_value
+
+
+@pytest.mark.asyncio
+async def test_close_async_json_connection():
+    with mock.patch(
+        "google.cloud.storage._experimental.asyncio.utility.async_json_connection.AsyncSession"
+    ):
+        conn = AsyncJSONConnection(
+            mock.Mock(), _async_http=None, credentials=_make_credentials()
+        )
+
+        internal_mock = mock.AsyncMock()
+        conn._async_http_internal = internal_mock
+        await conn.close()
+        internal_mock.close.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_close_manages_internal_session():
+    """Tests that close() is called on an internally created session."""
+    with mock.patch(
+        "google.cloud.storage._experimental.asyncio.utility.async_json_connection.AsyncSession"
+    ):
+        conn = AsyncJSONConnection(
+            mock.Mock(), _async_http=None, credentials=_make_credentials()
+        )
+
+        # Force session creation
+        session = conn.async_http
+        session.close = mock.AsyncMock()  # Make it an async mock
+
+        await conn.close()
+        session.close.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_close_ignores_user_session():
+    """Tests that close() is NOT called on a user-provided session."""
+    user_session = mock.AsyncMock()
+    conn = AsyncJSONConnection(
+        mock.Mock(), _async_http=user_session, credentials=_make_credentials()
+    )
+
+    await conn.close()
+    user_session.close.assert_not_awaited()
 
 
 def test_extra_headers_property(async_connection):
@@ -92,10 +157,10 @@ def test_build_api_url_with_params(async_connection):
 
 
 @pytest.mark.asyncio
-async def test_make_request_headers(async_connection, mock_client):
+async def test_make_request_headers(async_connection):
     """Test that _make_request adds the correct headers."""
     mock_response = MockAuthResponse(status_code=200)
-    mock_client.async_http.request.return_value = mock_response
+    async_connection.async_http.request.return_value = mock_response
 
     async_connection.user_agent = "test-agent/1.0"
     async_connection.extra_headers = {"X-Test": "True"}
@@ -104,7 +169,7 @@ async def test_make_request_headers(async_connection, mock_client):
         method="GET", url="http://example.com", content_type="application/json"
     )
 
-    call_args = mock_client.async_http.request.call_args
+    call_args = async_connection.async_http.request.call_args
     _, kwargs = call_args
     headers = kwargs["headers"]
 
@@ -117,13 +182,13 @@ async def test_make_request_headers(async_connection, mock_client):
 
 
 @pytest.mark.asyncio
-async def test_api_request_success(async_connection, mock_client, mock_trace_span):
+async def test_api_request_success(async_connection, mock_trace_span):
     """Test the high-level api_request method wraps the call correctly."""
     expected_data = {"items": []}
     mock_response = MockAuthResponse(
         status_code=200, data=json.dumps(expected_data).encode("utf-8")
     )
-    mock_client.async_http.request.return_value = mock_response
+    async_connection.async_http.request.return_value = mock_response
 
     response = await async_connection.api_request(method="GET", path="/b/bucket")
 
@@ -132,17 +197,15 @@ async def test_api_request_success(async_connection, mock_client, mock_trace_spa
 
 
 @pytest.mark.asyncio
-async def test_perform_api_request_json_serialization(
-    async_connection, mock_client, mock_trace_span
-):
+async def test_perform_api_request_json_serialization(async_connection):
     """Test that dictionary data is serialized to JSON."""
     mock_response = MockAuthResponse(status_code=200)
-    mock_client.async_http.request.return_value = mock_response
+    async_connection.async_http.request.return_value = mock_response
 
     data = {"key": "value"}
     await async_connection.api_request(method="POST", path="/b", data=data)
 
-    call_args = mock_client.async_http.request.call_args
+    call_args = async_connection.async_http.request.call_args
     _, kwargs = call_args
 
     assert kwargs["data"] == json.dumps(data)
@@ -150,15 +213,13 @@ async def test_perform_api_request_json_serialization(
 
 
 @pytest.mark.asyncio
-async def test_perform_api_request_error_handling(
-    async_connection, mock_client, mock_trace_span
-):
+async def test_perform_api_request_error_handling(async_connection):
     """Test that non-2xx responses raise GoogleAPICallError."""
     error_json = {"error": {"message": "Not Found"}}
     mock_response = MockAuthResponse(
         status_code=404, data=json.dumps(error_json).encode("utf-8")
     )
-    mock_client.async_http.request.return_value = mock_response
+    async_connection.async_http.request.return_value = mock_response
 
     with pytest.raises(exceptions.GoogleAPICallError) as excinfo:
         await async_connection.api_request(method="GET", path="/b/nonexistent")
@@ -167,13 +228,11 @@ async def test_perform_api_request_error_handling(
 
 
 @pytest.mark.asyncio
-async def test_perform_api_request_no_json_response(
-    async_connection, mock_client, mock_trace_span
-):
+async def test_perform_api_request_no_json_response(async_connection):
     """Test response handling when expect_json is False."""
     raw_bytes = b"binary_data"
     mock_response = MockAuthResponse(status_code=200, data=raw_bytes)
-    mock_client.async_http.request.return_value = mock_response
+    async_connection.async_http.request.return_value = mock_response
 
     response = await async_connection.api_request(
         method="GET", path="/b/obj", expect_json=False
@@ -183,10 +242,10 @@ async def test_perform_api_request_no_json_response(
 
 
 @pytest.mark.asyncio
-async def test_api_request_with_retry(async_connection, mock_client, mock_trace_span):
+async def test_api_request_with_retry(async_connection):
     """Test that the retry policy is applied if conditions are met."""
     mock_response = MockAuthResponse(status_code=200, data=b"{}")
-    mock_client.async_http.request.return_value = mock_response
+    async_connection.async_http.request.return_value = mock_response
 
     mock_retry = mock.Mock()
     mock_policy = mock.Mock(side_effect=lambda call: call)
@@ -217,12 +276,10 @@ def test_build_api_url_overrides(async_connection):
 
 
 @pytest.mark.asyncio
-async def test_perform_api_request_empty_response(
-    async_connection, mock_client, mock_trace_span
-):
+async def test_perform_api_request_empty_response(async_connection):
     """Test handling of empty 2xx response when expecting JSON."""
     mock_response = MockAuthResponse(status_code=204, data=b"")
-    mock_client.async_http.request.return_value = mock_response
+    async_connection.async_http.request.return_value = mock_response
 
     response = await async_connection.api_request(
         method="DELETE", path="/b/bucket/o/object"
@@ -232,13 +289,11 @@ async def test_perform_api_request_empty_response(
 
 
 @pytest.mark.asyncio
-async def test_perform_api_request_non_json_error(
-    async_connection, mock_client, mock_trace_span
-):
+async def test_perform_api_request_non_json_error(async_connection):
     """Test error handling when the error response is plain text (not JSON)."""
     error_text = "Bad Gateway"
     mock_response = MockAuthResponse(status_code=502, data=error_text.encode("utf-8"))
-    mock_client.async_http.request.return_value = mock_response
+    async_connection.async_http.request.return_value = mock_response
 
     with pytest.raises(exceptions.GoogleAPICallError) as excinfo:
         await async_connection.api_request(method="GET", path="/b/bucket")
@@ -248,10 +303,10 @@ async def test_perform_api_request_non_json_error(
 
 
 @pytest.mark.asyncio
-async def test_make_request_extra_api_info(async_connection, mock_client):
+async def test_make_request_extra_api_info(async_connection):
     """Test logic for constructing x-goog-api-client header with extra info."""
     mock_response = MockAuthResponse(status_code=200)
-    mock_client.async_http.request.return_value = mock_response
+    async_connection.async_http.request.return_value = mock_response
 
     invocation_id = "test-id-123"
 
@@ -259,7 +314,7 @@ async def test_make_request_extra_api_info(async_connection, mock_client):
         method="GET", url="http://example.com", extra_api_info=invocation_id
     )
 
-    call_args = mock_client.async_http.request.call_args
+    call_args = async_connection.async_http.request.call_args
     _, kwargs = call_args
     headers = kwargs["headers"]
 
