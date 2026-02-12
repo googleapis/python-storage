@@ -59,6 +59,30 @@ extras = {
     "tracing": [
         "opentelemetry-api >= 1.1.0, < 2.0.0",
     ],
+    "testing": [
+        "google-cloud-testutils",
+        "numpy",
+        "psutil",
+        "py-cpuinfo",
+        "pytest-benchmark",
+        "PyYAML",
+        "mock",
+        "pytest",
+        "pytest-cov",
+        "pytest-asyncio",
+        "pytest-rerunfailures",
+        "pytest-xdist",
+        "google-cloud-testutils",
+        "google-cloud-iam",
+        "google-cloud-pubsub",
+        "google-cloud-kms",
+        "brotli",
+        "coverage",
+        "pyopenssl",
+        "opentelemetry-sdk",
+        "flake8",
+        "black",
+    ],
 }
 
 
