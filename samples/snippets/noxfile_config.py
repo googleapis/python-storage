@@ -81,27 +81,27 @@ def get_cloud_kms_key():
 
 TEST_CONFIG_OVERRIDE = {
     # You can opt out from the test for specific Python versions.
-    'ignored_versions': ["2.7", "3.6", "3.7", "3.11", "3.12", "3.13"],
-
+    "ignored_versions": ["2.7", "3.6", "3.7", "3.8"],
     # An envvar key for determining the project id to use. Change it
     # to 'BUILD_SPECIFIC_GCLOUD_PROJECT' if you want to opt in using a
     # build specific Cloud project. You can also use your own string
     # to use your own Cloud project.
     # 'gcloud_project_env': 'GOOGLE_CLOUD_PROJECT',
-    'gcloud_project_env': 'BUILD_SPECIFIC_GCLOUD_PROJECT',
-
+    "gcloud_project_env": "BUILD_SPECIFIC_GCLOUD_PROJECT",
     # A dictionary you want to inject into your test. Don't put any
     # secrets here. These values will override predefined values.
-    'envs': {
-        'HMAC_KEY_TEST_SERVICE_ACCOUNT': get_service_account_email(),
-        'CLOUD_KMS_KEY': get_cloud_kms_key(),
+    "envs": {
+        "HMAC_KEY_TEST_SERVICE_ACCOUNT": get_service_account_email(),
+        "CLOUD_KMS_KEY": get_cloud_kms_key(),
         # Some tests can not use multiple projects because of several reasons:
         # 1. The new projects is enforced to have the
         # 'constraints/iam.disableServiceAccountKeyCreation' policy.
         # 2. The new projects buckets need to have universal permission model.
         # For those tests, we'll use the original project.
-        'MAIN_GOOGLE_CLOUD_PROJECT': 'python-docs-samples-tests',
-        'MAIN_CLOUD_KMS_KEY': ('projects/python-docs-samples-tests/locations/us/'
-                               'keyRings/gcs-kms-key-ring/cryptoKeys/gcs-kms-key')
+        "MAIN_GOOGLE_CLOUD_PROJECT": "python-docs-samples-tests",
+        "MAIN_CLOUD_KMS_KEY": (
+            "projects/python-docs-samples-tests/locations/us/"
+            "keyRings/gcs-kms-key-ring/cryptoKeys/gcs-kms-key"
+        ),
     },
 }
