@@ -62,7 +62,6 @@ def _worker_init(bucket_type):
         worker_json_client = storage.Client()
 
 
-
 def _download_time_based_json(client, filename, params):
     """Performs time-based downloads using the JSON API."""
     total_bytes_downloaded = 0
@@ -206,9 +205,13 @@ def test_downloads_multi_proc_multi_coro(
         pool.close()
         pool.join()
         total_bytes_downloaded = sum(download_bytes_list)
-        throughput_mib_s = (total_bytes_downloaded / params.duration / params.rounds) / (1024 * 1024)
+        throughput_mib_s = (
+            total_bytes_downloaded / params.duration / params.rounds
+        ) / (1024 * 1024)
         benchmark.extra_info["avg_throughput_mib_s"] = f"{throughput_mib_s:.2f}"
-        print(f"Avg Throughput of {params.rounds} round(s): {throughput_mib_s:.2f} MiB/s")
+        print(
+            f"Avg Throughput of {params.rounds} round(s): {throughput_mib_s:.2f} MiB/s"
+        )
         publish_benchmark_extra_info(
             benchmark,
             params,
