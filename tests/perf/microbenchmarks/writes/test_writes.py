@@ -41,7 +41,6 @@ from tests.perf.microbenchmarks._utils import (
 )
 from tests.perf.microbenchmarks.conftest import publish_resource_metrics
 import tests.perf.microbenchmarks.writes.config as config
-from google.cloud import storage
 
 # Get write parameters
 all_params = config.get_write_params()
