@@ -43,7 +43,6 @@ def publish_benchmark_extra_info(
     benchmark.extra_info["bucket_type"] = params.bucket_type
     benchmark.extra_info["processes"] = params.num_processes
     benchmark.group = benchmark_group
-    print('this is download bytes list', download_bytes_list)
 
     if download_bytes_list is not None:
         assert duration is not None, "Duration must be provided if total_bytes_transferred is provided."
