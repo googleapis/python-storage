@@ -189,7 +189,6 @@ def test_downloads_multi_proc_multi_coro(
     download_bytes_list = []
 
     def target_wrapper(*args, **kwargs):
-        nonlocal download_bytes_list
         download_bytes_list.append(download_files_mp_mc_wrapper(pool, *args, **kwargs))
         return
 
