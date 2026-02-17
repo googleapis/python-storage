@@ -26,7 +26,10 @@ from google.cloud.storage.asyncio.async_grpc_client import AsyncGrpcClient
 from google.cloud.storage.asyncio.async_multi_range_downloader import (
     AsyncMultiRangeDownloader,
 )
-from tests.perf.microbenchmarks._utils import publish_benchmark_extra_info
+from tests.perf.microbenchmarks._utils import (
+    get_irq_affinity,
+    publish_benchmark_extra_info,
+)
 from tests.perf.microbenchmarks.conftest import (
     publish_resource_metrics,
 )
@@ -50,7 +53,10 @@ CORE_OFFSET = 20  # Start pinning cores from 20
 
 def _worker_init(bucket_type):
     """Initializes a persistent event loop and client for each worker process."""
-    os.sched_setaffinity(0, {i for i in range(20, 180)})  # Pin to cores 20-189
+    cpu_affinity = get_irq_affinity()
+    if cpu_affinity:
+        os.sched_setaffinity(0, {i for i in range(0, 190) if i not in cpu_affinity})
+
     global worker_loop, worker_client, worker_json_client
     if bucket_type == "zonal":
         worker_loop = asyncio.new_event_loop()
