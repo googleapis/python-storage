@@ -38,6 +38,7 @@ from google.cloud.storage.asyncio.async_appendable_object_writer import (
 from tests.perf.microbenchmarks._utils import (
     publish_benchmark_extra_info,
     RandomBytesIO,
+    get_irq_affinity,
 )
 from tests.perf.microbenchmarks.conftest import publish_resource_metrics
 import tests.perf.microbenchmarks.writes.config as config
@@ -325,7 +326,11 @@ worker_json_client = None
 
 def _worker_init(bucket_type):
     """Initializes a persistent event loop and client for each worker process."""
-    os.sched_setaffinity(0, {i for i in range(20, 190)})  # Pin to cores 20-189
+    cpu_affinity = get_irq_affinity()
+    if cpu_affinity:
+        os.sched_setaffinity(
+            0, {i for i in range(1, os.cpu_count()) if i not in cpu_affinity}
+        )
     global worker_loop, worker_client, worker_json_client
     if bucket_type == "zonal":
         worker_loop = asyncio.new_event_loop()
