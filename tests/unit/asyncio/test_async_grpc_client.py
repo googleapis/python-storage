@@ -12,10 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import unittest
 from unittest import mock
+import pytest
 from google.auth import credentials as auth_credentials
 from google.auth.credentials import AnonymousCredentials
+from google.api_core import client_info as client_info_lib
+from google.cloud.storage.asyncio import async_grpc_client
+from google.cloud.storage import __version__
 
 
 def _make_credentials(spec=None):
@@ -24,36 +27,65 @@ def _make_credentials(spec=None):
     return mock.Mock(spec=spec)
 
 
-class TestAsyncGrpcClient(unittest.TestCase):
+class TestAsyncGrpcClient:
     @mock.patch("google.cloud._storage_v2.StorageAsyncClient")
     def test_constructor_default_options(self, mock_async_storage_client):
-        from google.cloud.storage._experimental.asyncio import async_grpc_client
-
+        # Arrange
         mock_transport_cls = mock.MagicMock()
         mock_async_storage_client.get_transport_class.return_value = mock_transport_cls
         mock_creds = _make_credentials()
 
+        # Act
         async_grpc_client.AsyncGrpcClient(credentials=mock_creds)
 
+        # Assert
         mock_async_storage_client.get_transport_class.assert_called_once_with(
             "grpc_asyncio"
         )
+        kwargs = mock_async_storage_client.call_args.kwargs
+        client_info = kwargs["client_info"]
+        agent_version = f"gcloud-python/{__version__}"
+        assert agent_version in client_info.user_agent
+        primary_user_agent = client_info.to_user_agent()
+        expected_options = (("grpc.primary_user_agent", primary_user_agent),)
+
         mock_transport_cls.create_channel.assert_called_once_with(
-            attempt_direct_path=True, credentials=mock_creds
+            attempt_direct_path=True,
+            credentials=mock_creds,
+            options=expected_options,
         )
         mock_channel = mock_transport_cls.create_channel.return_value
         mock_transport_cls.assert_called_once_with(channel=mock_channel)
         mock_transport = mock_transport_cls.return_value
-        mock_async_storage_client.assert_called_once_with(
-            transport=mock_transport,
-            client_options=None,
-            client_info=None,
+        assert kwargs["transport"] is mock_transport
+        assert kwargs["client_options"] is None
+
+    @mock.patch("google.cloud._storage_v2.StorageAsyncClient")
+    def test_constructor_with_client_info(self, mock_async_storage_client):
+        mock_transport_cls = mock.MagicMock()
+        mock_async_storage_client.get_transport_class.return_value = mock_transport_cls
+        mock_creds = _make_credentials()
+        client_info = client_info_lib.ClientInfo(
+            client_library_version="1.2.3",
+        )
+
+        async_grpc_client.AsyncGrpcClient(
+            credentials=mock_creds, client_info=client_info
+        )
+
+        agent_version = f"gcloud-python/{__version__}"
+        assert agent_version in client_info.user_agent
+        primary_user_agent = client_info.to_user_agent()
+        expected_options = (("grpc.primary_user_agent", primary_user_agent),)
+
+        mock_transport_cls.create_channel.assert_called_once_with(
+            attempt_direct_path=True,
+            credentials=mock_creds,
+            options=expected_options,
         )
 
     @mock.patch("google.cloud._storage_v2.StorageAsyncClient")
     def test_constructor_disables_directpath(self, mock_async_storage_client):
-        from google.cloud.storage._experimental.asyncio import async_grpc_client
-
         mock_transport_cls = mock.MagicMock()
         mock_async_storage_client.get_transport_class.return_value = mock_transport_cls
         mock_creds = _make_credentials()
@@ -62,61 +94,70 @@ class TestAsyncGrpcClient(unittest.TestCase):
             credentials=mock_creds, attempt_direct_path=False
         )
 
+        kwargs = mock_async_storage_client.call_args.kwargs
+        client_info = kwargs["client_info"]
+        agent_version = f"gcloud-python/{__version__}"
+        assert agent_version in client_info.user_agent
+        primary_user_agent = client_info.to_user_agent()
+        expected_options = (("grpc.primary_user_agent", primary_user_agent),)
+
         mock_transport_cls.create_channel.assert_called_once_with(
-            attempt_direct_path=False, credentials=mock_creds
+            attempt_direct_path=False,
+            credentials=mock_creds,
+            options=expected_options,
         )
         mock_channel = mock_transport_cls.create_channel.return_value
         mock_transport_cls.assert_called_once_with(channel=mock_channel)
 
     @mock.patch("google.cloud._storage_v2.StorageAsyncClient")
     def test_grpc_client_property(self, mock_grpc_gapic_client):
-        from google.cloud.storage._experimental.asyncio import async_grpc_client
-
         # Arrange
         mock_transport_cls = mock.MagicMock()
         mock_grpc_gapic_client.get_transport_class.return_value = mock_transport_cls
         channel_sentinel = mock.sentinel.channel
-
         mock_transport_cls.create_channel.return_value = channel_sentinel
-        mock_transport_cls.return_value = mock.sentinel.transport
+        mock_transport_instance = mock.sentinel.transport
+        mock_transport_cls.return_value = mock_transport_instance
 
         mock_creds = _make_credentials()
-        mock_client_info = mock.sentinel.client_info
+        # Use a real ClientInfo instance instead of a mock to properly test user agent logic
+        client_info = client_info_lib.ClientInfo(user_agent="test-user-agent")
         mock_client_options = mock.sentinel.client_options
         mock_attempt_direct_path = mock.sentinel.attempt_direct_path
 
         # Act
         client = async_grpc_client.AsyncGrpcClient(
             credentials=mock_creds,
-            client_info=mock_client_info,
+            client_info=client_info,
             client_options=mock_client_options,
             attempt_direct_path=mock_attempt_direct_path,
         )
+        retrieved_client = client.grpc_client  # This is what is being tested
 
-        mock_grpc_gapic_client.get_transport_class.return_value = mock_transport_cls
+        # Assert - verify that gcloud-python agent version was added
+        agent_version = f"gcloud-python/{__version__}"
+        assert agent_version in client_info.user_agent
+        # Also verify original user_agent is still there
+        assert "test-user-agent" in client_info.user_agent
 
-        mock_transport_cls.create_channel.return_value = channel_sentinel
-        mock_transport_instance = mock.sentinel.transport
-        mock_transport_cls.return_value = mock_transport_instance
+        primary_user_agent = client_info.to_user_agent()
+        expected_options = (("grpc.primary_user_agent", primary_user_agent),)
 
-        retrieved_client = client.grpc_client
-
-        # Assert
         mock_transport_cls.create_channel.assert_called_once_with(
-            attempt_direct_path=mock_attempt_direct_path, credentials=mock_creds
+            attempt_direct_path=mock_attempt_direct_path,
+            credentials=mock_creds,
+            options=expected_options,
         )
-        mock_transport_cls.assere_with(channel=channel_sentinel)
+        mock_transport_cls.assert_called_once_with(channel=channel_sentinel)
         mock_grpc_gapic_client.assert_called_once_with(
             transport=mock_transport_instance,
-            client_info=mock_client_info,
+            client_info=client_info,
             client_options=mock_client_options,
         )
-        self.assertIs(retrieved_client, mock_grpc_gapic_client.return_value)
+        assert retrieved_client is mock_grpc_gapic_client.return_value
 
     @mock.patch("google.cloud._storage_v2.StorageAsyncClient")
     def test_grpc_client_with_anon_creds(self, mock_grpc_gapic_client):
-        from google.cloud.storage._experimental.asyncio import async_grpc_client
-
         # Arrange
         mock_transport_cls = mock.MagicMock()
         mock_grpc_gapic_client.get_transport_class.return_value = mock_transport_cls
@@ -131,9 +172,160 @@ class TestAsyncGrpcClient(unittest.TestCase):
         retrieved_client = client.grpc_client
 
         # Assert
-        self.assertIs(retrieved_client, mock_grpc_gapic_client.return_value)
+        assert retrieved_client is mock_grpc_gapic_client.return_value
+
+        kwargs = mock_grpc_gapic_client.call_args.kwargs
+        client_info = kwargs["client_info"]
+        agent_version = f"gcloud-python/{__version__}"
+        assert agent_version in client_info.user_agent
+        primary_user_agent = client_info.to_user_agent()
+        expected_options = (("grpc.primary_user_agent", primary_user_agent),)
 
         mock_transport_cls.create_channel.assert_called_once_with(
-            attempt_direct_path=True, credentials=anonymous_creds
+            attempt_direct_path=True,
+            credentials=anonymous_creds,
+            options=expected_options,
         )
         mock_transport_cls.assert_called_once_with(channel=channel_sentinel)
+
+    @mock.patch("google.cloud._storage_v2.StorageAsyncClient")
+    def test_user_agent_with_custom_client_info(self, mock_async_storage_client):
+        """Test that gcloud-python user agent is appended to existing user agent.
+
+        Regression test similar to test__http.py::TestConnection::test_duplicate_user_agent
+        """
+        mock_transport_cls = mock.MagicMock()
+        mock_async_storage_client.get_transport_class.return_value = mock_transport_cls
+        mock_creds = _make_credentials()
+
+        # Create a client_info with an existing user_agent
+        client_info = client_info_lib.ClientInfo(user_agent="custom-app/1.0")
+
+        # Act
+        async_grpc_client.AsyncGrpcClient(
+            credentials=mock_creds,
+            client_info=client_info,
+        )
+
+        # Assert - verify that gcloud-python version was appended
+        agent_version = f"gcloud-python/{__version__}"
+        expected_user_agent = f"custom-app/1.0 {agent_version} "
+        assert client_info.user_agent == expected_user_agent
+
+    @mock.patch("google.cloud._storage_v2.StorageAsyncClient")
+    @pytest.mark.asyncio
+    async def test_delete_object(self, mock_async_storage_client):
+        # Arrange
+        mock_transport_cls = mock.MagicMock()
+        mock_async_storage_client.get_transport_class.return_value = mock_transport_cls
+        mock_gapic_client = mock.AsyncMock()
+        mock_async_storage_client.return_value = mock_gapic_client
+
+        client = async_grpc_client.AsyncGrpcClient(
+            credentials=_make_credentials(spec=AnonymousCredentials)
+        )
+
+        bucket_name = "bucket"
+        object_name = "object"
+        generation = 123
+        if_generation_match = 456
+        if_generation_not_match = 789
+        if_metageneration_match = 111
+        if_metageneration_not_match = 222
+
+        # Act
+        await client.delete_object(
+            bucket_name,
+            object_name,
+            generation=generation,
+            if_generation_match=if_generation_match,
+            if_generation_not_match=if_generation_not_match,
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
+        )
+
+        # Assert
+        call_args, call_kwargs = mock_gapic_client.delete_object.call_args
+        request = call_kwargs["request"]
+        assert request.bucket == "projects/_/buckets/bucket"
+        assert request.object == "object"
+        assert request.generation == generation
+        assert request.if_generation_match == if_generation_match
+        assert request.if_generation_not_match == if_generation_not_match
+        assert request.if_metageneration_match == if_metageneration_match
+        assert request.if_metageneration_not_match == if_metageneration_not_match
+
+    @mock.patch("google.cloud._storage_v2.StorageAsyncClient")
+    @pytest.mark.asyncio
+    async def test_get_object(self, mock_async_storage_client):
+        # Arrange
+        mock_transport_cls = mock.MagicMock()
+        mock_async_storage_client.get_transport_class.return_value = mock_transport_cls
+        mock_gapic_client = mock.AsyncMock()
+        mock_async_storage_client.return_value = mock_gapic_client
+
+        client = async_grpc_client.AsyncGrpcClient(
+            credentials=_make_credentials(spec=AnonymousCredentials)
+        )
+
+        bucket_name = "bucket"
+        object_name = "object"
+
+        # Act
+        await client.get_object(
+            bucket_name,
+            object_name,
+        )
+
+        # Assert
+        call_args, call_kwargs = mock_gapic_client.get_object.call_args
+        request = call_kwargs["request"]
+        assert request.bucket == "projects/_/buckets/bucket"
+        assert request.object == "object"
+        assert request.soft_deleted is False
+
+    @mock.patch("google.cloud._storage_v2.StorageAsyncClient")
+    @pytest.mark.asyncio
+    async def test_get_object_with_all_parameters(self, mock_async_storage_client):
+        # Arrange
+        mock_transport_cls = mock.MagicMock()
+        mock_async_storage_client.get_transport_class.return_value = mock_transport_cls
+        mock_gapic_client = mock.AsyncMock()
+        mock_async_storage_client.return_value = mock_gapic_client
+
+        client = async_grpc_client.AsyncGrpcClient(
+            credentials=_make_credentials(spec=AnonymousCredentials)
+        )
+
+        bucket_name = "bucket"
+        object_name = "object"
+        generation = 123
+        if_generation_match = 456
+        if_generation_not_match = 789
+        if_metageneration_match = 111
+        if_metageneration_not_match = 222
+        soft_deleted = True
+
+        # Act
+        await client.get_object(
+            bucket_name,
+            object_name,
+            generation=generation,
+            if_generation_match=if_generation_match,
+            if_generation_not_match=if_generation_not_match,
+            if_metageneration_match=if_metageneration_match,
+            if_metageneration_not_match=if_metageneration_not_match,
+            soft_deleted=soft_deleted,
+        )
+
+        # Assert
+        call_args, call_kwargs = mock_gapic_client.get_object.call_args
+        request = call_kwargs["request"]
+        assert request.bucket == "projects/_/buckets/bucket"
+        assert request.object == "object"
+        assert request.generation == generation
+        assert request.if_generation_match == if_generation_match
+        assert request.if_generation_not_match == if_generation_not_match
+        assert request.if_metageneration_match == if_metageneration_match
+        assert request.if_metageneration_not_match == if_metageneration_not_match
+        assert request.soft_deleted is True
