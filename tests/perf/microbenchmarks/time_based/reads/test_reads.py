@@ -50,12 +50,15 @@ worker_client = None
 worker_json_client = None
 CORE_OFFSET = 20  # Start pinning cores from 20
 
+
 # TODO: b/479135274 close clients properly.
 def _worker_init(bucket_type):
     """Initializes a persistent event loop and client for each worker process."""
     cpu_affinity = get_irq_affinity()
     if cpu_affinity:
-        os.sched_setaffinity(0, {i for i in range(0, os.cpu_count()) if i not in cpu_affinity})
+        os.sched_setaffinity(
+            0, {i for i in range(0, os.cpu_count()) if i not in cpu_affinity}
+        )
 
     global worker_loop, worker_client, worker_json_client
     if bucket_type == "zonal":
