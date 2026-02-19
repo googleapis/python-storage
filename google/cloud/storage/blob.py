@@ -80,6 +80,7 @@ from google.cloud.storage.retry import DEFAULT_RETRY_IF_ETAG_IN_JSON
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_GENERATION_SPECIFIED
 from google.cloud.storage.fileio import BlobReader
 from google.cloud.storage.fileio import BlobWriter
+from google.cloud.storage.abstracts.base_blob import BaseBlob
 
 
 _DEFAULT_CONTENT_TYPE = "application/octet-stream"
@@ -150,7 +151,7 @@ _MAX_MULTIPART_SIZE = 8388608  # 8 MiB
 _logger = logging.getLogger(__name__)
 
 
-class Blob(_PropertyMixin):
+class Blob(_PropertyMixin, BaseBlob):
     """A wrapper around Cloud Storage's concept of an ``Object``.
 
     :type name: str

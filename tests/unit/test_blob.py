@@ -34,6 +34,7 @@ from google.cloud.storage._helpers import _get_default_storage_base_url
 from google.cloud.storage._helpers import _DEFAULT_UNIVERSE_DOMAIN
 from google.cloud.storage._helpers import _NOW
 from google.cloud.storage._helpers import _UTC
+from google.cloud.storage.abstracts.base_blob import BaseBlob
 from google.cloud.storage.exceptions import DataCorruption
 from google.cloud.storage.exceptions import InvalidResponse
 from google.cloud.storage.retry import DEFAULT_RETRY
@@ -70,6 +71,10 @@ class Test_Blob(unittest.TestCase):
 
         kw["api_endpoint"] = kw.get("api_endpoint") or _get_default_storage_base_url()
         return mock.create_autospec(Client, instance=True, **kw)
+
+    def test_inherit_from_base_blob(self):
+        blob = self._make_one("random-blob", bucket=_Bucket())
+        self.assertEqual(isinstance(blob, BaseBlob), True)
 
     def test_ctor_wo_encryption_key(self):
         BLOB_NAME = "blob-name"

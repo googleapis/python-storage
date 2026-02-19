@@ -27,6 +27,7 @@ from google.cloud.storage.constants import PUBLIC_ACCESS_PREVENTION_ENFORCED
 from google.cloud.storage.constants import PUBLIC_ACCESS_PREVENTION_INHERITED
 from google.cloud.storage.constants import PUBLIC_ACCESS_PREVENTION_UNSPECIFIED
 from google.cloud.storage.constants import RPO_DEFAULT
+from google.cloud.storage.abstracts.base_bucket import BaseBucket
 from google.cloud.storage.constants import RPO_ASYNC_TURBO
 from google.cloud.storage._helpers import _NOW
 from google.cloud.storage._helpers import _UTC
@@ -623,6 +624,10 @@ class Test_Bucket(unittest.TestCase):
         if properties:
             bucket._properties = {**bucket._properties, **properties}
         return bucket
+
+    def test_inherit_from_base_bucket(self):
+        bucket = self._make_one(name="random-bucket")
+        self.assertEqual(isinstance(bucket, BaseBucket), True)
 
     def test_ctor_w_invalid_name(self):
         NAME = "#invalid"
