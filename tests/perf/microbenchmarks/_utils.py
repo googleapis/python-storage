@@ -239,8 +239,8 @@ def get_primary_interface_name():
 def get_irq_affinity():
     """Gets the set of CPUs for a given network interface."""
     nic = get_primary_interface_name()
-    # if not nic:
-    #     nic = _C4_STANDARD_192_NIC
+    if not nic:
+        nic = _C4_STANDARD_192_NIC
 
     pci = get_nic_pci(nic)
     irqs = get_irqs_for_pci(pci)
@@ -249,10 +249,6 @@ def get_irq_affinity():
         affinity_str = get_affinity(irq)
         if affinity_str != "N/A":
             for part in affinity_str.split(','):
-                if not '-' in part:
+                if '-' not in part:
                     cpus.add(int(part))
     return cpus
-
-if __name__ == "__main__":
-    cpus = get_irq_affinity()
-    print(f"CPUs handling network IRQs: {sorted(cpus)}")
