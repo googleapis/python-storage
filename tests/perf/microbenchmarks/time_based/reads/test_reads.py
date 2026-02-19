@@ -48,7 +48,6 @@ async def create_client():
 worker_loop = None
 worker_client = None
 worker_json_client = None
-CORE_OFFSET = 20  # Start pinning cores from 20
 
 
 # TODO: b/479135274 close clients properly.
