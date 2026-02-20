@@ -1,4 +1,3 @@
-import asyncio
 import io
 import uuid
 import grpc
@@ -55,8 +54,7 @@ async def run_test_scenario(
         retry_test_id = resp.json()["id"]
 
         # 2. Set up downloader and metadata for fault injection.
-        grpc_client = AsyncGrpcClient(
-            create_insecure_channel=True,
+        grpc_client = AsyncGrpcClient._create_insecure_grpc_client(
             client_options=client_options.ClientOptions(api_endpoint=GRPC_ENDPOINT),
         )
         downloader = await AsyncMultiRangeDownloader.create_mrd(
@@ -246,11 +244,8 @@ async def run_open_test_scenario(
 
         # 3. Execute the open (via create_mrd) and assert the outcome.
         try:
-            grpc_client = AsyncGrpcClient(
-                create_insecure_channel=True,
-                client_options=client_options.ClientOptions(
-                    api_endpoint=GRPC_ENDPOINT
-                ),
+            grpc_client = AsyncGrpcClient._create_insecure_grpc_client(
+                client_options=client_options.ClientOptions(api_endpoint=GRPC_ENDPOINT),
             )
             downloader = await AsyncMultiRangeDownloader.create_mrd(
                 grpc_client,

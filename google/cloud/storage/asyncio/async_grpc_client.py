@@ -53,10 +53,11 @@ class AsyncGrpcClient:
         client_options=None,
         *,
         attempt_direct_path=True,
-        create_insecure_channel=False,  # only for testing against testbench.
     ):
-        if create_insecure_channel:
-            self._grpc_client = self._create_insecure_grpc_client(client_options)
+        if isinstance(credentials, auth_credentials.AnonymousCredentials):
+            self._grpc_client = self._create_anonymous_client(
+                client_options, credentials
+            )
             return
 
         if client_info is None:
@@ -75,15 +76,20 @@ class AsyncGrpcClient:
             attempt_direct_path=attempt_direct_path,
         )
 
-    def _create_anonymous_client(self, client_options):
+    def _create_anonymous_client(self, client_options, credentials):
         channel = grpc.aio.insecure_channel(client_options.api_endpoint)
         transport = storage_v2.services.storage.transports.StorageGrpcAsyncIOTransport(
-            channel=channel, credentials=auth_credentials.AnonymousCredentials()
+            channel=channel, credentials=credentials
         )
         return storage_v2.StorageAsyncClient(transport=transport)
 
-    def _create_insecure_grpc_client(self, client_options):
-        return self._create_anonymous_client(client_options)
+    @classmethod
+    def _create_insecure_grpc_client(cls, client_options):
+        return cls(
+            credentials=auth_credentials.AnonymousCredentials(),
+            client_options=client_options,
+            attempt_direct_path=False,
+        )
 
     def _create_async_grpc_client(
         self,

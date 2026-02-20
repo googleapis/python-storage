@@ -72,8 +72,7 @@ async def run_test_scenario(
         retry_test_id = resp.json()["id"]
 
         # 2. Set up writer and metadata for fault injection.
-        grpc_client = AsyncGrpcClient(
-            create_insecure_channel=True,
+        grpc_client = AsyncGrpcClient._create_insecure_grpc_client(
             client_options=client_options.ClientOptions(api_endpoint=GRPC_ENDPOINT),
         )
         writer = AsyncAppendableObjectWriter(
