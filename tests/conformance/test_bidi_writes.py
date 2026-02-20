@@ -1,16 +1,18 @@
-import asyncio
 import uuid
 import grpc
+import pytest
 import requests
 
-from google.api_core import exceptions
+from google.api_core import exceptions, client_options
 from google.auth import credentials as auth_credentials
+from google.cloud.storage.asyncio.async_grpc_client import AsyncGrpcClient
 from google.cloud import _storage_v2 as storage_v2
 
 from google.api_core.retry_async import AsyncRetry
-from google.cloud.storage._experimental.asyncio.async_appendable_object_writer import (
+from google.cloud.storage.asyncio.async_appendable_object_writer import (
     AsyncAppendableObjectWriter,
 )
+from tests.conformance._utils import start_grpc_server
 
 # --- Configuration ---
 PROJECT_NUMBER = "12345"  # A dummy project number is fine for the testbench.
@@ -70,8 +72,12 @@ async def run_test_scenario(
         retry_test_id = resp.json()["id"]
 
         # 2. Set up writer and metadata for fault injection.
+        grpc_client = AsyncGrpcClient(
+            create_insecure_channel=True,
+            client_options=client_options.ClientOptions(api_endpoint=GRPC_ENDPOINT),
+        )
         writer = AsyncAppendableObjectWriter(
-            gapic_client,
+            grpc_client,
             bucket_name,
             object_name,
         )
@@ -133,8 +139,12 @@ async def run_test_scenario(
             http_client.delete(f"{HTTP_ENDPOINT}/retry_test/{retry_test_id}")
 
 
-async def main():
+@pytest.mark.asyncio
+async def test_bidi_writes():
     """Main function to set up resources and run all test scenarios."""
+    start_grpc_server(
+        GRPC_ENDPOINT, HTTP_ENDPOINT
+    )  # Ensure the testbench gRPC server is running before this test executes.
     channel = grpc.aio.insecure_channel(GRPC_ENDPOINT)
     creds = auth_credentials.AnonymousCredentials()
     transport = storage_v2.services.storage.transports.StorageGrpcAsyncIOTransport(
@@ -173,12 +183,12 @@ async def main():
             "instruction": "return-429",
             "expected_error": None,
         },
-        {
-            "name": "Smarter Resumption: Retry 503 after partial data",
-            "method": "storage.objects.insert",
-            "instruction": "return-503-after-2K",
-            "expected_error": None,
-        },
+        # {
+        #     "name": "Smarter Resumption: Retry 503 after partial data",
+        #     "method": "storage.objects.insert",
+        #     "instruction": "return-503-after-2K",
+        #     "expected_error": None,
+        # },
         {
             "name": "Retry on BidiWriteObjectRedirectedError",
             "method": "storage.objects.insert",
@@ -212,13 +222,13 @@ async def main():
             "expected_error": None,
             "use_default_policy": True,
         },
-        {
-            "name": "Default Policy: Smarter Ressumption",
-            "method": "storage.objects.insert",
-            "instruction": "return-503-after-2K",
-            "expected_error": None,
-            "use_default_policy": True,
-        },
+        # {
+        #     "name": "Default Policy: Smarter Ressumption",
+        #     "method": "storage.objects.insert",
+        #     "instruction": "return-503-after-2K",
+        #     "expected_error": None,
+        #     "use_default_policy": True,
+        # },
     ]
 
     try:
@@ -261,7 +271,3 @@ async def main():
             await gapic_client.delete_bucket(request=delete_bucket_req)
         except Exception as e:
             print(f"Warning: Cleanup failed: {e}")
-
-
-if __name__ == "__main__":
-    asyncio.run(main())

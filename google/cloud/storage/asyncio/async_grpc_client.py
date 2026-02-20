@@ -19,6 +19,8 @@ from google.cloud._storage_v2.services.storage.transports.base import (
     DEFAULT_CLIENT_INFO,
 )
 from google.cloud.storage import __version__
+import grpc
+from google.auth import credentials as auth_credentials
 
 
 class AsyncGrpcClient:
@@ -51,7 +53,12 @@ class AsyncGrpcClient:
         client_options=None,
         *,
         attempt_direct_path=True,
+        create_insecure_channel=False,  # only for testing against testbench.
     ):
+        if create_insecure_channel:
+            self._grpc_client = self._create_insecure_grpc_client(client_options)
+            return
+
         if client_info is None:
             client_info = DEFAULT_CLIENT_INFO
         client_info.client_library_version = __version__
@@ -67,6 +74,16 @@ class AsyncGrpcClient:
             client_options=client_options,
             attempt_direct_path=attempt_direct_path,
         )
+
+    def _create_anonymous_client(self, client_options):
+        channel = grpc.aio.insecure_channel(client_options.api_endpoint)
+        transport = storage_v2.services.storage.transports.StorageGrpcAsyncIOTransport(
+            channel=channel, credentials=auth_credentials.AnonymousCredentials()
+        )
+        return storage_v2.StorageAsyncClient(transport=transport)
+
+    def _create_insecure_grpc_client(self, client_options):
+        return self._create_anonymous_client(client_options)
 
     def _create_async_grpc_client(
         self,
