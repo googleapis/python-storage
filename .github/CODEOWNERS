@@ -4,8 +4,8 @@
 # For syntax help see:
 # https://help.github.com/en/github/creating-cloning-and-archiving-repositories/about-code-owners#codeowners-syntax
 
-# @googleapis/yoshi-python @googleapis/gcs-sdk-team are the default owners for changes in this repo
-*     @googleapis/yoshi-python @googleapis/gcs-sdk-team @googleapis/gcs-fs
+# @googleapis/cloud-sdk-platform-team-python @googleapis/gcs-sdk-team are the default owners for changes in this repo
+*     @googleapis/cloud-sdk-platform-team-python @googleapis/gcs-sdk-team @googleapis/gcs-internal-client-team
 
 # @googleapis/python-samples-reviewers @googleapis/gcs-sdk-team are the default owners for samples changes
 /samples/   @googleapis/python-samples-reviewers @googleapis/gcs-sdk-team
