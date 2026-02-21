@@ -112,9 +112,9 @@ def test_basic_wrd_x_region(
         assert int(object_metadata.checksums.crc32c) == object_checksum
 
         buffer = BytesIO()
-        async with AsyncMultiRangeDownloader(
-            grpc_client, _CROSS_REGION_BUCKET, object_name
-        ) as mrd:
+        mrd = AsyncMultiRangeDownloader(grpc_client, _CROSS_REGION_BUCKET, object_name)
+        async with mrd:
+            assert mrd._open_retries == 1
             # (0, 0) means read the whole object
             await mrd.download_ranges([(0, 0, buffer)])
             assert mrd.persisted_size == object_size
