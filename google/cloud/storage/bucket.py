@@ -65,7 +65,6 @@ from google.cloud.storage.retry import DEFAULT_RETRY_IF_GENERATION_SPECIFIED
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_ETAG_IN_JSON
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_METAGENERATION_SPECIFIED
 
-
 _UBLA_BPO_ENABLED_MESSAGE = (
     "Pass only one of 'uniform_bucket_level_access_enabled' / "
     "'bucket_policy_only_enabled' to 'IAMConfiguration'."
@@ -2539,6 +2538,25 @@ class Bucket(_PropertyMixin):
     """
 
     @property
+    def encryption(self):
+        """Retrieve encryption configuration for this bucket.
+
+        :rtype: :class:`BucketEncryption`
+        :returns: an instance for managing the bucket's encryption configuration.
+        """
+        info = self._properties.get("encryption", {})
+        return BucketEncryption.from_api_repr(info, self)
+
+    @encryption.setter
+    def encryption(self, value):
+        """Set encryption configuration for this bucket.
+
+        :type value: :class:`BucketEncryption` or dict
+        :param value: The encryption configuration.
+        """
+        self._patch_property("encryption", value)
+
+    @property
     def default_kms_key_name(self):
         """Retrieve / set default KMS encryption key for objects in the bucket.
 
@@ -3963,6 +3981,240 @@ class Bucket(_PropertyMixin):
             self._patch_property(_IP_FILTER_PROPERTY, value._to_api_resource())
         else:
             self._patch_property(_IP_FILTER_PROPERTY, value)
+
+
+class EncryptionEnforcementConfig(dict):
+    """Map a bucket's encryption enforcement configuration.
+
+    :type restriction_mode: str
+    :param restriction_mode:
+        (Optional) The restriction mode for the encryption type.
+        See: https://cloud.google.com/storage/docs/json_api/v1/buckets#encryption
+
+    :type effective_time: :class:`datetime.datetime`
+    :param effective_time:
+        (Optional) The time when the encryption enforcement configuration became effective.
+        This value should normally only be set by the back-end API.
+    """
+
+    def __init__(self, restriction_mode=None, effective_time=None, **kw):
+        data = {}
+        if restriction_mode is not None:
+            data["restrictionMode"] = restriction_mode
+
+        if effective_time is not None:
+            data["effectiveTime"] = _datetime_to_rfc3339(effective_time)
+
+        super().__init__(data, **kw)
+
+    @classmethod
+    def from_api_repr(cls, resource):
+        """Factory:  construct instance from resource.
+
+        :type resource: dict
+        :param resource: mapping as returned from API call.
+
+        :rtype: :class:`EncryptionEnforcementConfig`
+        :returns: Instance created from resource.
+        """
+        instance = cls()
+        instance.update(resource)
+        return instance
+
+    @property
+    def restriction_mode(self):
+        """Get the restriction mode.
+
+        :rtype: str or ``NoneType``
+        :returns: The restriction mode or ``None`` if the property is not set.
+        """
+        return self.get("restrictionMode")
+
+    @restriction_mode.setter
+    def restriction_mode(self, value):
+        """Set the restriction mode.
+
+        :type value: str
+        :param value: The restriction mode.
+        """
+        self["restrictionMode"] = value
+
+    @property
+    def effective_time(self):
+        """Get the effective time.
+
+        :rtype: datetime.datetime or ``NoneType``
+        :returns: point-in time at which the configuration is effective,
+                  or ``None`` if the property is not set.
+        """
+        timestamp = self.get("effectiveTime")
+        if timestamp is not None:
+            return _rfc3339_nanos_to_datetime(timestamp)
+
+
+class BucketEncryption(dict):
+    """Map a bucket's encryption configuration.
+
+    :type bucket: :class:`Bucket`
+    :param bucket: Bucket for which this instance is the policy.
+
+    :type default_kms_key_name: str
+    :param default_kms_key_name:
+        (Optional) Resource name of KMS key used to encrypt bucket's content.
+
+    :type google_managed_encryption_enforcement_config: :class:`EncryptionEnforcementConfig`
+    :param google_managed_encryption_enforcement_config:
+        (Optional) Encryption enforcement configuration for Google managed encryption.
+
+    :type customer_managed_encryption_enforcement_config: :class:`EncryptionEnforcementConfig`
+    :param customer_managed_encryption_enforcement_config:
+        (Optional) Encryption enforcement configuration for Customer managed encryption.
+
+    :type customer_supplied_encryption_enforcement_config: :class:`EncryptionEnforcementConfig`
+    :param customer_supplied_encryption_enforcement_config:
+        (Optional) Encryption enforcement configuration for Customer supplied encryption.
+    """
+
+    def __init__(
+        self,
+        bucket,
+        default_kms_key_name=None,
+        google_managed_encryption_enforcement_config=None,
+        customer_managed_encryption_enforcement_config=None,
+        customer_supplied_encryption_enforcement_config=None,
+    ):
+        data = {}
+        if default_kms_key_name is not None:
+            data["defaultKmsKeyName"] = default_kms_key_name
+
+        if google_managed_encryption_enforcement_config is not None:
+            data["googleManagedEncryptionEnforcementConfig"] = (
+                google_managed_encryption_enforcement_config
+            )
+
+        if customer_managed_encryption_enforcement_config is not None:
+            data["customerManagedEncryptionEnforcementConfig"] = (
+                customer_managed_encryption_enforcement_config
+            )
+
+        if customer_supplied_encryption_enforcement_config is not None:
+            data["customerSuppliedEncryptionEnforcementConfig"] = (
+                customer_supplied_encryption_enforcement_config
+            )
+
+        super().__init__(data)
+        self._bucket = bucket
+
+    @classmethod
+    def from_api_repr(cls, resource, bucket):
+        """Factory:  construct instance from resource.
+
+        :type resource: dict
+        :param resource: mapping as returned from API call.
+
+        :type bucket: :class:`Bucket`
+        :params bucket: Bucket for which this instance is the policy.
+
+        :rtype: :class:`BucketEncryption`
+        :returns: Instance created from resource.
+        """
+        instance = cls(bucket)
+        instance.update(resource)
+        return instance
+
+    @property
+    def bucket(self):
+        """Bucket for which this instance is the policy.
+
+        :rtype: :class:`Bucket`
+        :returns: the instance's bucket.
+        """
+        return self._bucket
+
+    @property
+    def default_kms_key_name(self):
+        """Retrieve default KMS encryption key for objects in the bucket.
+
+        :rtype: str or ``NoneType``
+        :returns: Default KMS encryption key, or ``None`` if not set.
+        """
+        return self.get("defaultKmsKeyName")
+
+    @default_kms_key_name.setter
+    def default_kms_key_name(self, value):
+        """Set default KMS encryption key for objects in the bucket.
+
+        :type value: str or None
+        :param value: new KMS key name (None to clear any existing key).
+        """
+        self["defaultKmsKeyName"] = value
+        self.bucket._patch_property("encryption", self)
+
+    @property
+    def google_managed_encryption_enforcement_config(self):
+        """Retrieve the encryption enforcement configuration for Google managed encryption.
+
+        :rtype: :class:`EncryptionEnforcementConfig`
+        :returns: The configuration instance.
+        """
+        data = self.get("googleManagedEncryptionEnforcementConfig")
+        if data:
+            return EncryptionEnforcementConfig.from_api_repr(data)
+        return EncryptionEnforcementConfig()
+
+    @google_managed_encryption_enforcement_config.setter
+    def google_managed_encryption_enforcement_config(self, value):
+        """Set the encryption enforcement configuration for Google managed encryption.
+
+        :type value: :class:`EncryptionEnforcementConfig` or dict
+        :param value: The configuration instance or dictionary.
+        """
+        self["googleManagedEncryptionEnforcementConfig"] = value
+        self.bucket._patch_property("encryption", self)
+
+    @property
+    def customer_managed_encryption_enforcement_config(self):
+        """Retrieve the encryption enforcement configuration for Customer managed encryption.
+
+        :rtype: :class:`EncryptionEnforcementConfig`
+        :returns: The configuration instance.
+        """
+        data = self.get("customerManagedEncryptionEnforcementConfig")
+        if data:
+            return EncryptionEnforcementConfig.from_api_repr(data)
+        return EncryptionEnforcementConfig()
+
+    @customer_managed_encryption_enforcement_config.setter
+    def customer_managed_encryption_enforcement_config(self, value):
+        """Set the encryption enforcement configuration for Customer managed encryption.
+
+        :type value: :class:`EncryptionEnforcementConfig` or dict
+        :param value: The configuration instance or dictionary.
+        """
+        self["customerManagedEncryptionEnforcementConfig"] = value
+        self.bucket._patch_property("encryption", self)
+
+    @property
+    def customer_supplied_encryption_enforcement_config(self):
+        """Retrieve the encryption enforcement configuration for Customer supplied encryption.
+
+        :rtype: :class:`EncryptionEnforcementConfig`
+        :returns: The configuration instance.
+        """
+        data = self.get("customerSuppliedEncryptionEnforcementConfig")
+        if data:
+            return EncryptionEnforcementConfig.from_api_repr(data)
+        return EncryptionEnforcementConfig()
+
+    @customer_supplied_encryption_enforcement_config.setter
+    def customer_supplied_encryption_enforcement_config(self, value):
+        """Set the encryption enforcement configuration for Customer supplied encryption.
+
+        :type value: :class:`EncryptionEnforcementConfig` or dict
+        :param value: The configuration instance or dictionary.
+        """
+        self["customerSuppliedEncryptionEnforcementConfig"] = value
+        self.bucket._patch_property("encryption", self)
 
 
 class SoftDeletePolicy(dict):
