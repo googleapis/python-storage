@@ -4,6 +4,24 @@
 
 [1]: https://pypi.org/project/google-cloud-storage/#history
 
+## [3.10.0](https://github.com/googleapis/python-storage/compare/v3.9.0...v3.10.0) (2026-02-26)
+
+
+### Features
+
+* Add time based benchmarks ([09b1d9d](https://github.com/googleapis/python-storage/commit/09b1d9dcb29133a21b2563856e663c2f63b85a79))
+* Add time based benchmarks ([#1749](https://github.com/googleapis/python-storage/issues/1749)) ([09b1d9d](https://github.com/googleapis/python-storage/commit/09b1d9dcb29133a21b2563856e663c2f63b85a79))
+
+
+### Bug Fixes
+
+* Don't flush at every append, results in bad perf ([ab62d72](https://github.com/googleapis/python-storage/commit/ab62d728ac7d7be3c4fe9a99d72e35ead310805a))
+* Don't flush at every append, results in bad perf ([#1746](https://github.com/googleapis/python-storage/issues/1746)) ([ab62d72](https://github.com/googleapis/python-storage/commit/ab62d728ac7d7be3c4fe9a99d72e35ead310805a))
+* Init mp pool & grpc client once, use os.sched_setaffinity ([a9eb82c](https://github.com/googleapis/python-storage/commit/a9eb82c1b9b3c6ae5717d47b76284ed0deb5f769))
+* Init mp pool & grpc client once, use os.sched_setaffinity ([#1751](https://github.com/googleapis/python-storage/issues/1751)) ([a9eb82c](https://github.com/googleapis/python-storage/commit/a9eb82c1b9b3c6ae5717d47b76284ed0deb5f769))
+* Pass token correctly, '&' instead of ',' ([d8dd1e0](https://github.com/googleapis/python-storage/commit/d8dd1e074d2431de9b45e0103181dce749a447a0))
+* Pass token correctly, '&' instead of ',' ([#1756](https://github.com/googleapis/python-storage/issues/1756)) ([d8dd1e0](https://github.com/googleapis/python-storage/commit/d8dd1e074d2431de9b45e0103181dce749a447a0))
+
 ## [3.9.0](https://github.com/googleapis/python-storage/compare/v3.8.0...v3.9.0) (2026-02-02)
 
 
