@@ -133,6 +133,9 @@ setuptools.setup(
     ],
     platforms="Posix; MacOS X; Windows",
     packages=packages,
+    package_data={
+        "google.cloud.storage": ["py.typed"],
+    },
     install_requires=dependencies,
     extras_require=extras,
     python_requires=">=3.10",
