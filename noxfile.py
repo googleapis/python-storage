@@ -236,6 +236,7 @@ def conftest_retry(session):
     session.install(
         "pytest",
         "pytest-xdist",
+        "pytest-asyncio",
         "grpcio",
         "grpcio-status",
         "grpc-google-iam-v1",

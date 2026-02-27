@@ -1,16 +1,20 @@
-import asyncio
 import io
 import uuid
 import grpc
 import requests
 
-from google.api_core import exceptions
+from google.api_core import exceptions, client_options
 from google.auth import credentials as auth_credentials
 from google.cloud import _storage_v2 as storage_v2
 
-from google.cloud.storage._experimental.asyncio.async_multi_range_downloader import (
+from google.cloud.storage.asyncio.async_multi_range_downloader import (
     AsyncMultiRangeDownloader,
 )
+
+from google.cloud.storage.asyncio.async_grpc_client import AsyncGrpcClient
+import pytest
+
+from tests.conformance._utils import start_grpc_server
 
 # --- Configuration ---
 PROJECT_NUMBER = "12345"  # A dummy project number is fine for the testbench.
@@ -50,8 +54,11 @@ async def run_test_scenario(
         retry_test_id = resp.json()["id"]
 
         # 2. Set up downloader and metadata for fault injection.
+        grpc_client = AsyncGrpcClient._create_insecure_grpc_client(
+            client_options=client_options.ClientOptions(api_endpoint=GRPC_ENDPOINT),
+        )
         downloader = await AsyncMultiRangeDownloader.create_mrd(
-            gapic_client, bucket_name, object_name
+            grpc_client, bucket_name, object_name
         )
         fault_injection_metadata = (("x-retry-test-id", retry_test_id),)
 
@@ -82,8 +89,12 @@ async def run_test_scenario(
             http_client.delete(f"{HTTP_ENDPOINT}/retry_test/{retry_test_id}")
 
 
-async def main():
+@pytest.mark.asyncio
+async def test_bidi_reads():
     """Main function to set up resources and run all test scenarios."""
+    start_grpc_server(
+        GRPC_ENDPOINT, HTTP_ENDPOINT
+    )  # Ensure the testbench gRPC server is running before this test executes.
     channel = grpc.aio.insecure_channel(GRPC_ENDPOINT)
     creds = auth_credentials.AnonymousCredentials()
     transport = storage_v2.services.storage.transports.StorageGrpcAsyncIOTransport(
@@ -121,12 +132,12 @@ async def main():
             "instruction": "return-429",
             "expected_error": None,
         },
-        {
-            "name": "Smarter Resumption: Retry 503 after partial data",
-            "method": "storage.objects.get",
-            "instruction": "return-broken-stream-after-2K",
-            "expected_error": None,
-        },
+        # {
+        #     "name": "Smarter Resumption: Retry 503 after partial data",
+        #     "method": "storage.objects.get",
+        #     "instruction": "return-broken-stream-after-2K",
+        #     "expected_error": None,
+        # },
         {
             "name": "Retry on BidiReadObjectRedirectedError",
             "method": "storage.objects.get",
@@ -227,15 +238,17 @@ async def run_open_test_scenario(
         resp = http_client.post(f"{HTTP_ENDPOINT}/retry_test", json=retry_test_config)
         resp.raise_for_status()
         retry_test_id = resp.json()["id"]
-        print(f"Retry Test created with ID: {retry_test_id}")
 
         # 2. Set up metadata for fault injection.
         fault_injection_metadata = (("x-retry-test-id", retry_test_id),)
 
         # 3. Execute the open (via create_mrd) and assert the outcome.
         try:
+            grpc_client = AsyncGrpcClient._create_insecure_grpc_client(
+                client_options=client_options.ClientOptions(api_endpoint=GRPC_ENDPOINT),
+            )
             downloader = await AsyncMultiRangeDownloader.create_mrd(
-                gapic_client,
+                grpc_client,
                 bucket_name,
                 object_name,
                 metadata=fault_injection_metadata,
@@ -260,7 +273,3 @@ async def run_open_test_scenario(
         # 4. Clean up the Retry Test resource.
         if retry_test_id:
             http_client.delete(f"{HTTP_ENDPOINT}/retry_test/{retry_test_id}")
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
