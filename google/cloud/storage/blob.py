@@ -115,8 +115,8 @@ _CHUNKED_DOWNLOAD_CHECKSUM_MESSAGE = (
 )
 _COMPOSE_IF_GENERATION_LIST_DEPRECATED = (
     "'if_generation_match: type list' is deprecated and supported for "
-    "backwards-compatability reasons only.  Use 'if_source_generation_match' "
-    "instead' to match source objects' generations."
+    "backwards-compatibility reasons only. Use 'if_source_generation_match' "
+    "instead to match source objects' generations."
 )
 _COMPOSE_IF_GENERATION_LIST_AND_IF_SOURCE_GENERATION_ERROR = (
     "Use 'if_generation_match' to match the generation of the destination "
