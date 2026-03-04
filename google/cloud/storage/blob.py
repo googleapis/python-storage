@@ -125,7 +125,7 @@ _COMPOSE_IF_GENERATION_LIST_AND_IF_SOURCE_GENERATION_ERROR = (
 )
 _COMPOSE_IF_METAGENERATION_LIST_DEPRECATED = (
     "'if_metageneration_match: type list' is deprecated and supported for "
-    "backwards-compatability reasons only. Note that the metageneration to "
+    "backward-compatibility reasons only. Note that the metageneration to "
     "be matched is that of the destination blob. Please pass in a single "
     "value (type long)."
 )
@@ -3889,9 +3889,9 @@ class Blob(_PropertyMixin):
             destination object's current metageneration matches the given
             value.
 
-            If a list of long is passed in, no match operation will be
+            If a list of longs is passed in, no match operation will be
             performed.  (Deprecated: type(list of long) is supported for
-            backwards-compatability reasons only.)
+            backward-compatibility reasons only.)
 
         :type if_source_generation_match: list of long
         :param if_source_generation_match:
