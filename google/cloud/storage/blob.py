@@ -115,7 +115,7 @@ _CHUNKED_DOWNLOAD_CHECKSUM_MESSAGE = (
 )
 _COMPOSE_IF_GENERATION_LIST_DEPRECATED = (
     "'if_generation_match: type list' is deprecated and supported for "
-    "backwards-compatibility reasons only. Use 'if_source_generation_match' "
+    "backward-compatibility reasons only. Use 'if_source_generation_match' "
     "instead to match source objects' generations."
 )
 _COMPOSE_IF_GENERATION_LIST_AND_IF_SOURCE_GENERATION_ERROR = (
@@ -3879,7 +3879,7 @@ class Blob(_PropertyMixin):
             versions of the object.
             Note: In a previous version, this argument worked identically to the
             ``if_source_generation_match`` argument. For
-            backwards-compatibility reasons, if a list is passed in,
+            backward-compatibility reasons, if a list is passed in,
             this argument will behave like ``if_source_generation_match``
             and also issue a DeprecationWarning.
 
