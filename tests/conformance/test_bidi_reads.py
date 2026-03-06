@@ -1,4 +1,5 @@
 import io
+import traceback
 import uuid
 import grpc
 import requests
@@ -36,9 +37,7 @@ def _is_retriable(exc):
     )
 
 
-async def run_test_scenario(
-    gapic_client, http_client, bucket_name, object_name, scenario
-):
+async def run_test_scenario(http_client, bucket_name, object_name, scenario):
     """Runs a single fault-injection test scenario."""
     print(f"\n--- RUNNING SCENARIO: {scenario['name']} ---")
 
@@ -142,9 +141,7 @@ async def test_bidi_reads():
 
         # Run all defined test scenarios.
         for scenario in test_scenarios:
-            await run_test_scenario(
-                gapic_client, http_client, bucket_name, object_name, scenario
-            )
+            await run_test_scenario(http_client, bucket_name, object_name, scenario)
 
         # Define and run test scenarios specifically for the open() method
         open_test_scenarios = [
@@ -187,13 +184,12 @@ async def test_bidi_reads():
         ]
         for scenario in open_test_scenarios:
             await run_open_test_scenario(
-                gapic_client, http_client, bucket_name, object_name, scenario
+                http_client, bucket_name, object_name, scenario
             )
 
-    except Exception:
-        import traceback
-
-        traceback.print_exc()
+    except Exception as e:
+        print(f"Test failed with error: {e}. Traceback: {traceback.format_exc()}")
+        raise e
     finally:
         # Clean up the test bucket.
         try:
@@ -210,11 +206,9 @@ async def test_bidi_reads():
             print(f"Warning: Cleanup failed: {e}")
 
 
-async def run_open_test_scenario(
-    gapic_client, http_client, bucket_name, object_name, scenario
-):
+async def run_open_test_scenario(http_client, bucket_name, object_name, scenario):
     """Runs a fault-injection test scenario specifically for the open() method."""
-    print(f"\n--- RUNNING SCENARIO: {scenario['name']} ---")
+    print(f"\n--- RUNNING OPEN SCENARIO: {scenario['name']} ---")
 
     retry_test_id = None
     try:

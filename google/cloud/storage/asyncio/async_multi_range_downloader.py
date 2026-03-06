@@ -229,7 +229,6 @@ class AsyncMultiRangeDownloader:
         self.persisted_size: Optional[int] = None  # updated after opening the stream
         self._open_retries: int = 0
 
-
     async def __aenter__(self):
         """Opens the underlying bidi-gRPC connection to read from the object."""
         await self.open()
@@ -242,6 +241,7 @@ class AsyncMultiRangeDownloader:
 
     def _on_open_error(self, exc):
         """Extracts routing token and read handle on redirect error during open."""
+        logger.warning(f"Error occurred while opening MRD: {exc}")
         routing_token, read_handle = _handle_redirect(exc)
         if routing_token:
             self._routing_token = routing_token
