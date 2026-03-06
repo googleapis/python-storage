@@ -256,7 +256,7 @@ def conftest_retry(session):
             *session.posargs,
         ]
     else:
-        test_cmd = ["py.test", "-vv", "-s", "-n", "auto", conformance_test_folder_path]
+        test_cmd = ["pytest", "-vv", "-s", "-n", "auto", conformance_test_folder_path]
 
     # Run py.test against the conformance tests.
     session.run(*test_cmd, env={"DOCKER_API_VERSION": "1.39"})

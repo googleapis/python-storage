@@ -1010,5 +1010,5 @@ with subprocess.Popen(_RUN_CMD) as proc:
                     globals()[test_name] = functools.partial(
                         run_test_case, id, m, c, lib_func, _HOST
                     )
-    time.sleep(5)
+    time.sleep(500)
     proc.kill()
