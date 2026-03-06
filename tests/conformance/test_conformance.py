@@ -31,6 +31,8 @@ from google.cloud import storage
 from google.cloud.storage.hmac_key import HMACKeyMetadata
 
 from . import _read_local_json
+from . import test_bidi_reads
+from . import test_bidi_writes
 
 
 _CONFORMANCE_TESTS = _read_local_json("retry_strategy_test_data.json")["retryTests"]
@@ -1010,5 +1012,9 @@ with subprocess.Popen(_RUN_CMD) as proc:
                     globals()[test_name] = functools.partial(
                         run_test_case, id, m, c, lib_func, _HOST
                     )
+
+    globals()["test_bidi_reads"] = test_bidi_reads.test_bidi_reads
+    globals()["test_bidi_writes"] = test_bidi_writes.test_bidi_writes
+
     time.sleep(500)
     proc.kill()
