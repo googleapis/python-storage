@@ -1,3 +1,6 @@
+import subprocess
+import time
+import urllib
 import uuid
 import grpc
 import pytest
@@ -15,9 +18,50 @@ from google.cloud.storage.asyncio.async_appendable_object_writer import (
 from tests.conformance._utils import start_grpc_server
 
 # --- Configuration ---
+TEST_BENCH_ENDPOINT = (
+    "http://localhost:9002"  # 9000 in VM is taken by test_conformance.py, 9001 by reads
+)
+_PORT = urllib.parse.urlsplit(TEST_BENCH_ENDPOINT).port
+_GRPC_PORT = 8888
+
 PROJECT_NUMBER = "12345"  # A dummy project number is fine for the testbench.
-GRPC_ENDPOINT = "localhost:8888"
-HTTP_ENDPOINT = "http://localhost:9000"
+GRPC_ENDPOINT = f"localhost:{_GRPC_PORT}"
+HTTP_ENDPOINT = TEST_BENCH_ENDPOINT
+
+_DEFAULT_IMAGE_NAME = "gcr.io/cloud-devrel-public-resources/storage-testbench"
+_DEFAULT_IMAGE_TAG = "latest"
+_DOCKER_IMAGE = f"{_DEFAULT_IMAGE_NAME}:{_DEFAULT_IMAGE_TAG}"
+_PULL_CMD = ["docker", "pull", _DOCKER_IMAGE]
+_RUN_CMD = [
+    "docker",
+    "run",
+    "--name",
+    "bidi_writes_container",
+    "--rm",
+    "-d",
+    "-p",
+    f"{_PORT}:9000",
+    "-p",
+    f"{_GRPC_PORT}:8888",
+    _DOCKER_IMAGE,
+]
+_DOCKER_STOP_CMD = [
+    "docker",
+    "stop",
+    "bidi_writes_container",
+]
+
+
+@pytest.fixture(scope="module")
+def testbench():
+    subprocess.run(_PULL_CMD)
+    proc = subprocess.Popen(_RUN_CMD)
+    time.sleep(10)
+    yield GRPC_ENDPOINT, HTTP_ENDPOINT
+    subprocess.run(_DOCKER_STOP_CMD)
+    proc.kill()
+
+
 CONTENT = b"A" * 1024 * 1024 * 10  # 10 KB
 
 
@@ -134,12 +178,13 @@ async def run_test_scenario(
 
 
 @pytest.mark.asyncio
-async def test_bidi_writes():
+async def test_bidi_writes(testbench):
     """Main function to set up resources and run all test scenarios."""
+    grpc_endpoint, http_endpoint = testbench
     start_grpc_server(
-        GRPC_ENDPOINT, HTTP_ENDPOINT
+        grpc_endpoint, http_endpoint
     )  # Ensure the testbench gRPC server is running before this test executes.
-    channel = grpc.aio.insecure_channel(GRPC_ENDPOINT)
+    channel = grpc.aio.insecure_channel(grpc_endpoint)
     creds = auth_credentials.AnonymousCredentials()
     transport = storage_v2.services.storage.transports.StorageGrpcAsyncIOTransport(
         channel=channel,

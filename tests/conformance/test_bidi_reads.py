@@ -1,5 +1,6 @@
 import io
-import os
+import subprocess
+import time
 import traceback
 import urllib
 import uuid
@@ -21,13 +22,49 @@ from tests.conformance._utils import start_grpc_server
 
 # --- Configuration ---
 
-TEST_BENCH_ENDPOINT = os.environ.get("STORAGE_EMULATOR_HOST", "http://localhost:9000")
+
+TEST_BENCH_ENDPOINT = (
+    "http://localhost:9001"  # 9000 in VM is taken by test_conformance.py
+)
 _PORT = urllib.parse.urlsplit(TEST_BENCH_ENDPOINT).port
+_GRPC_PORT = 8888
 
 PROJECT_NUMBER = "12345"  # A dummy project number is fine for the testbench.
-GRPC_ENDPOINT = "localhost:8888"
-TEST_BENCH_ENDPOINT = "http://localhost:9000"
+GRPC_ENDPOINT = f"localhost:{_GRPC_PORT}"
 CONTENT_LENGTH = 1024 * 10  # 10 KB
+
+_DEFAULT_IMAGE_NAME = "gcr.io/cloud-devrel-public-resources/storage-testbench"
+_DEFAULT_IMAGE_TAG = "latest"
+_DOCKER_IMAGE = f"{_DEFAULT_IMAGE_NAME}:{_DEFAULT_IMAGE_TAG}"
+_PULL_CMD = ["docker", "pull", _DOCKER_IMAGE]
+_RUN_CMD = [
+    "docker",
+    "run",
+    "--name",
+    "bidi_reads_container",
+    "--rm",
+    "-d",
+    "-p",
+    f"{_PORT}:9000",
+    "-p",
+    f"{_GRPC_PORT}:{_GRPC_PORT}",
+    _DOCKER_IMAGE,
+]
+_DOCKER_STOP_CMD = [
+    "docker",
+    "stop",
+    "bidi_reads_container",
+]
+
+
+@pytest.fixture(scope="module")
+def testbench():
+    subprocess.run(_PULL_CMD)
+    proc = subprocess.Popen(_RUN_CMD)
+    time.sleep(10)
+    yield GRPC_ENDPOINT, TEST_BENCH_ENDPOINT
+    subprocess.run(_DOCKER_STOP_CMD)
+    proc.kill()
 
 
 def _is_retriable(exc):
@@ -97,11 +134,12 @@ async def run_test_scenario(http_client, bucket_name, object_name, scenario):
 
 
 @pytest.mark.asyncio
-async def test_bidi_reads():
+async def test_bidi_reads(testbench):
     """Main function to set up resources and run all test scenarios."""
-    print("starting grpc server", GRPC_ENDPOINT, TEST_BENCH_ENDPOINT)
+    grpc_endpoint, test_bench_endpoint = testbench
+    print("starting grpc server", grpc_endpoint, test_bench_endpoint)
     start_grpc_server(
-        GRPC_ENDPOINT, TEST_BENCH_ENDPOINT
+        grpc_endpoint, test_bench_endpoint
     )  # Ensure the testbench gRPC server is running before this test executes.
     channel = grpc.aio.insecure_channel(GRPC_ENDPOINT)
     creds = auth_credentials.AnonymousCredentials()
