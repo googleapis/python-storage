@@ -235,7 +235,6 @@ class AsyncAppendableObjectWriter:
 
     def _on_open_error(self, exc):
         """Extracts routing token and write handle on redirect error during open."""
-        logger.warning(f"Error occurred during AAOW open. Exception: {exc}")
         redirect_proto = _extract_bidi_writes_redirect_proto(exc)
         if redirect_proto:
             if redirect_proto.routing_token:

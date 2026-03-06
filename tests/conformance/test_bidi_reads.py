@@ -15,26 +15,6 @@ from google.cloud.storage.asyncio.async_grpc_client import AsyncGrpcClient
 import pytest
 
 from tests.conformance._utils import start_grpc_server
-import logging
-import sys
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(lineno)d - %(message)s",
-    force=True,
-)
-storage_logger = logging.getLogger("google.cloud.storage")
-storage_logger.setLevel(logging.DEBUG)
-storage_handler = logging.StreamHandler(sys.stderr)
-# storage_handler.setLevel(logging.DEBUG)
-storage_handler.setFormatter(
-    logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(lineno)d - %(message)s"
-    )
-)
-storage_logger.addHandler(storage_handler)
-# logging.getLogger("google.cloud.storage").setLevel(logging.INFO)
 
 # --- Configuration ---
 PROJECT_NUMBER = "12345"  # A dummy project number is fine for the testbench.

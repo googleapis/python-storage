@@ -58,7 +58,7 @@ class _BidiStreamRetryManager:
                 return
             except Exception as e:
                 if retry_policy._predicate(e):
-                    logger.warning(
+                    logger.info(
                         f"Bidi stream operation failed: {e}. Attempting state recovery and retry."
                     )
                     await self._strategy.recover_state_on_failure(e, state)
