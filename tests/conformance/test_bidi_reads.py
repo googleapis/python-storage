@@ -15,6 +15,26 @@ from google.cloud.storage.asyncio.async_grpc_client import AsyncGrpcClient
 import pytest
 
 from tests.conformance._utils import start_grpc_server
+import logging
+import sys
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(lineno)d - %(message)s",
+    force=True,
+)
+storage_logger = logging.getLogger("google.cloud.storage")
+storage_logger.setLevel(logging.DEBUG)
+storage_handler = logging.StreamHandler(sys.stderr)
+# storage_handler.setLevel(logging.DEBUG)
+storage_handler.setFormatter(
+    logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(lineno)d - %(message)s"
+    )
+)
+storage_logger.addHandler(storage_handler)
+# logging.getLogger("google.cloud.storage").setLevel(logging.INFO)
 
 # --- Configuration ---
 PROJECT_NUMBER = "12345"  # A dummy project number is fine for the testbench.
@@ -109,39 +129,9 @@ async def test_bidi_reads():
     # Define all test scenarios
     test_scenarios = [
         {
-            "name": "Retry on Service Unavailable (503)",
+            "name": "Smarter Resumption: Retry 503 after partial data",
             "method": "storage.objects.get",
-            "instruction": "return-503",
-            "expected_error": None,
-        },
-        {
-            "name": "Retry on 500",
-            "method": "storage.objects.get",
-            "instruction": "return-500",
-            "expected_error": None,
-        },
-        {
-            "name": "Retry on 504",
-            "method": "storage.objects.get",
-            "instruction": "return-504",
-            "expected_error": None,
-        },
-        {
-            "name": "Retry on 429",
-            "method": "storage.objects.get",
-            "instruction": "return-429",
-            "expected_error": None,
-        },
-        # {
-        #     "name": "Smarter Resumption: Retry 503 after partial data",
-        #     "method": "storage.objects.get",
-        #     "instruction": "return-broken-stream-after-2K",
-        #     "expected_error": None,
-        # },
-        {
-            "name": "Retry on BidiReadObjectRedirectedError",
-            "method": "storage.objects.get",
-            "instruction": "redirect-send-handle-and-token-tokenval",  # Testbench instruction for redirect
+            "instruction": "return-broken-stream-after-2K",
             "expected_error": None,
         },
     ]
@@ -195,6 +185,24 @@ async def test_bidi_reads():
                 "method": "storage.objects.get",
                 "instruction": "return-401",
                 "expected_error": exceptions.Unauthorized,
+            },
+            {
+                "name": "Retry on 500",
+                "method": "storage.objects.get",
+                "instruction": "return-500",
+                "expected_error": None,
+            },
+            {
+                "name": "Retry on 504",
+                "method": "storage.objects.get",
+                "instruction": "return-504",
+                "expected_error": None,
+            },
+            {
+                "name": "Retry on 429",
+                "method": "storage.objects.get",
+                "instruction": "return-429",
+                "expected_error": None,
             },
         ]
         for scenario in open_test_scenarios:

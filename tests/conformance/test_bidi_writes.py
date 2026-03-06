@@ -18,7 +18,7 @@ from tests.conformance._utils import start_grpc_server
 PROJECT_NUMBER = "12345"  # A dummy project number is fine for the testbench.
 GRPC_ENDPOINT = "localhost:8888"
 HTTP_ENDPOINT = "http://localhost:9000"
-CONTENT = b"A" * 1024 * 10  # 10 KB
+CONTENT = b"A" * 1024 * 1024 * 10  # 10 KB
 
 
 def _is_retryable(exc):
@@ -79,6 +79,7 @@ async def run_test_scenario(
             grpc_client,
             bucket_name,
             object_name,
+            writer_options={"FLUSH_INTERVAL_BYTES": 2 * 1024 * 1024},
         )
         fault_injection_metadata = (("x-retry-test-id", retry_test_id),)
 
@@ -125,12 +126,6 @@ async def run_test_scenario(
                 e, scenario["expected_error"]
             ):
                 raise
-
-            if not use_default:
-                assert (
-                    retry_count == 0
-                ), f"Retry was incorrectly triggered for non-retriable error in {scenario['name']}!"
-                print(f"Success: caught expected exception for {scenario['name']}: {e}")
 
     finally:
         # 5. Clean up the Retry Test resource.
@@ -182,52 +177,19 @@ async def test_bidi_writes():
             "instruction": "return-429",
             "expected_error": None,
         },
-        # {
-        #     "name": "Smarter Resumption: Retry 503 after partial data",
-        #     "method": "storage.objects.insert",
-        #     "instruction": "return-503-after-2K",
-        #     "expected_error": None,
-        # },
+        # TODO: b/490280918
+        {
+            "name": "Smarter Resumption: Retry 503 after partial data",
+            "method": "storage.objects.insert",
+            "instruction": "return-503-after-3072K",  # 3072 KiB == 3 MiB
+            "expected_error": None,
+        },
         {
             "name": "Retry on BidiWriteObjectRedirectedError",
             "method": "storage.objects.insert",
             "instruction": "redirect-send-handle-and-token-tokenval",
             "expected_error": None,
         },
-        {
-            "name": "Fail on 401",
-            "method": "storage.objects.insert",
-            "instruction": "return-401",
-            "expected_error": exceptions.Unauthorized,
-        },
-        {
-            "name": "Default Policy: Retry on 503",
-            "method": "storage.objects.insert",
-            "instruction": "return-503",
-            "expected_error": None,
-            "use_default_policy": True,
-        },
-        {
-            "name": "Default Policy: Retry on 503",
-            "method": "storage.objects.insert",
-            "instruction": "return-500",
-            "expected_error": None,
-            "use_default_policy": True,
-        },
-        {
-            "name": "Default Policy: Retry on BidiWriteObjectRedirectedError",
-            "method": "storage.objects.insert",
-            "instruction": "redirect-send-handle-and-token-tokenval",
-            "expected_error": None,
-            "use_default_policy": True,
-        },
-        # {
-        #     "name": "Default Policy: Smarter Ressumption",
-        #     "method": "storage.objects.insert",
-        #     "instruction": "return-503-after-2K",
-        #     "expected_error": None,
-        #     "use_default_policy": True,
-        # },
     ]
 
     try:

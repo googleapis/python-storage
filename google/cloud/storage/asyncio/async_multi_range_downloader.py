@@ -41,7 +41,6 @@ from io import BytesIO
 from google.cloud import _storage_v2
 from google.cloud.storage._helpers import generate_random_56_bit_integer
 
-
 _MAX_READ_RANGES_PER_BIDI_READ_REQUEST = 100
 _BIDI_READ_REDIRECTED_TYPE_URL = (
     "type.googleapis.com/google.storage.v2.BidiReadObjectRedirectedError"
@@ -425,7 +424,7 @@ class AsyncMultiRangeDownloader:
 
                 if attempt_count > 1:
                     logger.info(
-                        f"Resuming download (attempt {attempt_count - 1}) for {len(requests)} ranges."
+                        f"Resuming download (attempt {attempt_count}) for {len(requests)} ranges."
                     )
 
                 async with lock:
@@ -446,11 +445,7 @@ class AsyncMultiRangeDownloader:
                             logger.info(
                                 f"Re-opening stream with routing token: {current_token}"
                             )
-                        # Close existing stream if any
-                        if self.read_obj_str and self.read_obj_str.is_stream_open:
-                            await self.read_obj_str.close()
 
-                        # Re-initialize stream
                         self.read_obj_str = _AsyncReadObjectStream(
                             client=self.client.grpc_client,
                             bucket_name=self.bucket_name,

@@ -43,7 +43,6 @@ from google.cloud.storage.asyncio.retry._helpers import (
     _extract_bidi_writes_redirect_proto,
 )
 
-
 _MAX_CHUNK_SIZE_BYTES = 2 * 1024 * 1024  # 2 MiB
 _DEFAULT_FLUSH_INTERVAL_BYTES = 16 * 1024 * 1024  # 16 MiB
 _BIDI_WRITE_REDIRECTED_TYPE_URL = (
@@ -236,6 +235,7 @@ class AsyncAppendableObjectWriter:
 
     def _on_open_error(self, exc):
         """Extracts routing token and write handle on redirect error during open."""
+        logger.warning(f"Error occurred during AAOW open. Exception: {exc}")
         redirect_proto = _extract_bidi_writes_redirect_proto(exc)
         if redirect_proto:
             if redirect_proto.routing_token:
@@ -289,8 +289,7 @@ class AsyncAppendableObjectWriter:
                         await self.write_obj_stream.close()
                     except Exception as e:
                         logger.warning(
-                            "Error closing previous write stream during open retry. Got exception: ",
-                            {e},
+                            f"Error closing previous write stream during open retry. Got exception: {e}"
                         )
                 self.write_obj_stream = None
                 self._is_stream_open = False
@@ -383,8 +382,6 @@ class AsyncAppendableObjectWriter:
                     logger.info(
                         f"Re-opening the stream with attempt_count: {attempt_count}"
                     )
-                    if self.write_obj_stream and self.write_obj_stream.is_stream_open:
-                        await self.write_obj_stream.close()
 
                     current_metadata = list(metadata) if metadata else []
                     if write_state.routing_token:
