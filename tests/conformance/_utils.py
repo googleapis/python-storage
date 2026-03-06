@@ -1,5 +1,6 @@
 import time
 import requests
+import traceback
 
 def start_grpc_server(grpc_endpoint, http_endpoint):
     """Starts the testbench gRPC server if it's not already running.
@@ -20,7 +21,8 @@ def start_grpc_server(grpc_endpoint, http_endpoint):
             if response.status_code == 200:
                 return
         except requests.exceptions.RequestException:
-            pass
+            print("Failed to create grpc server", traceback.format_exc())
+            raise
 
         elapsed_time = time.time() - start_time
         if elapsed_time >= max_time:

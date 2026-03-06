@@ -923,6 +923,12 @@ def run_test_case(
     hmac_key,
     file_data,
 ):
+    print(
+        "Debug Log: env vars:",
+        os.environ.get("STORAGE_EMULATOR_HOST", None),
+        _HOST,
+        _PORT,
+    )
     scenario = _CONFORMANCE_TESTS[scenario_id - 1]
     expect_success = scenario["expectSuccess"]
     precondition_provided = scenario["preconditionProvided"]

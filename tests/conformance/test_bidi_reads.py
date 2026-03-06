@@ -1,5 +1,7 @@
 import io
+import os
 import traceback
+import urllib
 import uuid
 import grpc
 import requests
@@ -18,9 +20,13 @@ import pytest
 from tests.conformance._utils import start_grpc_server
 
 # --- Configuration ---
+
+TEST_BENCH_ENDPOINT = os.environ.get("STORAGE_EMULATOR_HOST", "http://localhost:9000")
+_PORT = urllib.parse.urlsplit(TEST_BENCH_ENDPOINT).port
+
 PROJECT_NUMBER = "12345"  # A dummy project number is fine for the testbench.
 GRPC_ENDPOINT = "localhost:8888"
-HTTP_ENDPOINT = "http://localhost:9000"
+TEST_BENCH_ENDPOINT = "http://localhost:9000"
 CONTENT_LENGTH = 1024 * 10  # 10 KB
 
 
@@ -48,7 +54,9 @@ async def run_test_scenario(http_client, bucket_name, object_name, scenario):
             "instructions": {scenario["method"]: [scenario["instruction"]]},
             "transport": "GRPC",
         }
-        resp = http_client.post(f"{HTTP_ENDPOINT}/retry_test", json=retry_test_config)
+        resp = http_client.post(
+            f"{TEST_BENCH_ENDPOINT}/retry_test", json=retry_test_config
+        )
         resp.raise_for_status()
         retry_test_id = resp.json()["id"]
 
@@ -85,14 +93,15 @@ async def run_test_scenario(http_client, bucket_name, object_name, scenario):
     finally:
         # 4. Clean up the Retry Test resource.
         if retry_test_id:
-            http_client.delete(f"{HTTP_ENDPOINT}/retry_test/{retry_test_id}")
+            http_client.delete(f"{TEST_BENCH_ENDPOINT}/retry_test/{retry_test_id}")
 
 
 @pytest.mark.asyncio
 async def test_bidi_reads():
     """Main function to set up resources and run all test scenarios."""
+    print("starting grpc server", GRPC_ENDPOINT, TEST_BENCH_ENDPOINT)
     start_grpc_server(
-        GRPC_ENDPOINT, HTTP_ENDPOINT
+        GRPC_ENDPOINT, TEST_BENCH_ENDPOINT
     )  # Ensure the testbench gRPC server is running before this test executes.
     channel = grpc.aio.insecure_channel(GRPC_ENDPOINT)
     creds = auth_credentials.AnonymousCredentials()
@@ -217,7 +226,9 @@ async def run_open_test_scenario(http_client, bucket_name, object_name, scenario
             "instructions": {scenario["method"]: [scenario["instruction"]]},
             "transport": "GRPC",
         }
-        resp = http_client.post(f"{HTTP_ENDPOINT}/retry_test", json=retry_test_config)
+        resp = http_client.post(
+            f"{TEST_BENCH_ENDPOINT}/retry_test", json=retry_test_config
+        )
         resp.raise_for_status()
         retry_test_id = resp.json()["id"]
 
@@ -254,4 +265,4 @@ async def run_open_test_scenario(http_client, bucket_name, object_name, scenario
     finally:
         # 4. Clean up the Retry Test resource.
         if retry_test_id:
-            http_client.delete(f"{HTTP_ENDPOINT}/retry_test/{retry_test_id}")
+            http_client.delete(f"{TEST_BENCH_ENDPOINT}/retry_test/{retry_test_id}")
