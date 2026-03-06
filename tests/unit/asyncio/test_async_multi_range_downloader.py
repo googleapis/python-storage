@@ -22,7 +22,6 @@ from google_crc32c import Checksum
 
 from google.cloud.storage.asyncio.async_multi_range_downloader import (
     AsyncMultiRangeDownloader,
-    _MAX_READ_RANGES_PER_BIDI_READ_REQUEST,
 )
 from google.cloud.storage.asyncio import async_read_object_stream
 from io import BytesIO
