@@ -119,12 +119,7 @@ class ObjectContexts:
                     custom_resource[key] = None
                 elif isinstance(payload, ObjectCustomContextPayload):
                     custom_resource[key] = payload._to_api_resource()
-                elif isinstance(payload, dict):
-                    # We also support a pure dict fallback payload
-                    custom_resource[key] = ObjectCustomContextPayload(value=payload.get(_VALUE))._to_api_resource()
-                elif isinstance(payload, str):
-                    custom_resource[key] = ObjectCustomContextPayload(value=payload)._to_api_resource()
                 else:
-                    custom_resource[key] = ObjectCustomContextPayload(value=str(payload))._to_api_resource()
+                    custom_resource[key] = payload
             resource[_CUSTOM] = custom_resource
         return resource

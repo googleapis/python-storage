@@ -5746,20 +5746,6 @@ class Test_Blob(unittest.TestCase):
             "2023-01-02T12:00:00+00:00"
         )
 
-    def test_contexts_setter_w_dict(self):
-        BLOB_NAME = "blob-name"
-        bucket = _Bucket()
-        blob = self._make_one(BLOB_NAME, bucket=bucket)
-
-        self.assertIsNone(blob.contexts)
-        blob.contexts = {"foo": "Foo", "bar": None}
-
-        self.assertIn("contexts", blob._changes)
-        self.assertEqual(
-            blob._properties["contexts"],
-            {"custom": {"foo": {"value": "Foo"}, "bar": None}}
-        )
-
     def test_contexts_setter_w_object_contexts(self):
         from google.cloud.storage.contexts import ObjectContexts, ObjectCustomContextPayload
 

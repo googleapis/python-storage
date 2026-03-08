@@ -65,7 +65,12 @@ def test_blob_contexts(shared_bucket, blobs_to_delete):
     assert blob.contexts.custom["context_key_2"].value == "value_2"
 
     # 2. Update existing and Delete one context key
-    blob.contexts = {"context_key_1": "updated_value", "context_key_2": None}
+    contexts2 = ObjectContexts()
+    contexts2.custom = {
+        "context_key_1": ObjectCustomContextPayload(value="updated_value"),
+        "context_key_2": None,
+    }
+    blob.contexts = contexts2
     blob.patch()
 
     blob.reload()

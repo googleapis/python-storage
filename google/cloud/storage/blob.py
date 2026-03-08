@@ -4811,40 +4811,10 @@ class Blob(_PropertyMixin):
 
     @contexts.setter
     def contexts(self, value):
-
         if value is None:
             self._patch_property("contexts", None)
         elif isinstance(value, ObjectContexts):
             self._patch_property("contexts", value._to_api_resource())
-        elif isinstance(value, dict):
-            # Parse dict using ObjectContexts helpers to be tolerant.
-            if "custom" in value:
-                custom_payloads = {}
-                for k, v in value["custom"].items():
-                    if v is None:
-                        custom_payloads[k] = None
-                    elif isinstance(v, ObjectCustomContextPayload):
-                        custom_payloads[k] = v
-                    elif isinstance(v, dict):
-                        custom_payloads[k] = ObjectCustomContextPayload(value=v.get("value"))
-                    else:
-                        custom_payloads[k] = ObjectCustomContextPayload(value=str(v))
-                patch_value = ObjectContexts(custom=custom_payloads)._to_api_resource()
-                self._patch_property("contexts", patch_value)
-            else:
-                # Flat dict {"foo": "bar"}
-                custom_payloads = {}
-                for k, v in value.items():
-                    if v is None:
-                        custom_payloads[k] = None
-                    elif isinstance(v, ObjectCustomContextPayload):
-                        custom_payloads[k] = v
-                    elif isinstance(v, dict):
-                        custom_payloads[k] = ObjectCustomContextPayload(value=v.get("value"))
-                    else:
-                        custom_payloads[k] = ObjectCustomContextPayload(value=str(v))
-                patch_value = ObjectContexts(custom=custom_payloads)._to_api_resource()
-                self._patch_property("contexts", patch_value)
         else:
             self._patch_property("contexts", value)
 
