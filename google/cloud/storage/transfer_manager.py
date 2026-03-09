@@ -25,6 +25,7 @@ import copyreg
 import struct
 import base64
 import functools
+from pathlib import Path
 
 from google.api_core import exceptions
 from google.cloud.storage import Client
@@ -35,6 +36,7 @@ from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 from google.cloud.storage.retry import DEFAULT_RETRY
 
 import google_crc32c
+import traceback
 
 from google.cloud.storage._media.requests.upload import XMLMPUContainer
 from google.cloud.storage._media.requests.upload import XMLMPUPart
@@ -231,9 +233,11 @@ def upload_many(
                 executor.submit(
                     _call_method_on_maybe_pickled_blob,
                     _pickle_client(blob) if needs_pickling else blob,
-                    "_handle_filename_and_upload"
-                    if isinstance(path_or_file, str)
-                    else "_prep_and_do_upload",
+                    (
+                        "_handle_filename_and_upload"
+                        if isinstance(path_or_file, str)
+                        else "_prep_and_do_upload"
+                    ),
                     path_or_file,
                     **upload_kwargs,
                 )
@@ -257,6 +261,16 @@ def upload_many(
         else:
             results.append(future.result())
     return results
+
+
+def _resolve_path(target_dir, blob_path):
+    target_dir = Path(target_dir)
+    blob_path = Path(blob_path)
+    # blob_path.anchor will be '/' if `blob_path` is full path else it'll empty.
+    # This is useful to concatnate target_dir = /local/target , and blob_path =
+    # /usr/local/mybin into /local/target/usr/local/mybin
+    concatenated_path = target_dir / blob_path.relative_to(blob_path.anchor)
+    return concatenated_path.resolve()
 
 
 @_deprecate_threads_param
@@ -384,9 +398,11 @@ def download_many(
                 executor.submit(
                     _call_method_on_maybe_pickled_blob,
                     _pickle_client(blob) if needs_pickling else blob,
-                    "_handle_filename_and_download"
-                    if isinstance(path_or_file, str)
-                    else "_prep_and_do_download",
+                    (
+                        "_handle_filename_and_download"
+                        if isinstance(path_or_file, str)
+                        else "_prep_and_do_download"
+                    ),
                     path_or_file,
                     **download_kwargs,
                 )
@@ -457,6 +473,7 @@ def upload_many_from_filenames(
         be "/tmp/img/0001.jpg" and the destination blob will be "0001.jpg".
 
         This parameter can be an empty string.
+        TODO: chandrasiri - change this doc string.
 
         Note that this parameter allows directory traversal (e.g. "/", "../")
         and is not intended for unsanitized end user input.
@@ -617,8 +634,9 @@ def download_many_to_path(
 ):
     """Download many files concurrently by their blob names.
 
-    The destination files are automatically created, with paths based on the
+    The destination files are automatically resolved, with paths based on the
     source blob_names and the destination_directory.
+
 
     The destination files are not automatically deleted if their downloads fail,
     so please check the return value of this function for any exceptions, or
@@ -628,6 +646,16 @@ def download_many_to_path(
     is "/home/myuser/", and `blob_name_prefix` is "images/", then the blob named
     "images/icon.jpg" will be downloaded to a file named
     "/home/myuser/icon.jpg".
+
+
+    Note: if the path after combining blob_name and destination_directory
+    resolves outside "destination_direction" a warning will be issued and the
+    that particular blob will not be downloaded.
+
+    For example,
+        TODO: @chandra-siri give examples.
+
+
 
     :type bucket: :class:`google.cloud.storage.bucket.Bucket`
     :param bucket:
@@ -646,9 +674,12 @@ def download_many_to_path(
 
     :type destination_directory: str
     :param destination_directory:
+        # TODO: @chandra-siri: you may need to change this.
         A string that will be prepended (with os.path.join()) to each blob_name
         in the input list, in order to determine the destination path for that
         blob.
+
+        (we determine the destination path for that blob.)
 
         For instance, if the destination_directory string is "/tmp/img" and a
         blob_name is "0001.jpg", with an empty blob_name_prefix, then the source
@@ -755,11 +786,20 @@ def download_many_to_path(
 
     for blob_name in blob_names:
         full_blob_name = blob_name_prefix + blob_name
-        path = os.path.join(destination_directory, blob_name)
+        resolved_path = _resolve_path(destination_directory, blob_name)
+        if not resolved_path.parent.is_relative_to(Path(destination_directory).resolve()):
+            warnings.warn(
+                f"The blob {blob_name} will **NOT** be downloaded. "
+                f"The resolved destination_directory - {resolved_path.parent} - is either invalid or "
+                f"escapes user provided {Path(destination_directory).resolve()} . Please download this file separately using `download_to_filename`"
+            )
+            continue
+
+        resolved_path = str(resolved_path)
         if create_directories:
-            directory, _ = os.path.split(path)
+            directory, _ = os.path.split(resolved_path)
             os.makedirs(directory, exist_ok=True)
-        blob_file_pairs.append((bucket.blob(full_blob_name), path))
+        blob_file_pairs.append((bucket.blob(full_blob_name), resolved_path))
 
     return download_many(
         blob_file_pairs,

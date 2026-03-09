@@ -525,7 +525,8 @@ def test_download_many_to_path():
     WORKER_TYPE = transfer_manager.THREAD
 
     EXPECTED_BLOB_FILE_PAIRS = [
-        (mock.ANY, os.path.join(PATH_ROOT, blobname)) for blobname in BLOBNAMES
+        (mock.ANY, os.path.join(os.getcwd(), PATH_ROOT, blobname))
+        for blobname in BLOBNAMES
     ]
 
     with mock.patch(
