@@ -121,6 +121,73 @@ def test_upload_many_from_filenames_with_attributes(
     assert blob.cache_control == "no-cache"
 
 
+def test_download_many_skips_blob_with_path_traversal(
+    shared_bucket, file_data, blobs_to_delete
+):
+    """
+    Test downloading blobs with traversal skipped
+    """
+    # Setup
+    BLOBNAMES = [
+        "simple_blob",
+        "../../local/target", # skips download
+        "data/file.txt",
+        "data/../sibling.txt",
+        "../escape.txt", # skips download
+        "/etc/passwd",
+        "/local/usr/a.txt",
+        "dir/./file.txt",
+        "go/four/levels/deep/../../../../../somefile1", # skips download
+        "go/four/levels/deep/../somefile2",
+        "go/four/levels/deep/../some_dir/valid/path1",
+        "go/four/levels/deep/../some_dir/../../../../valid/path2",
+        "go/four/levels/deep/../some_dir/../../../../../invalid/path1" # skips download
+    ]
+
+    FILE_BLOB_PAIRS = [
+        (file_data["simple"]["path"], shared_bucket.blob("folder_traversal/" + blob_name))
+        for blob_name in BLOBNAMES
+    ]
+
+    results = transfer_manager.upload_many(
+        FILE_BLOB_PAIRS,
+        skip_if_exists=True,
+        deadline=DEADLINE,
+    )
+    for result in results:
+        assert result is None
+
+    blobs = list(shared_bucket.list_blobs(prefix="folder_traversal/"))
+    blobs_to_delete.extend(blobs)
+    assert len(blobs) == len(BLOBNAMES)
+
+    # Actual Test
+    with tempfile.TemporaryDirectory() as tempdir:
+        import warnings
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            results = transfer_manager.download_many_to_path(
+                shared_bucket,
+                BLOBNAMES,
+                destination_directory=tempdir,
+                blob_name_prefix="folder_traversal/",
+                deadline=DEADLINE,
+                create_directories=True,
+            )
+
+        # 4 items in BLOBNAMES are expected to be skipped
+        assert len(w) == 4
+        for warning in w:
+            assert str(warning.message).startswith("The blob ")
+            assert "will **NOT** be downloaded. The resolved destination_directory" in str(warning.message)
+
+        # 13 total - 4 skipped = 9 results
+        assert len(results) == 9
+        for result in results:
+            assert result is None
+
+
+
 def test_download_many(listable_bucket):
     blobs = list(listable_bucket.list_blobs())
     with tempfile.TemporaryDirectory() as tempdir:
