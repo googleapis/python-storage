@@ -36,7 +36,6 @@ from google.cloud.storage.constants import _DEFAULT_TIMEOUT
 from google.cloud.storage.retry import DEFAULT_RETRY
 
 import google_crc32c
-import traceback
 
 from google.cloud.storage._media.requests.upload import XMLMPUContainer
 from google.cloud.storage._media.requests.upload import XMLMPUPart
@@ -787,7 +786,9 @@ def download_many_to_path(
     for blob_name in blob_names:
         full_blob_name = blob_name_prefix + blob_name
         resolved_path = _resolve_path(destination_directory, blob_name)
-        if not resolved_path.parent.is_relative_to(Path(destination_directory).resolve()):
+        if not resolved_path.parent.is_relative_to(
+            Path(destination_directory).resolve()
+        ):
             warnings.warn(
                 f"The blob {blob_name} will **NOT** be downloaded. "
                 f"The resolved destination_directory - {resolved_path.parent} - is either invalid or "
