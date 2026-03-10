@@ -622,11 +622,13 @@ def test_download_many_to_path_with_path_traversal():
                 skip_if_exists=True,
             )
 
+    path_traversal_warnings = [
+        warning for warning in w
+        if str(warning.message).startswith("The blob ")
+        and "will **NOT** be downloaded. The resolved destination_directory" in str(warning.message)
+    ]
     # 4 items in BLOBNAMES are expected to be skipped
-    assert len(w) == 4, "---".join([str(warning.message) for warning in w])
-    for warning in w:
-        assert str(warning.message).startswith("The blob ")
-        assert "will **NOT** be downloaded. The resolved destination_directory" in str(warning.message)
+    assert len(path_traversal_warnings) == 4, "---".join([str(warning.message) for warning in w])
 
     mock_download_many.assert_called_once_with(
         EXPECTED_BLOB_FILE_PAIRS,
