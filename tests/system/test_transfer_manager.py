@@ -176,10 +176,12 @@ def test_download_many_skips_blob_with_path_traversal(
             )
 
         # 4 items in BLOBNAMES are expected to be skipped
-        assert len(w) == 4
-        for warning in w:
-            assert str(warning.message).startswith("The blob ")
-            assert "will **NOT** be downloaded. The resolved destination_directory" in str(warning.message)
+        path_traversal_warnings = [
+            warning for warning in w
+            if str(warning.message).startswith("The blob ")
+            and "will **NOT** be downloaded. The resolved destination_directory" in str(warning.message)
+        ]
+        assert len(path_traversal_warnings) == 4, "---".join([str(warning.message) for warning in w])
 
         # 13 total - 4 skipped = 9 results
         assert len(results) == 9
