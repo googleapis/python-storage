@@ -61,7 +61,7 @@ def testbench():
     proc.kill()
 
 
-CONTENT = b"A" * 1024 * 1024 * 10  # 10 KB
+CONTENT = b"A" * 1024 * 1024 * 10  # 10 MiB
 
 
 def _is_retryable(exc):
