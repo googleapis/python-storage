@@ -716,7 +716,7 @@ def download_many_to_path(
         This parameter can be an empty string.
 
         Note directory traversal may be possible as long as the final
-        (e.g. "/", "../") resolved path is relative to "destination_directory".
+        (e.g. "/", "../") resolved path is inside "destination_directory".
         See examples above.
 
     :type blob_name_prefix: str
