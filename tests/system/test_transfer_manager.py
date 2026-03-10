@@ -124,10 +124,10 @@ def test_upload_many_from_filenames_with_attributes(
 @pytest.mark.parametrize(
     "blobname",
     [
-        "../../local/target", # skips download
-        "../escape.txt", # skips download
-        "go/four/levels/deep/../../../../../somefile1", # skips download
-        "go/four/levels/deep/../some_dir/../../../../../invalid/path1" # skips download
+        "../../local/target",  # skips download
+        "../escape.txt",  # skips download
+        "go/four/levels/deep/../../../../../somefile1",  # skips download
+        "go/four/levels/deep/../some_dir/../../../../../invalid/path1",  # skips download
     ],
 )
 def test_download_many_to_path_with_skips_download(
@@ -140,7 +140,10 @@ def test_download_many_to_path_with_skips_download(
     BLOBNAMES = [blobname]
 
     FILE_BLOB_PAIRS = [
-        (file_data["simple"]["path"], shared_bucket.blob("folder_traversal/" + blob_name))
+        (
+            file_data["simple"]["path"],
+            shared_bucket.blob("folder_traversal/" + blob_name),
+        )
         for blob_name in BLOBNAMES
     ]
 
@@ -154,13 +157,14 @@ def test_download_many_to_path_with_skips_download(
 
     blobs = list(shared_bucket.list_blobs(prefix="folder_traversal/"))
     blobs_to_delete.extend(blobs)
-    
+
     # We expect 1 blob uploaded for this test parametrization
     assert len(list(b for b in blobs if b.name == "folder_traversal/" + blobname)) == 1
 
     # Actual Test
     with tempfile.TemporaryDirectory() as tempdir:
         import warnings
+
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
             results = transfer_manager.download_many_to_path(
@@ -173,11 +177,15 @@ def test_download_many_to_path_with_skips_download(
             )
 
         path_traversal_warnings = [
-            warning for warning in w
+            warning
+            for warning in w
             if str(warning.message).startswith("The blob ")
-            and "will **NOT** be downloaded. The resolved destination_directory" in str(warning.message)
+            and "will **NOT** be downloaded. The resolved destination_directory"
+            in str(warning.message)
         ]
-        assert len(path_traversal_warnings) == 1, "---".join([str(warning.message) for warning in w])
+        assert len(path_traversal_warnings) == 1, "---".join(
+            [str(warning.message) for warning in w]
+        )
 
         # 1 total - 1 skipped = 0 results
         assert len(results) == 0
@@ -207,7 +215,10 @@ def test_download_many_to_path_downloads_within_dest_dir(
     BLOBNAMES = [blobname]
 
     FILE_BLOB_PAIRS = [
-        (file_data["simple"]["path"], shared_bucket.blob("folder_traversal/" + blob_name))
+        (
+            file_data["simple"]["path"],
+            shared_bucket.blob("folder_traversal/" + blob_name),
+        )
         for blob_name in BLOBNAMES
     ]
 
@@ -221,7 +232,7 @@ def test_download_many_to_path_downloads_within_dest_dir(
 
     blobs = list(shared_bucket.list_blobs(prefix="folder_traversal/"))
     blobs_to_delete.extend(blobs)
-    
+
     assert len(list(b for b in blobs if b.name == "folder_traversal/" + blobname)) == 1
 
     # Actual Test
@@ -253,7 +264,6 @@ def test_download_many_to_path_downloads_within_dest_dir(
             downloaded_contents = downloaded_file.read()
 
         assert downloaded_contents == source_contents
-
 
 
 def test_download_many(listable_bucket):

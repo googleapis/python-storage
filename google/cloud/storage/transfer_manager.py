@@ -660,14 +660,10 @@ def download_many_to_path(
     To give further examples, the following blobs will not be downloaded because
     it "escapes" the "destination_directory"
 
-    ```
-
     "../../local/target", # skips download
     "../escape.txt", # skips download
     "go/four/levels/deep/../../../../../somefile1", # skips download
     "go/four/levels/deep/../some_dir/../../../../../invalid/path1" # skips download
-
-    ```
 
     however the following blobs will be downloaded because the final resolved
     destination_directory is still child of given destination_directory
