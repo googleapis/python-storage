@@ -621,9 +621,9 @@ def test_download_many_to_path_with_path_traversal():
                 worker_type=WORKER_TYPE,
                 skip_if_exists=True,
             )
-    
+
     # 4 items in BLOBNAMES are expected to be skipped
-    assert len(w) == 4
+    assert len(w) == 4, "---".join(w)
     for warning in w:
         assert str(warning.message).startswith("The blob ")
         assert "will **NOT** be downloaded. The resolved destination_directory" in str(warning.message)
