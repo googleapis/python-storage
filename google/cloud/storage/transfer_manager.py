@@ -472,7 +472,6 @@ def upload_many_from_filenames(
         be "/tmp/img/0001.jpg" and the destination blob will be "0001.jpg".
 
         This parameter can be an empty string.
-        TODO: chandrasiri - change this doc string.
 
         Note that this parameter allows directory traversal (e.g. "/", "../")
         and is not intended for unsanitized end user input.
@@ -633,8 +632,8 @@ def download_many_to_path(
 ):
     """Download many files concurrently by their blob names.
 
-    The destination files are automatically resolved, with paths based on the
-    source blob_names and the destination_directory.
+    The destination files are automatically created, with paths based on the
+    source `blob_names` and the `destination_directory`.
 
 
     The destination files are not automatically deleted if their downloads fail,
@@ -647,12 +646,50 @@ def download_many_to_path(
     "/home/myuser/icon.jpg".
 
 
-    Note: if the path after combining blob_name and destination_directory
-    resolves outside "destination_direction" a warning will be issued and the
-    that particular blob will not be downloaded.
+    Note1: if the path after combining `blob_name` and `destination_directory`
+    resolves outside `destination_directory` a warning will be issued and the
+    that particular blob will NOT be downloaded. This may happen in scenarios
+    where `blob_name` contains "../"
 
     For example,
-        TODO: @chandra-siri give examples.
+        consider `destination_directory` is "downloads/gcs_blobs" and
+        `blob_name` is '../hello.blob'. This blob will not be downloaded
+        because the final resolved path would be "downloads/hello.blob"
+
+
+    To give further examples, the following blobs will not be downloaded because
+    it "escapes" the "destination_directory"
+
+    ```
+
+    "../../local/target", # skips download
+    "../escape.txt", # skips download
+    "go/four/levels/deep/../../../../../somefile1", # skips download
+    "go/four/levels/deep/../some_dir/../../../../../invalid/path1" # skips download
+
+    ```
+
+    however the following blobs will be downloaded because the final resolved
+    destination_directory is still child of given destination_directory
+
+    "data/../sibling.txt",
+    "dir/./file.txt",
+    "go/four/levels/deep/../somefile2",
+    "go/four/levels/deep/../some_dir/valid/path1",
+    "go/four/levels/deep/../some_dir/../../../../valid/path2",
+
+    It is adviced to use other APIs such as `transfer_manager.download_many` or
+    `Blob.download_to_filename` or `Blob.download_to_file` to download such blobs.
+
+
+    Note2:
+    The resolved download_directory will always be relative to user provided
+    `destination_directory`. For example,
+
+    a `blob_name` "/etc/passwd" will be downloaded into
+        "destination_directory/etc/passwd" instead of "/etc/passwd"
+    Similarly,
+        "/tmp/my_fav_blob"  downloads to "destination_directory/tmp/my_fav_blob"
 
 
 
@@ -673,12 +710,8 @@ def download_many_to_path(
 
     :type destination_directory: str
     :param destination_directory:
-        # TODO: @chandra-siri: you may need to change this.
-        A string that will be prepended (with os.path.join()) to each blob_name
-        in the input list, in order to determine the destination path for that
-        blob.
-
-        (we determine the destination path for that blob.)
+        A string that will be prepended to each blob_name in the input list, in
+        order to determine the destination path for that blob.
 
         For instance, if the destination_directory string is "/tmp/img" and a
         blob_name is "0001.jpg", with an empty blob_name_prefix, then the source
@@ -686,8 +719,9 @@ def download_many_to_path(
 
         This parameter can be an empty string.
 
-        Note that this parameter allows directory traversal (e.g. "/", "../")
-        and is not intended for unsanitized end user input.
+        Note directory traversal may be possible as long as the final
+        (e.g. "/", "../") resolved path is relative to "destination_directory".
+        See examples above.
 
     :type blob_name_prefix: str
     :param blob_name_prefix:
