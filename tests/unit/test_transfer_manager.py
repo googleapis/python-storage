@@ -569,7 +569,7 @@ def test_download_many_to_path():
         "go/four/levels/deep/../some_dir/../../../../../invalid/path1",
     ],
 )
-def test_download_many_to_path_with_skips_download(blobname):
+def test_download_many_to_path_skips_download(blobname):
     bucket = mock.Mock()
     BLOBNAMES = [blobname]
 

@@ -130,7 +130,7 @@ def test_upload_many_from_filenames_with_attributes(
         "go/four/levels/deep/../some_dir/../../../../../invalid/path1",  # skips download
     ],
 )
-def test_download_many_to_path_with_skips_download(
+def test_download_many_to_path_skips_download(
     shared_bucket, file_data, blobs_to_delete, blobname
 ):
     """
