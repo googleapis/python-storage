@@ -4,6 +4,33 @@
 
 [1]: https://pypi.org/project/google-cloud-storage/#history
 
+## [4.0.0](https://github.com/googleapis/python-storage/compare/v3.9.0...v4.0.0) (2026-03-11)
+
+
+### ⚠ BREAKING CHANGES
+
+* **transfer_manager:** Blobs that would resolve to a path outside the `destination_directory` are no longer downloaded. While this is a security fix, users relying on the previous behavior to write files outside the target directory will see a change.
+
+### Features
+
+* Add system test for cross-region buckets ([810441c](https://github.com/googleapis/python-storage/commit/810441c7a55ed9b9e5c1ef792685c99352f5bd1a))
+* Add time based benchmarks ([09b1d9d](https://github.com/googleapis/python-storage/commit/09b1d9dcb29133a21b2563856e663c2f63b85a79))
+* Add time based benchmarks ([#1749](https://github.com/googleapis/python-storage/issues/1749)) ([09b1d9d](https://github.com/googleapis/python-storage/commit/09b1d9dcb29133a21b2563856e663c2f63b85a79))
+* Triger bidi conformance tests ([8dd0a80](https://github.com/googleapis/python-storage/commit/8dd0a8088f11adf4da24f07f5becf5247a924b5e))
+* Triger bidi conformance tests ([#1757](https://github.com/googleapis/python-storage/issues/1757)) ([8dd0a80](https://github.com/googleapis/python-storage/commit/8dd0a8088f11adf4da24f07f5becf5247a924b5e))
+
+
+### Bug Fixes
+
+* Don't flush at every append, results in bad perf ([ab62d72](https://github.com/googleapis/python-storage/commit/ab62d728ac7d7be3c4fe9a99d72e35ead310805a))
+* Don't flush at every append, results in bad perf ([#1746](https://github.com/googleapis/python-storage/issues/1746)) ([ab62d72](https://github.com/googleapis/python-storage/commit/ab62d728ac7d7be3c4fe9a99d72e35ead310805a))
+* Init mp pool & grpc client once, use os.sched_setaffinity ([a9eb82c](https://github.com/googleapis/python-storage/commit/a9eb82c1b9b3c6ae5717d47b76284ed0deb5f769))
+* Init mp pool & grpc client once, use os.sched_setaffinity ([#1751](https://github.com/googleapis/python-storage/issues/1751)) ([a9eb82c](https://github.com/googleapis/python-storage/commit/a9eb82c1b9b3c6ae5717d47b76284ed0deb5f769))
+* Pass token correctly, '&' instead of ',' ([d8dd1e0](https://github.com/googleapis/python-storage/commit/d8dd1e074d2431de9b45e0103181dce749a447a0))
+* Pass token correctly, '&' instead of ',' ([#1756](https://github.com/googleapis/python-storage/issues/1756)) ([d8dd1e0](https://github.com/googleapis/python-storage/commit/d8dd1e074d2431de9b45e0103181dce749a447a0))
+* **transfer_manager:** Prevent path traversal in `download_many_to_path` ([#1768](https://github.com/googleapis/python-storage/issues/1768)) ([700fec3](https://github.com/googleapis/python-storage/commit/700fec3bf7aa37bd5ea4b163cc3f9e8e6892bd5a))
+* **transfer_manager:** Prevent path traversal in download_many_to_path ([700fec3](https://github.com/googleapis/python-storage/commit/700fec3bf7aa37bd5ea4b163cc3f9e8e6892bd5a))
+
 ## [3.9.0](https://github.com/googleapis/python-storage/compare/v3.8.0...v3.9.0) (2026-02-02)
 
 
