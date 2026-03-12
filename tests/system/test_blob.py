@@ -39,6 +39,55 @@ def _check_blob_hash(blob, info):
     assert md5_hash == info["hash"]
 
 
+
+def test_blob_contexts(shared_bucket, blobs_to_delete):
+    from google.cloud.storage.contexts import ObjectContexts
+    from google.cloud.storage.contexts import ObjectCustomContextPayload
+
+    blob = shared_bucket.blob("test-contexts-blob")
+    blob.upload_from_string(b"Hello, World!")
+
+    # 1. Update/Add custom contexts
+    contexts = ObjectContexts()
+    contexts.custom = {
+        "context_key_1": ObjectCustomContextPayload(value="value_1"),
+        "context_key_2": ObjectCustomContextPayload(value="value_2"),
+    }
+    blob.contexts = contexts
+    blob.patch()
+
+    blob.reload()
+    assert blob.contexts is not None
+    assert "context_key_1" in blob.contexts.custom
+    assert blob.contexts.custom["context_key_1"].value == "value_1"
+    assert blob.contexts.custom["context_key_1"].create_time is not None
+    assert blob.contexts.custom["context_key_1"].update_time is not None
+    assert blob.contexts.custom["context_key_2"].value == "value_2"
+
+    # 2. Update existing and Delete one context key
+    contexts2 = ObjectContexts()
+    contexts2.custom = {
+        "context_key_1": ObjectCustomContextPayload(value="updated_value"),
+        "context_key_2": None,
+    }
+    blob.contexts = contexts2
+    blob.patch()
+
+    blob.reload()
+    assert blob.contexts is not None
+    assert "context_key_1" in blob.contexts.custom
+    assert blob.contexts.custom["context_key_1"].value == "updated_value"
+    assert "context_key_2" not in blob.contexts.custom
+
+    # 3. Delete all contexts
+    blob.contexts = None
+    blob.patch()
+
+    blob.reload()
+    assert blob.contexts is None
+
+    blobs_to_delete.append(blob)
+
 def test_large_file_write_from_stream_w_user_provided_checksum(
     shared_bucket,
     blobs_to_delete,
