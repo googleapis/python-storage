@@ -3989,7 +3989,6 @@ class EncryptionEnforcementConfig(dict):
     :type restriction_mode: str
     :param restriction_mode:
         (Optional) The restriction mode for the encryption type.
-        See: https://cloud.google.com/storage/docs/json_api/v1/buckets#encryption
 
     :type effective_time: :class:`datetime.datetime`
     :param effective_time:
@@ -3997,7 +3996,7 @@ class EncryptionEnforcementConfig(dict):
         This value should normally only be set by the back-end API.
     """
 
-    def __init__(self, restriction_mode=None, effective_time=None, **kw):
+    def __init__(self, restriction_mode=None, effective_time=None):
         data = {}
         if restriction_mode is not None:
             data["restrictionMode"] = restriction_mode
@@ -4005,7 +4004,7 @@ class EncryptionEnforcementConfig(dict):
         if effective_time is not None:
             data["effectiveTime"] = _datetime_to_rfc3339(effective_time)
 
-        super().__init__(data, **kw)
+        super().__init__(data)
 
     @classmethod
     def from_api_repr(cls, resource):

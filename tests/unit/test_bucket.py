@@ -4808,16 +4808,6 @@ class Test_EncryptionEnforcementConfig(unittest.TestCase):
         self.assertEqual(config.restriction_mode, "FULLY_RESTRICTED")
         self.assertEqual(config["restrictionMode"], "FULLY_RESTRICTED")
 
-    def test_init_with_extra_args(self):
-        # Regression test for EncryptionEnforcementConfig.__init__ swallowing extra args
-        extra_key = "extraKey"
-        extra_value = "extraValue"
-        config = self._make_one(
-            restriction_mode="FULLY_RESTRICTED", **{extra_key: extra_value}
-        )
-        self.assertEqual(config[extra_key], extra_value)
-        self.assertEqual(config.restriction_mode, "FULLY_RESTRICTED")
-
 
 class Test_BucketEncryption(unittest.TestCase):
     @staticmethod
