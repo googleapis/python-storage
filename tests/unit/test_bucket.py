@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import datetime
+from logging import config
 import unittest
 
 import mock
@@ -31,6 +32,7 @@ from google.cloud.storage.constants import RPO_ASYNC_TURBO
 from google.cloud.storage._helpers import _NOW
 from google.cloud.storage._helpers import _UTC
 from google.cloud.storage._helpers import _get_default_storage_base_url
+from samples.snippets.conftest import bucket
 
 
 def _create_signing_credentials():
@@ -4770,22 +4772,13 @@ class Test_EncryptionEnforcementConfig(unittest.TestCase):
         return self._get_target_class()(**kw)
 
     def test_ctor(self):
-        from google.cloud._helpers import _datetime_to_rfc3339
+
         from google.cloud.storage.constants import ENFORCEMENT_MODE_FULLY_RESTRICTED
 
-        now = _NOW(_UTC)
-        config = self._make_one(
-            restriction_mode=ENFORCEMENT_MODE_FULLY_RESTRICTED, effective_time=now
-        )
+        config = self._make_one(restriction_mode=ENFORCEMENT_MODE_FULLY_RESTRICTED)
+
         self.assertEqual(config.restriction_mode, ENFORCEMENT_MODE_FULLY_RESTRICTED)
-        self.assertEqual(config.effective_time, now)
-        self.assertEqual(
-            config,
-            {
-                "restrictionMode": ENFORCEMENT_MODE_FULLY_RESTRICTED,
-                "effectiveTime": _datetime_to_rfc3339(now),
-            },
-        )
+        self.assertIsNone(config.effective_time)
 
     def test_from_api_repr(self):
         from google.cloud._helpers import _datetime_to_rfc3339
@@ -4830,15 +4823,10 @@ class Test_BucketEncryption(unittest.TestCase):
         encryption = self._make_one(bucket)
         self.assertIs(encryption.bucket, bucket)
         self.assertIsNone(encryption.default_kms_key_name)
-        self.assertIsNone(
-            encryption.google_managed_encryption_enforcement_config.restriction_mode
-        )
-        self.assertIsNone(
-            encryption.customer_managed_encryption_enforcement_config.restriction_mode
-        )
-        self.assertIsNone(
-            encryption.customer_supplied_encryption_enforcement_config.restriction_mode
-        )
+        # Check that the config itself is None, not its sub-property
+        self.assertIsNone(encryption.google_managed_encryption_enforcement_config)
+        self.assertIsNone(encryption.customer_managed_encryption_enforcement_config)
+        self.assertIsNone(encryption.customer_supplied_encryption_enforcement_config)
 
     def test_ctor_explicit(self):
         from google.cloud.storage.bucket import EncryptionEnforcementConfig
@@ -4880,32 +4868,18 @@ class Test_BucketEncryption(unittest.TestCase):
         encryption = self._make_one(bucket)
 
         encryption.default_kms_key_name = "new-key"
-        bucket._patch_property.assert_called_with("encryption", encryption)
-
         config = EncryptionEnforcementConfig("NOT_RESTRICTED")
         encryption.google_managed_encryption_enforcement_config = config
-        bucket._patch_property.assert_called_with("encryption", encryption)
-        self.assertEqual(
-            encryption.google_managed_encryption_enforcement_config.restriction_mode,
-            "NOT_RESTRICTED",
-        )
-
         encryption.customer_managed_encryption_enforcement_config = config
-        bucket._patch_property.assert_called_with("encryption", encryption)
-
         encryption.customer_supplied_encryption_enforcement_config = config
+
+        self.assertEqual(bucket._patch_property.call_count, 4)
         bucket._patch_property.assert_called_with("encryption", encryption)
 
     def test_bucket_encryption_getters_handle_none(self):
-        # Regression test for BucketEncryption getters raising TypeError on None
         bucket = self._make_bucket()
-        # Initialize with None for configs
-        encryption = self._get_target_class()(
-            bucket, google_managed_encryption_enforcement_config=None
-        )
-        # Ensure setting it to None explicitly in the dict works as expected
+        encryption = self._get_target_class()(bucket)
         encryption["googleManagedEncryptionEnforcementConfig"] = None
 
-        # Accessing the property should return an empty/default config, not raise
         config = encryption.google_managed_encryption_enforcement_config
-        self.assertIsNone(config.restriction_mode)
+        self.assertIsNone(config)

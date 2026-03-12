@@ -3989,20 +3989,18 @@ class EncryptionEnforcementConfig(dict):
     :type restriction_mode: str
     :param restriction_mode:
         (Optional) The restriction mode for the encryption type.
+        When set to ``FULLY_RESTRICTED``, the bucket will only allow objects encrypted with the encryption type corresponding to this configuration.
+        When set to ``NOT_RESTRICTED``, the bucket will allow objects encrypted with any encryption type.
 
     :type effective_time: :class:`datetime.datetime`
     :param effective_time:
-        (Optional) The time when the encryption enforcement configuration became effective.
-        This value should normally only be set by the back-end API.
+        (Output only) The time when the encryption enforcement configuration became effective.
     """
 
-    def __init__(self, restriction_mode=None, effective_time=None):
+    def __init__(self, restriction_mode=None):
         data = {}
         if restriction_mode is not None:
             data["restrictionMode"] = restriction_mode
-
-        if effective_time is not None:
-            data["effectiveTime"] = _datetime_to_rfc3339(effective_time)
 
         super().__init__(data)
 
@@ -4159,7 +4157,7 @@ class BucketEncryption(dict):
         data = self.get("googleManagedEncryptionEnforcementConfig")
         if data:
             return EncryptionEnforcementConfig.from_api_repr(data)
-        return EncryptionEnforcementConfig()
+        return None
 
     @google_managed_encryption_enforcement_config.setter
     def google_managed_encryption_enforcement_config(self, value):
@@ -4181,7 +4179,7 @@ class BucketEncryption(dict):
         data = self.get("customerManagedEncryptionEnforcementConfig")
         if data:
             return EncryptionEnforcementConfig.from_api_repr(data)
-        return EncryptionEnforcementConfig()
+        return None
 
     @customer_managed_encryption_enforcement_config.setter
     def customer_managed_encryption_enforcement_config(self, value):
@@ -4203,7 +4201,7 @@ class BucketEncryption(dict):
         data = self.get("customerSuppliedEncryptionEnforcementConfig")
         if data:
             return EncryptionEnforcementConfig.from_api_repr(data)
-        return EncryptionEnforcementConfig()
+        return None
 
     @customer_supplied_encryption_enforcement_config.setter
     def customer_supplied_encryption_enforcement_config(self, value):
