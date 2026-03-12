@@ -138,8 +138,8 @@ When the RPO value is set to DEFAULT, the default replication behavior is enable
 See: https://cloud.google.com/storage/docs/managing-turbo-replication
 """
 
-ENFORCEMENT_MODE_FULLY_RESTRICTED = "FULLY_RESTRICTED"
+ENFORCEMENT_MODE_FULLY_RESTRICTED = "FullyRestricted"
 """Bucket encryption restriction mode where encryption is fully restricted."""
 
-ENFORCEMENT_MODE_NOT_RESTRICTED = "NOT_RESTRICTED"
+ENFORCEMENT_MODE_NOT_RESTRICTED = "NotRestricted"
 """Bucket encryption restriction mode where encryption is not restricted."""

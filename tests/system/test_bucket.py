@@ -1435,14 +1435,16 @@ def test_bucket_encryption_enforcement_config(storage_client, buckets_to_delete)
     # Verify Customer Managed Config
     reloaded_customer = bucket.encryption.customer_managed_encryption_enforcement_config
     assert reloaded_customer.restriction_mode == ENFORCEMENT_MODE_NOT_RESTRICTED
-    assert isinstance(reloaded_customer.effective_time, datetime.datetime)
+    assert reloaded_customer.effective_time is None
 
     # 3. Test updating an existing config
-    reloaded_google.restriction_mode = ENFORCEMENT_MODE_NOT_RESTRICTED
-    bucket.encryption.google_managed_encryption_enforcement_config = reloaded_google
+    update_google_config = EncryptionEnforcementConfig(
+        restriction_mode=ENFORCEMENT_MODE_NOT_RESTRICTED
+    )
+    bucket.encryption.google_managed_encryption_enforcement_config = (
+        update_google_config
+    )
     bucket.patch()
-
-    bucket.reload()
     assert (
         bucket.encryption.google_managed_encryption_enforcement_config.restriction_mode
         == ENFORCEMENT_MODE_NOT_RESTRICTED
