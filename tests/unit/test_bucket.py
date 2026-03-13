@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import datetime
-from logging import config
 import unittest
 
 import mock
@@ -32,7 +31,6 @@ from google.cloud.storage.constants import RPO_ASYNC_TURBO
 from google.cloud.storage._helpers import _NOW
 from google.cloud.storage._helpers import _UTC
 from google.cloud.storage._helpers import _get_default_storage_base_url
-from samples.snippets.conftest import bucket
 
 
 def _create_signing_credentials():
