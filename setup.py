@@ -28,7 +28,7 @@ description = "Google Cloud Storage API client library"
 # 'Development Status :: 5 - Production/Stable'
 release_status = "Development Status :: 5 - Production/Stable"
 dependencies = [
-    "google-auth==2.49.1",
+    "google-auth >= 2.26.1, < 3.0.0",
     "google-api-core >= 2.27.0, < 3.0.0",
     "google-cloud-core >= 2.4.2, < 3.0.0",
     # The dependency "google-resumable-media" is no longer used. However, the
