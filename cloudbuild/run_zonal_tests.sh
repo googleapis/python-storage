@@ -23,6 +23,7 @@ pip install -e .
 echo '--- Setting up environment variables on VM ---'
 export ZONAL_BUCKET=${_ZONAL_BUCKET}
 export RUN_ZONAL_SYSTEM_TESTS=True
+export GCE_METADATA_MTLS_MODE=None
 CURRENT_ULIMIT=$(ulimit -n)
 echo '--- Running Zonal tests on VM with ulimit set to ---' $CURRENT_ULIMIT
 python check_env_vars.py

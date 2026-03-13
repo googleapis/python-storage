@@ -6,6 +6,7 @@ from google.auth.compute_engine import _mtls
 should_use_mtls = _mtls.should_use_mds_mtls()
 
 mode_str = os.environ.get("GCE_METADATA_MTLS_MODE", "default")
+print("mode_str", mode_str)
 
 print("Google auth version", ga.__version__)
 print("env var  GCE_METADATA_MTLS_MODE", mode_str)
