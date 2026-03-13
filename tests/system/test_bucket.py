@@ -1398,3 +1398,54 @@ def test_list_buckets_with_ip_filter(storage_client, buckets_to_delete):
     # Check that the summarized filter does not include full details.
     assert summarized_filter.public_network_source is None
     assert summarized_filter.vpc_network_sources == []
+
+
+def test_bucket_encryption_enforcement_config(storage_client, buckets_to_delete):
+    from google.cloud.storage.bucket import EncryptionEnforcementConfig
+    from google.cloud.storage.constants import ENFORCEMENT_MODE_FULLY_RESTRICTED
+    from google.cloud.storage.constants import ENFORCEMENT_MODE_NOT_RESTRICTED
+
+    bucket_name = _helpers.unique_name("encryption-enforcement")
+    bucket = _helpers.retry_429_503(storage_client.create_bucket)(bucket_name)
+    buckets_to_delete.append(bucket)
+
+    # 1. Set initial enforcement configuration
+    # Testing both Google-managed and Customer-managed configurations
+    google_config = EncryptionEnforcementConfig(
+        restriction_mode=ENFORCEMENT_MODE_FULLY_RESTRICTED
+    )
+    customer_config = EncryptionEnforcementConfig(
+        restriction_mode=ENFORCEMENT_MODE_NOT_RESTRICTED
+    )
+
+    bucket.encryption.google_managed_encryption_enforcement_config = google_config
+    bucket.encryption.customer_managed_encryption_enforcement_config = customer_config
+
+    # Patch sends the 'encryption' dict to the server
+    bucket.patch()
+
+    # 2. Reload and Verify backend persistence
+    bucket.reload()
+
+    # Verify Google Managed Config and the presence of effective_time
+    reloaded_google = bucket.encryption.google_managed_encryption_enforcement_config
+    assert reloaded_google.restriction_mode == ENFORCEMENT_MODE_FULLY_RESTRICTED
+    assert isinstance(reloaded_google.effective_time, datetime.datetime)
+
+    # Verify Customer Managed Config
+    reloaded_customer = bucket.encryption.customer_managed_encryption_enforcement_config
+    assert reloaded_customer.restriction_mode == ENFORCEMENT_MODE_NOT_RESTRICTED
+    assert reloaded_customer.effective_time is None
+
+    # 3. Test updating an existing config
+    update_google_config = EncryptionEnforcementConfig(
+        restriction_mode=ENFORCEMENT_MODE_NOT_RESTRICTED
+    )
+    bucket.encryption.google_managed_encryption_enforcement_config = (
+        update_google_config
+    )
+    bucket.patch()
+    assert (
+        bucket.encryption.google_managed_encryption_enforcement_config.restriction_mode
+        == ENFORCEMENT_MODE_NOT_RESTRICTED
+    )
