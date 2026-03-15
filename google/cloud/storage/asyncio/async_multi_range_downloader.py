@@ -41,7 +41,6 @@ from io import BytesIO
 from google.cloud import _storage_v2
 from google.cloud.storage._helpers import generate_random_56_bit_integer
 
-
 _MAX_READ_RANGES_PER_BIDI_READ_REQUEST = 100
 _BIDI_READ_REDIRECTED_TYPE_URL = (
     "type.googleapis.com/google.storage.v2.BidiReadObjectRedirectedError"
@@ -228,6 +227,7 @@ class AsyncMultiRangeDownloader:
         self._read_id_to_download_ranges_id = {}
         self._download_ranges_id_to_pending_read_ids = {}
         self.persisted_size: Optional[int] = None  # updated after opening the stream
+        self._open_retries: int = 0
 
     async def __aenter__(self):
         """Opens the underlying bidi-gRPC connection to read from the object."""
@@ -241,6 +241,7 @@ class AsyncMultiRangeDownloader:
 
     def _on_open_error(self, exc):
         """Extracts routing token and read handle on redirect error during open."""
+        logger.warning(f"Error occurred while opening MRD: {exc}")
         routing_token, read_handle = _handle_redirect(exc)
         if routing_token:
             self._routing_token = routing_token
@@ -257,13 +258,18 @@ class AsyncMultiRangeDownloader:
             raise ValueError("Underlying bidi-gRPC stream is already open")
 
         if retry_policy is None:
+            def on_error_wrapper(exc):
+                self._open_retries += 1
+                self._on_open_error(exc)
+
             retry_policy = AsyncRetry(
-                predicate=_is_read_retryable, on_error=self._on_open_error
+                predicate=_is_read_retryable, on_error=on_error_wrapper
             )
         else:
             original_on_error = retry_policy._on_error
 
             def combined_on_error(exc):
+                self._open_retries += 1
                 self._on_open_error(exc)
                 if original_on_error:
                     original_on_error(exc)
@@ -425,7 +431,7 @@ class AsyncMultiRangeDownloader:
 
                 if attempt_count > 1:
                     logger.info(
-                        f"Resuming download (attempt {attempt_count - 1}) for {len(requests)} ranges."
+                        f"Resuming download (attempt {attempt_count}) for {len(requests)} ranges."
                     )
 
                 async with lock:
@@ -446,11 +452,7 @@ class AsyncMultiRangeDownloader:
                             logger.info(
                                 f"Re-opening stream with routing token: {current_token}"
                             )
-                        # Close existing stream if any
-                        if self.read_obj_str and self.read_obj_str.is_stream_open:
-                            await self.read_obj_str.close()
 
-                        # Re-initialize stream
                         self.read_obj_str = _AsyncReadObjectStream(
                             client=self.client.grpc_client,
                             bucket_name=self.bucket_name,
