@@ -82,7 +82,9 @@ class _ReadResumptionStrategy(_BaseResumptionStrategy):
     ) -> None:
         """Processes a server response, performs integrity checks, and updates state."""
         proto = getattr(response, "_pb", response)
-        if proto.read_handle:
+
+        # Capture read_handle if provided.
+        if proto.HasField("read_handle"):
             state["read_handle"] = storage_v2.BidiReadHandle(
                 handle=proto.read_handle.handle
             )
@@ -90,6 +92,8 @@ class _ReadResumptionStrategy(_BaseResumptionStrategy):
         download_states = state["download_states"]
 
         for object_data_range in proto.object_data_ranges:
+            # Ignore empty ranges or ranges for IDs not in our state
+            # (e.g., from a previously cancelled request on the same stream).
             if not object_data_range.HasField("read_range"):
                 logger.warning(
                     "Received response with missing read_range field; ignoring."
@@ -108,6 +112,7 @@ class _ReadResumptionStrategy(_BaseResumptionStrategy):
             read_state = download_states[read_id]
 
             # Offset Verification
+            # We must validate data before updating state or writing to buffer.
             chunk_offset = read_range_pb.read_offset
             if chunk_offset != read_state.next_expected_offset:
                 raise DataCorruption(
