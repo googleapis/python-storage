@@ -82,7 +82,7 @@ class _ReadResumptionStrategy(_BaseResumptionStrategy):
     ) -> None:
         """Processes a server response, performs integrity checks, and updates state."""
 
-        # Capture read_handle if provided.
+        # Capture read_handle if provided
         if response.read_handle:
             state["read_handle"] = response.read_handle
 
