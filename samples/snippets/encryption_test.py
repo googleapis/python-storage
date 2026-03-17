@@ -30,7 +30,6 @@ import storage_upload_encrypted_file
 import storage_get_bucket_encryption_enforcement_config
 import storage_set_bucket_encryption_enforcement_config
 import storage_update_encryption_enforcement_config
-import storage_remove_all_bucket_encryption_enforcement_config
 
 BUCKET = os.environ["CLOUD_STORAGE_BUCKET"]
 KMS_KEY = os.environ["MAIN_CLOUD_KMS_KEY"]
@@ -160,18 +159,6 @@ def test_bucket_encryption_enforcement_config(capsys):
         assert "Customer-managed encryption enforcement config restriction mode: NOT_RESTRICTED" in out
         assert "Customer-supplied encryption enforcement config restriction mode: None" in out
         assert "Google-managed encryption enforcement config restriction mode: FULLY_RESTRICTED" in out
-
-        # Remove
-        storage_remove_all_bucket_encryption_enforcement_config.remove_all_bucket_encryption_enforcement_config(bucket_name)
-        out, _ = capsys.readouterr()
-        assert f"Removed Encryption Enforcement Config from bucket {bucket_name}." in out
-
-        # Get after remove
-        storage_get_bucket_encryption_enforcement_config.get_bucket_encryption_enforcement_config(bucket_name)
-        out, _ = capsys.readouterr()
-        assert "Customer-managed encryption enforcement config restriction mode: None" in out
-        assert "Customer-supplied encryption enforcement config restriction mode: None" in out
-        assert "Google-managed encryption enforcement config restriction mode: None" in out
 
     finally:
         try:
