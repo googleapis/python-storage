@@ -77,7 +77,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Download blobs in a list by name, concurrently in a process pool."
     )
-    parser.add_argument("bucket_name", help="The ID of your GCS bucket")
+    parser.add_argument("--bucket_name", help="The ID of your GCS bucket")
     parser.add_argument(
         "--blobs",
         nargs="+",
