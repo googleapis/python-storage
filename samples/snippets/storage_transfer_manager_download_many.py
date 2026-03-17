@@ -73,11 +73,10 @@ def download_many_blobs_with_transfer_manager(
     for name, result in zip(blob_names, results):
         # The results list is either `None`, an exception, or a warning for each blob in
         # the input list, in order.
-
-        if isinstance(result, Exception):
-            print("Failed to download {} due to exception: {}".format(name, result))
-        elif isinstance(result, Warning):
+        if isinstance(result, UserWarning):
             print("Skipped download for {} due to warning: {}".format(name, result))
+        elif isinstance(result, Exception):
+            print("Failed to download {} due to exception: {}".format(name, result))
         else:
             print("Downloaded {} inside {} directory.".format(name, destination_directory))
 # [END storage_transfer_manager_download_many]
