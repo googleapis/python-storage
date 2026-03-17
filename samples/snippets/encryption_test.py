@@ -27,6 +27,10 @@ import storage_generate_encryption_key
 import storage_object_csek_to_cmek
 import storage_rotate_encryption_key
 import storage_upload_encrypted_file
+import storage_get_bucket_encryption_enforcement_config
+import storage_set_bucket_encryption_enforcement_config
+import storage_update_encryption_enforcement_config
+import storage_remove_all_bucket_encryption_enforcement_config
 
 BUCKET = os.environ["CLOUD_STORAGE_BUCKET"]
 KMS_KEY = os.environ["MAIN_CLOUD_KMS_KEY"]
@@ -126,3 +130,50 @@ def test_object_csek_to_cmek(test_blob):
     )
 
     assert cmek_blob.download_as_bytes(), test_blob_content
+
+def test_bucket_encryption_enforcement_config(capsys):
+    bucket_name = f"test_encryption_enforcement_{uuid.uuid4().hex}"
+
+    try:
+        # Create
+        storage_set_bucket_encryption_enforcement_config.set_bucket_encryption_enforcement_config(bucket_name)
+        out, _ = capsys.readouterr()
+        assert f"Created bucket {bucket_name} with Encryption Enforcement Config." in out
+
+        # Get
+        storage_get_bucket_encryption_enforcement_config.get_bucket_encryption_enforcement_config(bucket_name)
+        out, _ = capsys.readouterr()
+        assert f"Encryption Enforcement Config for bucket {bucket_name}:" in out
+        assert "Customer-managed encryption enforcement config restriction mode: NOT_RESTRICTED" in out
+        assert "Customer-supplied encryption enforcement config restriction mode: FULLY_RESTRICTED" in out
+        assert "Google-managed encryption enforcement config restriction mode: FULLY_RESTRICTED" in out
+
+        # Update
+        storage_update_encryption_enforcement_config.update_encryption_enforcement_config(bucket_name)
+        out, _ = capsys.readouterr()
+        assert f"Encryption enforcement policy updated for bucket {bucket_name}." in out
+
+        # Get after update
+        storage_get_bucket_encryption_enforcement_config.get_bucket_encryption_enforcement_config(bucket_name)
+        out, _ = capsys.readouterr()
+        assert "Customer-managed encryption enforcement config restriction mode: NOT_RESTRICTED" in out
+        assert "Customer-supplied encryption enforcement config restriction mode: None" in out
+        assert "Google-managed encryption enforcement config restriction mode: FULLY_RESTRICTED" in out
+
+        # Remove
+        storage_remove_all_bucket_encryption_enforcement_config.remove_all_bucket_encryption_enforcement_config(bucket_name)
+        out, _ = capsys.readouterr()
+        assert f"Removed Encryption Enforcement Config from bucket {bucket_name}." in out
+
+        # Get after remove
+        storage_get_bucket_encryption_enforcement_config.get_bucket_encryption_enforcement_config(bucket_name)
+        out, _ = capsys.readouterr()
+        assert "Customer-managed encryption enforcement config restriction mode: None" in out
+        assert "Customer-supplied encryption enforcement config restriction mode: None" in out
+        assert "Google-managed encryption enforcement config restriction mode: None" in out
+
+    finally:
+        try:
+            storage.Client().get_bucket(bucket_name).delete(force=True)
+        except Exception:
+            pass
