@@ -539,16 +539,9 @@ def test_download_many_to_path_raises_invalid_path_error():
     DEADLINE = 10
     WORKER_TYPE = transfer_manager.THREAD
 
-    from google.cloud.storage.transfer_manager import InvalidPathError
-
-    def resolve_path_side_effect(target_dir, blob_path):
-        raise InvalidPathError(f"{blob_path} cannot be downloaded into {target_dir}")
-
-    with mock.patch(
-        "google.cloud.storage.transfer_manager._resolve_path",
-        side_effect=resolve_path_side_effect,
-    ):
+    with mock.patch("os.name", "nt"):
         import warnings
+
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
             results = transfer_manager.download_many_to_path(
