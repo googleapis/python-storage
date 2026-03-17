@@ -12,15 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Example usage:
+# python samples/snippets/storage_transfer_manager_download_many.py \
+#     --bucket_name <your-bucket-name> \
+#     --blobs <blob_name_1> <blob_name_2> \
+#     --destination_directory <destination_directory> \
+#     --blob_name_prefix <prefix>
+
 # [START storage_transfer_manager_download_many]
 def download_many_blobs_with_transfer_manager(
-    bucket_name, blob_names, destination_directory="", workers=8
+    bucket_name, blob_names, destination_directory="", blob_name_prefix="", workers=8
 ):
     """Download blobs in a list by name, concurrently in a process pool.
 
     The filename of each blob once downloaded is derived from the blob name and
     the `destination_directory `parameter. For complete control of the filename
-    of each blob, use transfer_manager.download_many() instead.
+    of each blob, use transfer_manager.download_`many() instead.
 
     Directories will be created automatically as needed to accommodate blob
     names that include slashes.
@@ -56,7 +63,11 @@ def download_many_blobs_with_transfer_manager(
     bucket = storage_client.bucket(bucket_name)
 
     results = transfer_manager.download_many_to_path(
-        bucket, blob_names, destination_directory=destination_directory, max_workers=workers
+        bucket,
+        blob_names,
+        destination_directory=destination_directory,
+        blob_name_prefix=blob_name_prefix,
+        max_workers=workers,
     )
 
     for name, result in zip(blob_names, results):
@@ -68,7 +79,7 @@ def download_many_blobs_with_transfer_manager(
         elif isinstance(result, Warning):
             print("Skipped download for {} due to warning: {}".format(name, result))
         else:
-            print("Downloaded {} to {}.".format(name, destination_directory + name))
+            print("Downloaded {} inside {} directory.".format(name, destination_directory))
 # [END storage_transfer_manager_download_many]
 
 if __name__ == "__main__":
@@ -77,7 +88,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Download blobs in a list by name, concurrently in a process pool."
     )
-    parser.add_argument("--bucket_name", help="The ID of your GCS bucket")
+    parser.add_argument("--bucket_name", required=True, help="The name of your GCS bucket")
     parser.add_argument(
         "--blobs",
         nargs="+",
@@ -90,6 +101,11 @@ if __name__ == "__main__":
         help="The directory on your computer to which to download all of the files",
     )
     parser.add_argument(
+        "--blob_name_prefix",
+        default="",
+        help="A string that will be prepended to each blob_name to determine the source blob name",
+    )
+    parser.add_argument(
         "--workers", type=int, default=8, help="The maximum number of processes to use"
     )
 
@@ -99,5 +115,6 @@ if __name__ == "__main__":
         bucket_name=args.bucket_name,
         blob_names=args.blobs,
         destination_directory=args.destination_directory,
+        blob_name_prefix=args.blob_name_prefix,
         workers=args.workers,
     )
