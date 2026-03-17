@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# [START storage_set_bucket_encryption_enforcement_config]
 from google.cloud import storage
 from google.cloud.storage.bucket import EncryptionEnforcementConfig
 
 
-# [START storage_set_bucket_encryption_enforcement_config]
 def set_bucket_encryption_enforcement_config(bucket_name):
     """Creates a bucket with encryption enforcement configuration."""
     # The ID of your GCS bucket
@@ -25,10 +25,10 @@ def set_bucket_encryption_enforcement_config(bucket_name):
     storage_client = storage.Client()
     bucket = storage_client.bucket(bucket_name)
 
-    # Restriction mode can be "FULLY_RESTRICTED" or "NOT_RESTRICTED"
-    bucket.customer_managed_encryption_enforcement_config = EncryptionEnforcementConfig(restriction_mode="NOT_RESTRICTED")
-    bucket.customer_supplied_encryption_enforcement_config = EncryptionEnforcementConfig(restriction_mode="FULLY_RESTRICTED")
-    bucket.google_managed_encryption_enforcement_config = EncryptionEnforcementConfig(restriction_mode="FULLY_RESTRICTED")
+    # Restriction mode can be "FullyRestricted" or "NotRestricted"
+    bucket.customer_managed_encryption_enforcement_config = EncryptionEnforcementConfig(restriction_mode="NotRestricted")
+    bucket.customer_supplied_encryption_enforcement_config = EncryptionEnforcementConfig(restriction_mode="FullyRestricted")
+    bucket.google_managed_encryption_enforcement_config = EncryptionEnforcementConfig(restriction_mode="FullyRestricted")
 
     bucket.create()
 

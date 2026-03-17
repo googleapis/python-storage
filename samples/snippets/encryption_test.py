@@ -144,9 +144,9 @@ def test_bucket_encryption_enforcement_config(capsys):
         storage_get_bucket_encryption_enforcement_config.get_bucket_encryption_enforcement_config(bucket_name)
         out, _ = capsys.readouterr()
         assert f"Encryption Enforcement Config for bucket {bucket_name}:" in out
-        assert "Customer-managed encryption enforcement config restriction mode: NOT_RESTRICTED" in out
-        assert "Customer-supplied encryption enforcement config restriction mode: FULLY_RESTRICTED" in out
-        assert "Google-managed encryption enforcement config restriction mode: FULLY_RESTRICTED" in out
+        assert "Customer-managed encryption enforcement config restriction mode: NotRestricted" in out
+        assert "Customer-supplied encryption enforcement config restriction mode: FullyRestricted" in out
+        assert "Google-managed encryption enforcement config restriction mode: FullyRestricted" in out
 
         # Update
         storage_update_encryption_enforcement_config.update_encryption_enforcement_config(bucket_name)
@@ -156,9 +156,9 @@ def test_bucket_encryption_enforcement_config(capsys):
         # Get after update
         storage_get_bucket_encryption_enforcement_config.get_bucket_encryption_enforcement_config(bucket_name)
         out, _ = capsys.readouterr()
-        assert "Customer-managed encryption enforcement config restriction mode: NOT_RESTRICTED" in out
+        assert "Customer-managed encryption enforcement config restriction mode: NotRestricted" in out
         assert "Customer-supplied encryption enforcement config restriction mode: None" in out
-        assert "Google-managed encryption enforcement config restriction mode: FULLY_RESTRICTED" in out
+        assert "Google-managed encryption enforcement config restriction mode: FullyRestricted" in out
 
     finally:
         try:

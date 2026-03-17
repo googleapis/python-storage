@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# [START storage_get_bucket_encryption_enforcement_config]
 from google.cloud import storage
 
 
-# [START storage_get_bucket_encryption_enforcement_config]
 def get_bucket_encryption_enforcement_config(bucket_name):
     """Gets the bucket encryption enforcement configuration."""
     # The ID of your GCS bucket
