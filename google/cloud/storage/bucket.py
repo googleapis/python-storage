@@ -43,7 +43,11 @@ from google.cloud.storage.acl import BucketACL
 from google.cloud.storage.acl import DefaultObjectACL
 from google.cloud.storage.blob import _quote
 from google.cloud.storage.blob import Blob
-from google.cloud.storage.constants import _DEFAULT_TIMEOUT
+from google.cloud.storage.constants import (
+    _DEFAULT_TIMEOUT,
+    ENFORCEMENT_MODE_FULLY_RESTRICTED,
+    ENFORCEMENT_MODE_NOT_RESTRICTED,
+)
 from google.cloud.storage.constants import ARCHIVE_STORAGE_CLASS
 from google.cloud.storage.constants import COLDLINE_STORAGE_CLASS
 from google.cloud.storage.constants import DUAL_REGION_LOCATION_TYPE
@@ -3989,8 +3993,8 @@ class EncryptionEnforcementConfig(dict):
     :type restriction_mode: str
     :param restriction_mode:
         (Optional) The restriction mode for the encryption type.
-        When set to ``FULLY_RESTRICTED``, the bucket will only allow objects encrypted with the encryption type corresponding to this configuration.
-        When set to ``NOT_RESTRICTED``, the bucket will allow objects encrypted with any encryption type.
+        When set to ``FullyRestricted``, the bucket will only allow objects encrypted with the encryption type corresponding to this configuration.
+        When set to ``NotRestricted``, the bucket will allow objects encrypted with any encryption type.
 
     :type effective_time: :class:`datetime.datetime`
     :param effective_time:
@@ -4000,7 +4004,17 @@ class EncryptionEnforcementConfig(dict):
     def __init__(self, restriction_mode=None):
         data = {}
         if restriction_mode is not None:
-            data["restrictionMode"] = restriction_mode
+            # Validate input against allowed constants
+            allowed = (
+                ENFORCEMENT_MODE_FULLY_RESTRICTED,
+                ENFORCEMENT_MODE_NOT_RESTRICTED,
+            )
+            if restriction_mode not in allowed:
+                raise ValueError(
+                    f"Invalid restriction_mode: {restriction_mode}. "
+                    f"Must be one of {allowed}"
+                )
+            self._data["restrictionMode"] = restriction_mode
 
         super().__init__(data)
 
