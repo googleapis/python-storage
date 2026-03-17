@@ -4831,7 +4831,7 @@ class Test_BucketEncryption(unittest.TestCase):
 
         bucket = self._make_bucket()
         kms_key = "key"
-        google_config = EncryptionEnforcementConfig("FULLY_RESTRICTED")
+        google_config = EncryptionEnforcementConfig("FullyRestricted")
         encryption = self._make_one(
             bucket,
             default_kms_key_name=kms_key,
@@ -4840,7 +4840,7 @@ class Test_BucketEncryption(unittest.TestCase):
         self.assertEqual(encryption.default_kms_key_name, kms_key)
         self.assertEqual(
             encryption.google_managed_encryption_enforcement_config.restriction_mode,
-            "FULLY_RESTRICTED",
+            "FullyRestricted",
         )
 
     def test_from_api_repr(self):
@@ -4849,14 +4849,14 @@ class Test_BucketEncryption(unittest.TestCase):
         resource = {
             "defaultKmsKeyName": "key",
             "googleManagedEncryptionEnforcementConfig": {
-                "restrictionMode": "FULLY_RESTRICTED"
+                "restrictionMode": "FullyRestricted"
             },
         }
         encryption = klass.from_api_repr(resource, bucket)
         self.assertEqual(encryption.default_kms_key_name, "key")
         self.assertEqual(
             encryption.google_managed_encryption_enforcement_config.restriction_mode,
-            "FULLY_RESTRICTED",
+            "FullyRestricted",
         )
 
     def test_setters_trigger_patch(self):
@@ -4866,7 +4866,7 @@ class Test_BucketEncryption(unittest.TestCase):
         encryption = self._make_one(bucket)
 
         encryption.default_kms_key_name = "new-key"
-        config = EncryptionEnforcementConfig("NOT_RESTRICTED")
+        config = EncryptionEnforcementConfig("NotRestricted")
         encryption.google_managed_encryption_enforcement_config = config
         encryption.customer_managed_encryption_enforcement_config = config
         encryption.customer_supplied_encryption_enforcement_config = config

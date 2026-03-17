@@ -4014,7 +4014,7 @@ class EncryptionEnforcementConfig(dict):
                     f"Invalid restriction_mode: {restriction_mode}. "
                     f"Must be one of {allowed}"
                 )
-            self._data["restrictionMode"] = restriction_mode
+            data["restrictionMode"] = restriction_mode
 
         super().__init__(data)
 
