@@ -14,6 +14,7 @@
 
 from google.cloud import storage
 
+
 # [START storage_remove_all_bucket_encryption_enforcement_config]
 def remove_all_bucket_encryption_enforcement_config(bucket_name):
     """Removes all bucket encryption enforcement configuration."""
@@ -29,8 +30,8 @@ def remove_all_bucket_encryption_enforcement_config(bucket_name):
     bucket.patch()
 
     print(f"Removed Encryption Enforcement Config from bucket {bucket.name}.")
-
 # [END storage_remove_all_bucket_encryption_enforcement_config]
+
 
 if __name__ == "__main__":
     remove_all_bucket_encryption_enforcement_config(bucket_name="your-unique-bucket-name")

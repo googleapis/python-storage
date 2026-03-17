@@ -13,6 +13,8 @@
 # limitations under the License.
 
 from google.cloud import storage
+from google.cloud.storage.bucket import EncryptionEnforcementConfig
+
 
 # [START storage_update_encryption_enforcement_config]
 def update_encryption_enforcement_config(bucket_name):
@@ -24,7 +26,6 @@ def update_encryption_enforcement_config(bucket_name):
     bucket = storage_client.get_bucket(bucket_name)
 
     # 1. Update a specific type (e.g., change GMEK to FULLY_RESTRICTED)
-    from google.cloud.storage.bucket import EncryptionEnforcementConfig
     bucket.google_managed_encryption_enforcement_config = EncryptionEnforcementConfig(restriction_mode="FULLY_RESTRICTED")
     bucket.customer_managed_encryption_enforcement_config = EncryptionEnforcementConfig(restriction_mode="NOT_RESTRICTED")
 
@@ -35,8 +36,8 @@ def update_encryption_enforcement_config(bucket_name):
 
     print(f"Encryption enforcement policy updated for bucket {bucket.name}.")
     print("GMEK is now fully restricted, CMEK is now not restricted, and CSEK enforcement has been removed.")
-
 # [END storage_update_encryption_enforcement_config]
+
 
 if __name__ == "__main__":
     update_encryption_enforcement_config(bucket_name="your-unique-bucket-name")

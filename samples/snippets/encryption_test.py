@@ -131,6 +131,7 @@ def test_object_csek_to_cmek(test_blob):
 
     assert cmek_blob.download_as_bytes(), test_blob_content
 
+
 def test_bucket_encryption_enforcement_config(capsys):
     bucket_name = f"test_encryption_enforcement_{uuid.uuid4().hex}"
 
