@@ -28,7 +28,7 @@ def download_many_blobs_with_transfer_manager(
 
     The filename of each blob once downloaded is derived from the blob name and
     the `destination_directory `parameter. For complete control of the filename
-    of each blob, use transfer_manager.download_`many() instead.
+    of each blob, use transfer_manager.download_many() instead.
 
     Directories will be created automatically as needed to accommodate blob
     names that include slashes.
