@@ -19,6 +19,7 @@
 #     --destination_directory <destination_directory> \
 #     --blob_name_prefix <prefix>
 
+
 # [START storage_transfer_manager_download_many]
 def download_many_blobs_with_transfer_manager(
     bucket_name, blob_names, destination_directory="", blob_name_prefix="", workers=8
@@ -78,7 +79,11 @@ def download_many_blobs_with_transfer_manager(
         elif isinstance(result, Exception):
             print("Failed to download {} due to exception: {}".format(name, result))
         else:
-            print("Downloaded {} inside {} directory.".format(name, destination_directory))
+            print(
+                "Downloaded {} inside {} directory.".format(name, destination_directory)
+            )
+
+
 # [END storage_transfer_manager_download_many]
 
 if __name__ == "__main__":
@@ -87,7 +92,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Download blobs in a list by name, concurrently in a process pool."
     )
-    parser.add_argument("--bucket_name", required=True, help="The name of your GCS bucket")
+    parser.add_argument(
+        "--bucket_name", required=True, help="The name of your GCS bucket"
+    )
     parser.add_argument(
         "--blobs",
         nargs="+",
