@@ -858,13 +858,14 @@ def download_many_to_path(
         raise_exception=raise_exception,
         worker_type=worker_type,
         max_workers=max_workers,
-        skip_if_exists=False,
+        skip_if_exists=False, # skip_if_exists is handled in the loop above
     )
 
     for meta_index, result in zip(indices_to_process, many_results):
         results[meta_index] = result
 
     return results
+
 
 
 def download_chunks_concurrently(
