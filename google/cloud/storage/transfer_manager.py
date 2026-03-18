@@ -858,7 +858,11 @@ def download_many_to_path(
         raise_exception=raise_exception,
         worker_type=worker_type,
         max_workers=max_workers,
+<<<<<<< update-download-many-snippet
         skip_if_exists=False,
+=======
+        skip_if_exists=False, # skip_if_exists is handled in the loop above
+>>>>>>> main
     )
 
     for meta_index, result in zip(indices_to_process, many_results):
@@ -866,6 +870,10 @@ def download_many_to_path(
 
     return results
 
+<<<<<<< update-download-many-snippet
+=======
+
+>>>>>>> main
 
 def download_chunks_concurrently(
     blob,
