@@ -257,24 +257,21 @@ def conftest_retry(session):
     else:
         test_cmd = ["pytest", "-vv", "-s", "-n", "auto", json_conformance_tests]
 
-    bidi_reads_retries_test = [
-        "pytest",
-        "-vv",
-        "-s",
-        "tests/conformance/test_bidi_reads.py",
-    ]
-
-    bidi_writes_retries_test = [
-        "pytest",
-        "-vv",
-        "-s",
-        "tests/conformance/test_bidi_writes.py",
-    ]
-
     # # Run pytest against the conformance tests.
     session.run(*test_cmd, env={"DOCKER_API_VERSION": "1.39"})
-    session.run(*bidi_reads_retries_test, env={"DOCKER_API_VERSION": "1.39"})
-    session.run(*bidi_writes_retries_test, env={"DOCKER_API_VERSION": "1.39"})
+
+    bidi_tests = [
+        "tests/conformance/test_bidi_reads.py",
+        "tests/conformance/test_bidi_writes.py",
+    ]
+    for test_file in bidi_tests:
+        session.run(
+            "pytest",
+            "-vv",
+            "-s",
+            test_file,
+            env={"DOCKER_API_VERSION": "1.39"},
+        )
 
 
 @nox.session(python=DEFAULT_PYTHON_VERSION)
