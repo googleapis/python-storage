@@ -20,6 +20,7 @@ from google.api_core import client_info as client_info_lib
 from google.cloud.storage.asyncio import async_grpc_client
 from google.cloud.storage import __version__
 from google.api_core import client_options
+from google.cloud import _storage_v2
 
 
 def _make_credentials(spec=None):
@@ -183,6 +184,23 @@ class TestAsyncGrpcClient:
         kwargs = mock_async_storage_client.call_args.kwargs
         transport = kwargs["transport"]
         assert isinstance(transport._credentials, AnonymousCredentials)
+
+    def test_grpc_client_with_anon_creds_no_client_options(self):
+        # Act & Assert
+        message = "Either client_options or `client_option.api_endpoint` is None. Please provide api_endpoint when `AnonymousCredentials` is used "
+        with pytest.raises(ValueError, match=message):
+            async_grpc_client.AsyncGrpcClient(
+                credentials=AnonymousCredentials(),
+            )
+
+    def test_grpc_client_with_anon_creds_empty_client_options(self):
+        # Act & Assert
+        message = "Either client_options or `client_option.api_endpoint` is None. Please provide api_endpoint when `AnonymousCredentials` is used "
+        with pytest.raises(ValueError, match=message):
+            async_grpc_client.AsyncGrpcClient(
+                client_options=client_options.ClientOptions(),
+                credentials=AnonymousCredentials(),
+            )
 
     @mock.patch("google.cloud._storage_v2.StorageAsyncClient")
     def test_user_agent_with_custom_client_info(self, mock_async_storage_client):
