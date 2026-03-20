@@ -221,10 +221,9 @@ def system(session):
 @nox.session(python=CONFORMANCE_TEST_PYTHON_VERSIONS)
 def conftest_retry(session):
     """Run the retry conformance test suite."""
-    conformance_test_folder_path = os.path.join("tests", "conformance")
-    conformance_test_folder_exists = os.path.exists(conformance_test_folder_path)
+    json_conformance_tests = "tests/conformance/test_conformance.py"
     # Environment check: only run tests if found.
-    if not conformance_test_folder_exists:
+    if not os.path.exists(json_conformance_tests):
         session.skip("Conformance tests were not found")
 
     constraints_path = str(
@@ -252,14 +251,30 @@ def conftest_retry(session):
             "-vv",
             "-s",
             # "--quiet",
-            conformance_test_folder_path,
+            json_conformance_tests,
             *session.posargs,
         ]
     else:
-        test_cmd = ["pytest", "-vv", "-s", "-n", "auto", conformance_test_folder_path]
+        test_cmd = ["pytest", "-vv", "-s", "-n", "auto", json_conformance_tests]
 
-    # Run py.test against the conformance tests.
+    bidi_reads_retries_test = [
+        "pytest",
+        "-vv",
+        "-s",
+        "tests/conformance/test_bidi_reads.py",
+    ]
+
+    bidi_writes_retries_test = [
+        "pytest",
+        "-vv",
+        "-s",
+        "tests/conformance/test_bidi_writes.py",
+    ]
+
+    # # Run pytest against the conformance tests.
     session.run(*test_cmd, env={"DOCKER_API_VERSION": "1.39"})
+    session.run(*bidi_reads_retries_test, env={"DOCKER_API_VERSION": "1.39"})
+    session.run(*bidi_writes_retries_test, env={"DOCKER_API_VERSION": "1.39"})
 
 
 @nox.session(python=DEFAULT_PYTHON_VERSION)
