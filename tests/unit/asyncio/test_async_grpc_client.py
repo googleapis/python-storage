@@ -20,7 +20,6 @@ from google.api_core import client_info as client_info_lib
 from google.cloud.storage.asyncio import async_grpc_client
 from google.cloud.storage import __version__
 from google.api_core import client_options
-from google.cloud import _storage_v2
 
 
 def _make_credentials(spec=None):
