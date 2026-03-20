@@ -235,10 +235,6 @@ def conftest_retry(session):
     session.install(
         "pytest",
         "pytest-xdist",
-        "pytest-asyncio",
-        "grpcio",
-        "grpcio-status",
-        "grpc-google-iam-v1",
         "-c",
         constraints_path,
     )
@@ -250,16 +246,37 @@ def conftest_retry(session):
             "pytest",
             "-vv",
             "-s",
-            # "--quiet",
             json_conformance_tests,
             *session.posargs,
         ]
     else:
         test_cmd = ["pytest", "-vv", "-s", "-n", "auto", json_conformance_tests]
 
-    # # Run pytest against the conformance tests.
+    # Run pytest against the conformance tests.
     session.run(*test_cmd, env={"DOCKER_API_VERSION": "1.39"})
 
+@nox.session(python=CONFORMANCE_TEST_PYTHON_VERSIONS)
+def conftest_retry_bidi(session):
+    """Run the retry conformance test suite."""
+
+    constraints_path = str(
+        CURRENT_DIRECTORY / "testing" / f"constraints-{session.python}.txt"
+    )
+
+    # Install all test dependencies and pytest plugin to run tests in parallel.
+    # Then install this package in-place.
+    session.install(
+        "pytest",
+        "pytest-xdist",
+        "pytest-asyncio",
+        "grpcio",
+        "grpcio-status",
+        "grpc-google-iam-v1",
+        "-c",
+        constraints_path,
+    )
+    session.install("-e", ".", "-c", constraints_path)
+    
     bidi_tests = [
         "tests/conformance/test_bidi_reads.py",
         "tests/conformance/test_bidi_writes.py",
