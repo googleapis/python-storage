@@ -44,6 +44,7 @@ nox.options.error_on_missing_interpreters = True
 nox.options.sessions = [
     "blacken",
     "conftest_retry",
+    "conftest_retry_bidi",
     "docfx",
     "docs",
     "lint",
