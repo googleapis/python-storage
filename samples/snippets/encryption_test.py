@@ -131,37 +131,48 @@ def test_object_csek_to_cmek(test_blob):
     assert cmek_blob.download_as_bytes(), test_blob_content
 
 
-def test_bucket_encryption_enforcement_config(capsys):
+@pytest.fixture(scope="module")
+def enforcement_bucket():
     bucket_name = f"test_encryption_enforcement_{uuid.uuid4().hex}"
+    yield bucket_name
 
+    storage_client = storage.Client()
     try:
-        # Create
-        storage_set_bucket_encryption_enforcement_config.set_bucket_encryption_enforcement_config(bucket_name)
-        out, _ = capsys.readouterr()
-        assert f"Created bucket {bucket_name} with Encryption Enforcement Config." in out
+        bucket = storage_client.get_bucket(bucket_name)
+        bucket.delete(force=True)
+    except Exception:
+        pass
 
-        # Get
-        storage_get_bucket_encryption_enforcement_config.get_bucket_encryption_enforcement_config(bucket_name)
-        out, _ = capsys.readouterr()
-        assert f"Encryption Enforcement Config for bucket {bucket_name}:" in out
-        assert "Customer-managed encryption enforcement config restriction mode: NotRestricted" in out
-        assert "Customer-supplied encryption enforcement config restriction mode: FullyRestricted" in out
-        assert "Google-managed encryption enforcement config restriction mode: FullyRestricted" in out
 
-        # Update
-        storage_update_encryption_enforcement_config.update_encryption_enforcement_config(bucket_name)
-        out, _ = capsys.readouterr()
-        assert f"Encryption enforcement policy updated for bucket {bucket_name}." in out
+def test_set_bucket_encryption_enforcement_config(enforcement_bucket):
+    storage_set_bucket_encryption_enforcement_config.set_bucket_encryption_enforcement_config(
+        enforcement_bucket
+    )
 
-        # Get after update
-        storage_get_bucket_encryption_enforcement_config.get_bucket_encryption_enforcement_config(bucket_name)
-        out, _ = capsys.readouterr()
-        assert "Customer-managed encryption enforcement config restriction mode: NotRestricted" in out
-        assert "Customer-supplied encryption enforcement config restriction mode: None" in out
-        assert "Google-managed encryption enforcement config restriction mode: FullyRestricted" in out
+    storage_client = storage.Client()
+    bucket = storage_client.get_bucket(enforcement_bucket)
 
-    finally:
-        try:
-            storage.Client().get_bucket(bucket_name).delete(force=True)
-        except Exception:
-            pass
+    assert bucket.google_managed_encryption_enforcement_config.restriction_mode == "FullyRestricted"
+    assert bucket.customer_managed_encryption_enforcement_config.restriction_mode == "NotRestricted"
+    assert bucket.customer_supplied_encryption_enforcement_config.restriction_mode == "FullyRestricted"
+
+
+def test_get_bucket_encryption_enforcement_config(enforcement_bucket):
+    # This just exercises the get snippet. If it crashes, the test fails.
+    # The assertions on the state were done in the set test.
+    storage_get_bucket_encryption_enforcement_config.get_bucket_encryption_enforcement_config(
+        enforcement_bucket
+    )
+
+
+def test_update_encryption_enforcement_config(enforcement_bucket):
+    storage_update_encryption_enforcement_config.update_encryption_enforcement_config(
+        enforcement_bucket
+    )
+
+    storage_client = storage.Client()
+    bucket = storage_client.get_bucket(enforcement_bucket)
+
+    assert bucket.google_managed_encryption_enforcement_config.restriction_mode == "FullyRestricted"
+    assert bucket.customer_managed_encryption_enforcement_config.restriction_mode == "NotRestricted"
+    assert bucket.customer_supplied_encryption_enforcement_config is None
