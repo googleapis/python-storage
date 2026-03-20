@@ -256,6 +256,7 @@ def conftest_retry(session):
     # Run pytest against the conformance tests.
     session.run(*test_cmd, env={"DOCKER_API_VERSION": "1.39"})
 
+
 @nox.session(python=CONFORMANCE_TEST_PYTHON_VERSIONS)
 def conftest_retry_bidi(session):
     """Run the retry conformance test suite."""
@@ -277,7 +278,7 @@ def conftest_retry_bidi(session):
         constraints_path,
     )
     session.install("-e", ".", "-c", constraints_path)
-    
+
     bidi_tests = [
         "tests/conformance/test_bidi_reads.py",
         "tests/conformance/test_bidi_writes.py",

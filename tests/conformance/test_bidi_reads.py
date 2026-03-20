@@ -5,16 +5,15 @@ import traceback
 import urllib
 import uuid
 
-import grpc
 import pytest
 import requests
 from google.api_core import client_options, exceptions
-from google.auth import credentials as auth_credentials
 
 from google.cloud import _storage_v2 as storage_v2
 from google.cloud.storage.asyncio.async_grpc_client import AsyncGrpcClient
-from google.cloud.storage.asyncio.async_multi_range_downloader import \
-    AsyncMultiRangeDownloader
+from google.cloud.storage.asyncio.async_multi_range_downloader import (
+    AsyncMultiRangeDownloader,
+)
 from google.cloud.storage.asyncio.async_appendable_object_writer import (
     AsyncAppendableObjectWriter,
 )
