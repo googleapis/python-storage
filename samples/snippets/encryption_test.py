@@ -22,6 +22,7 @@ from google.cloud import storage
 from google.cloud.storage import Blob
 import pytest
 
+from google.cloud.storage.bucket import EncryptionEnforcementConfig
 import storage_download_encrypted_file
 import storage_generate_encryption_key
 import storage_object_csek_to_cmek
@@ -88,11 +89,7 @@ def test_blob():
     except NotFound as e:
         # For the case that the rotation succeeded.
         print(f"Ignoring 404, detail: {e}")
-        blob = Blob(
-            blob_name,
-            bucket,
-            encryption_key=TEST_ENCRYPTION_KEY_2_DECODED
-        )
+        blob = Blob(blob_name, bucket, encryption_key=TEST_ENCRYPTION_KEY_2_DECODED)
         blob.delete()
 
 
@@ -152,20 +149,51 @@ def test_set_bucket_encryption_enforcement_config(enforcement_bucket):
     storage_client = storage.Client()
     bucket = storage_client.get_bucket(enforcement_bucket)
 
-    assert bucket.google_managed_encryption_enforcement_config.restriction_mode == "FullyRestricted"
-    assert bucket.customer_managed_encryption_enforcement_config.restriction_mode == "NotRestricted"
-    assert bucket.customer_supplied_encryption_enforcement_config.restriction_mode == "FullyRestricted"
+    assert (
+        bucket.encryption.google_managed_encryption_enforcement_config.restriction_mode
+        == "FullyRestricted"
+    )
+    assert (
+        bucket.encryption.customer_managed_encryption_enforcement_config.restriction_mode
+        == "NotRestricted"
+    )
+    assert (
+        bucket.encryption.customer_supplied_encryption_enforcement_config.restriction_mode
+        == "FullyRestricted"
+    )
 
 
-def test_get_bucket_encryption_enforcement_config(enforcement_bucket):
-    # This just exercises the get snippet. If it crashes, the test fails.
-    # The assertions on the state were done in the set test.
+def test_get_bucket_encryption_enforcement_config(enforcement_bucket, capsys):
     storage_get_bucket_encryption_enforcement_config.get_bucket_encryption_enforcement_config(
         enforcement_bucket
     )
 
+    out, _ = capsys.readouterr()
+    assert f"Encryption Enforcement Config for bucket {enforcement_bucket}" in out
+    assert (
+        "Customer-managed encryption enforcement config restriction mode: NotRestricted"
+        in out
+    )
+    assert (
+        "Customer-supplied encryption enforcement config restriction mode: FullyRestricted"
+        in out
+    )
+    assert (
+        "Google-managed encryption enforcement config restriction mode: FullyRestricted"
+        in out
+    )
+
 
 def test_update_encryption_enforcement_config(enforcement_bucket):
+    storage_client = storage.Client()
+
+    # Pre-condition: Ensure bucket is in a different state before update
+    bucket = storage_client.get_bucket(enforcement_bucket)
+    bucket.encryption.google_managed_encryption_enforcement_config.restriction_mode = (
+        "NotRestricted"
+    )
+    bucket.patch()
+
     storage_update_encryption_enforcement_config.update_encryption_enforcement_config(
         enforcement_bucket
     )
@@ -173,6 +201,12 @@ def test_update_encryption_enforcement_config(enforcement_bucket):
     storage_client = storage.Client()
     bucket = storage_client.get_bucket(enforcement_bucket)
 
-    assert bucket.google_managed_encryption_enforcement_config.restriction_mode == "FullyRestricted"
-    assert bucket.customer_managed_encryption_enforcement_config.restriction_mode == "NotRestricted"
-    assert bucket.customer_supplied_encryption_enforcement_config is None
+    assert (
+        bucket.encryption.google_managed_encryption_enforcement_config.restriction_mode
+        == "FullyRestricted"
+    )
+    assert (
+        bucket.encryption.customer_managed_encryption_enforcement_config.restriction_mode
+        == "NotRestricted"
+    )
+    assert bucket.encryption.customer_supplied_encryption_enforcement_config is None
