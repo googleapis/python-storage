@@ -209,6 +209,6 @@ def test_update_encryption_enforcement_config(enforcement_bucket):
         == "FullyRestricted"
     )
     assert (
-        bucket.encryption.customer_supplied_encryption_enforcement_config
+        bucket.encryption.customer_supplied_encryption_enforcement_config.restriction_mode
         == "FullyRestricted"
     )
