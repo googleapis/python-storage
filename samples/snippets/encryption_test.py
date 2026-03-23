@@ -22,7 +22,6 @@ from google.cloud import storage
 from google.cloud.storage import Blob
 import pytest
 
-from google.cloud.storage.bucket import EncryptionEnforcementConfig
 import storage_download_encrypted_file
 import storage_generate_encryption_key
 import storage_object_csek_to_cmek
@@ -30,7 +29,7 @@ import storage_rotate_encryption_key
 import storage_upload_encrypted_file
 import storage_get_bucket_encryption_enforcement_config
 import storage_set_bucket_encryption_enforcement_config
-import storage_update_encryption_enforcement_config
+import storage_update_bucket_encryption_enforcement_config
 
 BUCKET = os.environ["CLOUD_STORAGE_BUCKET"]
 KMS_KEY = os.environ["MAIN_CLOUD_KMS_KEY"]
@@ -194,7 +193,7 @@ def test_update_encryption_enforcement_config(enforcement_bucket):
     )
     bucket.patch()
 
-    storage_update_encryption_enforcement_config.update_encryption_enforcement_config(
+    storage_update_bucket_encryption_enforcement_config.update_bucket_encryption_enforcement_config(
         enforcement_bucket
     )
 

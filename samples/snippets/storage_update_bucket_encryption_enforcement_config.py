@@ -12,11 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# [START storage_update_encryption_enforcement_config]
+# [START storage_update_bucket_encryption_enforcement_config]
 from google.cloud import storage
+from google.cloud.storage.bucket import EncryptionEnforcementConfig
 
 
-def update_encryption_enforcement_config(bucket_name):
+def update_bucket_encryption_enforcement_config(bucket_name):
     """Updates the encryption enforcement policy for a bucket."""
     # The ID of your GCS bucket with CMEK restricted
     # bucket_name = "your-unique-bucket-name"
@@ -25,13 +26,18 @@ def update_encryption_enforcement_config(bucket_name):
     bucket = storage_client.get_bucket(bucket_name)
 
     # Update a specific type (e.g., change GMEK to FullyRestricted)
-    bucket.encryption.google_managed_encryption_enforcement_config.restriction_mode = (
-        "FullyRestricted"
+    bucket.encryption.google_managed_encryption_enforcement_config = (
+        EncryptionEnforcementConfig(restriction_mode="NotRestricted")
     )
 
     # Update another type (e.g., change CMEK to NotRestricted)
-    bucket.encryption.customer_managed_encryption_enforcement_config.restriction_mode = (
-        "NotRestricted"
+    bucket.encryption.customer_managed_encryption_enforcement_config = (
+        EncryptionEnforcementConfig(restriction_mode="FullyRestricted")
+    )
+
+    # Keeping CSEK unchanged
+    bucket.encryption.customer_supplied_encryption_enforcement_config = (
+        EncryptionEnforcementConfig(restriction_mode="FullyRestricted")
     )
 
     bucket.patch()
@@ -42,8 +48,8 @@ def update_encryption_enforcement_config(bucket_name):
     )
 
 
-# [END storage_update_encryption_enforcement_config]
+# [END storage_update_bucket_encryption_enforcement_config]
 
 
 if __name__ == "__main__":
-    update_encryption_enforcement_config(bucket_name="your-unique-bucket-name")
+    update_bucket_encryption_enforcement_config(bucket_name="your-unique-bucket-name")
