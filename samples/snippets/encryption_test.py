@@ -202,10 +202,13 @@ def test_update_encryption_enforcement_config(enforcement_bucket):
 
     assert (
         bucket.encryption.google_managed_encryption_enforcement_config.restriction_mode
-        == "FullyRestricted"
+        == "NotRestricted"
     )
     assert (
         bucket.encryption.customer_managed_encryption_enforcement_config.restriction_mode
-        == "NotRestricted"
+        == "FullyRestricted"
     )
-    assert bucket.encryption.customer_supplied_encryption_enforcement_config is None
+    assert (
+        bucket.encryption.customer_supplied_encryption_enforcement_config
+        == "FullyRestricted"
+    )
