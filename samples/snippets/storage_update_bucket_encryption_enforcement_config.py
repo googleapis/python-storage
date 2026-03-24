@@ -47,7 +47,7 @@ def update_bucket_encryption_enforcement_config(bucket_name):
     gmek = bucket.encryption.google_managed_encryption_enforcement_config
     cmek = bucket.encryption.customer_managed_encryption_enforcement_config
     csek = bucket.encryption.customer_supplied_encryption_enforcement_config
-    
+
     print(f"GMEK restriction mode: {gmek.restriction_mode if gmek else 'None'}")
     print(f"CMEK restriction mode: {cmek.restriction_mode if cmek else 'None'}")
     print(f"CSEK restriction mode: {csek.restriction_mode if csek else 'None'}")
