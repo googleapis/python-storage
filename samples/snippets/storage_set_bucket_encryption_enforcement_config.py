@@ -27,25 +27,27 @@ def set_bucket_encryption_enforcement_config(bucket_name):
 
     # Setting restriction_mode to "FullyRestricted" for Google-managed encryption (GMEK)
     # means objects cannot be created using the default Google-managed keys.
-    bucket.google_managed_encryption_enforcement_config = EncryptionEnforcementConfig(
-        restriction_mode="FullyRestricted"
+    bucket.encryption.google_managed_encryption_enforcement_config = (
+        EncryptionEnforcementConfig(restriction_mode="FullyRestricted")
     )
 
     # Setting restriction_mode to "NotRestricted" for Customer-managed encryption (CMEK)
     # ensures that objects ARE permitted to be created using Cloud KMS keys.
-    bucket.customer_managed_encryption_enforcement_config = EncryptionEnforcementConfig(
-        restriction_mode="NotRestricted"
+    bucket.encryption.customer_managed_encryption_enforcement_config = (
+        EncryptionEnforcementConfig(restriction_mode="NotRestricted")
     )
 
     # Setting restriction_mode to "FullyRestricted" for Customer-supplied encryption (CSEK)
     # prevents objects from being created using raw, client-side provided keys.
-    bucket.customer_supplied_encryption_enforcement_config = EncryptionEnforcementConfig(
-        restriction_mode="FullyRestricted"
+    bucket.encryption.customer_supplied_encryption_enforcement_config = (
+        EncryptionEnforcementConfig(restriction_mode="FullyRestricted")
     )
 
     bucket.create()
 
     print(f"Created bucket {bucket.name} with Encryption Enforcement Config.")
+
+
 # [END storage_set_bucket_encryption_enforcement_config]
 
 

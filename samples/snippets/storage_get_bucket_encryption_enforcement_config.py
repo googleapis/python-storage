@@ -26,13 +26,21 @@ def get_bucket_encryption_enforcement_config(bucket_name):
 
     print(f"Encryption Enforcement Config for bucket {bucket.name}:")
 
-    cmek_config = bucket.customer_managed_encryption_enforcement_config
-    csek_config = bucket.customer_supplied_encryption_enforcement_config
-    gmek_config = bucket.google_managed_encryption_enforcement_config
+    cmek_config = bucket.encryption.customer_managed_encryption_enforcement_config
+    csek_config = bucket.encryption.customer_supplied_encryption_enforcement_config
+    gmek_config = bucket.encryption.google_managed_encryption_enforcement_config
 
-    print(f"Customer-managed encryption enforcement config restriction mode: {cmek_config.restriction_mode if cmek_config else None}")
-    print(f"Customer-supplied encryption enforcement config restriction mode: {csek_config.restriction_mode if csek_config else None}")
-    print(f"Google-managed encryption enforcement config restriction mode: {gmek_config.restriction_mode if gmek_config else None}")
+    print(
+        f"Customer-managed encryption enforcement config restriction mode: {cmek_config.restriction_mode if cmek_config else None}"
+    )
+    print(
+        f"Customer-supplied encryption enforcement config restriction mode: {csek_config.restriction_mode if csek_config else None}"
+    )
+    print(
+        f"Google-managed encryption enforcement config restriction mode: {gmek_config.restriction_mode if gmek_config else None}"
+    )
+
+
 # [END storage_get_bucket_encryption_enforcement_config]
 
 
