@@ -19,18 +19,18 @@ from google.cloud.storage.bucket import EncryptionEnforcementConfig
 
 def update_bucket_encryption_enforcement_config(bucket_name):
     """Updates the encryption enforcement policy for a bucket."""
-    # The ID of your GCS bucket with CMEK and CSEK restricted
+    # The ID of your GCS bucket with GMEK and CSEK restricted
     # bucket_name = "your-unique-bucket-name"
 
     storage_client = storage.Client()
     bucket = storage_client.get_bucket(bucket_name)
 
-    # Update a specific type (e.g., change GMEK to FullyRestricted)
+    # Update a specific type (e.g., change GMEK to NotRestricted)
     bucket.encryption.google_managed_encryption_enforcement_config = (
         EncryptionEnforcementConfig(restriction_mode="NotRestricted")
     )
 
-    # Update another type (e.g., change CMEK to NotRestricted)
+    # Update another type (e.g., change CMEK to FullyRestricted)
     bucket.encryption.customer_managed_encryption_enforcement_config = (
         EncryptionEnforcementConfig(restriction_mode="FullyRestricted")
     )

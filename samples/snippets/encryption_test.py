@@ -30,6 +30,7 @@ import storage_upload_encrypted_file
 import storage_get_bucket_encryption_enforcement_config
 import storage_set_bucket_encryption_enforcement_config
 import storage_update_bucket_encryption_enforcement_config
+from google.cloud.storage.bucket import EncryptionEnforcementConfig
 
 BUCKET = os.environ["CLOUD_STORAGE_BUCKET"]
 KMS_KEY = os.environ["MAIN_CLOUD_KMS_KEY"]
@@ -127,7 +128,7 @@ def test_object_csek_to_cmek(test_blob):
     assert cmek_blob.download_as_bytes(), test_blob_content
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture
 def enforcement_bucket():
     bucket_name = f"test_encryption_enforcement_{uuid.uuid4().hex}"
     yield bucket_name
@@ -138,6 +139,25 @@ def enforcement_bucket():
         bucket.delete(force=True)
     except Exception:
         pass
+
+
+def create_enforcement_bucket(bucket_name):
+    """Sets up a bucket with GMEK AND CSEK Restricted"""
+    client = storage.Client()
+    bucket = client.bucket(bucket_name)
+
+    bucket.encryption.google_managed_encryption_enforcement_config = (
+        EncryptionEnforcementConfig(restriction_mode="FullyRestricted")
+    )
+    bucket.encryption.customer_managed_encryption_enforcement_config = (
+        EncryptionEnforcementConfig(restriction_mode="NotRestricted")
+    )
+    bucket.encryption.customer_supplied_encryption_enforcement_config = (
+        EncryptionEnforcementConfig(restriction_mode="FullyRestricted")
+    )
+
+    bucket.create()
+    return bucket
 
 
 def test_set_bucket_encryption_enforcement_config(enforcement_bucket):
@@ -163,6 +183,9 @@ def test_set_bucket_encryption_enforcement_config(enforcement_bucket):
 
 
 def test_get_bucket_encryption_enforcement_config(enforcement_bucket, capsys):
+    # Pre-setup: Creating a bucket
+    create_enforcement_bucket(enforcement_bucket)
+
     storage_get_bucket_encryption_enforcement_config.get_bucket_encryption_enforcement_config(
         enforcement_bucket
     )
@@ -184,14 +207,8 @@ def test_get_bucket_encryption_enforcement_config(enforcement_bucket, capsys):
 
 
 def test_update_encryption_enforcement_config(enforcement_bucket):
-    storage_client = storage.Client()
-
-    # Pre-condition: Ensure bucket is in a different state before update
-    bucket = storage_client.get_bucket(enforcement_bucket)
-    bucket.encryption.google_managed_encryption_enforcement_config.restriction_mode = (
-        "NotRestricted"
-    )
-    bucket.patch()
+    # Pre-setup: Create a bucket in a different state before update
+    create_enforcement_bucket(enforcement_bucket)
 
     storage_update_bucket_encryption_enforcement_config.update_bucket_encryption_enforcement_config(
         enforcement_bucket
