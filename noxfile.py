@@ -44,7 +44,6 @@ nox.options.error_on_missing_interpreters = True
 nox.options.sessions = [
     "blacken",
     "conftest_retry",
-    "conftest_retry_bidi",
     "docfx",
     "docs",
     "lint",
@@ -222,44 +221,11 @@ def system(session):
 @nox.session(python=CONFORMANCE_TEST_PYTHON_VERSIONS)
 def conftest_retry(session):
     """Run the retry conformance test suite."""
-    json_conformance_tests = "tests/conformance/test_conformance.py"
+    conformance_test_folder_path = os.path.join("tests", "conformance")
+    conformance_test_folder_exists = os.path.exists(conformance_test_folder_path)
     # Environment check: only run tests if found.
-    if not os.path.exists(json_conformance_tests):
+    if not conformance_test_folder_exists:
         session.skip("Conformance tests were not found")
-
-    constraints_path = str(
-        CURRENT_DIRECTORY / "testing" / f"constraints-{session.python}.txt"
-    )
-
-    # Install all test dependencies and pytest plugin to run tests in parallel.
-    # Then install this package in-place.
-    session.install(
-        "pytest",
-        "pytest-xdist",
-        "-c",
-        constraints_path,
-    )
-    session.install("-e", ".", "-c", constraints_path)
-
-    # Run #CPU processes in parallel if no test session arguments are passed in.
-    if session.posargs:
-        test_cmd = [
-            "pytest",
-            "-vv",
-            "-s",
-            json_conformance_tests,
-            *session.posargs,
-        ]
-    else:
-        test_cmd = ["pytest", "-vv", "-s", "-n", "auto", json_conformance_tests]
-
-    # Run pytest against the conformance tests.
-    session.run(*test_cmd, env={"DOCKER_API_VERSION": "1.39"})
-
-
-@nox.session(python=CONFORMANCE_TEST_PYTHON_VERSIONS)
-def conftest_retry_bidi(session):
-    """Run the retry conformance test suite."""
 
     constraints_path = str(
         CURRENT_DIRECTORY / "testing" / f"constraints-{session.python}.txt"
@@ -279,18 +245,21 @@ def conftest_retry_bidi(session):
     )
     session.install("-e", ".", "-c", constraints_path)
 
-    bidi_tests = [
-        "tests/conformance/test_bidi_reads.py",
-        "tests/conformance/test_bidi_writes.py",
-    ]
-    for test_file in bidi_tests:
-        session.run(
+    # Run #CPU processes in parallel if no test session arguments are passed in.
+    if session.posargs:
+        test_cmd = [
             "pytest",
             "-vv",
             "-s",
-            test_file,
-            env={"DOCKER_API_VERSION": "1.39"},
-        )
+            # "--quiet",
+            conformance_test_folder_path,
+            *session.posargs,
+        ]
+    else:
+        test_cmd = ["pytest", "-vv", "-s", "-n", "auto", conformance_test_folder_path]
+
+    # Run py.test against the conformance tests.
+    session.run(*test_cmd, env={"DOCKER_API_VERSION": "1.39"})
 
 
 @nox.session(python=DEFAULT_PYTHON_VERSION)
