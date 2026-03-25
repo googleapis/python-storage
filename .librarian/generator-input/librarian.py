@@ -45,6 +45,11 @@ for library in s.get_staging_dirs(default_version):
             "testing/constraints-3.7.txt",
             "testing/constraints-3.9.txt",
             "tests/unit/__init__.py",
+            # Temporarily exclude google/cloud/_storage_v2/services/storage/client.py
+            # due to customization.
+            # This exclusion will be removed in the google-cloud-python migration PR
+            # When librarian.py is dropped.
+            "google/cloud/storage_v2/services/storage/client.py",
         ],
     )
 
