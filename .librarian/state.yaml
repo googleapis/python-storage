@@ -22,10 +22,18 @@ libraries:
       - ^renovate.json
       - ^setup.py
       - ^docs/summary_overview.md
-      - ^google/cloud/_storage_v2
+      - ^google/cloud/_storage_v2/__init__.py
+      - ^google/cloud/_storage_v2/gapic
+      - ^google/cloud/_storage_v2/py.typed
+      - ^google/cloud/_storage_v2/samples/generated_samples
+      - ^google/cloud/_storage_v2/services/__init__.py
+      - ^google/cloud/_storage_v2/services/storage/transports
+      - ^google/cloud/_storage_v2/services/storage/__init__.py
+      - ^google/cloud/_storage_v2/services/storage/async_client.py
+      - ^google/cloud/_storage_v2/services/storage/pagers.py
+      - ^google/cloud/_storage_v2/types
       - ^samples/generated_samples
       - ^testing/constraints-3.8.txt
       - ^testing/constraints-3.1.*
       - ^tests/__init__.py
-      - ^tests/unit/gapic
     tag_format: v{version}
