@@ -75,6 +75,9 @@ from google.cloud.storage.constants import STANDARD_STORAGE_CLASS
 from google.cloud.storage.exceptions import DataCorruption
 from google.cloud.storage.exceptions import InvalidResponse
 from google.cloud.storage.retry import ConditionalRetryPolicy
+
+from google.cloud.storage.contexts import ObjectContexts
+from google.cloud.storage.contexts import ObjectCustomContextPayload
 from google.cloud.storage.retry import DEFAULT_RETRY
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_ETAG_IN_JSON
 from google.cloud.storage.retry import DEFAULT_RETRY_IF_GENERATION_SPECIFIED
@@ -4764,6 +4767,56 @@ class Blob(_PropertyMixin):
                   resource has not been loaded from the server.
         """
         return self._properties.get("mediaLink")
+
+
+    @property
+    def contexts(self):
+        """Retrieve or set the user-defined object contexts for this blob.
+
+        See https://cloud.google.com/storage/docs/json_api/v1/objects
+
+        .. note::
+            The getter for this property returns an
+            :class:`~google.cloud.storage.contexts.ObjectContexts` object, which is a
+            structured representation of the blob's contexts configuration.
+            Modifying the returned object has no effect. To update the blob's
+            contexts, create and assign a new ``ObjectContexts`` object to this
+            property and then call
+            :meth:`~google.cloud.storage.blob.Blob.patch`.
+
+            .. code-block:: python
+
+                from google.cloud.storage.contexts import (
+                    ObjectContexts,
+                    ObjectCustomContextPayload,
+                )
+
+                contexts = ObjectContexts()
+                contexts.custom = {"foo": ObjectCustomContextPayload(value="Bar")}
+                blob.contexts = contexts
+                blob.patch()
+
+        :setter: Set the user-defined object contexts for this blob.
+        :getter: Gets the user-defined object contexts for this blob.
+
+        :rtype: :class:`~google.cloud.storage.contexts.ObjectContexts` or ``NoneType``
+        :returns:
+            An ``ObjectContexts`` object representing the configuration, or ``None``
+            if no contexts are configured.
+        """
+        resource = self._properties.get("contexts")
+        if resource:
+            return ObjectContexts._from_api_resource(resource)
+        return None
+
+    @contexts.setter
+    def contexts(self, value):
+        if value is None:
+            self._patch_property("contexts", None)
+        elif isinstance(value, ObjectContexts):
+            self._patch_property("contexts", value._to_api_resource())
+        else:
+            self._patch_property("contexts", value)
 
     @property
     def metadata(self):

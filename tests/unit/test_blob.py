@@ -5712,6 +5712,66 @@ class Test_Blob(unittest.TestCase):
         blob = self._make_one(BLOB_NAME, bucket=bucket, properties=properties)
         self.assertEqual(blob.media_link, MEDIA_LINK)
 
+
+    def test_contexts_getter(self):
+        from google.cloud.storage.contexts import ObjectContexts
+
+        BLOB_NAME = "blob-name"
+        bucket = _Bucket()
+        PROPERTIES = {
+            "contexts": {
+                "custom": {
+                    "foo": {"value": "Foo"},
+                    "bar": {
+                        "value": "Bar",
+                        "createTime": "2023-01-01T12:00:00Z",
+                        "updateTime": "2023-01-02T12:00:00Z",
+                    },
+                }
+            }
+        }
+        blob = self._make_one(BLOB_NAME, bucket=bucket, properties=PROPERTIES)
+        contexts = blob.contexts
+
+        self.assertIsInstance(contexts, ObjectContexts)
+        self.assertEqual(contexts.custom["foo"].value, "Foo")
+        self.assertIsNone(contexts.custom["foo"].create_time)
+        self.assertEqual(contexts.custom["bar"].value, "Bar")
+        self.assertEqual(
+            contexts.custom["bar"].create_time.isoformat(),
+            "2023-01-01T12:00:00+00:00"
+        )
+        self.assertEqual(
+            contexts.custom["bar"].update_time.isoformat(),
+            "2023-01-02T12:00:00+00:00"
+        )
+
+    def test_contexts_setter_w_object_contexts(self):
+        from google.cloud.storage.contexts import ObjectContexts, ObjectCustomContextPayload
+
+        BLOB_NAME = "blob-name"
+        bucket = _Bucket()
+        blob = self._make_one(BLOB_NAME, bucket=bucket)
+
+        self.assertIsNone(blob.contexts)
+        blob.contexts = ObjectContexts(custom={"foo": ObjectCustomContextPayload(value="Foo")})
+
+        self.assertIn("contexts", blob._changes)
+        self.assertEqual(
+            blob._properties["contexts"],
+            {"custom": {"foo": {"value": "Foo"}}}
+        )
+
+    def test_contexts_setter_none(self):
+        BLOB_NAME = "blob-name"
+        bucket = _Bucket()
+        PROPERTIES = {"contexts": {"custom": {"foo": {"value": "Foo"}}}}
+        blob = self._make_one(BLOB_NAME, bucket=bucket, properties=PROPERTIES)
+
+        blob.contexts = None
+        self.assertIn("contexts", blob._changes)
+        self.assertIsNone(blob._properties["contexts"])
+
     def test_metadata_getter(self):
         BLOB_NAME = "blob-name"
         bucket = _Bucket()
