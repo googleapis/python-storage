@@ -115,8 +115,8 @@ _CHUNKED_DOWNLOAD_CHECKSUM_MESSAGE = (
 )
 _COMPOSE_IF_GENERATION_LIST_DEPRECATED = (
     "'if_generation_match: type list' is deprecated and supported for "
-    "backwards-compatability reasons only.  Use 'if_source_generation_match' "
-    "instead' to match source objects' generations."
+    "backward-compatibility reasons only. Use 'if_source_generation_match' "
+    "instead to match source objects' generations."
 )
 _COMPOSE_IF_GENERATION_LIST_AND_IF_SOURCE_GENERATION_ERROR = (
     "Use 'if_generation_match' to match the generation of the destination "
@@ -125,7 +125,7 @@ _COMPOSE_IF_GENERATION_LIST_AND_IF_SOURCE_GENERATION_ERROR = (
 )
 _COMPOSE_IF_METAGENERATION_LIST_DEPRECATED = (
     "'if_metageneration_match: type list' is deprecated and supported for "
-    "backwards-compatability reasons only. Note that the metageneration to "
+    "backward-compatibility reasons only. Note that the metageneration to "
     "be matched is that of the destination blob. Please pass in a single "
     "value (type long)."
 )
@@ -3879,7 +3879,7 @@ class Blob(_PropertyMixin):
             versions of the object.
             Note: In a previous version, this argument worked identically to the
             ``if_source_generation_match`` argument. For
-            backwards-compatibility reasons, if a list is passed in,
+            backward-compatibility reasons, if a list is passed in,
             this argument will behave like ``if_source_generation_match``
             and also issue a DeprecationWarning.
 
@@ -3889,9 +3889,9 @@ class Blob(_PropertyMixin):
             destination object's current metageneration matches the given
             value.
 
-            If a list of long is passed in, no match operation will be
+            If a list of longs is passed in, no match operation will be
             performed.  (Deprecated: type(list of long) is supported for
-            backwards-compatability reasons only.)
+            backward-compatibility reasons only.)
 
         :type if_source_generation_match: list of long
         :param if_source_generation_match:
